@@ -46,5 +46,5 @@ kotlin-js-store/
 .DS_Store
 Thumbs.db
 local.properties
-*.env
-*.env.local
+.env
+.env.*
