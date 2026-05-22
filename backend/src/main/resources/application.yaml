@@ -1,0 +1,7 @@
+ktor:
+  deployment:
+    port: "$PORT:8080"
+    host: "0.0.0.0"
+  application:
+    modules:
+      - mindstock.backend.MainKt.module
