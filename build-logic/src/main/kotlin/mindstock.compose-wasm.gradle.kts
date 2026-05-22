@@ -12,7 +12,7 @@ kotlin {
 
     @OptIn(ExperimentalWasmDsl::class)
     wasmJs {
-        moduleName = "mindstock-frontend"
+        outputModuleName.set("mindstock-frontend")
         browser {
             commonWebpackConfig {
                 outputFileName = "mindstock-frontend.js"
