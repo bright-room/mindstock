@@ -1,5 +1,5 @@
 plugins {
-    id("mindstock.kmp-shared")
+    id("net.brightroom.mindstock.kmp-shared")
     id("org.jetbrains.kotlin.plugin.serialization")
     id("org.jetbrains.kotlinx.rpc.plugin")
 }

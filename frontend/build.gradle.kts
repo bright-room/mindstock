@@ -1,5 +1,5 @@
 plugins {
-    id("mindstock.compose-web")
+    id("net.brightroom.mindstock.compose-web")
     id("org.jetbrains.kotlin.plugin.serialization")
     id("org.jetbrains.kotlinx.rpc.plugin")
 }

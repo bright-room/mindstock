@@ -2,23 +2,23 @@ import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
 
 plugins {
     id("org.jetbrains.kotlin.multiplatform")
-    id("mindstock.spotless")
+    id("org.jetbrains.compose")
+    id("org.jetbrains.kotlin.plugin.compose")
+    id("net.brightroom.mindstock.spotless")
 }
 
 kotlin {
     jvmToolchain(25)
 
-    jvm()
-
     js(IR) {
         browser()
-        binaries.library()
+        binaries.executable()
     }
 
     @OptIn(ExperimentalWasmDsl::class)
     wasmJs {
         browser()
-        binaries.library()
+        binaries.executable()
     }
 
     sourceSets {

@@ -1,5 +1,5 @@
 plugins {
-    id("mindstock.ktor-server")
+    id("net.brightroom.mindstock.ktor-server")
     id("org.jetbrains.kotlin.plugin.serialization")
     id("org.jetbrains.kotlinx.rpc.plugin")
 }

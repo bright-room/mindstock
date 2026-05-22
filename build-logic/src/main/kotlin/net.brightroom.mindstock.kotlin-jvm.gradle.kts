@@ -1,6 +1,6 @@
 plugins {
     id("org.jetbrains.kotlin.jvm")
-    id("mindstock.spotless")
+    id("net.brightroom.mindstock.spotless")
 }
 
 kotlin {

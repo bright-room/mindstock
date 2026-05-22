@@ -1,5 +1,5 @@
 plugins {
-    id("mindstock.kotlin-jvm")
+    id("net.brightroom.mindstock.kotlin-jvm")
 }
 
 dependencies {
