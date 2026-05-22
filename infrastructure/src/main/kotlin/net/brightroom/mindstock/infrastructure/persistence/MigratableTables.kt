@@ -1,5 +1,8 @@
 package net.brightroom.mindstock.infrastructure.persistence
 
+import net.brightroom.mindstock.infrastructure.schema.catalog.CatalogItemNamesTable
+import net.brightroom.mindstock.infrastructure.schema.catalog.CatalogItemUnitsTable
+import net.brightroom.mindstock.infrastructure.schema.catalog.CatalogItemsTable
 import net.brightroom.mindstock.infrastructure.schema.household.HouseholdMembershipRevocationsTable
 import net.brightroom.mindstock.infrastructure.schema.household.HouseholdMembershipsTable
 import net.brightroom.mindstock.infrastructure.schema.household.HouseholdsTable
@@ -21,5 +24,8 @@ object MigratableTables {
             HouseholdsTable,
             HouseholdMembershipsTable,
             HouseholdMembershipRevocationsTable,
+            CatalogItemsTable,
+            CatalogItemNamesTable,
+            CatalogItemUnitsTable,
         )
 }
