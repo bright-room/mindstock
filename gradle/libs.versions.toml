@@ -1,10 +1,10 @@
 [versions]
-kotlin = "2.2.0"
+kotlin = "2.3.0"
 kotlinx-coroutines = "1.9.0"
 kotlinx-serialization = "1.7.3"
 kotlinx-datetime = "0.6.1"
-kotlinx-rpc = "0.4.0"
-compose-multiplatform = "1.7.3"
+kotlinx-rpc = "0.10.2"
+compose-multiplatform = "1.9.0"
 ktor = "3.0.3"
 exposed = "1.0.0-beta-4"
 hikari = "6.2.1"
@@ -29,7 +29,7 @@ kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serializa
 kotlinx-datetime = { module = "org.jetbrains.kotlinx:kotlinx-datetime", version.ref = "kotlinx-datetime" }
 
 kotlinx-rpc-core = { module = "org.jetbrains.kotlinx:kotlinx-rpc-core", version.ref = "kotlinx-rpc" }
-kotlinx-rpc-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-rpc-serialization-json", version.ref = "kotlinx-rpc" }
+kotlinx-rpc-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-rpc-krpc-serialization-json", version.ref = "kotlinx-rpc" }
 kotlinx-rpc-server = { module = "org.jetbrains.kotlinx:kotlinx-rpc-krpc-server", version.ref = "kotlinx-rpc" }
 kotlinx-rpc-server-ktor = { module = "org.jetbrains.kotlinx:kotlinx-rpc-krpc-ktor-server", version.ref = "kotlinx-rpc" }
 kotlinx-rpc-client = { module = "org.jetbrains.kotlinx:kotlinx-rpc-krpc-client", version.ref = "kotlinx-rpc" }
