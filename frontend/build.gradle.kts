@@ -1,12 +1,12 @@
 plugins {
-    id("mindstock.compose-wasm")
+    id("mindstock.compose-web")
     id("org.jetbrains.kotlin.plugin.serialization")
     id("org.jetbrains.kotlinx.rpc.plugin")
 }
 
 kotlin {
     sourceSets {
-        val wasmJsMain by getting {
+        val webMain by getting {
             dependencies {
                 implementation(projects.shared)
 
@@ -20,7 +20,6 @@ kotlin {
                 implementation(libs.kotlinx.rpc.client)
                 implementation(libs.kotlinx.rpc.client.ktor)
                 implementation(libs.ktor.client.core)
-                implementation(libs.ktor.client.js)
             }
         }
     }

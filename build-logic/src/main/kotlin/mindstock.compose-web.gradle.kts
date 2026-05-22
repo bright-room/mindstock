@@ -10,14 +10,26 @@ plugins {
 kotlin {
     jvmToolchain(21)
 
+    js(IR) {
+        browser()
+        binaries.executable()
+    }
+
     @OptIn(ExperimentalWasmDsl::class)
     wasmJs {
-        outputModuleName.set("mindstock-frontend")
-        browser {
-            commonWebpackConfig {
-                outputFileName = "mindstock-frontend.js"
-            }
-        }
+        browser()
         binaries.executable()
+    }
+
+    sourceSets {
+        val webMain by creating {
+            dependsOn(commonMain.get())
+        }
+        jsMain {
+            dependsOn(webMain)
+        }
+        wasmJsMain {
+            dependsOn(webMain)
+        }
     }
 }

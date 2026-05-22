@@ -15,6 +15,11 @@ kotlin {
         }
     }
 
+    js(IR) {
+        browser()
+        binaries.library()
+    }
+
     @OptIn(ExperimentalWasmDsl::class)
     wasmJs {
         browser()
@@ -22,6 +27,15 @@ kotlin {
     }
 
     sourceSets {
+        val webMain by creating {
+            dependsOn(commonMain.get())
+        }
+        jsMain {
+            dependsOn(webMain)
+        }
+        wasmJsMain {
+            dependsOn(webMain)
+        }
         commonTest {
             dependencies {
                 implementation(kotlin("test"))
