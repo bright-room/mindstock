@@ -38,3 +38,13 @@ out/
 
 ### AI agents ###
 .claude/settings.local.json
+
+### KMP / Kotlin / local-dev ###
+.fleet/
+kotlin-js-store/
+.kotlin/
+.DS_Store
+Thumbs.db
+local.properties
+.env
+.env.*
