@@ -6,6 +6,9 @@ import net.brightroom.mindstock.infrastructure.schema.catalog.CatalogItemsTable
 import net.brightroom.mindstock.infrastructure.schema.household.HouseholdMembershipRevocationsTable
 import net.brightroom.mindstock.infrastructure.schema.household.HouseholdMembershipsTable
 import net.brightroom.mindstock.infrastructure.schema.household.HouseholdsTable
+import net.brightroom.mindstock.infrastructure.schema.product.ProductArchivesTable
+import net.brightroom.mindstock.infrastructure.schema.product.ProductMinimumStocksTable
+import net.brightroom.mindstock.infrastructure.schema.product.ProductsTable
 import net.brightroom.mindstock.infrastructure.schema.user.UserDisplayNamesTable
 import net.brightroom.mindstock.infrastructure.schema.user.UsersTable
 import org.jetbrains.exposed.v1.core.Table
@@ -27,5 +30,8 @@ object MigratableTables {
             CatalogItemsTable,
             CatalogItemNamesTable,
             CatalogItemUnitsTable,
+            ProductsTable,
+            ProductMinimumStocksTable,
+            ProductArchivesTable,
         )
 }
