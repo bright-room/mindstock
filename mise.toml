@@ -1,0 +1,4 @@
+[tools]
+java = "openjdk-25"
+
+[env]
