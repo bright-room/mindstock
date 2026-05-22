@@ -1,5 +1,4 @@
 import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
-import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
     id("org.jetbrains.kotlin.multiplatform")
@@ -7,13 +6,9 @@ plugins {
 }
 
 kotlin {
-    jvmToolchain(21)
+    jvmToolchain(25)
 
-    jvm {
-        compilerOptions {
-            jvmTarget.set(JvmTarget.JVM_21)
-        }
-    }
+    jvm()
 
     js(IR) {
         browser()
@@ -27,19 +22,12 @@ kotlin {
     }
 
     sourceSets {
-        val webMain by creating {
-            dependsOn(commonMain.get())
-        }
-        jsMain {
-            dependsOn(webMain)
-        }
-        wasmJsMain {
-            dependsOn(webMain)
-        }
-        commonTest {
-            dependencies {
-                implementation(kotlin("test"))
-            }
+        val webMain by creating {}
+        jsMain {}
+        wasmJsMain {}
+
+        commonTest.dependencies {
+            implementation(kotlin("test"))
         }
     }
 }

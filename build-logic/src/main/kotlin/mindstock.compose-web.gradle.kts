@@ -8,7 +8,7 @@ plugins {
 }
 
 kotlin {
-    jvmToolchain(21)
+    jvmToolchain(25)
 
     js(IR) {
         browser()
@@ -22,14 +22,12 @@ kotlin {
     }
 
     sourceSets {
-        val webMain by creating {
-            dependsOn(commonMain.get())
-        }
-        jsMain {
-            dependsOn(webMain)
-        }
-        wasmJsMain {
-            dependsOn(webMain)
+        val webMain by creating {}
+        jsMain {}
+        wasmJsMain {}
+
+        commonTest.dependencies {
+            implementation(kotlin("test"))
         }
     }
 }
