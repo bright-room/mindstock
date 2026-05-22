@@ -1,4 +1,4 @@
-package mindstock.frontend
+package net.brightroom.mindstock.frontend
 
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text

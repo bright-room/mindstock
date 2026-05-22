@@ -5,7 +5,7 @@ plugins {
 }
 
 application {
-    mainClass.set("mindstock.backend.MainKt")
+    mainClass.set("net.brightroom.mindstock.backend.MainKt")
 }
 
 dependencies {

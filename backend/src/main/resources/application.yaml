@@ -4,4 +4,4 @@ ktor:
     host: "0.0.0.0"
   application:
     modules:
-      - mindstock.backend.MainKt.module
+      - net.brightroom.mindstock.backend.MainKt.module
