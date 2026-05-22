@@ -1,5 +1,7 @@
 package net.brightroom.mindstock.infrastructure.persistence
 
+import net.brightroom.mindstock.infrastructure.schema.user.UserDisplayNamesTable
+import net.brightroom.mindstock.infrastructure.schema.user.UsersTable
 import org.jetbrains.exposed.v1.core.Table
 
 /**
@@ -11,6 +13,7 @@ import org.jetbrains.exposed.v1.core.Table
 object MigratableTables {
     val all: List<Table>
         get() = listOf(
-            // Populated in subsequent tasks
+            UsersTable,
+            UserDisplayNamesTable,
         )
 }
