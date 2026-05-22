@@ -1,5 +1,3 @@
-import org.jetbrains.compose.ExperimentalComposeLibrary
-
 plugins {
     id("mindstock.compose-wasm")
     id("org.jetbrains.kotlin.plugin.serialization")
