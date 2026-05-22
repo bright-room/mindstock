@@ -5,3 +5,8 @@ ktor:
   application:
     modules:
       - net.brightroom.mindstock.backend.MainKt.module
+
+database:
+  jdbcUrl: "$DATABASE_URL:jdbc:postgresql://localhost:5432/mindstock"
+  username: "$DATABASE_USERNAME:mindstock"
+  password: "$DATABASE_PASSWORD:mindstock"

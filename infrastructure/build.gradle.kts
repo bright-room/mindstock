@@ -23,10 +23,10 @@ dependencies {
     implementation(projects.application)
 
     implementation(libs.exposed.core)
-    implementation(libs.exposed.jdbc)
+    api(libs.exposed.jdbc)
     implementation(libs.exposed.kotlin.datetime)
     implementation(libs.exposed.migration)
-    implementation(libs.hikari)
+    api(libs.hikari)
     implementation(libs.postgres.jdbc)
     implementation(libs.flyway.core)
     implementation(libs.flyway.database.postgresql)
