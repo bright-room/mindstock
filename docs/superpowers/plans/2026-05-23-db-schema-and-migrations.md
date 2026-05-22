@@ -30,9 +30,7 @@ After this plan:
 ```
 mindstock/
 ├── compose.yml                              # PG 18 + (later) Zitadel
-├── scripts/
-│   ├── db-up.sh
-│   └── db-down.sh
+├── Makefile                                 # `make db-up` / `make db-down` / `make psql`
 ├── infrastructure/
 │   ├── build.gradle.kts                     # +exposed-migration, +testcontainers
 │   └── src/
@@ -65,12 +63,11 @@ mindstock/
 
 ---
 
-## Task 1: Add Docker Compose for PostgreSQL 18
+## Task 1: Add Docker Compose for PostgreSQL 18 + Makefile
 
 **Files:**
 - Create: `compose.yml`
-- Create: `scripts/db-up.sh`
-- Create: `scripts/db-down.sh`
+- Create: `Makefile`
 
 - [ ] **Step 1: Write compose.yml**
 
@@ -88,7 +85,9 @@ services:
     ports:
       - "5432:5432"
     volumes:
-      - mindstock-pgdata:/var/lib/postgresql/data
+      # PG 18 moved some paths out of /var/lib/postgresql/data, so mount the
+      # parent directory to cover everything the image writes.
+      - mindstock-pgdata:/var/lib/postgresql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U mindstock -d mindstock"]
       interval: 2s
@@ -99,51 +98,49 @@ volumes:
   mindstock-pgdata:
 ```
 
-- [ ] **Step 2: Write scripts/db-up.sh**
+- [ ] **Step 2: Write Makefile**
 
-Create `scripts/db-up.sh`:
+Create `Makefile` at repo root:
 
-```bash
-#!/usr/bin/env bash
-set -euo pipefail
-cd "$(dirname "$0")/.."
-docker compose up -d postgres
-docker compose exec -T postgres bash -lc 'until pg_isready -U mindstock -d mindstock; do sleep 1; done'
-echo "postgres ready on localhost:5432 (db=mindstock user=mindstock)"
+```makefile
+.PHONY: db-up db-down db-logs psql help
+
+help:
+	@echo "make db-up    - start local postgres 18 and wait for readiness"
+	@echo "make db-down  - stop and remove the local postgres container"
+	@echo "make db-logs  - tail postgres logs"
+	@echo "make psql     - open psql against the local postgres"
+
+db-up:
+	docker compose up -d postgres
+	@docker compose exec -T postgres bash -lc 'until pg_isready -U mindstock -d mindstock; do sleep 1; done'
+	@echo "postgres ready on localhost:5432 (db=mindstock user=mindstock)"
+
+db-down:
+	docker compose down
+
+db-logs:
+	docker compose logs -f postgres
+
+psql:
+	docker compose exec -it postgres psql -U mindstock -d mindstock
 ```
 
-- [ ] **Step 3: Write scripts/db-down.sh**
+- [ ] **Step 3: Smoke test**
 
-Create `scripts/db-down.sh`:
-
-```bash
-#!/usr/bin/env bash
-set -euo pipefail
-cd "$(dirname "$0")/.."
-docker compose down
-```
-
-- [ ] **Step 4: Make scripts executable**
-
-```bash
-chmod +x scripts/db-up.sh scripts/db-down.sh
-```
-
-- [ ] **Step 5: Smoke test**
-
-Run `./scripts/db-up.sh`. Expected: container starts and `postgres ready ...` prints. Then:
+Run `make db-up`. Expected: container starts and `postgres ready ...` prints. Then:
 
 ```bash
 docker compose exec -T postgres psql -U mindstock -d mindstock -c "SELECT uuidv7();"
 ```
 
-Expected: one UUIDv7 value printed. Stop the DB with `./scripts/db-down.sh`.
+Expected: one UUIDv7 value printed. Stop the DB with `make db-down`.
 
-- [ ] **Step 6: Commit**
+- [ ] **Step 4: Commit**
 
 ```bash
-git add compose.yml scripts/
-git commit -m "Add PostgreSQL 18 Docker Compose and helper scripts"
+git add compose.yml Makefile
+git commit -m "Add PostgreSQL 18 Docker Compose and Makefile shortcuts"
 ```
 
 ---
@@ -1383,7 +1380,7 @@ fun Application.module() {
 - [ ] **Step 4: Smoke test with the Compose Postgres**
 
 ```bash
-./scripts/db-up.sh
+make db-up
 ./gradlew :backend:run &
 BPID=$!
 for i in {1..30}; do
@@ -1392,7 +1389,7 @@ for i in {1..30}; do
 done
 echo
 kill $BPID 2>/dev/null
-./scripts/db-down.sh
+make db-down
 ```
 
 Expected: `OK` printed; backend log shows Flyway applying both migrations.
