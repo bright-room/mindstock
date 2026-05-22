@@ -16,10 +16,6 @@ pluginManagement {
     }
 }
 
-plugins {
-    id("org.gradle.toolchains.foojay-resolver-convention") version "1.0.0"
-}
-
 dependencyResolutionManagement {
     repositories {
         mavenCentral()
@@ -31,6 +27,10 @@ dependencyResolutionManagement {
             }
         }
     }
+}
+
+plugins {
+    id("org.gradle.toolchains.foojay-resolver-convention") version "1.0.0"
 }
 
 // composite build for convention plugins
