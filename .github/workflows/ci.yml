@@ -2,7 +2,6 @@ name: CI
 
 on:
   pull_request:
-    branches: [main]
 
 permissions:
   contents: read
@@ -18,8 +17,8 @@ jobs:
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@48b5f213c81028ace310571dc5ec0fbbca0b2947 # v4
 
-      - name: Build
-        run: ./gradlew build
+      - name: Check
+        run: ./gradlew check
 
       - name: Upload reports on failure
         if: failure()
