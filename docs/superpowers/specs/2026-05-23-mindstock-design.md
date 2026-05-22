@@ -129,7 +129,7 @@ backend ───┤
 
 - `quantity > 0`(増減方向はイベント種別で表現、数量自体は常に正)
 - `minimum_stock >= 0`
-- `occurred_at <= recorded_at`
+- `occurred_at <= created_at`(occurred_at は過去日入力可、未来日は不可)
 - 在庫が 0 以下になる消費も**許容**する(現実との乖離は補正イベントで合わせる)
 - アーカイブされた商品には新規 stock イベント発火禁止
 - 同じ catalog_item を同一世帯で重複採用しない(`UNIQUE (household_id, catalog_item_id)`)
@@ -357,7 +357,60 @@ interface InventoryService : RemoteService {
 @Serializable @JvmInline value class StockEventId(val value: Long)
 ```
 
-コマンド・クエリ DTO は [セクション 3 議事](#) に列挙の通り(`RegisterCatalogItem`, `ConsumeStock`, `StockView` 等)。
+コマンド DTO(主要):
+
+```kotlin
+@Serializable data class RegisterCatalogItem(val name: String, val unit: String)
+@Serializable data class RenameCatalogItem(val catalogItemId: CatalogItemId, val newName: String)
+@Serializable data class ChangeCatalogItemUnit(val catalogItemId: CatalogItemId, val newUnit: String)
+
+@Serializable data class AdoptProduct(val catalogItemId: CatalogItemId, val minimumStock: Int? = null)
+@Serializable data class SetMinimumStock(val productId: ProductId, val minimumStock: Int)
+@Serializable data class ArchiveProduct(val productId: ProductId)
+
+@Serializable data class ReplenishStock(
+    val productId: ProductId, val quantity: Int,
+    val occurredAt: Instant, val note: String? = null,
+)
+@Serializable data class ConsumeStock(
+    val productId: ProductId, val quantity: Int,
+    val occurredAt: Instant, val note: String? = null,
+)
+@Serializable enum class StockEventTargetKind { Replenishment, Consumption }
+@Serializable data class StockEventTarget(val kind: StockEventTargetKind, val id: StockEventId)
+@Serializable data class CorrectStockEvent(
+    val target: StockEventTarget, val newQuantity: Int, val reason: String? = null,
+)
+
+@Serializable data class SetDisplayName(val displayName: String)
+```
+
+クエリ DTO(主要):
+
+```kotlin
+@Serializable data class CatalogItemView(
+    val catalogItemId: CatalogItemId, val name: String, val unit: String,
+)
+@Serializable data class StockView(
+    val productId: ProductId, val catalogItemId: CatalogItemId,
+    val name: String, val unit: String,
+    val quantity: Int, val minimumStock: Int?,
+)
+@Serializable data class ShoppingListItem(
+    val productId: ProductId, val name: String, val unit: String,
+    val currentQuantity: Int, val minimumStock: Int, val shortage: Int,
+)
+@Serializable data class StockHistoryEntry(
+    val id: StockEventId, val kind: StockEventTargetKind,
+    val quantity: Int,                                    // 訂正適用後
+    val occurredAt: Instant, val recordedAt: Instant,
+    val actedBy: UserId, val actedByDisplayName: String,
+    val note: String?, val corrected: Boolean,
+)
+@Serializable data class MeView(
+    val userId: UserId, val displayName: String, val householdId: HouseholdId,
+)
+```
 
 ### 6.3 エラー
 
