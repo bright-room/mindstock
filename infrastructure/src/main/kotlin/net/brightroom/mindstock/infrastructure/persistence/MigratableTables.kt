@@ -9,6 +9,9 @@ import net.brightroom.mindstock.infrastructure.schema.household.HouseholdsTable
 import net.brightroom.mindstock.infrastructure.schema.product.ProductArchivesTable
 import net.brightroom.mindstock.infrastructure.schema.product.ProductMinimumStocksTable
 import net.brightroom.mindstock.infrastructure.schema.product.ProductsTable
+import net.brightroom.mindstock.infrastructure.schema.stock.StockConsumptionsTable
+import net.brightroom.mindstock.infrastructure.schema.stock.StockEventCorrectionsTable
+import net.brightroom.mindstock.infrastructure.schema.stock.StockReplenishmentsTable
 import net.brightroom.mindstock.infrastructure.schema.user.UserDisplayNamesTable
 import net.brightroom.mindstock.infrastructure.schema.user.UsersTable
 import org.jetbrains.exposed.v1.core.Table
@@ -33,5 +36,8 @@ object MigratableTables {
             ProductsTable,
             ProductMinimumStocksTable,
             ProductArchivesTable,
+            StockReplenishmentsTable,
+            StockConsumptionsTable,
+            StockEventCorrectionsTable,
         )
 }
