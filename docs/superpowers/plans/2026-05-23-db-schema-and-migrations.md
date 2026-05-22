@@ -30,7 +30,7 @@ After this plan:
 ```
 mindstock/
 ├── compose.yml                              # PG 18 + (later) Zitadel
-├── Makefile                                 # `make db-up` / `make db-down` / `make psql`
+├── Makefile                                 # `make up` / `make down` / `make clean`
 ├── infrastructure/
 │   ├── build.gradle.kts                     # +exposed-migration, +testcontainers
 │   └── src/
@@ -100,47 +100,42 @@ volumes:
 
 - [ ] **Step 2: Write Makefile**
 
-Create `Makefile` at repo root:
+Create `Makefile` at repo root. Note: Makefile recipes MUST be indented with a single TAB character (not spaces).
 
 ```makefile
-.PHONY: db-up db-down db-logs psql help
+COMPOSE=docker compose
 
-help:
-	@echo "make db-up    - start local postgres 18 and wait for readiness"
-	@echo "make db-down  - stop and remove the local postgres container"
-	@echo "make db-logs  - tail postgres logs"
-	@echo "make psql     - open psql against the local postgres"
+.PHONY: up down clean
 
-db-up:
-	docker compose up -d postgres
-	@docker compose exec -T postgres bash -lc 'until pg_isready -U mindstock -d mindstock; do sleep 1; done'
-	@echo "postgres ready on localhost:5432 (db=mindstock user=mindstock)"
+up:
+	$(COMPOSE) up -d
 
-db-down:
-	docker compose down
+down:
+	$(COMPOSE) down -v
 
-db-logs:
-	docker compose logs -f postgres
-
-psql:
-	docker compose exec -it postgres psql -U mindstock -d mindstock
+clean:
+	$(COMPOSE) down -v --rmi all --remove-orphans
 ```
+
+- `up` — start every service defined in `compose.yml` in detached mode.
+- `down` — stop the stack and remove volumes (`-v`) so the next `up` starts from a clean PG.
+- `clean` — drop volumes, pulled images (`--rmi all`), and any orphaned containers. Use when you want to fully reset the dev DB state.
 
 - [ ] **Step 3: Smoke test**
 
-Run `make db-up`. Expected: container starts and `postgres ready ...` prints. Then:
+Run `make up`. Expected: container starts. Then:
 
 ```bash
 docker compose exec -T postgres psql -U mindstock -d mindstock -c "SELECT uuidv7();"
 ```
 
-Expected: one UUIDv7 value printed. Stop the DB with `make db-down`.
+Expected: one UUIDv7 value printed. Stop and wipe the DB with `make down`.
 
 - [ ] **Step 4: Commit**
 
 ```bash
 git add compose.yml Makefile
-git commit -m "Add PostgreSQL 18 Docker Compose and Makefile shortcuts"
+git commit -m "Add Docker Compose for PostgreSQL 18 and Makefile targets"
 ```
 
 ---
@@ -1380,7 +1375,7 @@ fun Application.module() {
 - [ ] **Step 4: Smoke test with the Compose Postgres**
 
 ```bash
-make db-up
+make up
 ./gradlew :backend:run &
 BPID=$!
 for i in {1..30}; do
@@ -1389,7 +1384,7 @@ for i in {1..30}; do
 done
 echo
 kill $BPID 2>/dev/null
-make db-down
+make down
 ```
 
 Expected: `OK` printed; backend log shows Flyway applying both migrations.
