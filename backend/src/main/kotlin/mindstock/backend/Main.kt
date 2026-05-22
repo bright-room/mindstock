@@ -8,7 +8,6 @@ import io.ktor.server.routing.routing
 
 fun main(args: Array<String>) = EngineMain.main(args)
 
-@Suppress("unused")
 fun Application.module() {
     routing {
         get("/health") {
