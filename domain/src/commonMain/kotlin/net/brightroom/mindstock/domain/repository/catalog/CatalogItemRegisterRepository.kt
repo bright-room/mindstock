@@ -1,29 +1,14 @@
 package net.brightroom.mindstock.domain.repository.catalog
 
-import net.brightroom.mindstock.domain.model.catalog.CatalogItemId
+import net.brightroom.mindstock.domain.model.catalog.CatalogItem
 import net.brightroom.mindstock.domain.model.catalog.CatalogItemName
 import net.brightroom.mindstock.domain.model.catalog.CatalogItemUnit
-import net.brightroom.mindstock.domain.model.user.UserId
+import net.brightroom.mindstock.domain.model.user.User
 
 interface CatalogItemRegisterRepository {
-    /**
-     * catalog_items + catalog_item_revisions(初回)を 1 トランザクションで INSERT。
-     */
-    fun register(
-        id: CatalogItemId,
-        createdBy: UserId,
-        name: CatalogItemName,
-        unit: CatalogItemUnit,
-    )
+    /** catalog_items + 初回 catalog_item_revisions を 1 トランザクションで INSERT。 */
+    fun register(name: CatalogItemName, unit: CatalogItemUnit, createdBy: User): CatalogItem
 
-    /**
-     * 新リビジョンを INSERT。
-     * 名前のみ・単位のみの変更でも、両方の値を持ち回す責任は呼び出し側(UseCase)。
-     */
-    fun revise(
-        catalogItemId: CatalogItemId,
-        name: CatalogItemName,
-        unit: CatalogItemUnit,
-        editedBy: UserId,
-    )
+    /** catalog_item_revisions に行を INSERT。name と unit 両方を渡す責任は呼び出し側。 */
+    fun revise(catalogItem: CatalogItem, newName: CatalogItemName, newUnit: CatalogItemUnit, editedBy: User)
 }
