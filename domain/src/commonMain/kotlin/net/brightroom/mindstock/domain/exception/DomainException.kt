@@ -25,4 +25,6 @@ public sealed class DomainException(message: String) : RuntimeException(message)
     public class DisplayNameBlank : DomainException("display name must not be blank")
     public class DisplayNameTooLong(public val length: Int) :
         DomainException("display name length $length > 100")
+
+    public class ZitadelSubBlank : DomainException("zitadel sub must not be blank")
 }
