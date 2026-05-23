@@ -17,11 +17,14 @@ class MigrationRunnerTest :
                             password = TestContainersPostgres.password,
                         ),
                     )
-                MigrationRunner.migrate(ds)
-                val actual = listTables(ds, schema)
-                val expected = MigratableTables.all.map { it.tableName }
-                actual shouldContainAll expected
-                ds.close()
+                try {
+                    MigrationRunner.migrate(ds)
+                    val actual = listTables(ds, schema)
+                    val expected = MigratableTables.all.map { it.tableName }
+                    actual shouldContainAll expected
+                } finally {
+                    ds.close()
+                }
             }
         }
     })
