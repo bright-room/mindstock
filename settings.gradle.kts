@@ -1,7 +1,5 @@
 @file:Suppress("UnstableApiUsage")
 
-rootProject.name = "mindstock"
-
 enableFeaturePreview("TYPESAFE_PROJECT_ACCESSORS")
 
 pluginManagement {
@@ -29,20 +27,36 @@ dependencyResolutionManagement {
             }
         }
     }
+    versionCatalogs {
+        create("ktorLib") {
+            from("io.ktor:ktor-version-catalog:3.5.0")
+        }
+    }
 }
 
 plugins {
     id("org.gradle.toolchains.foojay-resolver-convention") version "1.0.0"
 }
 
+rootProject.name = "mindstock"
+
 // composite build for convention plugins
 includeBuild("build-logic")
 
 include(
-    ":shared",
-    ":domain",
-    ":application",
-    ":infrastructure",
-    ":backend",
-    ":frontend",
+    ":shared:rpc",
+    ":shared:extensions",
 )
+
+include(":domain")
+
+include(
+    ":backend:application:api",
+    ":backend:infrastructure:schemas",
+    ":backend:infrastructure:migration:annotation",
+    ":backend:infrastructure:migration:detector",
+    ":backend:infrastructure:migration:generator",
+    ":backend:infrastructure:migration:executor",
+)
+
+include(":frontend")
