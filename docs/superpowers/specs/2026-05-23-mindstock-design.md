@@ -118,13 +118,28 @@ backend:infrastructure:migration:executor  ──> schemas + migration:detector
 
 ## 3.3 Ktor アプリケーション構成
 
-`backend:application:api` の entry point は `net.brightroom.mindstock.MainKt`(`fun main(args)` で `EngineMain.main(args)` を呼ぶだけ)。Ktor module 関数(`fun Application.module()`)は `application.yaml` の `ktor.application.modules` で参照される予定。各構成は per-concern に分離して `configuration` パッケージ下に置く:
+`backend:application:api` の entry point は `net.brightroom.mindstock.MainKt`(`fun main(args)` で `EngineMain.main(args)` を呼ぶだけ)。Ktor module 関数は `application.yaml` の `ktor.application.modules` で個別に列挙する(Application.module() の集約は使わず、per-concern に分離した拡張関数を直接 modules として登録する)。
+
+各構成は `configuration` パッケージ下に per-concern で分離:
 
 - `configuration.Environment` — `LOCAL / DEV / STG / PROD` 列挙
-- `configuration.di.DependenciesConfiguration` — Ktor DI への登録
-- `configuration.external.exposed.{ExposedDataSourceProperties, ExposedConfiguration}` — Hikari + Exposed 接続を `provide<Database>` で DI 登録
+- `configuration.di.DependenciesConfiguration` — Ktor DI への登録(プレースホルダ)
+- `configuration.migration.MigrationConfiguration` — 一時的な Hikari プールで Flyway を実行し、適用後にプールを閉じる(runtime プールと migration プールを分離)
+- `configuration.external.exposed.{ExposedDataSourceProperties, ExposedConfiguration}` — runtime 用 Hikari + Exposed 接続を `provide<Database>` で DI 登録(`useNestedTransactions = true`)
 - `configuration.logging.LoggingConfiguration` — CallId / CallLogging / DoubleReceive、本番では `receiveText` を除外
 - `configuration.routing.RoutingConfiguration` — ContentNegotiation(`jsonIo(CustomJson)`) と routing
+
+`@Property("external.datasource.database")` で `ExposedDataSourceProperties` を yaml の `external.datasource.database.*` 配下にバインド。Environment は `@Property("ktor.environment")` で yaml の `ktor.environment` にバインド。
+
+modules の実行順序(`application.yaml`):
+
+```
+1. dependenciesConfigure
+2. migrationConfigure       # Flyway を先に適用
+3. exposedConfigure         # runtime Database を DI 登録
+4. loggingConfigure
+5. routingConfigure
+```
 
 ## 4. ドメインモデル
 
