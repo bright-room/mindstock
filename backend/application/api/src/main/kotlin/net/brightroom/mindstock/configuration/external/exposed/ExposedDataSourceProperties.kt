@@ -1,10 +1,7 @@
-package net.brightroom.mindstock.configuration
+package net.brightroom.mindstock.configuration.external.exposed
 
-import com.zaxxer.hikari.HikariConfig
-import com.zaxxer.hikari.HikariDataSource
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
-import org.jetbrains.exposed.v1.jdbc.Database
 
 @Serializable
 data class ExposedDataSourceProperties(
@@ -21,19 +18,3 @@ data class ExposedDataSourceProperties(
             "username=$username, password=***, maximumPoolSize=$maximumPoolSize, " +
             "autoCommit=$autoCommit, transactionIsolation=$transactionIsolation)"
 }
-
-fun buildHikariDataSource(properties: ExposedDataSourceProperties): HikariDataSource {
-    val hikari =
-        HikariConfig().apply {
-            driverClassName = properties.driverClassName
-            jdbcUrl = properties.jdbcUrl
-            username = properties.username
-            password = properties.password
-            maximumPoolSize = properties.maximumPoolSize
-            isAutoCommit = properties.autoCommit
-            transactionIsolation = properties.transactionIsolation
-        }
-    return HikariDataSource(hikari)
-}
-
-fun connectExposed(dataSource: HikariDataSource): Database = Database.connect(dataSource)

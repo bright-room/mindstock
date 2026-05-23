@@ -5,12 +5,19 @@ plugins {
 
 kotlin {
     sourceSets {
-        commonMain {
-            dependencies {
-                implementation(libs.kotlinx.coroutines.core)
-                implementation(libs.kotlinx.serialization.json)
-                implementation(libs.kotlinx.datetime)
-            }
+        commonMain.dependencies {
+            implementation(libs.kotlinx.coroutines.core)
+            implementation(libs.kotlinx.serialization.json)
+            implementation(libs.kotlinx.datetime)
         }
+        commonTest.dependencies {}
+
+        jvmMain.dependencies {}
+        jvmTest.dependencies {}
+
+        wasmJsMain.dependencies {
+            implementation(npm("@js-joda/timezone", "2.3.0"))
+        }
+        wasmJsTest.dependencies {}
     }
 }
