@@ -2,29 +2,33 @@ package net.brightroom.mindstock.infrastructure.persistence
 
 import com.zaxxer.hikari.HikariConfig
 import com.zaxxer.hikari.HikariDataSource
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
 import org.jetbrains.exposed.v1.jdbc.Database
-import javax.sql.DataSource
 
-data class DatabaseConfig(
-    val jdbcUrl: String,
+@Serializable
+data class ExposedDataSourceProperties(
+    @SerialName("driver-class-name") val driverClassName: String,
+    @SerialName("jdbc-url") val jdbcUrl: String,
     val username: String,
     val password: String,
-    val maximumPoolSize: Int = 10,
+    @SerialName("maximum-pool-size") val maximumPoolSize: Int = 10,
+    @SerialName("auto-commit") val autoCommit: Boolean = false,
+    @SerialName("transaction-isolation") val transactionIsolation: String = "TRANSACTION_REPEATABLE_READ",
 )
 
-object DatabaseFactory {
-    fun dataSource(config: DatabaseConfig): HikariDataSource {
-        val hikari =
-            HikariConfig().apply {
-                jdbcUrl = config.jdbcUrl
-                username = config.username
-                password = config.password
-                maximumPoolSize = config.maximumPoolSize
-                isAutoCommit = false
-                driverClassName = "org.postgresql.Driver"
-            }
-        return HikariDataSource(hikari)
-    }
-
-    fun exposed(dataSource: DataSource): Database = Database.connect(dataSource)
+fun buildHikariDataSource(properties: ExposedDataSourceProperties): HikariDataSource {
+    val hikari =
+        HikariConfig().apply {
+            driverClassName = properties.driverClassName
+            jdbcUrl = properties.jdbcUrl
+            username = properties.username
+            password = properties.password
+            maximumPoolSize = properties.maximumPoolSize
+            isAutoCommit = properties.autoCommit
+            transactionIsolation = properties.transactionIsolation
+        }
+    return HikariDataSource(hikari)
 }
+
+fun connectExposed(dataSource: HikariDataSource): Database = Database.connect(dataSource)

@@ -10,8 +10,9 @@ class AppendOnlyEnforcementTest :
         test("mindstock_app role can INSERT but cannot UPDATE or DELETE") {
             TestContainersPostgres.withFreshSchema { jdbcUrl, _ ->
                 val ds =
-                    DatabaseFactory.dataSource(
-                        DatabaseConfig(
+                    buildHikariDataSource(
+                        ExposedDataSourceProperties(
+                            driverClassName = "org.postgresql.Driver",
                             jdbcUrl = jdbcUrl,
                             username = TestContainersPostgres.username,
                             password = TestContainersPostgres.password,

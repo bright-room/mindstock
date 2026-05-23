@@ -1,5 +1,6 @@
 plugins {
     id("net.brightroom.mindstock.kotlin-jvm")
+    id("org.jetbrains.kotlin.plugin.serialization")
 }
 
 tasks.withType<Test>().configureEach {
@@ -32,6 +33,7 @@ dependencies {
     implementation(projects.domain)
     implementation(projects.application)
 
+    implementation(libs.kotlinx.serialization.json)
     implementation(libs.exposed.core)
     api(libs.exposed.jdbc)
     implementation(libs.exposed.kotlin.datetime)

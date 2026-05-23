@@ -10,8 +10,9 @@ class MigrationRunnerTest :
         test("migrate creates every table in MigratableTables") {
             TestContainersPostgres.withFreshSchema { jdbcUrl, schema ->
                 val ds =
-                    DatabaseFactory.dataSource(
-                        DatabaseConfig(
+                    buildHikariDataSource(
+                        ExposedDataSourceProperties(
+                            driverClassName = "org.postgresql.Driver",
                             jdbcUrl = jdbcUrl,
                             username = TestContainersPostgres.username,
                             password = TestContainersPostgres.password,
