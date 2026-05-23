@@ -1,42 +1,44 @@
 package net.brightroom.mindstock.domain.repository.stock
 
-import net.brightroom.mindstock.domain.model.product.ProductId
+import net.brightroom.mindstock.domain.model.product.Product
 import net.brightroom.mindstock.domain.model.stock.Note
 import net.brightroom.mindstock.domain.model.stock.OccurredAt
 import net.brightroom.mindstock.domain.model.stock.Quantity
 import net.brightroom.mindstock.domain.model.stock.Reason
-import net.brightroom.mindstock.domain.model.stock.StockConsumptionId
-import net.brightroom.mindstock.domain.model.stock.StockReplenishmentId
-import net.brightroom.mindstock.domain.model.user.UserId
+import net.brightroom.mindstock.domain.model.stock.consumption.Consumption
+import net.brightroom.mindstock.domain.model.stock.consumption.ConsumptionCorrection
+import net.brightroom.mindstock.domain.model.stock.replenishment.Replenishment
+import net.brightroom.mindstock.domain.model.stock.replenishment.ReplenishmentCorrection
+import net.brightroom.mindstock.domain.model.user.User
 
 interface StockRegisterRepository {
     fun replenish(
-        productId: ProductId,
+        product: Product,
         quantity: Quantity,
         occurredAt: OccurredAt,
-        actedBy: UserId,
+        by: User,
         note: Note,
-    ): StockReplenishmentId
+    ): Replenishment
 
     fun consume(
-        productId: ProductId,
+        product: Product,
         quantity: Quantity,
         occurredAt: OccurredAt,
-        actedBy: UserId,
+        by: User,
         note: Note,
-    ): StockConsumptionId
+    ): Consumption
 
     fun correct(
-        replenishmentId: StockReplenishmentId,
+        replenishment: Replenishment,
         correctedQuantity: Quantity,
         reason: Reason,
-        correctedBy: UserId,
-    )
+        by: User,
+    ): ReplenishmentCorrection
 
     fun correct(
-        consumptionId: StockConsumptionId,
+        consumption: Consumption,
         correctedQuantity: Quantity,
         reason: Reason,
-        correctedBy: UserId,
-    )
+        by: User,
+    ): ConsumptionCorrection
 }
