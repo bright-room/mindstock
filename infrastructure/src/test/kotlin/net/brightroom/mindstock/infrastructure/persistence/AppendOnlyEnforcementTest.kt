@@ -9,16 +9,14 @@ class AppendOnlyEnforcementTest :
     FunSpec({
         test("mindstock_app role can INSERT but cannot UPDATE or DELETE") {
             TestContainersPostgres.withFreshSchema { jdbcUrl, _ ->
-                val ds =
-                    buildHikariDataSource(
-                        ExposedDataSourceProperties(
-                            driverClassName = "org.postgresql.Driver",
-                            jdbcUrl = jdbcUrl,
-                            username = TestContainersPostgres.username,
-                            password = TestContainersPostgres.password,
-                        ),
-                    )
-                try {
+                buildHikariDataSource(
+                    ExposedDataSourceProperties(
+                        driverClassName = "org.postgresql.Driver",
+                        jdbcUrl = jdbcUrl,
+                        username = TestContainersPostgres.username,
+                        password = TestContainersPostgres.password,
+                    ),
+                ).use { ds ->
                     MigrationRunner.migrate(ds)
 
                     // Switch to app role for the duration of this test
@@ -65,8 +63,6 @@ class AppendOnlyEnforcementTest :
                             conn.createStatement().use { it.execute("DELETE FROM users") }
                         }
                     }
-                } finally {
-                    ds.close()
                 }
             }
         }

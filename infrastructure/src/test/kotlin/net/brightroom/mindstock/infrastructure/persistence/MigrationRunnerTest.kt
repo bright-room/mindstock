@@ -9,22 +9,18 @@ class MigrationRunnerTest :
     FunSpec({
         test("migrate creates every table in MigratableTables") {
             TestContainersPostgres.withFreshSchema { jdbcUrl, schema ->
-                val ds =
-                    buildHikariDataSource(
-                        ExposedDataSourceProperties(
-                            driverClassName = "org.postgresql.Driver",
-                            jdbcUrl = jdbcUrl,
-                            username = TestContainersPostgres.username,
-                            password = TestContainersPostgres.password,
-                        ),
-                    )
-                try {
+                buildHikariDataSource(
+                    ExposedDataSourceProperties(
+                        driverClassName = "org.postgresql.Driver",
+                        jdbcUrl = jdbcUrl,
+                        username = TestContainersPostgres.username,
+                        password = TestContainersPostgres.password,
+                    ),
+                ).use { ds ->
                     MigrationRunner.migrate(ds)
                     val actual = listTables(ds, schema)
                     val expected = MigratableTables.all.map { it.tableName }
                     actual shouldContainAll expected
-                } finally {
-                    ds.close()
                 }
             }
         }
