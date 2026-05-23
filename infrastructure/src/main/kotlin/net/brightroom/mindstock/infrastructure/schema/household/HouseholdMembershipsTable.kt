@@ -1,5 +1,6 @@
 package net.brightroom.mindstock.infrastructure.schema.household
 
+import net.brightroom.mindstock.domain.household.HouseholdMemberRole
 import net.brightroom.mindstock.infrastructure.persistence.Migratable
 import net.brightroom.mindstock.infrastructure.schema.HistoryTable
 import net.brightroom.mindstock.infrastructure.schema.user.UsersTable
