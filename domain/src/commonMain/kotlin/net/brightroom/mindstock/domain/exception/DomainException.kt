@@ -1,5 +1,7 @@
 package net.brightroom.mindstock.domain.exception
 
+import kotlinx.datetime.Instant
+
 /**
  * Domain layer の不変条件違反を表す sealed 例外。
  *
@@ -14,4 +16,9 @@ public sealed class DomainException(message: String) : RuntimeException(message)
 
     public class InvalidMinimumStock(public val value: Int) :
         DomainException("minimum_stock must be >= 0, got $value")
+
+    public class OccurredAtInFuture(
+        public val value: Instant,
+        public val now: Instant,
+    ) : DomainException("occurredAt $value must be <= now $now")
 }
