@@ -1,12 +1,23 @@
 plugins {
-    id("net.brightroom.mindstock.kotlin-jvm")
+    id("net.brightroom.mindstock.kmp-shared")
+    id("org.jetbrains.kotlin.plugin.serialization")
 }
 
-dependencies {
-    implementation(libs.kotlinx.coroutines.core)
-    implementation(libs.kotlinx.datetime)
+kotlin {
+    sourceSets {
+        commonMain.dependencies {
+            implementation(libs.kotlinx.serialization.json)
+            implementation(libs.kotlinx.datetime)
+        }
+        commonTest.dependencies {
+            implementation(libs.kotest.assertions.core)
+        }
+        jvmTest.dependencies {
+            implementation(libs.kotest.runner.junit5)
+        }
+    }
+}
 
-    testImplementation(libs.kotest.runner.junit5)
-    testImplementation(libs.kotest.assertions.core)
-    testImplementation(libs.kotest.property)
+tasks.withType<Test>().configureEach {
+    useJUnitPlatform()
 }
