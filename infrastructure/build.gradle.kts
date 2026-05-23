@@ -35,6 +35,7 @@ dependencies {
     implementation(projects.backend.infrastructure.schemas)
     implementation(projects.backend.infrastructure.migration.annotation)
     implementation(projects.backend.infrastructure.migration.detector)
+    implementation(projects.backend.infrastructure.migration.generator)
 
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.exposed.core)

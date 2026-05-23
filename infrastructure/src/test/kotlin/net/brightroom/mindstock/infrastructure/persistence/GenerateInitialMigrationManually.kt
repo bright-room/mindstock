@@ -3,6 +3,7 @@ package net.brightroom.mindstock.infrastructure.persistence
 import io.kotest.core.NamedTag
 import io.kotest.core.spec.style.FunSpec
 import net.brightroom.mindstock.infrastructure.TestContainersPostgres
+import net.brightroom.mindstock.infrastructure.migration.generator.MigrationGenerator
 import org.jetbrains.exposed.v1.jdbc.Database
 import java.io.File
 

@@ -4,6 +4,7 @@ import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
 import net.brightroom.mindstock.infrastructure.TestContainersPostgres
+import net.brightroom.mindstock.infrastructure.migration.generator.MigrationGenerator
 import org.jetbrains.exposed.v1.jdbc.Database
 import java.io.File
 

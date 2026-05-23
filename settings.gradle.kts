@@ -46,6 +46,7 @@ include(
     ":backend:infrastructure:schemas",
     ":backend:infrastructure:migration:annotation",
     ":backend:infrastructure:migration:detector",
+    ":backend:infrastructure:migration:generator",
     ":infrastructure",
     ":backend:api",
     ":frontend",

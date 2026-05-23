@@ -1,4 +1,4 @@
-package net.brightroom.mindstock.infrastructure.persistence
+package net.brightroom.mindstock.infrastructure.migration.generator
 
 import net.brightroom.mindstock.infrastructure.migration.detector.MigratableTables
 import org.jetbrains.exposed.v1.core.ExperimentalDatabaseMigrationApi
