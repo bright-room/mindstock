@@ -1,7 +1,7 @@
-package net.brightroom.mindstock.infrastructure.schema.user
+package net.brightroom.mindstock.infrastructure.schemas.user
 
-import net.brightroom.mindstock.infrastructure.persistence.Migratable
-import net.brightroom.mindstock.infrastructure.schema.AggregateRootTable
+import net.brightroom.mindstock.infrastructure.migration.annotation.Migratable
+import net.brightroom.mindstock.infrastructure.schemas.AggregateRootTable
 import org.jetbrains.exposed.v1.datetime.CurrentTimestampWithTimeZone
 import org.jetbrains.exposed.v1.datetime.timestampWithTimeZone
 

@@ -1,18 +1,18 @@
-package net.brightroom.mindstock.infrastructure.schema.stock
+package net.brightroom.mindstock.infrastructure.schemas.stock
 
-import net.brightroom.mindstock.infrastructure.persistence.Migratable
-import net.brightroom.mindstock.infrastructure.schema.HistoryTable
-import net.brightroom.mindstock.infrastructure.schema.user.UsersTable
+import net.brightroom.mindstock.infrastructure.migration.annotation.Migratable
+import net.brightroom.mindstock.infrastructure.schemas.HistoryTable
+import net.brightroom.mindstock.infrastructure.schemas.user.UsersTable
 import org.jetbrains.exposed.v1.core.ReferenceOption
 import org.jetbrains.exposed.v1.datetime.CurrentTimestampWithTimeZone
 import org.jetbrains.exposed.v1.datetime.timestampWithTimeZone
 
 @Migratable
-object StockConsumptionCorrectionsTable : HistoryTable("stock_consumption_corrections") {
-    val stock_consumption_id =
+object StockReplenishmentCorrectionsTable : HistoryTable("stock_replenishment_corrections") {
+    val stock_replenishment_id =
         reference(
-            "stock_consumption_id",
-            StockConsumptionsTable.id,
+            "stock_replenishment_id",
+            StockReplenishmentsTable.id,
             onDelete = ReferenceOption.RESTRICT,
         )
     val corrected_quantity = integer("corrected_quantity").check { it greater 0 }
@@ -26,6 +26,6 @@ object StockConsumptionCorrectionsTable : HistoryTable("stock_consumption_correc
     val created_at = timestampWithTimeZone("created_at").defaultExpression(CurrentTimestampWithTimeZone)
 
     init {
-        index(false, stock_consumption_id, id)
+        index(false, stock_replenishment_id, id)
     }
 }

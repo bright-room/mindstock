@@ -1,4 +1,4 @@
-package net.brightroom.mindstock.infrastructure.persistence
+package net.brightroom.mindstock.infrastructure.migration.annotation
 
 /**
  * Marks an Exposed [org.jetbrains.exposed.v1.core.Table] as a target for

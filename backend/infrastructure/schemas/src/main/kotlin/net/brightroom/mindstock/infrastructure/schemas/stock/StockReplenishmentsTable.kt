@@ -1,9 +1,9 @@
-package net.brightroom.mindstock.infrastructure.schema.stock
+package net.brightroom.mindstock.infrastructure.schemas.stock
 
-import net.brightroom.mindstock.infrastructure.persistence.Migratable
-import net.brightroom.mindstock.infrastructure.schema.HistoryTable
-import net.brightroom.mindstock.infrastructure.schema.product.ProductsTable
-import net.brightroom.mindstock.infrastructure.schema.user.UsersTable
+import net.brightroom.mindstock.infrastructure.migration.annotation.Migratable
+import net.brightroom.mindstock.infrastructure.schemas.HistoryTable
+import net.brightroom.mindstock.infrastructure.schemas.product.ProductsTable
+import net.brightroom.mindstock.infrastructure.schemas.user.UsersTable
 import org.jetbrains.exposed.v1.core.ReferenceOption
 import org.jetbrains.exposed.v1.datetime.CurrentTimestampWithTimeZone
 import org.jetbrains.exposed.v1.datetime.timestampWithTimeZone

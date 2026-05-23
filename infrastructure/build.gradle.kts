@@ -32,6 +32,8 @@ tasks.withType<Test>().configureEach {
 dependencies {
     implementation(projects.domain)
     implementation(projects.backend.application)
+    implementation(projects.backend.infrastructure.schemas)
+    implementation(projects.backend.infrastructure.migration.annotation)
 
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.exposed.core)

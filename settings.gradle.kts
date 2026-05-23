@@ -43,6 +43,8 @@ include(
     ":rpc",
     ":domain",
     ":backend:application",
+    ":backend:infrastructure:schemas",
+    ":backend:infrastructure:migration:annotation",
     ":infrastructure",
     ":backend:api",
     ":frontend",

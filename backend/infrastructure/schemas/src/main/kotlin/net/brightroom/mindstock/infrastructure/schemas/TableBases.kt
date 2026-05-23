@@ -1,4 +1,4 @@
-package net.brightroom.mindstock.infrastructure.schema
+package net.brightroom.mindstock.infrastructure.schemas
 
 import org.jetbrains.exposed.v1.core.CustomFunction
 import org.jetbrains.exposed.v1.core.Table

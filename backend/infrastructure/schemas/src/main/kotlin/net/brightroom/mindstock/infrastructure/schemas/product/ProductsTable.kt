@@ -1,9 +1,9 @@
-package net.brightroom.mindstock.infrastructure.schema.product
+package net.brightroom.mindstock.infrastructure.schemas.product
 
-import net.brightroom.mindstock.infrastructure.persistence.Migratable
-import net.brightroom.mindstock.infrastructure.schema.AggregateRootTable
-import net.brightroom.mindstock.infrastructure.schema.catalog.CatalogItemsTable
-import net.brightroom.mindstock.infrastructure.schema.household.HouseholdsTable
+import net.brightroom.mindstock.infrastructure.migration.annotation.Migratable
+import net.brightroom.mindstock.infrastructure.schemas.AggregateRootTable
+import net.brightroom.mindstock.infrastructure.schemas.catalog.CatalogItemsTable
+import net.brightroom.mindstock.infrastructure.schemas.household.HouseholdsTable
 import org.jetbrains.exposed.v1.core.ReferenceOption
 import org.jetbrains.exposed.v1.datetime.CurrentTimestampWithTimeZone
 import org.jetbrains.exposed.v1.datetime.timestampWithTimeZone
