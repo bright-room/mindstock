@@ -4,11 +4,8 @@ import net.brightroom.mindstock.domain.model.product.Product
 import net.brightroom.mindstock.domain.model.stock.Note
 import net.brightroom.mindstock.domain.model.stock.OccurredAt
 import net.brightroom.mindstock.domain.model.stock.Quantity
-import net.brightroom.mindstock.domain.model.stock.Reason
-import net.brightroom.mindstock.domain.model.stock.consumption.Consumption
-import net.brightroom.mindstock.domain.model.stock.consumption.ConsumptionCorrection
-import net.brightroom.mindstock.domain.model.stock.replenishment.Replenishment
-import net.brightroom.mindstock.domain.model.stock.replenishment.ReplenishmentCorrection
+import net.brightroom.mindstock.domain.model.stock.movement.Consumption
+import net.brightroom.mindstock.domain.model.stock.movement.Replenishment
 import net.brightroom.mindstock.domain.model.user.User
 
 interface StockRegisterRepository {
@@ -27,18 +24,4 @@ interface StockRegisterRepository {
         by: User,
         note: Note,
     ): Consumption
-
-    fun correct(
-        replenishment: Replenishment,
-        correctedQuantity: Quantity,
-        reason: Reason,
-        by: User,
-    ): ReplenishmentCorrection
-
-    fun correct(
-        consumption: Consumption,
-        correctedQuantity: Quantity,
-        reason: Reason,
-        by: User,
-    ): ConsumptionCorrection
 }

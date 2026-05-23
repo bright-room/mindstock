@@ -3,8 +3,7 @@ package net.brightroom.mindstock.domain.repository.stock
 import net.brightroom.mindstock.domain.model.household.Household
 import net.brightroom.mindstock.domain.model.product.Product
 import net.brightroom.mindstock.domain.model.stock.Stock
-import net.brightroom.mindstock.domain.model.stock.consumption.Consumptions
-import net.brightroom.mindstock.domain.model.stock.replenishment.Replenishments
+import net.brightroom.mindstock.domain.model.stock.movement.StockMovements
 
 interface StockRepository {
     /** 1 商品の在庫状態。 */
@@ -13,13 +12,9 @@ interface StockRepository {
     /** 世帯全商品の在庫状態(ShoppingList 用)。 */
     fun stocksOf(household: Household): List<Stock>
 
-    fun replenishmentHistory(
+    /** 指定商品の movement 履歴(最新順を想定)。 */
+    fun movementHistory(
         product: Product,
         limit: Int = 50,
-    ): Replenishments
-
-    fun consumptionHistory(
-        product: Product,
-        limit: Int = 50,
-    ): Consumptions
+    ): StockMovements
 }

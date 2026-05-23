@@ -167,6 +167,8 @@ modules の実行順序(`application.yaml`):
 
 ### 4.3 ID 戦略
 
+> 本節は [2026-05-24-stock-movements-unification-design.md](./2026-05-24-stock-movements-unification-design.md) で再設計済み。
+
 - **集約ルートの ID**: `UUID v7`(PostgreSQL 18 ネイティブ `uuidv7()`)。時系列順に並び、index 効率が良い
 - **履歴テーブルの ID**: `BIGINT GENERATED ALWAYS AS IDENTITY`。「id 降順 = 最新」が単調保証される
 - アプリ側で生成する場合は ULID/UUIDv7 のライブラリを使う
@@ -182,6 +184,8 @@ modules の実行順序(`application.yaml`):
 - 訂正は同一 productId 配下のイベントのみ対象
 
 ### 4.5 訂正の方針
+
+> 本節は [2026-05-24-stock-movements-unification-design.md](./2026-05-24-stock-movements-unification-design.md) で再設計済み。
 
 「3 個消費」と入力したが正しくは「2 個」だったケース:
 
@@ -293,6 +297,8 @@ CREATE TABLE product_archives (
 
 ### 5.5 Stock ドメイン
 
+> 本節は [2026-05-24-stock-movements-unification-design.md](./2026-05-24-stock-movements-unification-design.md) で再設計済み。
+
 ```sql
 CREATE TABLE stock_replenishments (
     id              BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
@@ -367,6 +373,8 @@ val LatestCatalogItemNames: QueryAlias
 ## 6. API 契約(kotlinx-rpc)
 
 ### 6.1 サービスインターフェース
+
+> Stock 関連 RPC は [2026-05-24-stock-movements-unification-design.md](./2026-05-24-stock-movements-unification-design.md) で再設計済み。
 
 `:shared` モジュールに `@Rpc` インターフェースを定義し、frontend / backend で参照する。
 
