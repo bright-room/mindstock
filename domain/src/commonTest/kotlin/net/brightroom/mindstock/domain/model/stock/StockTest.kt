@@ -3,6 +3,9 @@ package net.brightroom.mindstock.domain.model.stock
 import io.kotest.matchers.booleans.shouldBeFalse
 import io.kotest.matchers.booleans.shouldBeTrue
 import io.kotest.matchers.shouldBe
+import kotlinx.datetime.LocalDateTime
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toInstant
 import net.brightroom.mindstock.domain.model.catalog.CatalogItem
 import net.brightroom.mindstock.domain.model.catalog.CatalogItemId
 import net.brightroom.mindstock.domain.model.catalog.CatalogItemName
@@ -12,9 +15,11 @@ import net.brightroom.mindstock.domain.model.product.Product
 import net.brightroom.mindstock.domain.model.product.ProductId
 import net.brightroom.mindstock.domain.model.stock.consumption.Consumption
 import net.brightroom.mindstock.domain.model.stock.consumption.ConsumptionCorrection
+import net.brightroom.mindstock.domain.model.stock.consumption.ConsumptionId
 import net.brightroom.mindstock.domain.model.stock.consumption.Consumptions
 import net.brightroom.mindstock.domain.model.stock.replenishment.Replenishment
 import net.brightroom.mindstock.domain.model.stock.replenishment.ReplenishmentCorrection
+import net.brightroom.mindstock.domain.model.stock.replenishment.ReplenishmentId
 import net.brightroom.mindstock.domain.model.stock.replenishment.Replenishments
 import net.brightroom.mindstock.domain.model.user.DisplayName
 import net.brightroom.mindstock.domain.model.user.User
@@ -55,14 +60,16 @@ class StockTest {
         year: Int = 2026,
         day: Int = 1,
     ) = OccurredAt(
-        Instant.parse("$year-05-${day.toString().padStart(2, '0')}T10:00:00Z"),
+        LocalDateTime(year, 5, day, 10, 0).toInstant(TimeZone.UTC),
         now,
     )
 
     private fun replenish(
         product: Product,
         qty: Int,
+        id: Long = 1L,
     ) = Replenishment(
+        id = ReplenishmentId(id),
         product = product,
         quantity = Quantity(qty),
         occurredAt = occurred(),
@@ -73,7 +80,9 @@ class StockTest {
     private fun consume(
         product: Product,
         qty: Int,
+        id: Long = 1L,
     ) = Consumption(
+        id = ConsumptionId(id),
         product = product,
         quantity = Quantity(qty),
         occurredAt = occurred(),
@@ -87,8 +96,8 @@ class StockTest {
         val stock =
             Stock(
                 product = p,
-                replenishments = Replenishments(listOf(replenish(p, 5), replenish(p, 3))),
-                consumptions = Consumptions(listOf(consume(p, 2))),
+                replenishments = Replenishments(listOf(replenish(p, 5, id = 1L), replenish(p, 3, id = 2L))),
+                consumptions = Consumptions(listOf(consume(p, 2, id = 3L))),
                 replenishmentCorrections = emptyList(),
                 consumptionCorrections = emptyList(),
             )
@@ -181,8 +190,8 @@ class StockTest {
     @Test
     fun `currentQuantity applies correction when consumption is corrected`() {
         val p = productWithMin(null)
-        val r = replenish(p, 10)
-        val c = consume(p, 5)
+        val r = replenish(p, 10, id = 1L)
+        val c = consume(p, 5, id = 2L)
         val correction =
             ConsumptionCorrection(
                 target = c,
