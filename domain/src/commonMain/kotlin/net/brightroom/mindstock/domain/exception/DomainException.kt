@@ -35,4 +35,7 @@ public sealed class DomainException(message: String) : RuntimeException(message)
     public class CatalogItemUnitBlank : DomainException("catalog item unit must not be blank")
     public class CatalogItemUnitTooLong(public val length: Int) :
         DomainException("catalog item unit length $length > 10")
+
+    public class InvalidIdentity(public val value: Long) :
+        DomainException("identity must be >= 0, got $value")
 }
