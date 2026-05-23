@@ -12,7 +12,7 @@ import org.jetbrains.exposed.v1.datetime.datetime
 object HouseholdMembershipsTable : HistoryTable("household_memberships") {
     val household_id = reference("household_id", HouseholdsTable.id, onDelete = ReferenceOption.RESTRICT)
     val user_id = reference("user_id", UsersTable.id, onDelete = ReferenceOption.RESTRICT)
-    val role = enumerationByName<HouseholdMemberRole>("role", 100)
+    val role = enumerationByName<HouseholdMemberRole>("role", 20)
     val created_at = datetime("created_at").defaultExpression(CurrentDateTime)
 
     init {
