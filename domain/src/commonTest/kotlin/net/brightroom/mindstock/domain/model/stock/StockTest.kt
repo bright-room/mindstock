@@ -27,60 +27,80 @@ import kotlin.uuid.Uuid
 
 @OptIn(ExperimentalUuidApi::class)
 class StockTest {
-    private val user = User(
-        id = UserId(Uuid.generateV7()),
-        authIdentity = AuthIdentity(AuthProvider.ZITADEL, AuthSubject("sub-1")),
-        displayName = DisplayName("alice"),
-    )
+    private val user =
+        User(
+            id = UserId(Uuid.generateV7()),
+            authIdentity = AuthIdentity(AuthProvider.ZITADEL, AuthSubject("sub-1")),
+            displayName = DisplayName("alice"),
+        )
 
-    private fun productWithMin(min: Int?) = Product(
-        id = ProductId(Uuid.generateV7()),
-        catalogItem = CatalogItem(
-            id = CatalogItemId(Uuid.generateV7()),
-            name = CatalogItemName("ハンドソープ"),
-            unit = CatalogItemUnit("本"),
-        ),
-        minimumStock = min?.let { MinimumStock(it) },
-        archived = false,
-    )
+    private fun productWithMin(min: Int?) =
+        Product(
+            id = ProductId(Uuid.generateV7()),
+            catalogItem =
+                CatalogItem(
+                    id = CatalogItemId(Uuid.generateV7()),
+                    name = CatalogItemName("ハンドソープ"),
+                    unit = CatalogItemUnit("本"),
+                ),
+            minimumStock = min?.let { MinimumStock(it) },
+            archived = false,
+        )
 
     private val now = Instant.parse("2026-05-24T10:00:00Z")
-    private fun occurred(year: Int = 2026, day: Int = 1) =
-        OccurredAt(Instant.parse("$year-05-0${day}T10:00:00Z"), now)
 
-    private fun replenish(product: Product, qty: Int) = Replenishment(
-        product = product, quantity = Quantity(qty),
-        occurredAt = occurred(), actor = user, note = Note(""),
+    private fun occurred(
+        year: Int = 2026,
+        day: Int = 1,
+    ) = OccurredAt(Instant.parse("$year-05-0${day}T10:00:00Z"), now)
+
+    private fun replenish(
+        product: Product,
+        qty: Int,
+    ) = Replenishment(
+        product = product,
+        quantity = Quantity(qty),
+        occurredAt = occurred(),
+        actor = user,
+        note = Note(""),
     )
 
-    private fun consume(product: Product, qty: Int) = Consumption(
-        product = product, quantity = Quantity(qty),
-        occurredAt = occurred(), actor = user, note = Note(""),
+    private fun consume(
+        product: Product,
+        qty: Int,
+    ) = Consumption(
+        product = product,
+        quantity = Quantity(qty),
+        occurredAt = occurred(),
+        actor = user,
+        note = Note(""),
     )
 
     @Test
     fun `currentQuantity is replenishments minus consumptions when no corrections`() {
         val p = productWithMin(null)
-        val stock = Stock(
-            product = p,
-            replenishments = Replenishments(listOf(replenish(p, 5), replenish(p, 3))),
-            consumptions = Consumptions(listOf(consume(p, 2))),
-            replenishmentCorrections = emptyList(),
-            consumptionCorrections = emptyList(),
-        )
+        val stock =
+            Stock(
+                product = p,
+                replenishments = Replenishments(listOf(replenish(p, 5), replenish(p, 3))),
+                consumptions = Consumptions(listOf(consume(p, 2))),
+                replenishmentCorrections = emptyList(),
+                consumptionCorrections = emptyList(),
+            )
         stock.currentQuantity() shouldBe 6
     }
 
     @Test
     fun `needsReplenishment is true when current quantity is below minimum`() {
         val p = productWithMin(5)
-        val stock = Stock(
-            product = p,
-            replenishments = Replenishments(listOf(replenish(p, 3))),
-            consumptions = Consumptions(emptyList()),
-            replenishmentCorrections = emptyList(),
-            consumptionCorrections = emptyList(),
-        )
+        val stock =
+            Stock(
+                product = p,
+                replenishments = Replenishments(listOf(replenish(p, 3))),
+                consumptions = Consumptions(emptyList()),
+                replenishmentCorrections = emptyList(),
+                consumptionCorrections = emptyList(),
+            )
         stock.needsReplenishment().shouldBeTrue()
         stock.shortage() shouldBe 2
     }
@@ -88,13 +108,14 @@ class StockTest {
     @Test
     fun `needsReplenishment is false when minimumStock is null`() {
         val p = productWithMin(null)
-        val stock = Stock(
-            product = p,
-            replenishments = Replenishments(emptyList()),
-            consumptions = Consumptions(emptyList()),
-            replenishmentCorrections = emptyList(),
-            consumptionCorrections = emptyList(),
-        )
+        val stock =
+            Stock(
+                product = p,
+                replenishments = Replenishments(emptyList()),
+                consumptions = Consumptions(emptyList()),
+                replenishmentCorrections = emptyList(),
+                consumptionCorrections = emptyList(),
+            )
         stock.needsReplenishment().shouldBeFalse()
     }
 }

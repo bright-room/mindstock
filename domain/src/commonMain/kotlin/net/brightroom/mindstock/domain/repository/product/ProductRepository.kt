@@ -10,5 +10,8 @@ interface ProductRepository {
     fun listOf(household: Household): Products
 
     /** 同一世帯で同一カタログ商品を採用済みか引く(UNIQUE 検出用)。 */
-    fun find(household: Household, catalogItem: CatalogItem): Product?
+    fun find(
+        household: Household,
+        catalogItem: CatalogItem,
+    ): Product?
 }

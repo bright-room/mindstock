@@ -7,8 +7,11 @@ import net.brightroom.mindstock.domain.model.stock.Stock
  *
  * Stock のリストから「閾値以下の商品」を抽出する。
  */
-class ShoppingList(private val stocks: List<Stock>) {
+class ShoppingList(
+    private val stocks: List<Stock>,
+) {
     fun itemsToBuy(): List<ShoppingListItem> =
-        stocks.filter { it.needsReplenishment() }
-              .map { ShoppingListItem(it, shortage = it.shortage()) }
+        stocks
+            .filter { it.needsReplenishment() }
+            .map { ShoppingListItem(it, shortage = it.shortage()) }
 }

@@ -16,20 +16,24 @@ import kotlin.uuid.Uuid
 
 @OptIn(ExperimentalUuidApi::class)
 class HouseholdMembersTest {
-    private fun user(name: String) = User(
-        id = UserId(Uuid.generateV7()),
-        authIdentity = AuthIdentity(AuthProvider.ZITADEL, AuthSubject("sub-$name")),
-        displayName = DisplayName(name),
-    )
+    private fun user(name: String) =
+        User(
+            id = UserId(Uuid.generateV7()),
+            authIdentity = AuthIdentity(AuthProvider.ZITADEL, AuthSubject("sub-$name")),
+            displayName = DisplayName(name),
+        )
 
     @Test
     fun `owner returns the OWNER user`() {
         val ownerUser = user("alice")
         val memberUser = user("bob")
-        val members = HouseholdMembers(listOf(
-            HouseholdMember(ownerUser, HouseholdMemberRole.OWNER),
-            HouseholdMember(memberUser, HouseholdMemberRole.MEMBER),
-        ))
+        val members =
+            HouseholdMembers(
+                listOf(
+                    HouseholdMember(ownerUser, HouseholdMemberRole.OWNER),
+                    HouseholdMember(memberUser, HouseholdMemberRole.MEMBER),
+                ),
+            )
         members.owner() shouldBe ownerUser
     }
 

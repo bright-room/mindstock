@@ -7,4 +7,7 @@ import kotlinx.serialization.Serializable
  * provider + subject の組で一意。
  */
 @Serializable
-data class AuthIdentity(val provider: AuthProvider, val subject: AuthSubject)
+data class AuthIdentity(
+    val provider: AuthProvider,
+    val subject: AuthSubject,
+)

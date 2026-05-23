@@ -37,16 +37,18 @@ class Stock(
     }
 
     private fun effective(event: Replenishment): EffectiveQuantity {
-        val latest = replenishmentCorrections
-            .filter { it.target == event }
-            .maxByOrNull { it.correctedAt() }
+        val latest =
+            replenishmentCorrections
+                .filter { it.target == event }
+                .maxByOrNull { it.correctedAt() }
         return EffectiveQuantity(event.quantity, latest?.correctedQuantity)
     }
 
     private fun effective(event: Consumption): EffectiveQuantity {
-        val latest = consumptionCorrections
-            .filter { it.target == event }
-            .maxByOrNull { it.correctedAt() }
+        val latest =
+            consumptionCorrections
+                .filter { it.target == event }
+                .maxByOrNull { it.correctedAt() }
         return EffectiveQuantity(event.quantity, latest?.correctedQuantity)
     }
 }

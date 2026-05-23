@@ -9,8 +9,15 @@ interface HouseholdRegisterRepository {
     fun create(owner: User): Household
 
     /** household_memberships に行を INSERT。 */
-    fun invite(household: Household, user: User, role: HouseholdMemberRole)
+    fun invite(
+        household: Household,
+        user: User,
+        role: HouseholdMemberRole,
+    )
 
     /** household_membership_revocations に行を INSERT。 */
-    fun revoke(household: Household, user: User)
+    fun revoke(
+        household: Household,
+        user: User,
+    )
 }

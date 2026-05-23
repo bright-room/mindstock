@@ -13,7 +13,13 @@ interface StockRepository {
     /** 世帯全商品の在庫状態(ShoppingList 用)。 */
     fun stocksOf(household: Household): List<Stock>
 
-    fun replenishmentHistory(product: Product, limit: Int = 50): Replenishments
+    fun replenishmentHistory(
+        product: Product,
+        limit: Int = 50,
+    ): Replenishments
 
-    fun consumptionHistory(product: Product, limit: Int = 50): Consumptions
+    fun consumptionHistory(
+        product: Product,
+        limit: Int = 50,
+    ): Consumptions
 }

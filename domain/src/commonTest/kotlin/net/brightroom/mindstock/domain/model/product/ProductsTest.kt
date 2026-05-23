@@ -11,13 +11,17 @@ import kotlin.uuid.Uuid
 
 @OptIn(ExperimentalUuidApi::class)
 class ProductsTest {
-    private fun catalogItem(name: String) = CatalogItem(
-        id = CatalogItemId(Uuid.generateV7()),
-        name = CatalogItemName(name),
-        unit = CatalogItemUnit("個"),
-    )
+    private fun catalogItem(name: String) =
+        CatalogItem(
+            id = CatalogItemId(Uuid.generateV7()),
+            name = CatalogItemName(name),
+            unit = CatalogItemUnit("個"),
+        )
 
-    private fun product(name: String, archived: Boolean = false) = Product(
+    private fun product(
+        name: String,
+        archived: Boolean = false,
+    ) = Product(
         id = ProductId(Uuid.generateV7()),
         catalogItem = catalogItem(name),
         minimumStock = null,

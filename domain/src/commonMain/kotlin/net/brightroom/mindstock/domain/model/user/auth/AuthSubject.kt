@@ -1,8 +1,8 @@
 package net.brightroom.mindstock.domain.model.user.auth
 
-import kotlin.jvm.JvmInline
 import kotlinx.serialization.Serializable
 import net.brightroom.mindstock.domain.exception.DomainException
+import kotlin.jvm.JvmInline
 
 /**
  * 認証プロバイダにおけるサブジェクト識別子(OIDC の sub クレーム相当)。
@@ -10,7 +10,9 @@ import net.brightroom.mindstock.domain.exception.DomainException
  */
 @Serializable
 @JvmInline
-value class AuthSubject(private val value: String) {
+value class AuthSubject(
+    private val value: String,
+) {
     init {
         if (value.isBlank()) throw DomainException.AuthSubjectBlank()
     }

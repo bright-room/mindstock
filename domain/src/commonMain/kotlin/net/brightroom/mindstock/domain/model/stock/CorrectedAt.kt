@@ -1,8 +1,8 @@
 package net.brightroom.mindstock.domain.model.stock
 
+import kotlinx.serialization.Serializable
 import kotlin.jvm.JvmInline
 import kotlin.time.Instant
-import kotlinx.serialization.Serializable
 
 /**
  * 訂正日時を表す Value Object。
@@ -12,7 +12,9 @@ import kotlinx.serialization.Serializable
  */
 @Serializable
 @JvmInline
-value class CorrectedAt(private val value: Instant) {
+value class CorrectedAt(
+    private val value: Instant,
+) {
     override fun toString(): String = value.toString()
 
     internal operator fun invoke(): Instant = value

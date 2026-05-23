@@ -9,4 +9,7 @@ import net.brightroom.mindstock.domain.model.user.User
  * 「revoked」状態は Repository が読み込み時にフィルタするため、
  * HouseholdMember を持っている = active なメンバー。
  */
-data class HouseholdMember(val user: User, val role: HouseholdMemberRole)
+data class HouseholdMember(
+    val user: User,
+    val role: HouseholdMemberRole,
+)

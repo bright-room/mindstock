@@ -28,29 +28,45 @@ import kotlin.uuid.Uuid
 
 @OptIn(ExperimentalUuidApi::class)
 class ShoppingListTest {
-    private val user = User(
-        UserId(Uuid.generateV7()),
-        AuthIdentity(AuthProvider.ZITADEL, AuthSubject("sub")),
-        DisplayName("alice"),
-    )
+    private val user =
+        User(
+            UserId(Uuid.generateV7()),
+            AuthIdentity(AuthProvider.ZITADEL, AuthSubject("sub")),
+            DisplayName("alice"),
+        )
     private val now = Instant.parse("2026-05-24T10:00:00Z")
 
-    private fun stockOf(name: String, min: Int, currentReplenished: Int): Stock {
-        val product = Product(
-            id = ProductId(Uuid.generateV7()),
-            catalogItem = CatalogItem(
-                id = CatalogItemId(Uuid.generateV7()),
-                name = CatalogItemName(name),
-                unit = CatalogItemUnit("個"),
-            ),
-            minimumStock = MinimumStock(min),
-            archived = false,
-        )
-        val r = if (currentReplenished > 0) listOf(Replenishment(
-            product = product, quantity = Quantity(currentReplenished),
-            occurredAt = OccurredAt(Instant.parse("2026-05-23T10:00:00Z"), now),
-            actor = user, note = Note(""),
-        )) else emptyList()
+    private fun stockOf(
+        name: String,
+        min: Int,
+        currentReplenished: Int,
+    ): Stock {
+        val product =
+            Product(
+                id = ProductId(Uuid.generateV7()),
+                catalogItem =
+                    CatalogItem(
+                        id = CatalogItemId(Uuid.generateV7()),
+                        name = CatalogItemName(name),
+                        unit = CatalogItemUnit("個"),
+                    ),
+                minimumStock = MinimumStock(min),
+                archived = false,
+            )
+        val r =
+            if (currentReplenished > 0) {
+                listOf(
+                    Replenishment(
+                        product = product,
+                        quantity = Quantity(currentReplenished),
+                        occurredAt = OccurredAt(Instant.parse("2026-05-23T10:00:00Z"), now),
+                        actor = user,
+                        note = Note(""),
+                    ),
+                )
+            } else {
+                emptyList()
+            }
         return Stock(
             product = product,
             replenishments = Replenishments(r),

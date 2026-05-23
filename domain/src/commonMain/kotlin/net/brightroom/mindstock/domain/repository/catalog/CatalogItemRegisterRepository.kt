@@ -7,8 +7,17 @@ import net.brightroom.mindstock.domain.model.user.User
 
 interface CatalogItemRegisterRepository {
     /** catalog_items + 初回 catalog_item_revisions を 1 トランザクションで INSERT。 */
-    fun register(name: CatalogItemName, unit: CatalogItemUnit, createdBy: User): CatalogItem
+    fun register(
+        name: CatalogItemName,
+        unit: CatalogItemUnit,
+        createdBy: User,
+    ): CatalogItem
 
     /** catalog_item_revisions に行を INSERT。name と unit 両方を渡す責任は呼び出し側。 */
-    fun revise(catalogItem: CatalogItem, newName: CatalogItemName, newUnit: CatalogItemUnit, editedBy: User)
+    fun revise(
+        catalogItem: CatalogItem,
+        newName: CatalogItemName,
+        newUnit: CatalogItemUnit,
+        editedBy: User,
+    )
 }
