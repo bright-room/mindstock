@@ -74,38 +74,57 @@ mindstock/
 ├── build-logic/                    # composite build
 │   ├── settings.gradle.kts
 │   └── src/main/kotlin/
-│       ├── mindstock.kotlin-jvm.gradle.kts
-│       ├── mindstock.kotlin-jvm-testcontainers.gradle.kts
-│       ├── mindstock.kmp-shared.gradle.kts
-│       ├── mindstock.ktor-server.gradle.kts
-│       ├── mindstock.compose-wasm.gradle.kts
-│       └── mindstock.spotless.gradle.kts
-├── shared/                         # KMP: Wasm + JVM。RPC 契約 + DTO + 値オブジェクト
-├── rpc/                            # JVM only。kotlinx-rpc サービス定義
+│       ├── net.brightroom.mindstock.kotlin-jvm.gradle.kts
+│       ├── net.brightroom.mindstock.kotlin-jvm-testcontainers.gradle.kts
+│       ├── net.brightroom.mindstock.kmp-shared.gradle.kts
+│       ├── net.brightroom.mindstock.ktor-server.gradle.kts
+│       ├── net.brightroom.mindstock.compose-web.gradle.kts
+│       └── net.brightroom.mindstock.spotless.gradle.kts
+├── shared/                         # KMP: JVM + JS + Wasm。クライアント/サーバ共有モジュール群
+│   ├── rpc/                        #   kotlinx-rpc サービス IF + DTO(presentation.rpc)
+│   └── extensions/                 #   kotlinx-datetime / serialization の拡張(@js-joda/timezone を wasm に bundle)
 ├── domain/                         # JVM only。Aggregate, Event, Policy(永続化非依存)
 ├── backend/
-│   ├── application/                # JVM only。UseCase, Command/Query handler
-│   ├── infrastructure/
-│   │   ├── schemas/                # JVM only。Exposed Table 定義
-│   │   └── migration/
-│   │       ├── annotation/         # @Migratable アノテーション
-│   │       ├── detector/           # スキーマ差分検出
-│   │       ├── generator/          # SQL 生成
-│   │       └── executor/           # Flyway 実行
-│   └── api/                        # JVM only。Ktor server entrypoint
+│   ├── application/
+│   │   └── api/                    # JVM only。Ktor server entrypoint + use case 配線
+│   │                               # (use case はまだ存在しないため、application 配下に api 統合)
+│   └── infrastructure/
+│       ├── schemas/                # JVM only。Exposed Table 定義(infrastructure.datasource.schemas.*)
+│       └── migration/
+│           ├── annotation/         # @Migratable アノテーション
+│           ├── detector/           # スキーマ差分検出(現状は手動レジストリ)
+│           ├── generator/          # SQL 生成(MigrationGenerator)
+│           └── executor/           # Flyway 実行(MigrationRunner)
 └── frontend/                       # CMP Wasm。UI Composables + state + RPC client
 ```
 
 依存方向:
 
 ```
-frontend     ──> rpc
-backend:api  ──> rpc
-backend:api  ──> backend:application ──> domain
-backend:api  ──> backend:infrastructure:* ──> domain
+frontend             ──> shared:rpc
+backend:application:api ──> shared:rpc
+backend:application:api ──> shared:extensions
+backend:application:api ──> domain
+backend:application:api ──> backend:infrastructure:schemas
+backend:application:api ──> backend:infrastructure:migration:executor
+
+backend:infrastructure:schemas       ──> domain + migration:annotation
+backend:infrastructure:migration:detector  ──> schemas + migration:annotation
+backend:infrastructure:migration:generator ──> schemas + migration:detector
+backend:infrastructure:migration:executor  ──> schemas + migration:detector
 ```
 
-`domain` は何にも依存しない純粋 Kotlin。`rpc` は kRPC サービス IF と DTO のみ。`shared` は現時点では依存元なし(将来 frontend/backend の共通型置き場として使う余地を残す)。
+`domain` は何にも依存しない純粋 Kotlin。`shared:rpc` は kRPC サービス IF + DTO のみ。`shared:extensions` は kotlinx-datetime / serialization の拡張(`TimeZone.JST`, `LocalDate.now(...)`, `CustomJson` 等)。
+
+## 3.3 Ktor アプリケーション構成
+
+`backend:application:api` の entry point は `net.brightroom.mindstock.MainKt`(`fun main(args)` で `EngineMain.main(args)` を呼ぶだけ)。Ktor module 関数(`fun Application.module()`)は `application.yaml` の `ktor.application.modules` で参照される予定。各構成は per-concern に分離して `configuration` パッケージ下に置く:
+
+- `configuration.Environment` — `LOCAL / DEV / STG / PROD` 列挙
+- `configuration.di.DependenciesConfiguration` — Ktor DI への登録
+- `configuration.external.exposed.{ExposedDataSourceProperties, ExposedConfiguration}` — Hikari + Exposed 接続を `provide<Database>` で DI 登録
+- `configuration.logging.LoggingConfiguration` — CallId / CallLogging / DoubleReceive、本番では `receiveText` を除外
+- `configuration.routing.RoutingConfiguration` — ContentNegotiation(`jsonIo(CustomJson)`) と routing
 
 ## 4. ドメインモデル
 
@@ -505,7 +524,7 @@ interface InventoryService : RemoteService {
 - Gradle タスク or CLI で `MigrationUtils.generateMigrationScript()` を実行し、Flyway 互換の SQL ファイル(`V{timestamp}__description.sql`)を生成
 - アプリ起動時に Flyway が `migration/` ディレクトリの SQL を適用
 - VIEW は使わないので、マイグレーションは `CREATE TABLE` と index 中心
-- スキーマ定義(`Table`)は `backend/infrastructure/schemas/` に集約
+- スキーマ定義(`Table`)は `backend/infrastructure/schemas/`(パッケージ `net.brightroom.mindstock.infrastructure.datasource.schemas.*`)に集約
 
 ### 9.2 DB アクセス
 
@@ -539,7 +558,7 @@ interface InventoryService : RemoteService {
 ### 9.4 ローカル開発
 
 - `compose.yml` で PostgreSQL 18 + Zitadel をローカル起動
-- backend: `./gradlew :backend:api:run`
+- backend: `./gradlew :backend:application:api:run`
 - frontend: `./gradlew :frontend:wasmJsBrowserDevelopmentRun`
 - frontend dev server から backend へプロキシ設定(CORS 回避)
 
@@ -556,9 +575,9 @@ interface InventoryService : RemoteService {
 | 層 | テスト | ツール |
 |---|---|---|
 | domain | 集約・不変条件・ポリシーの単体テスト | Kotest |
-| application | UseCase をモック Repository でテスト | Kotest + MockK |
-| backend:infrastructure | **Testcontainers で本物の PostgreSQL 18** | Testcontainers |
-| backend:api | kotlinx-rpc in-memory transport で E2E | Ktor TestApplication |
+| backend:application:api (use case) | UseCase をモック Repository でテスト | Kotest + MockK |
+| backend:infrastructure:* | **Testcontainers で本物の PostgreSQL 18** | Testcontainers(testFixtures で `TestContainersPostgres` を `executor` から共有) |
+| backend:application:api | kotlinx-rpc in-memory transport で E2E | Ktor TestApplication |
 | frontend | Composable + Compose UI Test | compose-ui-test |
 
 backend:infrastructure 層は H2 等の代用を使わず本物の PG。`uuidv7()`、`DISTINCT ON` 等 PG 固有機能を使うため。
