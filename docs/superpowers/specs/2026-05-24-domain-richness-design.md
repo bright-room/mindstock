@@ -46,18 +46,18 @@ Request クラスは domain には置かない。Request は外部入力(RPC DTO
 
 `List<Xxx>` を `Xxxs` クラスでラップしてドメイン語彙を持たせる(`Products`, `HouseholdMembers`, `Replenishments` 等)。参考の `Loans.冊数()` と同じ思想。
 
-### 2.5 id / createdAt の扱い
+### 2.5 id / 日時 の扱い
 
-| 種別 | id | createdAt |
+| 種別 | id | 日時 |
 |---|---|---|
-| 集約ルート(User / Household / CatalogItem / Product)| **public**(`val id`) | **削除**(インフラメタ) |
-| Stock イベント(Replenishment / Consumption)| **public** | **削除**(`occurredAt` のみ残す) |
-| Stock 訂正(ReplenishmentCorrection 等)| **public** | **保持**(訂正日時として domain 概念) |
+| 集約ルート(User / Household / CatalogItem / Product)| **public**(`val id`) | なし(インフラメタは削除) |
+| Stock イベント(Replenishment / Consumption)| **なし** | `occurredAt: OccurredAt`(ユーザー入力) |
+| Stock 訂正(ReplenishmentCorrection 等)| **なし** | `correctedAt: CorrectedAt`(訂正日時) |
 
 ポイント:
-- `id` は public だが、**domain ロジック内で `a.id == b.id` のような比較は書かない慣習**で運用(`data class` の `equals` を使う)。Repository 実装はモジュール外から id を読んで SQL に使う必要があるため public 必須
-- `occurredAt` は「ユーザー入力の出来事時刻」(Replenishment / Consumption が持つ)。ドメイン概念
-- 訂正の `createdAt` は「いつ訂正されたか」で domain 概念として例外的に残す
+- 集約ルートの `id` は public(`data class`)。`a.id == b.id` のような比較は domain ロジックで書かない慣習で運用。Repository 実装はモジュール外から id を読んで SQL に使う
+- Stock イベント / 訂正の `id` は **削除**。順序付けは時刻フィールドで、参照は composition(`target: Replenishment`)で行う。Repository 実装が domain object と DB 行を対応付ける手段は Plan 4-5 で設計(候補: 全フィールドハッシュ、UUID 化、隠し handle 等)
+- `occurredAt`(出来事時刻)・`correctedAt`(訂正日時)はそれぞれ VO 化し、domain で意味のある概念として残す
 
 ### 2.6 immutable
 
@@ -76,10 +76,12 @@ domain/src/commonMain/kotlin/net/brightroom/mindstock/domain/
 ├── model/
 │   ├── user/
 │   │   ├── User.kt                     # 集約ルート(displayName 必須)
-│   │   ├── UserId.kt                   # value class(private 利用)
-│   │   ├── AuthIdentity.kt         # data class(provider + value)、Zitadel 固有名を排除
-│   │   ├── AuthProvider.kt         # enum(ZITADEL、将来拡張)
-│   │   └── DisplayName.kt
+│   │   ├── UserId.kt                   # value class
+│   │   ├── DisplayName.kt
+│   │   └── auth/                       # 認証関連の小集約
+│   │       ├── AuthIdentity.kt         # data class(provider + subject)
+│   │       ├── AuthProvider.kt         # enum(ZITADEL、将来拡張)
+│   │       └── AuthSubject.kt          # VO(空文字禁止)
 │   ├── household/
 │   │   ├── Household.kt                # 集約ルート(members を持つ)
 │   │   ├── HouseholdId.kt
@@ -102,21 +104,18 @@ domain/src/commonMain/kotlin/net/brightroom/mindstock/domain/
 │   │   ├── EffectiveQuantity.kt        # 訂正適用後の数量(計算オブジェクト)
 │   │   ├── Quantity.kt
 │   │   ├── OccurredAt.kt
+│   │   ├── CorrectedAt.kt              # 訂正日時 VO
 │   │   ├── Note.kt
 │   │   ├── Reason.kt
 │   │   ├── replenishment/
-│   │   │   ├── Replenishment.kt        # public id 持ち
-│   │   │   ├── ReplenishmentId.kt
+│   │   │   ├── Replenishment.kt        # id なし
 │   │   │   ├── Replenishments.kt       # コレクション
-│   │   │   ├── ReplenishmentCorrection.kt    # target: Replenishment(composition)
-│   │   │   ├── ReplenishmentCorrectionId.kt
+│   │   │   ├── ReplenishmentCorrection.kt    # target: Replenishment(composition)、id なし
 │   │   │   └── ReplenishmentCorrections.kt   # 単一 Replenishment への訂正群
 │   │   └── consumption/
 │   │       ├── Consumption.kt
-│   │       ├── ConsumptionId.kt
 │   │       ├── Consumptions.kt
 │   │       ├── ConsumptionCorrection.kt
-│   │       ├── ConsumptionCorrectionId.kt
 │   │       └── ConsumptionCorrections.kt
 │   └── shopping/
 │       ├── ShoppingList.kt             # List<Stock> → 買うべきアイテム
@@ -144,29 +143,36 @@ domain/src/commonMain/kotlin/net/brightroom/mindstock/domain/
 ### 4.1 User
 
 ```kotlin
+// user/User.kt
 data class User(
     val id: UserId,
     val authIdentity: AuthIdentity,
     val displayName: DisplayName,
 )
 
+// user/auth/AuthIdentity.kt
 /**
- * 認証プロバイダの識別情報。OIDC の sub クレーム相当だが
- * Zitadel 固有名を domain に出さないため抽象化している。
+ * 認証プロバイダの識別情報。OIDC の sub クレーム相当。
+ * Zitadel 固有名を domain に出さないため抽象化(provider と subject に分離)。
  */
-data class AuthIdentity(val provider: AuthProvider, val value: String) {
-    init {
-        if (value.isBlank()) throw DomainException.AuthIdentityValueBlank()
-    }
-}
+data class AuthIdentity(val provider: AuthProvider, val subject: AuthSubject)
 
-enum class AuthProvider { ZITADEL }  // 将来追加: AUTH0 等
+// user/auth/AuthProvider.kt
+enum class AuthProvider { ZITADEL }   // 将来追加: AUTH0 等
+
+// user/auth/AuthSubject.kt
+@Serializable @JvmInline
+value class AuthSubject(private val value: String) {
+    init { if (value.isBlank()) throw DomainException.AuthSubjectBlank() }
+    override fun toString(): String = value
+    internal operator fun invoke(): String = value
+}
 ```
 
 ポイント:
 - `displayName` は **NOT NULL**。初回登録時に認証プロバイダから取得した名前を必ず渡して構築する
-- `id` は public(`data class` で自動生成された equals / hashCode / copy / toString に含まれる)。domain ロジックで `user.id == other.id` のような比較は書かない慣習で運用
-- `AuthIdentity` は Zitadel 固有名(`ZitadelSub`)を排除した抽象。MVP では `AuthProvider` enum に ZITADEL のみだが、将来 Auth0 等を追加する時に拡張可能
+- `id` は public。`data class` の equals / hashCode / copy / toString に含まれる
+- `AuthIdentity` は `user/auth/` サブパッケージに置く。Zitadel 固有名を排除し `AuthProvider + AuthSubject` に分離
 
 ### 4.2 Household
 
@@ -241,7 +247,6 @@ class Products(private val list: List<Product>) {
 
 ```kotlin
 data class Replenishment(
-    val id: ReplenishmentId,
     val product: Product,
     val quantity: Quantity,
     val occurredAt: OccurredAt,
@@ -250,7 +255,6 @@ data class Replenishment(
 )
 
 data class Consumption(
-    val id: ConsumptionId,
     val product: Product,
     val quantity: Quantity,
     val occurredAt: OccurredAt,
@@ -259,36 +263,35 @@ data class Consumption(
 )
 ```
 
+id を持たない。順序は `occurredAt` で取れる。Repository 実装が domain object を DB 行に対応付ける手段は Plan 4-5 で設計する。
+
 #### Corrections
 
 ```kotlin
 data class ReplenishmentCorrection(
-    val id: ReplenishmentCorrectionId,
-    val target: Replenishment,
+    val target: Replenishment,           // composition で元イベント参照
     val correctedQuantity: Quantity,
     val reason: Reason,
     val corrector: User,
-    val createdAt: Instant,   // 訂正日時(domain 概念として残す)
+    val correctedAt: CorrectedAt,        // 訂正日時 VO
 )
 
 data class ConsumptionCorrection(
-    val id: ConsumptionCorrectionId,
     val target: Consumption,
     val correctedQuantity: Quantity,
     val reason: Reason,
     val corrector: User,
-    val createdAt: Instant,
+    val correctedAt: CorrectedAt,
 )
 ```
 
-訂正の `createdAt` は他の集約と違って domain で意味を持つ(「いつ訂正されたか」)。DB の `created_at` カラムをそのまま使う。
+`CorrectedAt` は `Instant` をラップした VO(`stock/CorrectedAt.kt`)。DB の `created_at` カラムを「訂正日時」という domain 概念として読み替えて使う。順序付けは `correctedAt` で取れる(同一 target に複数訂正がある場合、`maxByOrNull { it.correctedAt }` で最新)。
 
 #### Collections
 
 ```kotlin
 class Replenishments(private val list: List<Replenishment>) {
     fun asList(): List<Replenishment> = list.toList()
-    // 訂正適用後の合計数量は、EffectiveQuantity を使って計算する(下記)
 }
 
 class Consumptions(private val list: List<Consumption>) {
@@ -296,16 +299,18 @@ class Consumptions(private val list: List<Consumption>) {
 }
 
 class ReplenishmentCorrections(private val list: List<ReplenishmentCorrection>) {
-    /** 最新の訂正(id 降順で先頭)。なければ null。 */
-    fun latest(): ReplenishmentCorrection? = list.maxByOrNull { it.id }
+    /** 訂正日時の最新を返す。なければ null。 */
+    fun latest(): ReplenishmentCorrection? = list.maxByOrNull { it.correctedAt() }
     fun asList(): List<ReplenishmentCorrection> = list.toList()
 }
 
 class ConsumptionCorrections(private val list: List<ConsumptionCorrection>) {
-    fun latest(): ConsumptionCorrection? = list.maxByOrNull { it.id }
+    fun latest(): ConsumptionCorrection? = list.maxByOrNull { it.correctedAt() }
     fun asList(): List<ConsumptionCorrection> = list.toList()
 }
 ```
+
+注: `CorrectedAt` の `internal operator fun invoke(): Instant` で raw `Instant` を取り出して `maxByOrNull` の selector に使う。`CorrectedAt` 自体を `Comparable<CorrectedAt>` 実装にすれば `maxByOrNull { it.correctedAt }` でも書けるが、Plan 3 範囲では `invoke()` 経由でよい。
 
 #### EffectiveQuantity(計算)
 
@@ -325,9 +330,8 @@ class Stock(
     val product: Product,
     val replenishments: Replenishments,
     val consumptions: Consumptions,
-    // 各 event 毎に訂正があれば適用するロジックを持つ
-    private val replenishmentCorrectionsByEventId: Map<ReplenishmentId, ReplenishmentCorrections>,
-    private val consumptionCorrectionsByEventId: Map<ConsumptionId, ConsumptionCorrections>,
+    private val replenishmentCorrections: List<ReplenishmentCorrection>,
+    private val consumptionCorrections: List<ConsumptionCorrection>,
 ) {
     fun currentQuantity(): Int {
         val replenished = replenishments.asList().sumOf { effective(it).value }
@@ -345,13 +349,22 @@ class Stock(
         return (minimum - currentQuantity()).coerceAtLeast(0)
     }
 
+    /** 対象 Replenishment の最新訂正があればその数量、なければ元の数量。 */
     private fun effective(event: Replenishment): Quantity =
-        replenishmentCorrectionsByEventId[event.id]?.latest()?.correctedQuantity ?: event.quantity
+        replenishmentCorrections
+            .filter { it.target == event }                       // data class equality を使って target を絞る
+            .maxByOrNull { it.correctedAt() }
+            ?.correctedQuantity ?: event.quantity
 
     private fun effective(event: Consumption): Quantity =
-        consumptionCorrectionsByEventId[event.id]?.latest()?.correctedQuantity ?: event.quantity
+        consumptionCorrections
+            .filter { it.target == event }
+            .maxByOrNull { it.correctedAt() }
+            ?.correctedQuantity ?: event.quantity
 }
 ```
+
+注: `it.target == event` は `data class equals`(全フィールド一致)。同一内容の Replenishment が複数あると曖昧になる潜在的問題があるが、MVP では実用上問題なし。Plan 4-5 でこの「同値性問題」を解決する設計が必要(候補: 隠し handle、UUID 化、占位的に一意性を保証するフィールド追加)。
 
 ### 4.6 ShoppingList(買い物リスト)
 
@@ -442,6 +455,8 @@ interface StockRegisterRepository {
 
 メソッド引数の数が多くなる(`replenish` は 5 引数)が、Kotlin の named arguments で呼び出し側の可読性は維持できる。Request クラス化したい場合は Plan 4 で `:backend:application:api` に置く(ACL として)。
 
+**未解決(Plan 4-5 で設計)**: domain object に id がないため、Repository 実装が「どの DB 行を訂正対象にするか」を特定する手段が要る。候補: (a) Repository 内部で domain object → DB id の隠し対応表を保持、(b) 履歴テーブルを UUIDv7 化して domain object に opaque な handle を持たせる、(c) 全フィールド一致 + 時刻による絞り込み(同値衝突は実用上稀)。決定は Plan 4-5 で行う。
+
 ## 6. Value Object 規約(変更なし)
 
 旧設計通り:
@@ -472,11 +487,11 @@ value class UserId(private val value: Uuid) {
 VO 系の検証例外(`InvalidQuantity`, `InvalidMinimumStock`, `OccurredAtInFuture`, `DisplayNameTooLong`, ...)は残す。
 
 新規追加:
-- `AuthIdentityValueBlank`: `AuthIdentity(provider, value)` の value 空文字検証用
+- `AuthSubjectBlank`: `AuthSubject(value)` の空文字検証用
 - `HouseholdHasNoOwner`(必要なら): `Household.invite` で OWNER role が既にいるかチェック等で使う場合(MVP では未使用)
 
 削除:
-- `ZitadelSubBlank` → `AuthIdentityValueBlank` に置き換え
+- `ZitadelSubBlank` → `AuthSubjectBlank` に置き換え
 - `ProductArchived`, `ProductNotInHousehold` などの Aggregate ガード関連
 
 ## 8. 削除されるクラス
@@ -496,14 +511,14 @@ VO 系の検証例外(`InvalidQuantity`, `InvalidMinimumStock`, `OccurredAtInFut
 | `ProductArchive`(fact)| 削除 | `Product.archived` に統合 |
 | `ProductArchiveId` | 削除 | 不要 |
 | `StockReplenishment` → `Replenishment` | リネーム | `Replenishment`(prefix 削除、Stock の package に居るので冗長) |
-| `StockReplenishmentId` → `ReplenishmentId` | リネーム | |
+| `StockReplenishmentId` | **削除** | id 不要(時刻で順序、composition で参照) |
 | `StockConsumption` → `Consumption` | リネーム | |
-| `StockConsumptionId` → `ConsumptionId` | リネーム | |
+| `StockConsumptionId` | **削除** | 同上 |
 | `StockReplenishmentCorrection` → `ReplenishmentCorrection` | リネーム | |
-| `StockReplenishmentCorrectionId` → `ReplenishmentCorrectionId` | リネーム | |
+| `StockReplenishmentCorrectionId` | **削除** | 同上 |
 | `StockConsumptionCorrection` → `ConsumptionCorrection` | リネーム | |
-| `StockConsumptionCorrectionId` → `ConsumptionCorrectionId` | リネーム | |
-| `ZitadelSub` → `AuthIdentity` + `AuthProvider` | リネーム/抽象化 | data class(`provider`, `value`)で外部認証プロバイダを domain から切り離す |
+| `StockConsumptionCorrectionId` | **削除** | 同上 |
+| `ZitadelSub` → `AuthSubject` + `AuthIdentity` + `AuthProvider` | リネーム/抽象化 | `user/auth/` サブパッケージに置く |
 
 ## 9. テスト方針
 
