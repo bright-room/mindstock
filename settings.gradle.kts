@@ -44,15 +44,19 @@ rootProject.name = "mindstock"
 includeBuild("build-logic")
 
 include(
-    ":shared",
-    ":rpc",
-    ":domain",
-    ":backend:application",
+    ":shared:rpc",
+    ":shared:extensions",
+)
+
+include(":domain")
+
+include(
+    ":backend:application:api",
     ":backend:infrastructure:schemas",
     ":backend:infrastructure:migration:annotation",
     ":backend:infrastructure:migration:detector",
     ":backend:infrastructure:migration:generator",
     ":backend:infrastructure:migration:executor",
-    ":backend:api",
-    ":frontend",
 )
+
+include(":frontend")

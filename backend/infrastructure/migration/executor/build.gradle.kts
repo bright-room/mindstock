@@ -8,10 +8,10 @@ dependencies {
     implementation(projects.backend.infrastructure.migration.detector)
 
     implementation(libs.exposed.core)
-    api(libs.exposed.jdbc)
+    implementation(libs.exposed.jdbc)
     implementation(libs.exposed.kotlin.datetime)
     implementation(libs.exposed.migration)
-    api(libs.hikari)
+    implementation(libs.hikari)
     implementation(libs.postgres.jdbc)
     implementation(libs.flyway.core)
     implementation(libs.flyway.database.postgresql)

@@ -8,5 +8,5 @@ dependencies {
 
     implementation(libs.exposed.core)
     implementation(libs.exposed.kotlin.datetime)
-    api(libs.exposed.jdbc)
+    implementation(libs.exposed.jdbc)
 }

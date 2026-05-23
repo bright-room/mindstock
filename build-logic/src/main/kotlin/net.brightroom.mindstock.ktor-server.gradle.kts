@@ -5,5 +5,5 @@ plugins {
 
 application {
     // Override in module if needed
-    mainClass.set("net.brightroom.mindstock.backend.MainKt")
+    mainClass.set("net.brightroom.mindstock.MainKt")
 }

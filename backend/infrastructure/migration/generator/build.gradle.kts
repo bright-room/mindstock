@@ -7,7 +7,7 @@ dependencies {
     implementation(projects.backend.infrastructure.migration.detector)
 
     implementation(libs.exposed.core)
-    api(libs.exposed.jdbc)
+    implementation(libs.exposed.jdbc)
     implementation(libs.exposed.kotlin.datetime)
     implementation(libs.exposed.migration)
     implementation(libs.postgres.jdbc)
