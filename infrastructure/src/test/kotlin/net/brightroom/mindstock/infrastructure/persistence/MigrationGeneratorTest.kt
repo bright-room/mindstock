@@ -32,8 +32,9 @@ class MigrationGeneratorTest :
         }
     })
 
-private fun createTempDirectory(): File = File.createTempFile("mindstock-migrations-", "").apply {
-    delete()
-    mkdir()
-    deleteOnExit()
-}
+private fun createTempDirectory(): File =
+    File.createTempFile("mindstock-migrations-", "").apply {
+        delete()
+        mkdir()
+        deleteOnExit()
+    }

@@ -29,13 +29,14 @@ class MigrationRunnerTest :
 private fun listTables(
     ds: DataSource,
     schema: String,
-): List<String> = ds.connection.use { conn ->
-    conn
-        .prepareStatement(
-            "SELECT tablename FROM pg_tables WHERE schemaname = ? ORDER BY tablename",
-        ).apply { setString(1, schema) }
-        .use { stmt ->
-            val rs = stmt.executeQuery()
-            buildList { while (rs.next()) add(rs.getString(1)) }
-        }
-}
+): List<String> =
+    ds.connection.use { conn ->
+        conn
+            .prepareStatement(
+                "SELECT tablename FROM pg_tables WHERE schemaname = ? ORDER BY tablename",
+            ).apply { setString(1, schema) }
+            .use { stmt ->
+                val rs = stmt.executeQuery()
+                buildList { while (rs.next()) add(rs.getString(1)) }
+            }
+    }
