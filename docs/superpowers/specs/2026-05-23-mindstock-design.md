@@ -80,10 +80,18 @@ mindstock/
 │       ├── mindstock.compose-wasm.gradle.kts
 │       └── mindstock.spotless.gradle.kts
 ├── shared/                         # KMP: Wasm + JVM。RPC 契約 + DTO + 値オブジェクト
+├── rpc/                            # JVM only。kotlinx-rpc サービス定義
 ├── domain/                         # JVM only。Aggregate, Event, Policy(永続化非依存)
-├── application/                    # JVM only。UseCase, Command/Query handler
-├── infrastructure/                 # JVM only。Exposed Tables, Repository 実装, OTel, Auth
-├── backend/                        # JVM only。Ktor server entrypoint
+├── backend/
+│   ├── application/                # JVM only。UseCase, Command/Query handler
+│   ├── infrastructure/
+│   │   ├── schemas/                # JVM only。Exposed Table 定義
+│   │   └── migration/
+│   │       ├── annotation/         # @Migratable アノテーション
+│   │       ├── detector/           # スキーマ差分検出
+│   │       ├── generator/          # SQL 生成
+│   │       └── executor/           # Flyway 実行
+│   └── api/                        # JVM only。Ktor server entrypoint
 └── frontend/                       # CMP Wasm。UI Composables + state + RPC client
 ```
 
@@ -91,10 +99,10 @@ mindstock/
 
 ```
 frontend ──┐
-           ├──> shared
-backend ───┤
-           ├──> application ──> domain
-           └──> infrastructure ──> domain
+           ├──> shared ──> rpc
+backend:api ─┤
+           ├──> backend:application ──> domain
+           └──> backend:infrastructure:* ──> domain
 ```
 
 `domain` は何にも依存しない純粋 Kotlin。`shared` と `domain` は意図的に分離し、ドメインモデルが外部に漏れない。
@@ -497,7 +505,7 @@ interface InventoryService : RemoteService {
 - Gradle タスク or CLI で `MigrationUtils.generateMigrationScript()` を実行し、Flyway 互換の SQL ファイル(`V{timestamp}__description.sql`)を生成
 - アプリ起動時に Flyway が `migration/` ディレクトリの SQL を適用
 - VIEW は使わないので、マイグレーションは `CREATE TABLE` と index 中心
-- スキーマ定義(`Table`)は `infrastructure/schemas/` に集約
+- スキーマ定義(`Table`)は `backend/infrastructure/schemas/` に集約
 
 ### 9.2 DB アクセス
 
@@ -531,7 +539,7 @@ interface InventoryService : RemoteService {
 ### 9.4 ローカル開発
 
 - `compose.yml` で PostgreSQL 18 + Zitadel をローカル起動
-- backend: `./gradlew :backend:run`
+- backend: `./gradlew :backend:api:run`
 - frontend: `./gradlew :frontend:wasmJsBrowserDevelopmentRun`
 - frontend dev server から backend へプロキシ設定(CORS 回避)
 
@@ -549,11 +557,11 @@ interface InventoryService : RemoteService {
 |---|---|---|
 | domain | 集約・不変条件・ポリシーの単体テスト | Kotest |
 | application | UseCase をモック Repository でテスト | Kotest + MockK |
-| infrastructure | **Testcontainers で本物の PostgreSQL 18** | Testcontainers |
-| backend | kotlinx-rpc in-memory transport で E2E | Ktor TestApplication |
+| backend:infrastructure | **Testcontainers で本物の PostgreSQL 18** | Testcontainers |
+| backend:api | kotlinx-rpc in-memory transport で E2E | Ktor TestApplication |
 | frontend | Composable + Compose UI Test | compose-ui-test |
 
-infrastructure 層は H2 等の代用を使わず本物の PG。`uuidv7()`、`DISTINCT ON` 等 PG 固有機能を使うため。
+backend:infrastructure 層は H2 等の代用を使わず本物の PG。`uuidv7()`、`DISTINCT ON` 等 PG 固有機能を使うため。
 
 ## 10. 将来拡張(MVP 外)
 

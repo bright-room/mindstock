@@ -48,7 +48,6 @@ include(
     ":backend:infrastructure:migration:detector",
     ":backend:infrastructure:migration:generator",
     ":backend:infrastructure:migration:executor",
-    ":infrastructure",
     ":backend:api",
     ":frontend",
 )
