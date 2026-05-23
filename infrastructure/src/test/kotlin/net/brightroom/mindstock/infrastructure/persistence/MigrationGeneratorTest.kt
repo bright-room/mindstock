@@ -25,11 +25,6 @@ class MigrationGeneratorTest :
             }
         }
 
-        test("generator emits nothing when the schema already matches") {
-            // Second generation against a database where all Migratable tables exist
-            // would yield an empty script; we don't test that here yet — covered
-            // once Task 13 wires the applier in.
-        }
     })
 
 private fun createTempDirectory(): File =
