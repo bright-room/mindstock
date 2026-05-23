@@ -139,9 +139,13 @@ backend ───┤
 
 「3 個消費」と入力したが正しくは「2 個」だったケース:
 
-- `stock_event_corrections` テーブルに INSERT(`target_table`, `target_id`, `new_quantity`, `reason`, `corrected_by`)
+- 対応する訂正テーブルに INSERT(該当 FK + `corrected_quantity` + `reason` + `corrected_by`)
+  - 補充イベントの訂正: `stock_replenishment_corrections`(`stock_replenishment_id → stock_replenishments(id)`)
+  - 消費イベントの訂正: `stock_consumption_corrections`(`stock_consumption_id → stock_consumptions(id)`)
 - 元イベントはそのまま残る
-- 読み取り側(`effective_stock_*` クエリ)で訂正があれば最新の `new_quantity` を採用する
+- 読み取り側(`effective_stock_*` クエリ)で訂正があれば最新の `corrected_quantity` を採用する
+- `reason` は NOT NULL — 「何故訂正したか」をドメインの一級事実として残す
+- ポリモーフィック関連(`target_table` ディスクリミネータ)は避け、FK 制約を効かせる
 
 ## 5. データベーススキーマ
 
@@ -267,15 +271,22 @@ CREATE TABLE stock_consumptions (
     created_at      TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
-CREATE TABLE stock_event_corrections (
-    id              BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-    target_table    TEXT NOT NULL
-                    CHECK (target_table IN ('stock_replenishments','stock_consumptions')),
-    target_id       BIGINT NOT NULL,
-    new_quantity    INT NOT NULL CHECK (new_quantity > 0),
-    reason          TEXT,
-    corrected_by    UUID NOT NULL REFERENCES users(id),
-    created_at      TIMESTAMPTZ NOT NULL DEFAULT now()
+CREATE TABLE stock_replenishment_corrections (
+    id                      BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    stock_replenishment_id  BIGINT NOT NULL REFERENCES stock_replenishments(id),
+    corrected_quantity      INT NOT NULL CHECK (corrected_quantity > 0),
+    reason                  TEXT NOT NULL,
+    corrected_by            UUID NOT NULL REFERENCES users(id),
+    created_at              TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE TABLE stock_consumption_corrections (
+    id                      BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    stock_consumption_id    BIGINT NOT NULL REFERENCES stock_consumptions(id),
+    corrected_quantity      INT NOT NULL CHECK (corrected_quantity > 0),
+    reason                  TEXT NOT NULL,
+    corrected_by            UUID NOT NULL REFERENCES users(id),
+    created_at              TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 ```
 
@@ -379,7 +390,7 @@ interface InventoryService : RemoteService {
 @Serializable enum class StockEventTargetKind { Replenishment, Consumption }
 @Serializable data class StockEventTarget(val kind: StockEventTargetKind, val id: StockEventId)
 @Serializable data class CorrectStockEvent(
-    val target: StockEventTarget, val newQuantity: Int, val reason: String? = null,
+    val target: StockEventTarget, val newQuantity: Int, val reason: String = "",
 )
 
 @Serializable data class SetDisplayName(val displayName: String)
