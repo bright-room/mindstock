@@ -12,10 +12,8 @@ import net.brightroom.mindstock.domain.model.stock.Note
 import net.brightroom.mindstock.domain.model.stock.OccurredAt
 import net.brightroom.mindstock.domain.model.stock.Quantity
 import net.brightroom.mindstock.domain.model.stock.Stock
-import net.brightroom.mindstock.domain.model.stock.consumption.Consumptions
-import net.brightroom.mindstock.domain.model.stock.replenishment.Replenishment
-import net.brightroom.mindstock.domain.model.stock.replenishment.ReplenishmentId
-import net.brightroom.mindstock.domain.model.stock.replenishment.Replenishments
+import net.brightroom.mindstock.domain.model.stock.movement.Replenishment
+import net.brightroom.mindstock.domain.model.stock.movement.StockMovements
 import net.brightroom.mindstock.domain.model.user.DisplayName
 import net.brightroom.mindstock.domain.model.user.User
 import net.brightroom.mindstock.domain.model.user.UserId
@@ -54,11 +52,10 @@ class ShoppingListTest {
                 minimumStock = MinimumStock(min),
                 archived = false,
             )
-        val r =
+        val movements =
             if (currentReplenished > 0) {
                 listOf(
                     Replenishment(
-                        id = ReplenishmentId(1L),
                         product = product,
                         quantity = Quantity(currentReplenished),
                         occurredAt = OccurredAt(Instant.parse("2026-05-23T10:00:00Z"), now),
@@ -71,10 +68,7 @@ class ShoppingListTest {
             }
         return Stock(
             product = product,
-            replenishments = Replenishments(r),
-            consumptions = Consumptions(emptyList()),
-            replenishmentCorrections = emptyList(),
-            consumptionCorrections = emptyList(),
+            movements = StockMovements(movements),
         )
     }
 
