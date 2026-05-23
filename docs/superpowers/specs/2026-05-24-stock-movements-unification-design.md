@@ -70,11 +70,13 @@ mindstock は個人/家庭の在庫管理であり、「3 個補充したつも�
 
 ### 3.3 type の表現
 
-`type` は PostgreSQL の enum 型 `stock_movement_type` で定義する(VARCHAR + CHECK ではなく)。
+`type` は Kotlin enum (`StockMovementType`) を Exposed の `enumerationByName` で VARCHAR(20) にマッピングする。これは既存の `HouseholdMembershipsTable.role` (`HouseholdMemberRole` を `enumerationByName<HouseholdMemberRole>("role", 20)`)と同じパターンで、コードベースの慣習に合わせる。
 
-```sql
-CREATE TYPE stock_movement_type AS ENUM ('REPLENISHMENT', 'CONSUMPTION');
+```kotlin
+val type = enumerationByName<StockMovementType>("type", 20)
 ```
+
+PostgreSQL ネイティブ ENUM 型 (`CREATE TYPE ... AS ENUM`) は採用しない。理由: 現行の `MigrationGenerator`(Exposed `MigrationUtils.generateMigrationScript`)が `CREATE TYPE` を生成しないため、ネイティブ enum を選ぶと migration 生成パイプラインの改修が必要になり、本タスクのスコープを超える。
 
 ### 3.4 Migration 戦略
 
