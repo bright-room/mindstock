@@ -4,8 +4,8 @@ import net.brightroom.mindstock.infrastructure.persistence.Migratable
 import net.brightroom.mindstock.infrastructure.schema.HistoryTable
 import net.brightroom.mindstock.infrastructure.schema.user.UsersTable
 import org.jetbrains.exposed.v1.core.ReferenceOption
-import org.jetbrains.exposed.v1.datetime.CurrentDateTime
-import org.jetbrains.exposed.v1.datetime.datetime
+import org.jetbrains.exposed.v1.datetime.CurrentTimestampWithTimeZone
+import org.jetbrains.exposed.v1.datetime.timestampWithTimeZone
 
 @Migratable
 object StockReplenishmentCorrectionsTable : HistoryTable("stock_replenishment_corrections") {
@@ -23,7 +23,7 @@ object StockReplenishmentCorrectionsTable : HistoryTable("stock_replenishment_co
             UsersTable.id,
             onDelete = ReferenceOption.RESTRICT,
         )
-    val created_at = datetime("created_at").defaultExpression(CurrentDateTime)
+    val created_at = timestampWithTimeZone("created_at").defaultExpression(CurrentTimestampWithTimeZone)
 
     init {
         index(false, stock_replenishment_id, id)
