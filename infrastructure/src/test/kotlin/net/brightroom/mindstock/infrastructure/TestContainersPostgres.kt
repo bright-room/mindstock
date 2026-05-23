@@ -9,7 +9,7 @@ import org.testcontainers.containers.PostgreSQLContainer
  */
 object TestContainersPostgres {
     private val container: PostgreSQLContainer<*> by lazy {
-        PostgreSQLContainer("postgres:18").apply {
+        PostgreSQLContainer("postgres:18.0-alpine").apply {
             withDatabaseName("mindstock_test")
             withUsername("mindstock")
             withPassword("mindstock")
