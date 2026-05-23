@@ -1,6 +1,6 @@
 package net.brightroom.mindstock.infrastructure.persistence
 
-import io.kotest.core.annotation.Ignored
+import io.kotest.core.NamedTag
 import io.kotest.core.spec.style.FunSpec
 import net.brightroom.mindstock.infrastructure.TestContainersPostgres
 import org.jetbrains.exposed.v1.jdbc.Database
@@ -9,15 +9,17 @@ import java.io.File
 /**
  * Run with:
  * ./gradlew :infrastructure:test --tests "*GenerateInitialMigrationManually" \
- *   -Pkotest.framework.runtimeTags=manual
+ *   -Dkotest.tags.exclude=
  *
  * Writes a fresh init.sql under src/main/resources/db/migration/.
  *
- * @Ignored prevents accidental runs in normal CI.
+ * Tagged "manual" so it is excluded from regular CI runs but can be
+ * executed on demand by clearing the kotest.tags.exclude system property.
  */
-@Ignored
 class GenerateInitialMigrationManually :
     FunSpec({
+        tags(NamedTag("manual"))
+
         test("write init migration to resources") {
             val outDir = File("src/main/resources/db/migration").absoluteFile
             outDir.mkdirs()
