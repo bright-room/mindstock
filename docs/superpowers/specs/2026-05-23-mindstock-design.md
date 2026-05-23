@@ -186,7 +186,7 @@ modules の実行順序(`application.yaml`):
   - 消費イベントの訂正: `stock_consumption_corrections`(`stock_consumption_id → stock_consumptions(id)`)
 - 元イベントはそのまま残る
 - 読み取り側(`effective_stock_*` クエリ)で訂正があれば最新の `corrected_quantity` を採用する
-- `reason` は NOT NULL — 「何故訂正したか」をドメインの一級事実として残す
+- `reason` は **NOT NULL DEFAULT ''**(空文字許容)。「何故訂正したか」を必須として強制するのは UseCase / UI 側の責務(空文字は許容するが、UI では入力必須にする)
 - ポリモーフィック関連(`target_table` ディスクリミネータ)は避け、FK 制約を効かせる
 
 ## 5. データベーススキーマ
@@ -205,7 +205,7 @@ CREATE TABLE users (
 CREATE TABLE user_display_names (
     id            BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     user_id       UUID NOT NULL REFERENCES users(id),
-    display_name  TEXT NOT NULL,
+    display_name  VARCHAR(100) NOT NULL,
     created_at    TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 ```
@@ -222,13 +222,13 @@ CREATE TABLE household_memberships (
     id            BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     household_id  UUID NOT NULL REFERENCES households(id),
     user_id       UUID NOT NULL REFERENCES users(id),
-    role          TEXT NOT NULL,                                  -- 'owner' | 'member'
+    role          VARCHAR(20) NOT NULL,                           -- 'OWNER' | 'MEMBER'(Exposed enumerationByName)
     created_at    TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
 CREATE TABLE household_membership_revocations (
     id              BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-    membership_id   BIGINT NOT NULL,
+    membership_id   BIGINT NOT NULL REFERENCES household_memberships(id),
     created_at      TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 ```
@@ -242,24 +242,21 @@ CREATE TABLE catalog_items (
     created_at    TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
-CREATE TABLE catalog_item_names (
+CREATE TABLE catalog_item_revisions (
     id              BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     catalog_item_id UUID NOT NULL REFERENCES catalog_items(id),
-    name            TEXT NOT NULL,
-    edited_by       UUID NOT NULL REFERENCES users(id),
-    created_at      TIMESTAMPTZ NOT NULL DEFAULT now()
-);
-
-CREATE TABLE catalog_item_units (
-    id              BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-    catalog_item_id UUID NOT NULL REFERENCES catalog_items(id),
-    unit            TEXT NOT NULL,
+    name            VARCHAR(200) NOT NULL,
+    unit            VARCHAR(10) NOT NULL,
     edited_by       UUID NOT NULL REFERENCES users(id),
     created_at      TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 ```
 
 MVP のカタログ編集ポリシー: 誰でも追加・編集可。`edited_by` を残しているので将来的に履歴監査・ロールバック(=新規行 INSERT で復元)が可能。
+
+**名前と単位は同一リビジョン行で記録される**(`catalog_item_revisions` は「カタログ項目のリビジョン」を一級事実として扱う)。
+名前のみ・単位のみを変更したい場合も、UseCase 側で「最新リビジョンを読む → 変更しない側は前回値を引き継ぐ → 新規リビジョンを INSERT」する。
+名前と単位を独立した事実として持たない理由: MVP では両方とも CatalogItem の同一の「商品概念」を表現するアトリビュートであり、別々に履歴を辿るユースケースが存在しないため。
 
 ### 5.4 Product ドメイン(世帯固有)
 
@@ -299,7 +296,7 @@ CREATE TABLE stock_replenishments (
     quantity        INT NOT NULL CHECK (quantity > 0),
     occurred_at     TIMESTAMPTZ NOT NULL,
     acted_by        UUID NOT NULL REFERENCES users(id),
-    note            TEXT,
+    note            TEXT NOT NULL DEFAULT '',
     created_at      TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
@@ -309,7 +306,7 @@ CREATE TABLE stock_consumptions (
     quantity        INT NOT NULL CHECK (quantity > 0),
     occurred_at     TIMESTAMPTZ NOT NULL,
     acted_by        UUID NOT NULL REFERENCES users(id),
-    note            TEXT,
+    note            TEXT NOT NULL DEFAULT '',
     created_at      TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
@@ -317,7 +314,7 @@ CREATE TABLE stock_replenishment_corrections (
     id                      BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     stock_replenishment_id  BIGINT NOT NULL REFERENCES stock_replenishments(id),
     corrected_quantity      INT NOT NULL CHECK (corrected_quantity > 0),
-    reason                  TEXT NOT NULL,
+    reason                  TEXT NOT NULL DEFAULT '',
     corrected_by            UUID NOT NULL REFERENCES users(id),
     created_at              TIMESTAMPTZ NOT NULL DEFAULT now()
 );
@@ -326,11 +323,13 @@ CREATE TABLE stock_consumption_corrections (
     id                      BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     stock_consumption_id    BIGINT NOT NULL REFERENCES stock_consumptions(id),
     corrected_quantity      INT NOT NULL CHECK (corrected_quantity > 0),
-    reason                  TEXT NOT NULL,
+    reason                  TEXT NOT NULL DEFAULT '',
     corrected_by            UUID NOT NULL REFERENCES users(id),
     created_at              TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 ```
+
+`note` / `reason` は **NOT NULL DEFAULT ''**(空文字許容)。空文字を許すかどうかはドメインの判断ではなく、DB レイヤの「null と空文字の意味を分けない」という運用方針(SQL の `WHERE note <> ''` で空判定を統一できる)。空文字を業務上禁ずるかどうかは UseCase / UI 側で決める。
 
 ### 5.6 Append-only の保証
 
@@ -432,7 +431,7 @@ interface InventoryService : RemoteService {
 @Serializable enum class StockEventTargetKind { Replenishment, Consumption }
 @Serializable data class StockEventTarget(val kind: StockEventTargetKind, val id: StockEventId)
 @Serializable data class CorrectStockEvent(
-    val target: StockEventTarget, val newQuantity: Int, val reason: String = "",
+    val target: StockEventTarget, val correctedQuantity: Int, val reason: String = "",
 )
 
 @Serializable data class SetDisplayName(val displayName: String)
