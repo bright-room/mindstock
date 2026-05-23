@@ -22,13 +22,15 @@
 
 集約は他の集約の ID ではなく **モデル本体を保持** する。`Loan.member: Member`(参考)と同じく、`Household.members: HouseholdMembers` で User オブジェクトを直接保持。Repository は読み取り時に object graph を hydrate する責任を持つ。
 
-### 2.2 read-rich, write via request
+### 2.2 read-rich, write via Repository(多引数)
 
-集約には `rename()` のような状態遷移メソッドを置かない。**書き込みは Request オブジェクトを Repository に渡して行う**。集約の動作メソッドは「計算する」「問い合わせる」役割のみ:
+集約には `rename()` のような状態遷移メソッドを置かない。**書き込みは Repository のメソッドに必要な値オブジェクト・集約を渡して行う**。集約の動作メソッドは「計算する」「問い合わせる」役割のみ:
 
 - `household.owner(): User?`(計算)
 - `household.isMember(user: User): Boolean`(問い合わせ)
 - `stock.currentQuantity(): Int`(計算)
+
+Request クラスは domain には置かない。Request は外部入力(RPC DTO)と domain の間に位置する**腐敗防止層(ACL)**の概念で、Plan 4 で `:backend:application:api` 配下に置くかどうかを再判断する。Plan 3 範囲では Repository は多引数で受ける。
 
 ### 2.3 ファーストクラスドメイン概念
 
@@ -73,57 +75,45 @@ domain/src/commonMain/kotlin/net/brightroom/mindstock/domain/
 │   │   ├── User.kt                     # 集約ルート(displayName 必須)
 │   │   ├── UserId.kt                   # value class(private 利用)
 │   │   ├── ZitadelSub.kt
-│   │   ├── DisplayName.kt
-│   │   ├── UserRegisterRequest.kt      # zitadelSub + defaultDisplayName
-│   │   └── UserRenameRequest.kt        # user + newName
+│   │   └── DisplayName.kt
 │   ├── household/
 │   │   ├── Household.kt                # 集約ルート(members を持つ)
 │   │   ├── HouseholdId.kt
 │   │   ├── HouseholdMember.kt          # data class(user, role)
 │   │   ├── HouseholdMembers.kt         # コレクション(owner(), isMember() 等)
-│   │   ├── HouseholdMemberRole.kt      # enum
-│   │   ├── HouseholdCreateRequest.kt   # owner
-│   │   ├── HouseholdInviteRequest.kt   # household + user + role
-│   │   └── HouseholdRevokeRequest.kt   # household + user(active membership は (household, user) で一意)
+│   │   └── HouseholdMemberRole.kt      # enum
 │   ├── catalog/
 │   │   ├── CatalogItem.kt              # 集約ルート(name, unit)
 │   │   ├── CatalogItemId.kt
 │   │   ├── CatalogItemName.kt
 │   │   ├── CatalogItemUnit.kt
-│   │   ├── CatalogItems.kt             # コレクション(検索結果用)
-│   │   ├── CatalogItemRegisterRequest.kt   # name + unit + createdBy
-│   │   └── CatalogItemReviseRequest.kt     # catalogItem + newName + newUnit + editedBy
+│   │   └── CatalogItems.kt             # コレクション(検索結果用)
 │   ├── product/
 │   │   ├── Product.kt                  # 集約ルート(catalogItem, minimumStock, archived)
 │   │   ├── ProductId.kt
 │   │   ├── MinimumStock.kt
-│   │   ├── Products.kt                 # コレクション(activeOnly() 等)
-│   │   ├── ProductAdoptRequest.kt           # household + catalogItem
-│   │   ├── ProductSetMinimumStockRequest.kt # product + value + editedBy
-│   │   └── ProductArchiveRequest.kt         # product + by
+│   │   └── Products.kt                 # コレクション(activeOnly() 等)
 │   ├── stock/
-│   │   ├── Replenishment.kt            # public id 持ち、events 用
-│   │   ├── ReplenishmentId.kt
-│   │   ├── Consumption.kt
-│   │   ├── ConsumptionId.kt
-│   │   ├── ReplenishmentCorrection.kt  # target: Replenishment(composition)
-│   │   ├── ReplenishmentCorrectionId.kt
-│   │   ├── ConsumptionCorrection.kt
-│   │   ├── ConsumptionCorrectionId.kt
-│   │   ├── Replenishments.kt           # コレクション(totalQuantity 等)
-│   │   ├── Consumptions.kt
-│   │   ├── ReplenishmentCorrections.kt # 単一 Replenishment への訂正群
-│   │   ├── ConsumptionCorrections.kt
-│   │   ├── EffectiveQuantity.kt        # 訂正適用後の数量(計算オブジェクト)
 │   │   ├── Stock.kt                    # 在庫状態(Product + Replenishments + Consumptions)
+│   │   ├── EffectiveQuantity.kt        # 訂正適用後の数量(計算オブジェクト)
 │   │   ├── Quantity.kt
 │   │   ├── OccurredAt.kt
 │   │   ├── Note.kt
 │   │   ├── Reason.kt
-│   │   ├── ReplenishmentRequest.kt     # product + quantity + occurredAt + by + note
-│   │   ├── ConsumptionRequest.kt
-│   │   ├── ReplenishmentCorrectRequest.kt   # replenishment + correctedQuantity + reason + by
-│   │   └── ConsumptionCorrectRequest.kt
+│   │   ├── replenishment/
+│   │   │   ├── Replenishment.kt        # public id 持ち
+│   │   │   ├── ReplenishmentId.kt
+│   │   │   ├── Replenishments.kt       # コレクション
+│   │   │   ├── ReplenishmentCorrection.kt    # target: Replenishment(composition)
+│   │   │   ├── ReplenishmentCorrectionId.kt
+│   │   │   └── ReplenishmentCorrections.kt   # 単一 Replenishment への訂正群
+│   │   └── consumption/
+│   │       ├── Consumption.kt
+│   │       ├── ConsumptionId.kt
+│   │       ├── Consumptions.kt
+│   │       ├── ConsumptionCorrection.kt
+│   │       ├── ConsumptionCorrectionId.kt
+│   │       └── ConsumptionCorrections.kt
 │   └── shopping/
 │       ├── ShoppingList.kt             # List<Stock> → 買うべきアイテム
 │       └── ShoppingListItem.kt         # 「買うべき」状態の項目(Stock + shortage 数量)
@@ -160,13 +150,10 @@ class User(
     override fun equals(other: Any?): Boolean = other is User && other._id == _id
     override fun hashCode(): Int = _id.hashCode()
 }
-
-data class UserRegisterRequest(val zitadelSub: ZitadelSub, val defaultDisplayName: DisplayName)
-data class UserRenameRequest(val user: User, val newName: DisplayName)
 ```
 
 ポイント:
-- `displayName` は **NOT NULL**。初回登録時に Zitadel から取得した名前で必ず設定する(`UserRegisterRequest.defaultDisplayName`)
+- `displayName` は **NOT NULL**。初回登録時に Zitadel から取得した名前を必ず渡して構築する
 - `id` は private、equality は id ベース
 - `internal fun id()` は backend モジュール(Repository 実装)から呼べる隠し API
 
@@ -193,10 +180,6 @@ class HouseholdMembers(private val list: List<HouseholdMember>) {
     fun contains(user: User): Boolean = list.any { it.user == user }
     fun asList(): List<HouseholdMember> = list.toList()
 }
-
-data class HouseholdCreateRequest(val owner: User)
-data class HouseholdInviteRequest(val household: Household, val user: User, val role: HouseholdMemberRole)
-data class HouseholdRevokeRequest(val household: Household, val user: User)
 ```
 
 ポイント:
@@ -220,14 +203,11 @@ class CatalogItems(private val list: List<CatalogItem>) {
     fun asList(): List<CatalogItem> = list.toList()
     val size: Int get() = list.size
 }
-
-data class CatalogItemRegisterRequest(val name: CatalogItemName, val unit: CatalogItemUnit, val createdBy: User)
-data class CatalogItemReviseRequest(val catalogItem: CatalogItem, val newName: CatalogItemName, val newUnit: CatalogItemUnit, val editedBy: User)
 ```
 
 ポイント:
 - `name` / `unit` は現在値。リビジョン履歴は Repository 内部に隠す(DB の `catalog_item_revisions` テーブルは継続使用)
-- `revise` Request は name と unit 両方を持つ。名前だけ変えたい時も Repository に「前回 unit を引き継いで新リビジョン INSERT」させる
+- `revise` は Repository メソッドで name と unit 両方を受ける。名前だけ変えたい時も呼び出し側(UseCase)が前回 unit を引き継いだ値を渡す
 
 ### 4.4 Product
 
@@ -249,10 +229,6 @@ class Products(private val list: List<Product>) {
     fun asList(): List<Product> = list.toList()
     val size: Int get() = list.size
 }
-
-data class ProductAdoptRequest(val household: Household, val catalogItem: CatalogItem)
-data class ProductSetMinimumStockRequest(val product: Product, val value: MinimumStock, val editedBy: User)
-data class ProductArchiveRequest(val product: Product, val by: User)
 ```
 
 ポイント:
@@ -378,40 +354,6 @@ class Stock(
 }
 ```
 
-#### Request
-
-```kotlin
-data class ReplenishmentRequest(
-    val product: Product,
-    val quantity: Quantity,
-    val occurredAt: OccurredAt,
-    val by: User,
-    val note: Note,
-)
-
-data class ConsumptionRequest(
-    val product: Product,
-    val quantity: Quantity,
-    val occurredAt: OccurredAt,
-    val by: User,
-    val note: Note,
-)
-
-data class ReplenishmentCorrectRequest(
-    val replenishment: Replenishment,
-    val correctedQuantity: Quantity,
-    val reason: Reason,
-    val by: User,
-)
-
-data class ConsumptionCorrectRequest(
-    val consumption: Consumption,
-    val correctedQuantity: Quantity,
-    val reason: Reason,
-    val by: User,
-)
-```
-
 ### 4.6 ShoppingList(買い物リスト)
 
 ```kotlin
@@ -426,7 +368,7 @@ data class ShoppingListItem(val stock: Stock, val shortage: Int)
 
 ## 5. Repository ポート
 
-書き込み側は Request を引数に取り、必要に応じて永続化後の集約 / イベントを返す。
+書き込みは多引数で受ける(Request クラスは置かない)。読み取りは集約 / 集計値を返す。
 
 ```kotlin
 // User
@@ -434,8 +376,8 @@ interface UserRepository {
     fun findByZitadelSub(sub: ZitadelSub): User?
 }
 interface UserRegisterRepository {
-    fun register(request: UserRegisterRequest): User
-    fun rename(request: UserRenameRequest)
+    fun register(zitadelSub: ZitadelSub, defaultDisplayName: DisplayName): User
+    fun rename(user: User, newName: DisplayName)
 }
 
 // Household
@@ -443,19 +385,19 @@ interface HouseholdRepository {
     fun findOf(user: User): Household?     // ユーザーが所属する世帯(MVP は 1 ユーザー 1 世帯)
 }
 interface HouseholdRegisterRepository {
-    fun create(request: HouseholdCreateRequest): Household
-    fun invite(request: HouseholdInviteRequest)
-    fun revoke(request: HouseholdRevokeRequest)
+    fun create(owner: User): Household
+    fun invite(household: Household, user: User, role: HouseholdMemberRole)
+    fun revoke(household: Household, user: User)
 }
 
 // CatalogItem
 interface CatalogItemRepository {
     fun search(query: String, limit: Int = 50): CatalogItems
-    fun findById(id: CatalogItemId): CatalogItem?   // findById は CatalogItemId を引数に取るが、CatalogItemId は domain 内 internal 用なので Application が直接持つことは少ない。RPC で受け取った時のみ。
+    fun findById(id: CatalogItemId): CatalogItem?  // RPC 経由の id 引き(Plan 4 で取り扱い再考)
 }
 interface CatalogItemRegisterRepository {
-    fun register(request: CatalogItemRegisterRequest): CatalogItem
-    fun revise(request: CatalogItemReviseRequest)
+    fun register(name: CatalogItemName, unit: CatalogItemUnit, createdBy: User): CatalogItem
+    fun revise(catalogItem: CatalogItem, newName: CatalogItemName, newUnit: CatalogItemUnit, editedBy: User)
 }
 
 // Product
@@ -464,9 +406,9 @@ interface ProductRepository {
     fun find(household: Household, catalogItem: CatalogItem): Product?
 }
 interface ProductRegisterRepository {
-    fun adopt(request: ProductAdoptRequest): Product
-    fun setMinimumStock(request: ProductSetMinimumStockRequest)
-    fun archive(request: ProductArchiveRequest)
+    fun adopt(household: Household, catalogItem: CatalogItem): Product
+    fun setMinimumStock(product: Product, value: MinimumStock, editedBy: User)
+    fun archive(product: Product, by: User)
 }
 
 // Stock
@@ -477,14 +419,29 @@ interface StockRepository {
     fun consumptionHistory(product: Product, limit: Int = 50): Consumptions
 }
 interface StockRegisterRepository {
-    fun replenish(request: ReplenishmentRequest): Replenishment
-    fun consume(request: ConsumptionRequest): Consumption
-    fun correct(request: ReplenishmentCorrectRequest): ReplenishmentCorrection
-    fun correct(request: ConsumptionCorrectRequest): ConsumptionCorrection
+    fun replenish(
+        product: Product, quantity: Quantity, occurredAt: OccurredAt,
+        by: User, note: Note,
+    ): Replenishment
+
+    fun consume(
+        product: Product, quantity: Quantity, occurredAt: OccurredAt,
+        by: User, note: Note,
+    ): Consumption
+
+    fun correct(
+        replenishment: Replenishment, correctedQuantity: Quantity,
+        reason: Reason, by: User,
+    ): ReplenishmentCorrection
+
+    fun correct(
+        consumption: Consumption, correctedQuantity: Quantity,
+        reason: Reason, by: User,
+    ): ConsumptionCorrection
 }
 ```
 
-`CatalogItemId` を引数に取る `findById` の問題: domain は ID を hidden にする方針だが、RPC layer は文字列の id を受け取って `CatalogItemId.of(string)` のように構築する。これは Plan 4 で考える。とりあえず Repository には残す。
+メソッド引数の数が多くなる(`replenish` は 5 引数)が、Kotlin の named arguments で呼び出し側の可読性は維持できる。Request クラス化したい場合は Plan 4 で `:backend:application:api` に置く(ACL として)。
 
 ## 6. Value Object 規約(変更なし)
 
@@ -558,8 +515,8 @@ VO 系の検証例外(`InvalidQuantity`, `InvalidMinimumStock`, `OccurredAtInFut
 1. **削除フェーズ**: 旧 fact クラス + その ID を削除(11 + 10 = 21 ファイル)、テストも削除
 2. **リネームフェーズ**: Stock 系 4 クラス + ID 4 個 を `Stock` prefix なしに
 3. **Aggregate 再構築**: User / Household / CatalogItem / Product を新しい composition 形に書き換え
-4. **新クラス追加**: HouseholdMember, Collection 群, Request 群, Stock(計算), ShoppingList
-5. **Repository 書き換え**: 全 register repo を Request 引数に
+4. **新クラス追加**: HouseholdMember, Collection 群(`Products`, `HouseholdMembers`, `Replenishments` 等), Stock(計算), ShoppingList, EffectiveQuantity
+5. **Repository 書き換え**: 全 register repo を多引数に
 6. **テスト**: 新 spec に合わせて書き直し
 
 ## 11. 非ゴール / 持ち越し
