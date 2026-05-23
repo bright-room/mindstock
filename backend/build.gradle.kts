@@ -11,7 +11,7 @@ application {
 dependencies {
     implementation(projects.shared)
     implementation(projects.domain)
-    implementation(projects.application)
+    implementation(projects.backend.application)
     implementation(projects.infrastructure)
 
     implementation(libs.ktor.server.core)

@@ -42,7 +42,7 @@ include(
     ":shared",
     ":rpc",
     ":domain",
-    ":application",
+    ":backend:application",
     ":infrastructure",
     ":backend",
     ":frontend",
