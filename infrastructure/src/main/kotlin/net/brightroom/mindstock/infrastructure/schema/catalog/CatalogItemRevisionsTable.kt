@@ -1,4 +1,4 @@
-package net.brightroom.mindstock.infrastructure.schema.product
+package net.brightroom.mindstock.infrastructure.schema.catalog
 
 import net.brightroom.mindstock.infrastructure.persistence.Migratable
 import net.brightroom.mindstock.infrastructure.schema.HistoryTable
@@ -8,12 +8,16 @@ import org.jetbrains.exposed.v1.datetime.CurrentDateTime
 import org.jetbrains.exposed.v1.datetime.datetime
 
 @Migratable
-object ProductArchivesTable : HistoryTable("product_archives") {
-    val product_id = reference("product_id", ProductsTable.id, onDelete = ReferenceOption.RESTRICT)
-    val archived_by = reference("archived_by", UsersTable.id, onDelete = ReferenceOption.RESTRICT)
+object CatalogItemRevisionsTable : HistoryTable("catalog_item_revisions") {
+    val catalog_item_id =
+        reference("catalog_item_id", CatalogItemsTable.id, onDelete = ReferenceOption.RESTRICT)
+    val name = varchar("name", 200)
+    val unit = varchar("unit", 10)
+    val edited_by =
+        reference("edited_by", UsersTable.id, onDelete = ReferenceOption.RESTRICT)
     val created_at = datetime("created_at").defaultExpression(CurrentDateTime)
 
     init {
-        index(false, product_id, id)
+        index(false, catalog_item_id, id)
     }
 }
