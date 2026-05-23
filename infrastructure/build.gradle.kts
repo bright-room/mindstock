@@ -21,7 +21,11 @@ tasks.withType<Test>().configureEach {
     // to avoid that initialisation race; containers are still stopped when
     // the JVM exits via GenericContainer's shutdown hook.
     environment("TESTCONTAINERS_RYUK_DISABLED", "true")
-    systemProperty("kotest.tags.exclude", "manual")
+    // Exclude tests tagged "manual" by default. Override on the command line with
+    // -Dkotest.tags.exclude= (empty) to include them when intentionally running
+    // GenerateInitialMigrationManually or similar maintenance specs.
+    val kotestTagsExclude = providers.systemProperty("kotest.tags.exclude").orElse("manual")
+    systemProperty("kotest.tags.exclude", kotestTagsExclude.get())
 }
 
 dependencies {

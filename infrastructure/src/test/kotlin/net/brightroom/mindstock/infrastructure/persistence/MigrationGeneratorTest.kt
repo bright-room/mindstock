@@ -24,7 +24,6 @@ class MigrationGeneratorTest :
                 (script!!.readText().contains("CREATE TABLE", ignoreCase = true)) shouldBe true
             }
         }
-
     })
 
 private fun createTempDirectory(): File =
