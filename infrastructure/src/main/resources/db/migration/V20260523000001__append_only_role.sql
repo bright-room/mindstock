@@ -19,4 +19,7 @@ BEGIN
     EXECUTE format('GRANT USAGE ON SCHEMA %I TO mindstock_app', sch);
     EXECUTE format('GRANT SELECT, INSERT ON ALL TABLES IN SCHEMA %I TO mindstock_app', sch);
     EXECUTE format('ALTER DEFAULT PRIVILEGES IN SCHEMA %I GRANT SELECT, INSERT ON TABLES TO mindstock_app', sch);
+    -- History tables use BIGSERIAL; inserts need USAGE on the underlying sequences.
+    EXECUTE format('GRANT USAGE ON ALL SEQUENCES IN SCHEMA %I TO mindstock_app', sch);
+    EXECUTE format('ALTER DEFAULT PRIVILEGES IN SCHEMA %I GRANT USAGE ON SEQUENCES TO mindstock_app', sch);
 END$$;

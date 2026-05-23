@@ -33,6 +33,27 @@ class AppendOnlyEnforcementTest :
                             check(rs.next())
                         }
 
+                    // History tables use BIGSERIAL — exercise sequence USAGE
+                    val userId =
+                        conn
+                            .prepareStatement(
+                                "SELECT id FROM users WHERE zitadel_sub = ?",
+                            ).use { stmt ->
+                                stmt.setString(1, "test-sub")
+                                stmt.executeQuery().use { rs ->
+                                    check(rs.next())
+                                    rs.getObject(1, java.util.UUID::class.java)
+                                }
+                            }
+                    conn
+                        .prepareStatement(
+                            "INSERT INTO user_display_names (user_id, display_name) VALUES (?, ?)",
+                        ).use { stmt ->
+                            stmt.setObject(1, userId)
+                            stmt.setString(2, "test display name")
+                            stmt.executeUpdate()
+                        }
+
                     // UPDATE is denied
                     shouldThrow<SQLException> {
                         conn.createStatement().use { it.execute("UPDATE users SET zitadel_sub = 'x'") }
