@@ -9,13 +9,10 @@ class AppendOnlyEnforcementTest :
     FunSpec({
         test("mindstock_app role can INSERT but cannot UPDATE or DELETE") {
             TestContainersPostgres.withFreshSchema { jdbcUrl, _ ->
-                buildHikariDataSource(
-                    ExposedDataSourceProperties(
-                        driverClassName = "org.postgresql.Driver",
-                        jdbcUrl = jdbcUrl,
-                        username = TestContainersPostgres.username,
-                        password = TestContainersPostgres.password,
-                    ),
+                testHikariDataSource(
+                    jdbcUrl = jdbcUrl,
+                    username = TestContainersPostgres.username,
+                    password = TestContainersPostgres.password,
                 ).use { ds ->
                     MigrationRunner.migrate(ds)
 

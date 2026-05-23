@@ -11,10 +11,7 @@ import io.ktor.server.plugins.di.provide
 import io.ktor.server.response.respondText
 import io.ktor.server.routing.get
 import io.ktor.server.routing.routing
-import net.brightroom.mindstock.infrastructure.persistence.ExposedDataSourceProperties
 import net.brightroom.mindstock.infrastructure.persistence.MigrationRunner
-import net.brightroom.mindstock.infrastructure.persistence.buildHikariDataSource
-import net.brightroom.mindstock.infrastructure.persistence.connectExposed
 
 fun main(args: Array<String>) = EngineMain.main(args)
 

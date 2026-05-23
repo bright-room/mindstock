@@ -1,4 +1,4 @@
-package net.brightroom.mindstock.infrastructure.persistence
+package net.brightroom.mindstock.backend
 
 import com.zaxxer.hikari.HikariConfig
 import com.zaxxer.hikari.HikariDataSource

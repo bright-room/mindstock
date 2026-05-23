@@ -44,6 +44,6 @@ include(
     ":domain",
     ":backend:application",
     ":infrastructure",
-    ":backend",
+    ":backend:api",
     ":frontend",
 )
