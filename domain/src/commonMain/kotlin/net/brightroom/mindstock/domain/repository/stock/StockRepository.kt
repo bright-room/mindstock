@@ -1,29 +1,25 @@
 package net.brightroom.mindstock.domain.repository.stock
 
-import net.brightroom.mindstock.domain.model.product.ProductId
-import net.brightroom.mindstock.domain.model.stock.StockConsumption
-import net.brightroom.mindstock.domain.model.stock.StockConsumptionCorrection
-import net.brightroom.mindstock.domain.model.stock.StockConsumptionId
-import net.brightroom.mindstock.domain.model.stock.StockReplenishment
-import net.brightroom.mindstock.domain.model.stock.StockReplenishmentCorrection
-import net.brightroom.mindstock.domain.model.stock.StockReplenishmentId
+import net.brightroom.mindstock.domain.model.household.Household
+import net.brightroom.mindstock.domain.model.product.Product
+import net.brightroom.mindstock.domain.model.stock.Stock
+import net.brightroom.mindstock.domain.model.stock.consumption.Consumptions
+import net.brightroom.mindstock.domain.model.stock.replenishment.Replenishments
 
 interface StockRepository {
-    fun findReplenishmentById(id: StockReplenishmentId): StockReplenishment?
+    /** 1 商品の在庫状態。 */
+    fun stockOf(product: Product): Stock
 
-    fun findConsumptionById(id: StockConsumptionId): StockConsumption?
+    /** 世帯全商品の在庫状態(ShoppingList 用)。 */
+    fun stocksOf(household: Household): List<Stock>
 
-    fun listReplenishmentsOf(
-        productId: ProductId,
+    fun replenishmentHistory(
+        product: Product,
         limit: Int = 50,
-    ): List<StockReplenishment>
+    ): Replenishments
 
-    fun listConsumptionsOf(
-        productId: ProductId,
+    fun consumptionHistory(
+        product: Product,
         limit: Int = 50,
-    ): List<StockConsumption>
-
-    fun listCorrectionsOf(replenishmentId: StockReplenishmentId): List<StockReplenishmentCorrection>
-
-    fun listCorrectionsOf(consumptionId: StockConsumptionId): List<StockConsumptionCorrection>
+    ): Consumptions
 }

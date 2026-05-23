@@ -1,19 +1,19 @@
 package net.brightroom.mindstock.domain.repository.user
 
 import net.brightroom.mindstock.domain.model.user.DisplayName
-import net.brightroom.mindstock.domain.model.user.UserId
-import net.brightroom.mindstock.domain.model.user.ZitadelSub
+import net.brightroom.mindstock.domain.model.user.User
+import net.brightroom.mindstock.domain.model.user.auth.AuthIdentity
 
 interface UserRegisterRepository {
-    /** users 行を新規 INSERT(id は呼び出し側が UUIDv7 を生成して引数化)。 */
+    /** users + 初回 user_display_names を 1 トランザクションで INSERT。 */
     fun register(
-        id: UserId,
-        zitadelSub: ZitadelSub,
-    )
+        identity: AuthIdentity,
+        defaultDisplayName: DisplayName,
+    ): User
 
-    /** user_display_names 行を新規 INSERT。最新表示名のロールフォワード扱い。 */
+    /** user_display_names に新規行を INSERT。 */
     fun rename(
-        userId: UserId,
-        displayName: DisplayName,
+        user: User,
+        newName: DisplayName,
     )
 }

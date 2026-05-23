@@ -1,19 +1,20 @@
-package net.brightroom.mindstock.domain.model.user
+package net.brightroom.mindstock.domain.model.user.auth
 
 import kotlinx.serialization.Serializable
 import net.brightroom.mindstock.domain.exception.DomainException
 import kotlin.jvm.JvmInline
 
 /**
- * Zitadel が発行するユーザーのサブジェクト識別子。空文字禁止。
+ * 認証プロバイダにおけるサブジェクト識別子(OIDC の sub クレーム相当)。
+ * 空文字は禁止。
  */
 @Serializable
 @JvmInline
-value class ZitadelSub(
+value class AuthSubject(
     private val value: String,
 ) {
     init {
-        if (value.isBlank()) throw DomainException.ZitadelSubBlank()
+        if (value.isBlank()) throw DomainException.AuthSubjectBlank()
     }
 
     override fun toString(): String = value

@@ -1,8 +1,9 @@
 package net.brightroom.mindstock.domain.model.household
 
-import kotlin.time.Instant
-
-class Household(
+/**
+ * 世帯集約。アクティブなメンバー一覧を持つ。
+ */
+data class Household(
     val id: HouseholdId,
-    internal val createdAt: Instant,
+    val members: HouseholdMembers,
 )

@@ -1,13 +1,13 @@
 package net.brightroom.mindstock.domain.model.catalog
 
-import net.brightroom.mindstock.domain.model.user.UserId
-import kotlin.time.Instant
-
-class CatalogItem(
+/**
+ * カタログ商品(全世帯で共有される商品概念)。
+ *
+ * 名前と単位は現在値。リビジョン履歴は Repository が hydrate するときに
+ * 最新を取って組み立てる(DB の catalog_item_revisions テーブルは継続使用)。
+ */
+data class CatalogItem(
     val id: CatalogItemId,
-    internal val createdBy: UserId,
-    internal val createdAt: Instant,
-    /** 最新リビジョンの名前と単位。新規登録直後は最初のリビジョンの値が入る。 */
-    internal val latestName: CatalogItemName,
-    internal val latestUnit: CatalogItemUnit,
+    val name: CatalogItemName,
+    val unit: CatalogItemUnit,
 )

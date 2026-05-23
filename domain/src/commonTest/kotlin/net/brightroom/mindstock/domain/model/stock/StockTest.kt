@@ -1,0 +1,213 @@
+package net.brightroom.mindstock.domain.model.stock
+
+import io.kotest.matchers.booleans.shouldBeFalse
+import io.kotest.matchers.booleans.shouldBeTrue
+import io.kotest.matchers.shouldBe
+import kotlinx.datetime.LocalDateTime
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toInstant
+import net.brightroom.mindstock.domain.model.catalog.CatalogItem
+import net.brightroom.mindstock.domain.model.catalog.CatalogItemId
+import net.brightroom.mindstock.domain.model.catalog.CatalogItemName
+import net.brightroom.mindstock.domain.model.catalog.CatalogItemUnit
+import net.brightroom.mindstock.domain.model.product.MinimumStock
+import net.brightroom.mindstock.domain.model.product.Product
+import net.brightroom.mindstock.domain.model.product.ProductId
+import net.brightroom.mindstock.domain.model.stock.consumption.Consumption
+import net.brightroom.mindstock.domain.model.stock.consumption.ConsumptionCorrection
+import net.brightroom.mindstock.domain.model.stock.consumption.ConsumptionId
+import net.brightroom.mindstock.domain.model.stock.consumption.Consumptions
+import net.brightroom.mindstock.domain.model.stock.replenishment.Replenishment
+import net.brightroom.mindstock.domain.model.stock.replenishment.ReplenishmentCorrection
+import net.brightroom.mindstock.domain.model.stock.replenishment.ReplenishmentId
+import net.brightroom.mindstock.domain.model.stock.replenishment.Replenishments
+import net.brightroom.mindstock.domain.model.user.DisplayName
+import net.brightroom.mindstock.domain.model.user.User
+import net.brightroom.mindstock.domain.model.user.UserId
+import net.brightroom.mindstock.domain.model.user.auth.AuthIdentity
+import net.brightroom.mindstock.domain.model.user.auth.AuthProvider
+import net.brightroom.mindstock.domain.model.user.auth.AuthSubject
+import kotlin.test.Test
+import kotlin.time.Instant
+import kotlin.uuid.ExperimentalUuidApi
+import kotlin.uuid.Uuid
+
+@OptIn(ExperimentalUuidApi::class)
+class StockTest {
+    private val user =
+        User(
+            id = UserId(Uuid.generateV7()),
+            authIdentity = AuthIdentity(AuthProvider.ZITADEL, AuthSubject("sub-1")),
+            displayName = DisplayName("alice"),
+        )
+
+    private fun productWithMin(min: Int?) =
+        Product(
+            id = ProductId(Uuid.generateV7()),
+            catalogItem =
+                CatalogItem(
+                    id = CatalogItemId(Uuid.generateV7()),
+                    name = CatalogItemName("ハンドソープ"),
+                    unit = CatalogItemUnit("本"),
+                ),
+            minimumStock = min?.let { MinimumStock(it) },
+            archived = false,
+        )
+
+    private val now = Instant.parse("2026-05-24T10:00:00Z")
+
+    private fun occurred(
+        year: Int = 2026,
+        day: Int = 1,
+    ) = OccurredAt(
+        LocalDateTime(year, 5, day, 10, 0).toInstant(TimeZone.UTC),
+        now,
+    )
+
+    private fun replenish(
+        product: Product,
+        qty: Int,
+        id: Long = 1L,
+    ) = Replenishment(
+        id = ReplenishmentId(id),
+        product = product,
+        quantity = Quantity(qty),
+        occurredAt = occurred(),
+        actor = user,
+        note = Note(""),
+    )
+
+    private fun consume(
+        product: Product,
+        qty: Int,
+        id: Long = 1L,
+    ) = Consumption(
+        id = ConsumptionId(id),
+        product = product,
+        quantity = Quantity(qty),
+        occurredAt = occurred(),
+        actor = user,
+        note = Note(""),
+    )
+
+    @Test
+    fun `currentQuantity is replenishments minus consumptions when no corrections`() {
+        val p = productWithMin(null)
+        val stock =
+            Stock(
+                product = p,
+                replenishments = Replenishments(listOf(replenish(p, 5, id = 1L), replenish(p, 3, id = 2L))),
+                consumptions = Consumptions(listOf(consume(p, 2, id = 3L))),
+                replenishmentCorrections = emptyList(),
+                consumptionCorrections = emptyList(),
+            )
+        stock.currentQuantity() shouldBe 6
+    }
+
+    @Test
+    fun `needsReplenishment is true when current quantity is below minimum`() {
+        val p = productWithMin(5)
+        val stock =
+            Stock(
+                product = p,
+                replenishments = Replenishments(listOf(replenish(p, 3))),
+                consumptions = Consumptions(emptyList()),
+                replenishmentCorrections = emptyList(),
+                consumptionCorrections = emptyList(),
+            )
+        stock.needsReplenishment().shouldBeTrue()
+        stock.shortage() shouldBe 2
+    }
+
+    @Test
+    fun `needsReplenishment is false when minimumStock is null`() {
+        val p = productWithMin(null)
+        val stock =
+            Stock(
+                product = p,
+                replenishments = Replenishments(emptyList()),
+                consumptions = Consumptions(emptyList()),
+                replenishmentCorrections = emptyList(),
+                consumptionCorrections = emptyList(),
+            )
+        stock.needsReplenishment().shouldBeFalse()
+    }
+
+    @Test
+    fun `currentQuantity applies correction when replenishment is corrected`() {
+        val p = productWithMin(null)
+        val r = replenish(p, 5)
+        val correction =
+            ReplenishmentCorrection(
+                target = r,
+                correctedQuantity = Quantity(3),
+                reason = Reason("typo"),
+                corrector = user,
+                correctedAt = CorrectedAt(Instant.parse("2026-05-24T09:00:00Z")),
+            )
+        val stock =
+            Stock(
+                product = p,
+                replenishments = Replenishments(listOf(r)),
+                consumptions = Consumptions(emptyList()),
+                replenishmentCorrections = listOf(correction),
+                consumptionCorrections = emptyList(),
+            )
+        stock.currentQuantity() shouldBe 3
+    }
+
+    @Test
+    fun `currentQuantity applies latest correction when multiple corrections exist`() {
+        val p = productWithMin(null)
+        val r = replenish(p, 5)
+        val older =
+            ReplenishmentCorrection(
+                target = r,
+                correctedQuantity = Quantity(3),
+                reason = Reason("first"),
+                corrector = user,
+                correctedAt = CorrectedAt(Instant.parse("2026-05-24T09:00:00Z")),
+            )
+        val newer =
+            ReplenishmentCorrection(
+                target = r,
+                correctedQuantity = Quantity(4),
+                reason = Reason("second"),
+                corrector = user,
+                correctedAt = CorrectedAt(Instant.parse("2026-05-24T10:00:00Z")),
+            )
+        val stock =
+            Stock(
+                product = p,
+                replenishments = Replenishments(listOf(r)),
+                consumptions = Consumptions(emptyList()),
+                replenishmentCorrections = listOf(older, newer),
+                consumptionCorrections = emptyList(),
+            )
+        stock.currentQuantity() shouldBe 4
+    }
+
+    @Test
+    fun `currentQuantity applies correction when consumption is corrected`() {
+        val p = productWithMin(null)
+        val r = replenish(p, 10, id = 1L)
+        val c = consume(p, 5, id = 2L)
+        val correction =
+            ConsumptionCorrection(
+                target = c,
+                correctedQuantity = Quantity(2),
+                reason = Reason("oops"),
+                corrector = user,
+                correctedAt = CorrectedAt(Instant.parse("2026-05-24T09:00:00Z")),
+            )
+        val stock =
+            Stock(
+                product = p,
+                replenishments = Replenishments(listOf(r)),
+                consumptions = Consumptions(listOf(c)),
+                replenishmentCorrections = emptyList(),
+                consumptionCorrections = listOf(correction),
+            )
+        stock.currentQuantity() shouldBe 8 // 10 - 2(訂正後)
+    }
+}

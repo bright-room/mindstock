@@ -1,26 +1,28 @@
 package net.brightroom.mindstock.domain.repository.product
 
-import net.brightroom.mindstock.domain.model.catalog.CatalogItemId
-import net.brightroom.mindstock.domain.model.household.HouseholdId
+import net.brightroom.mindstock.domain.model.catalog.CatalogItem
+import net.brightroom.mindstock.domain.model.household.Household
 import net.brightroom.mindstock.domain.model.product.MinimumStock
-import net.brightroom.mindstock.domain.model.product.ProductId
-import net.brightroom.mindstock.domain.model.user.UserId
+import net.brightroom.mindstock.domain.model.product.Product
+import net.brightroom.mindstock.domain.model.user.User
 
 interface ProductRegisterRepository {
+    /** products に行を INSERT。 */
     fun adopt(
-        id: ProductId,
-        householdId: HouseholdId,
-        catalogItemId: CatalogItemId,
-    )
+        household: Household,
+        catalogItem: CatalogItem,
+    ): Product
 
+    /** product_minimum_stocks に行を INSERT。 */
     fun setMinimumStock(
-        productId: ProductId,
+        product: Product,
         value: MinimumStock,
-        editedBy: UserId,
+        editedBy: User,
     )
 
+    /** product_archives に行を INSERT。 */
     fun archive(
-        productId: ProductId,
-        archivedBy: UserId,
+        product: Product,
+        by: User,
     )
 }
