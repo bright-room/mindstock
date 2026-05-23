@@ -27,7 +27,13 @@ object TestContainersPostgres {
      * and drops the schema afterward.
      */
     fun <T> withFreshSchema(block: (jdbcUrl: String, schema: String) -> T): T {
-        val schema = "test_" + java.util.UUID.randomUUID().toString().replace("-", "").take(16)
+        val schema =
+            "test_" +
+                java.util.UUID
+                    .randomUUID()
+                    .toString()
+                    .replace("-", "")
+                    .take(16)
         container.createConnection("").use { conn ->
             conn.createStatement().use { it.execute("CREATE SCHEMA $schema") }
         }

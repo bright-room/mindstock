@@ -16,18 +16,22 @@ import java.io.File
  * @Ignored prevents accidental runs in normal CI.
  */
 @Ignored
-class GenerateInitialMigrationManually : FunSpec({
-    test("write init migration to resources") {
-        val outDir = File("src/main/resources/db/migration").absoluteFile
-        outDir.mkdirs()
-        TestContainersPostgres.withFreshSchema { jdbcUrl, _ ->
-            val db = Database.connect(
-                jdbcUrl, "org.postgresql.Driver",
-                TestContainersPostgres.username, TestContainersPostgres.password,
-            )
-            val script = MigrationGenerator.generate(db, outDir, "init")
-            requireNotNull(script) { "Generator emitted no script — schema must already match" }
-            println("Wrote ${script.absolutePath} (${script.length()} bytes)")
+class GenerateInitialMigrationManually :
+    FunSpec({
+        test("write init migration to resources") {
+            val outDir = File("src/main/resources/db/migration").absoluteFile
+            outDir.mkdirs()
+            TestContainersPostgres.withFreshSchema { jdbcUrl, _ ->
+                val db =
+                    Database.connect(
+                        jdbcUrl,
+                        "org.postgresql.Driver",
+                        TestContainersPostgres.username,
+                        TestContainersPostgres.password,
+                    )
+                val script = MigrationGenerator.generate(db, outDir, "init")
+                requireNotNull(script) { "Generator emitted no script — schema must already match" }
+                println("Wrote ${script.absolutePath} (${script.length()} bytes)")
+            }
         }
-    }
-})
+    })

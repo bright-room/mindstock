@@ -42,7 +42,9 @@ object MigrationGenerator {
             )
         }
         val produced = File(outputDirectory, "$scriptName.sql")
-        return if (produced.exists() && produced.length() > 0L) produced else {
+        return if (produced.exists() && produced.length() > 0L) {
+            produced
+        } else {
             // Some Exposed builds always write a file; treat zero-length as empty diff.
             if (produced.exists()) produced.delete()
             null

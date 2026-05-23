@@ -5,7 +5,6 @@ import org.jetbrains.exposed.v1.core.Table
 import org.jetbrains.exposed.v1.core.UUIDColumnType
 import org.jetbrains.exposed.v1.datetime.CurrentDateTime
 import org.jetbrains.exposed.v1.datetime.datetime
-import java.util.UUID
 
 /**
  * Base for aggregate root tables. id is UUID with `DEFAULT uuidv7()` so PG

@@ -8,9 +8,10 @@ import org.jetbrains.exposed.v1.core.or
 
 @Migratable
 object StockEventCorrectionsTable : HistoryTable("stock_event_corrections") {
-    val target_table = text("target_table").check {
-        (it eq "stock_replenishments") or (it eq "stock_consumptions")
-    }
+    val target_table =
+        text("target_table").check {
+            (it eq "stock_replenishments") or (it eq "stock_consumptions")
+        }
     val target_id = long("target_id")
     val new_quantity = integer("new_quantity").check { it greater 0 }
     val reason = text("reason").nullable()

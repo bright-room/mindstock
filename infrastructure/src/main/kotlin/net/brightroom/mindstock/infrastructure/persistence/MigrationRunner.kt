@@ -9,7 +9,8 @@ object MigrationRunner {
      * the given [dataSource].
      */
     fun migrate(dataSource: DataSource) {
-        Flyway.configure()
+        Flyway
+            .configure()
             .dataSource(dataSource)
             .locations("classpath:db/migration")
             .load()

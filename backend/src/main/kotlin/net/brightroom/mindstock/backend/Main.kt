@@ -14,11 +14,12 @@ fun main(args: Array<String>) = EngineMain.main(args)
 
 fun Application.module() {
     val config = environment.config
-    val dbConfig = DatabaseConfig(
-        jdbcUrl = config.property("database.jdbcUrl").getString(),
-        username = config.property("database.username").getString(),
-        password = config.property("database.password").getString(),
-    )
+    val dbConfig =
+        DatabaseConfig(
+            jdbcUrl = config.property("database.jdbcUrl").getString(),
+            username = config.property("database.username").getString(),
+            password = config.property("database.password").getString(),
+        )
     val dataSource: DataSource = DatabaseFactory.dataSource(dbConfig)
     MigrationRunner.migrate(dataSource)
     DatabaseFactory.exposed(dataSource)

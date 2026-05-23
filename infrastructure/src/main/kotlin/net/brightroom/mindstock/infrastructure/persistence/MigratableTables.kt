@@ -24,20 +24,21 @@ import org.jetbrains.exposed.v1.core.Table
  */
 object MigratableTables {
     val all: List<Table>
-        get() = listOf(
-            UsersTable,
-            UserDisplayNamesTable,
-            HouseholdsTable,
-            HouseholdMembershipsTable,
-            HouseholdMembershipRevocationsTable,
-            CatalogItemsTable,
-            CatalogItemNamesTable,
-            CatalogItemUnitsTable,
-            ProductsTable,
-            ProductMinimumStocksTable,
-            ProductArchivesTable,
-            StockReplenishmentsTable,
-            StockConsumptionsTable,
-            StockEventCorrectionsTable,
-        )
+        get() =
+            listOf(
+                UsersTable,
+                UserDisplayNamesTable,
+                HouseholdsTable,
+                HouseholdMembershipsTable,
+                HouseholdMembershipRevocationsTable,
+                CatalogItemsTable,
+                CatalogItemNamesTable,
+                CatalogItemUnitsTable,
+                ProductsTable,
+                ProductMinimumStocksTable,
+                ProductArchivesTable,
+                StockReplenishmentsTable,
+                StockConsumptionsTable,
+                StockEventCorrectionsTable,
+            )
 }

@@ -14,14 +14,15 @@ data class DatabaseConfig(
 
 object DatabaseFactory {
     fun dataSource(config: DatabaseConfig): HikariDataSource {
-        val hikari = HikariConfig().apply {
-            jdbcUrl = config.jdbcUrl
-            username = config.username
-            password = config.password
-            maximumPoolSize = config.maximumPoolSize
-            isAutoCommit = false
-            driverClassName = "org.postgresql.Driver"
-        }
+        val hikari =
+            HikariConfig().apply {
+                jdbcUrl = config.jdbcUrl
+                username = config.username
+                password = config.password
+                maximumPoolSize = config.maximumPoolSize
+                isAutoCommit = false
+                driverClassName = "org.postgresql.Driver"
+            }
         return HikariDataSource(hikari)
     }
 
