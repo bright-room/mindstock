@@ -185,35 +185,39 @@ class Stock(
 
 ```kotlin
 interface StockRegisterRepository {
-    suspend fun replenish(
+    fun replenish(
         product: Product,
         quantity: Quantity,
         occurredAt: OccurredAt,
-        actor: Actor,
+        by: User,
         note: Note,
-    )
+    ): Replenishment
 
-    suspend fun consume(
+    fun consume(
         product: Product,
         quantity: Quantity,
         occurredAt: OccurredAt,
-        actor: Actor,
+        by: User,
         note: Note,
-    )
+    ): Consumption
 }
 ```
+
+- 戻り値は作成された movement(既存パターン踏襲)
+- `suspend` は付けない(既存 repository が non-suspend で統一されているため)
 
 - 訂正系メソッド(`correctReplenishment` / `correctConsumption`)は削除
 - 各メソッドは `stock_movements` への 1 行 INSERT を行う
 
 ### 5.2 `StockRepository`(読み取り)
 
-I/F は維持:
+旧 `replenishmentHistory` / `consumptionHistory` は `movementHistory` 1 つに統合:
 
 ```kotlin
 interface StockRepository {
-    suspend fun stockOf(product: Product): Stock
-    suspend fun stocksOf(household: Household): List<Stock>
+    fun stockOf(product: Product): Stock
+    fun stocksOf(household: Household): List<Stock>
+    fun movementHistory(product: Product, limit: Int = 50): StockMovements
 }
 ```
 

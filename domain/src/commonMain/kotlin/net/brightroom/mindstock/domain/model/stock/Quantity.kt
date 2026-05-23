@@ -5,7 +5,7 @@ import net.brightroom.mindstock.domain.exception.DomainException
 import kotlin.jvm.JvmInline
 
 /**
- * 在庫イベント(補充・消費・訂正)の数量。常に正の整数。
+ * 在庫 movement(補充・消費)の数量。常に正の整数。
  */
 @Serializable
 @JvmInline
