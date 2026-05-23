@@ -1,15 +1,14 @@
-package net.brightroom.mindstock.infrastructure.persistence
+package net.brightroom.mindstock.infrastructure.migration.generator
 
 import io.kotest.core.NamedTag
 import io.kotest.core.spec.style.FunSpec
-import net.brightroom.mindstock.infrastructure.TestContainersPostgres
-import net.brightroom.mindstock.infrastructure.migration.generator.MigrationGenerator
+import net.brightroom.mindstock.infrastructure.migration.executor.TestContainersPostgres
 import org.jetbrains.exposed.v1.jdbc.Database
 import java.io.File
 
 /**
  * Run with:
- * ./gradlew :infrastructure:test --tests "*GenerateInitialMigrationManually" \
+ * ./gradlew :backend:infrastructure:migration:generator:test --tests "*GenerateInitialMigrationManually" \
  *   -Dkotest.tags.exclude=
  *
  * Writes a fresh init.sql under src/main/resources/db/migration/.

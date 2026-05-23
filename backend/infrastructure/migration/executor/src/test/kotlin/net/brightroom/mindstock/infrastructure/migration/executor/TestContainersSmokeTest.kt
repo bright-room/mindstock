@@ -1,4 +1,4 @@
-package net.brightroom.mindstock.infrastructure
+package net.brightroom.mindstock.infrastructure.migration.executor
 
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe

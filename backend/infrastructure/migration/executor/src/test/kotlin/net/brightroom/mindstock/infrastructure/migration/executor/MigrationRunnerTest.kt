@@ -1,8 +1,7 @@
-package net.brightroom.mindstock.infrastructure.persistence
+package net.brightroom.mindstock.infrastructure.migration.executor
 
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.collections.shouldContainAll
-import net.brightroom.mindstock.infrastructure.TestContainersPostgres
 import net.brightroom.mindstock.infrastructure.migration.detector.MigratableTables
 import javax.sql.DataSource
 

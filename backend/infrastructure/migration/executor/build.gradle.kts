@@ -1,5 +1,6 @@
 plugins {
     id("net.brightroom.mindstock.kotlin-jvm-testcontainers")
+    `java-test-fixtures`
 }
 
 dependencies {
@@ -10,10 +11,15 @@ dependencies {
     api(libs.exposed.jdbc)
     implementation(libs.exposed.kotlin.datetime)
     implementation(libs.exposed.migration)
+    api(libs.hikari)
     implementation(libs.postgres.jdbc)
-    implementation(libs.hikari)
+    implementation(libs.flyway.core)
+    implementation(libs.flyway.database.postgresql)
+    implementation(libs.kotlin.logging.jvm)
 
-    testImplementation(testFixtures(projects.backend.infrastructure.migration.executor))
+    testFixturesImplementation(libs.testcontainers.postgres)
+    testFixturesImplementation(libs.hikari)
+
     testImplementation(libs.kotest.runner.junit5)
     testImplementation(libs.kotest.assertions.core)
     testImplementation(libs.testcontainers.junit)

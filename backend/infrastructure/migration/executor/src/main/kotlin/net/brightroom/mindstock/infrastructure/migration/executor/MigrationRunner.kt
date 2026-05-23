@@ -1,4 +1,4 @@
-package net.brightroom.mindstock.infrastructure.persistence
+package net.brightroom.mindstock.infrastructure.migration.executor
 
 import org.flywaydb.core.Flyway
 import javax.sql.DataSource

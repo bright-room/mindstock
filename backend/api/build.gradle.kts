@@ -12,7 +12,8 @@ dependencies {
     implementation(projects.shared)
     implementation(projects.domain)
     implementation(projects.backend.application)
-    implementation(projects.infrastructure)
+    implementation(projects.backend.infrastructure.schemas)
+    implementation(projects.backend.infrastructure.migration.executor)
 
     implementation(libs.ktor.server.core)
     implementation(libs.ktor.server.cio)

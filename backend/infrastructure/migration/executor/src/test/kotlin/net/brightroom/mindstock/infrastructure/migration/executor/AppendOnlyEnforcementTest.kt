@@ -1,8 +1,7 @@
-package net.brightroom.mindstock.infrastructure.persistence
+package net.brightroom.mindstock.infrastructure.migration.executor
 
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.FunSpec
-import net.brightroom.mindstock.infrastructure.TestContainersPostgres
 import java.sql.SQLException
 
 class AppendOnlyEnforcementTest :
