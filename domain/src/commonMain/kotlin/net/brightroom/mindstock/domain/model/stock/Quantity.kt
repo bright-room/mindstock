@@ -9,7 +9,7 @@ import kotlin.jvm.JvmInline
  */
 @Serializable
 @JvmInline
-public value class Quantity(
+value class Quantity(
     private val value: Int,
 ) {
     init {

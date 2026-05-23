@@ -8,7 +8,7 @@ import kotlin.jvm.JvmInline
  */
 @Serializable
 @JvmInline
-public value class Reason(
+value class Reason(
     private val value: String,
 ) {
     override fun toString(): String = value

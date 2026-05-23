@@ -6,7 +6,7 @@ import kotlin.jvm.JvmInline
 
 @Serializable
 @JvmInline
-public value class StockConsumptionCorrectionId(
+value class StockConsumptionCorrectionId(
     private val value: Long,
 ) {
     init {

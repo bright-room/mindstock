@@ -6,7 +6,7 @@ import kotlin.jvm.JvmInline
 
 @Serializable
 @JvmInline
-public value class UserDisplayNameId(
+value class UserDisplayNameId(
     private val value: Long,
 ) {
     init {

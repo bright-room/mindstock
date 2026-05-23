@@ -6,7 +6,7 @@ import kotlin.jvm.JvmInline
 
 @Serializable
 @JvmInline
-public value class ProductArchiveId(
+value class ProductArchiveId(
     private val value: Long,
 ) {
     init {

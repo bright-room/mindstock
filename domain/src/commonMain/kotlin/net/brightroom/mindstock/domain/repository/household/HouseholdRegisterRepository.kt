@@ -5,14 +5,14 @@ import net.brightroom.mindstock.domain.model.household.HouseholdMemberRole
 import net.brightroom.mindstock.domain.model.household.HouseholdMembershipId
 import net.brightroom.mindstock.domain.model.user.UserId
 
-public interface HouseholdRegisterRepository {
-    public fun create(id: HouseholdId)
+interface HouseholdRegisterRepository {
+    fun create(id: HouseholdId)
 
-    public fun join(
+    fun join(
         householdId: HouseholdId,
         userId: UserId,
         role: HouseholdMemberRole,
     )
 
-    public fun revoke(membershipId: HouseholdMembershipId)
+    fun revoke(membershipId: HouseholdMembershipId)
 }

@@ -9,7 +9,7 @@ import kotlin.jvm.JvmInline
  */
 @Serializable
 @JvmInline
-public value class CatalogItemName(
+value class CatalogItemName(
     private val value: String,
 ) {
     init {

@@ -6,7 +6,7 @@ import kotlin.jvm.JvmInline
 
 @Serializable
 @JvmInline
-public value class HouseholdMembershipRevocationId(
+value class HouseholdMembershipRevocationId(
     private val value: Long,
 ) {
     init {

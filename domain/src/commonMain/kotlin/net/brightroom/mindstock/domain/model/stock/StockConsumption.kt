@@ -4,8 +4,8 @@ import kotlinx.datetime.Instant
 import net.brightroom.mindstock.domain.model.product.ProductId
 import net.brightroom.mindstock.domain.model.user.UserId
 
-public class StockConsumption(
-    public val id: StockConsumptionId,
+class StockConsumption(
+    val id: StockConsumptionId,
     internal val productId: ProductId,
     internal val quantity: Quantity,
     internal val occurredAt: OccurredAt,

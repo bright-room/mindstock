@@ -9,7 +9,7 @@ import kotlin.jvm.JvmInline
  */
 @Serializable
 @JvmInline
-public value class ZitadelSub(
+value class ZitadelSub(
     private val value: String,
 ) {
     init {

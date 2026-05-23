@@ -9,8 +9,8 @@ import net.brightroom.mindstock.domain.model.stock.StockConsumptionId
 import net.brightroom.mindstock.domain.model.stock.StockReplenishmentId
 import net.brightroom.mindstock.domain.model.user.UserId
 
-public interface StockRegisterRepository {
-    public fun replenish(
+interface StockRegisterRepository {
+    fun replenish(
         productId: ProductId,
         quantity: Quantity,
         occurredAt: OccurredAt,
@@ -18,7 +18,7 @@ public interface StockRegisterRepository {
         note: Note,
     ): StockReplenishmentId
 
-    public fun consume(
+    fun consume(
         productId: ProductId,
         quantity: Quantity,
         occurredAt: OccurredAt,
@@ -26,14 +26,14 @@ public interface StockRegisterRepository {
         note: Note,
     ): StockConsumptionId
 
-    public fun correct(
+    fun correct(
         replenishmentId: StockReplenishmentId,
         correctedQuantity: Quantity,
         reason: Reason,
         correctedBy: UserId,
     )
 
-    public fun correct(
+    fun correct(
         consumptionId: StockConsumptionId,
         correctedQuantity: Quantity,
         reason: Reason,

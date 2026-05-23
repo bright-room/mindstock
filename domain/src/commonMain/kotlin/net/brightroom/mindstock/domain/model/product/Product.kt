@@ -10,8 +10,8 @@ import net.brightroom.mindstock.domain.model.household.HouseholdId
  *
  * 最低在庫値(`latestMinimumStock`)とアーカイブ状態(`archivedAt`)を集約スナップショットとして持つ。
  */
-public class Product(
-    public val id: ProductId,
+class Product(
+    val id: ProductId,
     internal val householdId: HouseholdId,
     internal val catalogItemId: CatalogItemId,
     internal val createdAt: Instant,
@@ -20,11 +20,11 @@ public class Product(
 ) {
     internal val isArchived: Boolean get() = archivedAt != null
 
-    public fun ensureNotArchived() {
+    fun ensureNotArchived() {
         if (isArchived) throw DomainException.ProductArchived(id)
     }
 
-    public fun ensureBelongsTo(householdId: HouseholdId) {
+    fun ensureBelongsTo(householdId: HouseholdId) {
         if (this.householdId != householdId) {
             throw DomainException.ProductNotInHousehold(id, householdId)
         }

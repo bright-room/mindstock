@@ -9,7 +9,7 @@ import kotlin.jvm.JvmInline
  */
 @Serializable
 @JvmInline
-public value class MinimumStock(
+value class MinimumStock(
     private val value: Int,
 ) {
     init {

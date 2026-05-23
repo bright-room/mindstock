@@ -15,10 +15,10 @@ import net.brightroom.mindstock.domain.exception.DomainException
  * - `data class` により構造的等価性を持つ(同じ Instant 同士は equals/hashCode で等価)
  */
 @Serializable
-public data class OccurredAt(
+data class OccurredAt(
     private val value: Instant,
 ) {
-    public constructor(value: Instant, now: Instant) : this(value) {
+    constructor(value: Instant, now: Instant) : this(value) {
         if (value > now) throw DomainException.OccurredAtInFuture(value, now)
     }
 

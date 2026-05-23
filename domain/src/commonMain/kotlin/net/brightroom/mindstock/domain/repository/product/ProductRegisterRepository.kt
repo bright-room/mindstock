@@ -6,20 +6,20 @@ import net.brightroom.mindstock.domain.model.product.MinimumStock
 import net.brightroom.mindstock.domain.model.product.ProductId
 import net.brightroom.mindstock.domain.model.user.UserId
 
-public interface ProductRegisterRepository {
-    public fun adopt(
+interface ProductRegisterRepository {
+    fun adopt(
         id: ProductId,
         householdId: HouseholdId,
         catalogItemId: CatalogItemId,
     )
 
-    public fun setMinimumStock(
+    fun setMinimumStock(
         productId: ProductId,
         value: MinimumStock,
         editedBy: UserId,
     )
 
-    public fun archive(
+    fun archive(
         productId: ProductId,
         archivedBy: UserId,
     )

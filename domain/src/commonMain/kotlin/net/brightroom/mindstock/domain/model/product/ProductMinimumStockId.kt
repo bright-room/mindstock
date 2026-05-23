@@ -6,7 +6,7 @@ import kotlin.jvm.JvmInline
 
 @Serializable
 @JvmInline
-public value class ProductMinimumStockId(
+value class ProductMinimumStockId(
     private val value: Long,
 ) {
     init {
