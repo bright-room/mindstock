@@ -11,4 +11,7 @@ public sealed class DomainException(message: String) : RuntimeException(message)
 
     public class InvalidQuantity(public val value: Int) :
         DomainException("quantity must be > 0, got $value")
+
+    public class InvalidMinimumStock(public val value: Int) :
+        DomainException("minimum_stock must be >= 0, got $value")
 }
