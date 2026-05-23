@@ -1,19 +1,19 @@
 package net.brightroom.mindstock.infrastructure.migration.detector
 
-import net.brightroom.mindstock.infrastructure.schemas.catalog.CatalogItemRevisionsTable
-import net.brightroom.mindstock.infrastructure.schemas.catalog.CatalogItemsTable
-import net.brightroom.mindstock.infrastructure.schemas.household.HouseholdMembershipRevocationsTable
-import net.brightroom.mindstock.infrastructure.schemas.household.HouseholdMembershipsTable
-import net.brightroom.mindstock.infrastructure.schemas.household.HouseholdsTable
-import net.brightroom.mindstock.infrastructure.schemas.product.ProductArchivesTable
-import net.brightroom.mindstock.infrastructure.schemas.product.ProductMinimumStocksTable
-import net.brightroom.mindstock.infrastructure.schemas.product.ProductsTable
-import net.brightroom.mindstock.infrastructure.schemas.stock.StockConsumptionCorrectionsTable
-import net.brightroom.mindstock.infrastructure.schemas.stock.StockConsumptionsTable
-import net.brightroom.mindstock.infrastructure.schemas.stock.StockReplenishmentCorrectionsTable
-import net.brightroom.mindstock.infrastructure.schemas.stock.StockReplenishmentsTable
-import net.brightroom.mindstock.infrastructure.schemas.user.UserDisplayNamesTable
-import net.brightroom.mindstock.infrastructure.schemas.user.UsersTable
+import net.brightroom.mindstock.infrastructure.datasource.schemas.catalog.CatalogItemRevisionsTable
+import net.brightroom.mindstock.infrastructure.datasource.schemas.catalog.CatalogItemsTable
+import net.brightroom.mindstock.infrastructure.datasource.schemas.household.HouseholdMembershipRevocationsTable
+import net.brightroom.mindstock.infrastructure.datasource.schemas.household.HouseholdMembershipsTable
+import net.brightroom.mindstock.infrastructure.datasource.schemas.household.HouseholdsTable
+import net.brightroom.mindstock.infrastructure.datasource.schemas.product.ProductArchivesTable
+import net.brightroom.mindstock.infrastructure.datasource.schemas.product.ProductMinimumStocksTable
+import net.brightroom.mindstock.infrastructure.datasource.schemas.product.ProductsTable
+import net.brightroom.mindstock.infrastructure.datasource.schemas.stock.StockConsumptionCorrectionsTable
+import net.brightroom.mindstock.infrastructure.datasource.schemas.stock.StockConsumptionsTable
+import net.brightroom.mindstock.infrastructure.datasource.schemas.stock.StockReplenishmentCorrectionsTable
+import net.brightroom.mindstock.infrastructure.datasource.schemas.stock.StockReplenishmentsTable
+import net.brightroom.mindstock.infrastructure.datasource.schemas.user.UserDisplayNamesTable
+import net.brightroom.mindstock.infrastructure.datasource.schemas.user.UsersTable
 import org.jetbrains.exposed.v1.core.Table
 
 /**
