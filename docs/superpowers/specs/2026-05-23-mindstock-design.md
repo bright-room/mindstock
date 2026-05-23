@@ -82,8 +82,8 @@ mindstock/
 │       └── net.brightroom.mindstock.spotless.gradle.kts
 ├── shared/                         # KMP: JVM + JS + Wasm。クライアント/サーバ共有モジュール群
 │   ├── rpc/                        #   kotlinx-rpc サービス IF + DTO(presentation.rpc)
-│   └── extensions/                 #   kotlinx-datetime / serialization の拡張(@js-joda/timezone を wasm に bundle)
-├── domain/                         # JVM only。Aggregate, Event, Policy(永続化非依存)
+│   └── extensions/                 #   kotlinx-datetime / serialization / UUIDv7 等の拡張(@js-joda/timezone を wasm に bundle)
+├── domain/                         # KMP(commonMain)。Aggregate, Value Object, 例外, Repository ポート(永続化非依存)
 ├── backend/
 │   ├── application/
 │   │   └── api/                    # JVM only。Ktor server entrypoint + use case 配線
@@ -101,20 +101,24 @@ mindstock/
 依存方向:
 
 ```
-frontend             ──> shared:rpc
-backend:application:api ──> shared:rpc
-backend:application:api ──> shared:extensions
-backend:application:api ──> domain
-backend:application:api ──> backend:infrastructure:schemas
-backend:application:api ──> backend:infrastructure:migration:executor
+frontend                                   ──> shared:rpc
+shared:rpc                                 ──> domain                  (typed ID の出所統一)
+domain                                     ──> shared:extensions       (UUIDv7 生成のため)
+backend:application:api                    ──> shared:rpc
+backend:application:api                    ──> shared:extensions
+backend:application:api                    ──> domain
+backend:application:api                    ──> backend:infrastructure:schemas
+backend:application:api                    ──> backend:infrastructure:migration:executor
 
-backend:infrastructure:schemas       ──> domain + migration:annotation
+backend:infrastructure:schemas             ──> domain + migration:annotation
 backend:infrastructure:migration:detector  ──> schemas + migration:annotation
 backend:infrastructure:migration:generator ──> schemas + migration:detector
 backend:infrastructure:migration:executor  ──> schemas + migration:detector
 ```
 
-`domain` は何にも依存しない純粋 Kotlin。`shared:rpc` は kRPC サービス IF + DTO のみ。`shared:extensions` は kotlinx-datetime / serialization の拡張(`TimeZone.JST`, `LocalDate.now(...)`, `CustomJson` 等)。
+`domain` は KMP commonMain。集約・Value Object・例外・Repository ポート(interface)のみを持ち、永続化やフレームワークには依存しない(`:shared:extensions` の UUIDv7 ユーティリティと kotlinx-serialization の `@Serializable` だけが外部依存)。`shared:rpc` は kRPC サービス IF + DTO のみ(typed ID は `domain` から再エクスポート)。`shared:extensions` は kotlinx-datetime / serialization / UUIDv7 等の拡張(`TimeZone.JST`, `LocalDate.now(...)`, `CustomJson`, `newUuidV7()` 等)。
+
+ドメイン層の詳細(集約のクラス分割、Value Object のコーディング規約、Repository ポートの API)は別ドキュメント [2026-05-23-domain-layer-design.md](./2026-05-23-domain-layer-design.md) を参照。
 
 ## 3.3 Ktor アプリケーション構成
 
@@ -382,8 +386,8 @@ interface InventoryService : RemoteService {
     suspend fun archiveProduct(cmd: ArchiveProduct)
 
     // Stock
-    suspend fun replenishStock(cmd: ReplenishStock): StockEventId
-    suspend fun consumeStock(cmd: ConsumeStock): StockEventId
+    suspend fun replenishStock(cmd: ReplenishStock): StockReplenishmentId
+    suspend fun consumeStock(cmd: ConsumeStock): StockConsumptionId
     suspend fun correctStockEvent(cmd: CorrectStockEvent)
 
     // Queries
@@ -401,13 +405,24 @@ interface InventoryService : RemoteService {
 
 `@Serializable @JvmInline value class` で型安全な ID を導入する。
 
+**ID 型は `domain` モジュール(KMP commonMain)に集約して定義し、`shared:rpc` の DTO はそれを参照する**(`shared:rpc → domain` 依存)。Plan 3 以降、ID は以下のように定義される(詳細は [2026-05-23-domain-layer-design.md](./2026-05-23-domain-layer-design.md) 参照):
+
 ```kotlin
-@Serializable @JvmInline value class CatalogItemId(val value: String)   // UUIDv7 文字列
-@Serializable @JvmInline value class ProductId(val value: String)
-@Serializable @JvmInline value class HouseholdId(val value: String)
-@Serializable @JvmInline value class UserId(val value: String)
-@Serializable @JvmInline value class StockEventId(val value: Long)
+// domain/src/commonMain/.../model/catalog/CatalogItemId.kt
+@Serializable @JvmInline value class CatalogItemId(private val value: Uuid) {
+    override fun toString(): String = value.toString()
+    internal operator fun invoke(): Uuid = value
+}
+// ProductId / HouseholdId / UserId も同パターン
+
+// domain/src/commonMain/.../model/stock/StockReplenishmentId.kt
+@Serializable @JvmInline value class StockReplenishmentId(private val value: Long) { ... }
+// StockConsumptionId、各種 *CorrectionId、*RevisionId 等の Long ID も同パターン
 ```
+
+旧仕様の `StockEventId(Long)` という 1 つの ID 型は廃止し、`StockReplenishmentId` / `StockConsumptionId` 等にイベント種別で分離する。RPC の戻り値も `StockReplenishmentId` / `StockConsumptionId` を直接返す(`replenishStock(...): StockReplenishmentId` 等)。
+
+なお、本セクション以下に残る `StockEventId` / `StockEventTarget` 参照(`CorrectStockEvent`、`StockHistoryEntry` 等の DTO)は **Plan 6(RPC 実装)で再設計**する。具体的には `CorrectStockEvent` を `CorrectStockReplenishment` / `CorrectStockConsumption` に分割し、`StockHistoryEntry` は kind 列挙 + 生 Long ではなく分離されたビューに整理する。Plan 3〜5 ではこれらの DTO はまだ実装に登場しないため、現時点では旧表記を残す。
 
 コマンド DTO(主要):
 
@@ -484,7 +499,7 @@ interface InventoryService : RemoteService {
 6. 認可: product が当該世帯のものか確認
 7. 不変条件: product が archived でない、quantity > 0
 8. `stock_consumptions` に INSERT(RETURNING id)
-9. `StockEventId` を返す
+9. 補充なら `StockReplenishmentId`、消費なら `StockConsumptionId` を返す
 
 書き込みは 1 コマンド 1 トランザクション。append のみなので軽い。
 
