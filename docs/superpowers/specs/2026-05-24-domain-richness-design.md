@@ -50,11 +50,14 @@ Request クラスは domain には置かない。Request は外部入力(RPC DTO
 
 | 種別 | id | createdAt |
 |---|---|---|
-| 集約ルート(User / Household / CatalogItem / Product)| **private**(永続化用) | **削除**(インフラメタ) |
-| Stock イベント(Replenishment / Consumption)| **public**(訂正対象として業務識別される) | **削除**(`occurredAt` のみ残す) |
-| Stock 訂正(ReplenishmentCorrection 等)| **public**(訂正自体も将来訂正対象になる可能性) | **削除** |
+| 集約ルート(User / Household / CatalogItem / Product)| **public**(`val id`) | **削除**(インフラメタ) |
+| Stock イベント(Replenishment / Consumption)| **public** | **削除**(`occurredAt` のみ残す) |
+| Stock 訂正(ReplenishmentCorrection 等)| **public** | **保持**(訂正日時として domain 概念) |
 
-`occurredAt` は「ユーザー入力の出来事時刻」でドメイン概念なので残す。
+ポイント:
+- `id` は public だが、**domain ロジック内で `a.id == b.id` のような比較は書かない慣習**で運用(`data class` の `equals` を使う)。Repository 実装はモジュール外から id を読んで SQL に使う必要があるため public 必須
+- `occurredAt` は「ユーザー入力の出来事時刻」(Replenishment / Consumption が持つ)。ドメイン概念
+- 訂正の `createdAt` は「いつ訂正されたか」で domain 概念として例外的に残す
 
 ### 2.6 immutable
 
@@ -74,7 +77,8 @@ domain/src/commonMain/kotlin/net/brightroom/mindstock/domain/
 │   ├── user/
 │   │   ├── User.kt                     # 集約ルート(displayName 必須)
 │   │   ├── UserId.kt                   # value class(private 利用)
-│   │   ├── ZitadelSub.kt
+│   │   ├── AuthIdentity.kt         # data class(provider + value)、Zitadel 固有名を排除
+│   │   ├── AuthProvider.kt         # enum(ZITADEL、将来拡張)
 │   │   └── DisplayName.kt
 │   ├── household/
 │   │   ├── Household.kt                # 集約ルート(members を持つ)
@@ -140,35 +144,37 @@ domain/src/commonMain/kotlin/net/brightroom/mindstock/domain/
 ### 4.1 User
 
 ```kotlin
-class User(
-    private val _id: UserId,
-    val zitadelSub: ZitadelSub,
+data class User(
+    val id: UserId,
+    val authIdentity: AuthIdentity,
     val displayName: DisplayName,
-) {
-    internal fun id(): UserId = _id   // Repository 専用アクセサ
+)
 
-    override fun equals(other: Any?): Boolean = other is User && other._id == _id
-    override fun hashCode(): Int = _id.hashCode()
+/**
+ * 認証プロバイダの識別情報。OIDC の sub クレーム相当だが
+ * Zitadel 固有名を domain に出さないため抽象化している。
+ */
+data class AuthIdentity(val provider: AuthProvider, val value: String) {
+    init {
+        if (value.isBlank()) throw DomainException.AuthIdentityValueBlank()
+    }
 }
+
+enum class AuthProvider { ZITADEL }  // 将来追加: AUTH0 等
 ```
 
 ポイント:
-- `displayName` は **NOT NULL**。初回登録時に Zitadel から取得した名前を必ず渡して構築する
-- `id` は private、equality は id ベース
-- `internal fun id()` は backend モジュール(Repository 実装)から呼べる隠し API
+- `displayName` は **NOT NULL**。初回登録時に認証プロバイダから取得した名前を必ず渡して構築する
+- `id` は public(`data class` で自動生成された equals / hashCode / copy / toString に含まれる)。domain ロジックで `user.id == other.id` のような比較は書かない慣習で運用
+- `AuthIdentity` は Zitadel 固有名(`ZitadelSub`)を排除した抽象。MVP では `AuthProvider` enum に ZITADEL のみだが、将来 Auth0 等を追加する時に拡張可能
 
 ### 4.2 Household
 
 ```kotlin
-class Household(
-    private val _id: HouseholdId,
+data class Household(
+    val id: HouseholdId,
     val members: HouseholdMembers,
-) {
-    internal fun id(): HouseholdId = _id
-    fun owner(): User? = members.owner()
-    fun isMember(user: User): Boolean = members.contains(user)
-    override fun equals/hashCode by _id
-}
+)
 
 data class HouseholdMember(val user: User, val role: HouseholdMemberRole)
 // 注: 「revoked = true のメンバー」は HouseholdMembers から除外して読み込む(Repository 側で revocation を考慮)
@@ -184,20 +190,17 @@ class HouseholdMembers(private val list: List<HouseholdMember>) {
 
 ポイント:
 - `Household.members` は **アクティブなメンバーのみ**を持つ。revoked は domain には出さない
-- `HouseholdMembers` は collection オブジェクトとして `owner()`, `contains(user)` 等を持つ
+- メンバー関連の計算は `HouseholdMembers` に集約(`members.owner()`, `members.contains(user)`)。Household に同名メソッドを置かない
 - revocation 操作は (household, user) のペアで識別(MVP では一意)
 
 ### 4.3 CatalogItem
 
 ```kotlin
-class CatalogItem(
-    private val _id: CatalogItemId,
+data class CatalogItem(
+    val id: CatalogItemId,
     val name: CatalogItemName,
     val unit: CatalogItemUnit,
-) {
-    internal fun id(): CatalogItemId = _id
-    override fun equals/hashCode by _id
-}
+)
 
 class CatalogItems(private val list: List<CatalogItem>) {
     fun asList(): List<CatalogItem> = list.toList()
@@ -212,17 +215,12 @@ class CatalogItems(private val list: List<CatalogItem>) {
 ### 4.4 Product
 
 ```kotlin
-class Product(
-    private val _id: ProductId,
+data class Product(
+    val id: ProductId,
     val catalogItem: CatalogItem,
     val minimumStock: MinimumStock?,
     val archived: Boolean,
-) {
-    internal fun id(): ProductId = _id
-    val name: CatalogItemName get() = catalogItem.name
-    val unit: CatalogItemUnit get() = catalogItem.unit
-    override fun equals/hashCode by _id
-}
+)
 
 class Products(private val list: List<Product>) {
     fun activeOnly(): Products = Products(list.filter { !it.archived })
@@ -232,29 +230,26 @@ class Products(private val list: List<Product>) {
 ```
 
 ポイント:
-- `catalogItem` は composition、`CatalogItem` 本体を持つ(`catalogItemId` ではない)
+- `catalogItem` は composition、`CatalogItem` 本体を持つ(`catalogItemId` ではない)。`name` / `unit` には `product.catalogItem.name` / `product.catalogItem.unit` で直接アクセス(forwarding プロパティは置かない)
 - `minimumStock` は最新値、null なら未設定
 - `archived` は最新状態、`true` なら archive 済
-- `householdId` は domain には出さない。Product は **Household 経由でアクセス**することを前提(Plan 4 で UseCase が `productRepository.listByHousehold(household)` で取得する)
-  - 例外: 後述する read 専用 helper(`isInHousehold(household): Boolean` 等)は必要なら追加
+- `householdId` は domain には出さない。Product は **Household 経由でアクセス**することを前提(Plan 4 で UseCase が `productRepository.listOf(household)` で取得する)
 
 ### 4.5 Stock 関連
 
 #### Replenishment / Consumption(events)
 
 ```kotlin
-class Replenishment(
-    val id: ReplenishmentId,                  // public
-    val product: Product,                     // composition
+data class Replenishment(
+    val id: ReplenishmentId,
+    val product: Product,
     val quantity: Quantity,
     val occurredAt: OccurredAt,
-    val actor: User,                          // composition(actedBy)
+    val actor: User,
     val note: Note,
-) {
-    override fun equals/hashCode by id
-}
+)
 
-class Consumption(
+data class Consumption(
     val id: ConsumptionId,
     val product: Product,
     val quantity: Quantity,
@@ -267,22 +262,26 @@ class Consumption(
 #### Corrections
 
 ```kotlin
-class ReplenishmentCorrection(
+data class ReplenishmentCorrection(
     val id: ReplenishmentCorrectionId,
-    val target: Replenishment,                // composition で元イベント参照
+    val target: Replenishment,
     val correctedQuantity: Quantity,
     val reason: Reason,
     val corrector: User,
+    val createdAt: Instant,   // 訂正日時(domain 概念として残す)
 )
 
-class ConsumptionCorrection(
+data class ConsumptionCorrection(
     val id: ConsumptionCorrectionId,
     val target: Consumption,
     val correctedQuantity: Quantity,
     val reason: Reason,
     val corrector: User,
+    val createdAt: Instant,
 )
 ```
+
+訂正の `createdAt` は他の集約と違って domain で意味を持つ(「いつ訂正されたか」)。DB の `created_at` カラムをそのまま使う。
 
 #### Collections
 
@@ -373,10 +372,10 @@ data class ShoppingListItem(val stock: Stock, val shortage: Int)
 ```kotlin
 // User
 interface UserRepository {
-    fun findByZitadelSub(sub: ZitadelSub): User?
+    fun findByAuthIdentity(identity: AuthIdentity): User?
 }
 interface UserRegisterRepository {
-    fun register(zitadelSub: ZitadelSub, defaultDisplayName: DisplayName): User
+    fun register(identity: AuthIdentity, defaultDisplayName: DisplayName): User
     fun rename(user: User, newName: DisplayName)
 }
 
@@ -473,7 +472,12 @@ value class UserId(private val value: Uuid) {
 VO 系の検証例外(`InvalidQuantity`, `InvalidMinimumStock`, `OccurredAtInFuture`, `DisplayNameTooLong`, ...)は残す。
 
 新規追加:
-- `HouseholdHasNoOwner`(必要なら): `Household.invite` で OWNER role が既にいるかチェック等で使う場合
+- `AuthIdentityValueBlank`: `AuthIdentity(provider, value)` の value 空文字検証用
+- `HouseholdHasNoOwner`(必要なら): `Household.invite` で OWNER role が既にいるかチェック等で使う場合(MVP では未使用)
+
+削除:
+- `ZitadelSubBlank` → `AuthIdentityValueBlank` に置き換え
+- `ProductArchived`, `ProductNotInHousehold` などの Aggregate ガード関連
 
 ## 8. 削除されるクラス
 
@@ -499,12 +503,13 @@ VO 系の検証例外(`InvalidQuantity`, `InvalidMinimumStock`, `OccurredAtInFut
 | `StockReplenishmentCorrectionId` → `ReplenishmentCorrectionId` | リネーム | |
 | `StockConsumptionCorrection` → `ConsumptionCorrection` | リネーム | |
 | `StockConsumptionCorrectionId` → `ConsumptionCorrectionId` | リネーム | |
+| `ZitadelSub` → `AuthIdentity` + `AuthProvider` | リネーム/抽象化 | data class(`provider`, `value`)で外部認証プロバイダを domain から切り離す |
 
 ## 9. テスト方針
 
 - VO テスト: 変更なし(Quantity, OccurredAt, etc. の境界値)
-- Aggregate テスト: 新規追加。`Household.owner()`, `Household.isMember()` 等の計算メソッドの動作確認
-- Collection テスト: `Products.activeOnly()`, `HouseholdMembers.owner()` 等
+- Aggregate テスト: 新規追加。data class equality の sanity check と、`AuthIdentity` の空文字検証
+- Collection テスト: `Products.activeOnly()`, `HouseholdMembers.owner()` / `contains()` 等
 - Stock テスト: `Stock.currentQuantity()` の補充 - 消費計算、訂正適用、`needsReplenishment()` 判定
 - ShoppingList テスト: 閾値以下の Product だけ拾えるか
 
