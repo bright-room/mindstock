@@ -2,11 +2,11 @@ package net.brightroom.mindstock.domain.model.product
 
 import io.kotest.assertions.throwables.shouldNotThrow
 import io.kotest.assertions.throwables.shouldThrow
-import kotlin.test.Test
-import kotlin.time.Instant
 import net.brightroom.mindstock.domain.exception.DomainException
 import net.brightroom.mindstock.domain.model.catalog.CatalogItemId
 import net.brightroom.mindstock.domain.model.household.HouseholdId
+import kotlin.test.Test
+import kotlin.time.Instant
 
 class ProductGuardTest {
     private val householdA = HouseholdId.create()

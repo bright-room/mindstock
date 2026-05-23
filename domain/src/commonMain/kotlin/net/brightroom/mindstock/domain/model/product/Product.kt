@@ -1,9 +1,9 @@
 package net.brightroom.mindstock.domain.model.product
 
-import kotlin.time.Instant
 import net.brightroom.mindstock.domain.exception.DomainException
 import net.brightroom.mindstock.domain.model.catalog.CatalogItemId
 import net.brightroom.mindstock.domain.model.household.HouseholdId
+import kotlin.time.Instant
 
 /**
  * 世帯固有の商品インスタンス。CatalogItem を世帯で「採用」したもの。

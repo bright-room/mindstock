@@ -1,8 +1,8 @@
 package net.brightroom.mindstock.domain.model.stock
 
-import kotlin.time.Instant
 import net.brightroom.mindstock.domain.model.product.ProductId
 import net.brightroom.mindstock.domain.model.user.UserId
+import kotlin.time.Instant
 
 class StockReplenishment(
     val id: StockReplenishmentId,

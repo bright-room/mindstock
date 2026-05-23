@@ -1,8 +1,8 @@
 package net.brightroom.mindstock.domain.model.stock
 
-import kotlin.time.Instant
 import kotlinx.serialization.Serializable
 import net.brightroom.mindstock.domain.exception.DomainException
+import kotlin.time.Instant
 
 /**
  * 在庫イベント発生時刻。未来日は許容しない(now を比較対象として渡す)。

@@ -1,9 +1,9 @@
 package net.brightroom.mindstock.domain.model.household
 
+import kotlinx.serialization.Serializable
 import kotlin.jvm.JvmInline
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
-import kotlinx.serialization.Serializable
 
 @OptIn(ExperimentalUuidApi::class)
 @Serializable

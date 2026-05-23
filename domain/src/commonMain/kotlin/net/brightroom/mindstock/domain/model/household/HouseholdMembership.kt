@@ -1,7 +1,7 @@
 package net.brightroom.mindstock.domain.model.household
 
-import kotlin.time.Instant
 import net.brightroom.mindstock.domain.model.user.UserId
+import kotlin.time.Instant
 
 class HouseholdMembership(
     val id: HouseholdMembershipId,

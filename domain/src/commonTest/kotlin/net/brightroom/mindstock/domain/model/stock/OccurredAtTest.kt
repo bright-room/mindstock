@@ -2,9 +2,9 @@ package net.brightroom.mindstock.domain.model.stock
 
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.matchers.shouldBe
-import kotlin.time.Instant
 import net.brightroom.mindstock.domain.exception.DomainException
 import kotlin.test.Test
+import kotlin.time.Instant
 
 class OccurredAtTest {
     private val now = Instant.parse("2026-05-23T10:00:00Z")

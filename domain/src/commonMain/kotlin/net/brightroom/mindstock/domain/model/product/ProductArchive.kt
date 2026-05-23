@@ -1,7 +1,7 @@
 package net.brightroom.mindstock.domain.model.product
 
-import kotlin.time.Instant
 import net.brightroom.mindstock.domain.model.user.UserId
+import kotlin.time.Instant
 
 class ProductArchive(
     val id: ProductArchiveId,

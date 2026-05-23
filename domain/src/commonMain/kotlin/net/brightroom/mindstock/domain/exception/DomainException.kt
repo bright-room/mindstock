@@ -1,8 +1,8 @@
 package net.brightroom.mindstock.domain.exception
 
-import kotlin.time.Instant
 import net.brightroom.mindstock.domain.model.household.HouseholdId
 import net.brightroom.mindstock.domain.model.product.ProductId
+import kotlin.time.Instant
 
 /**
  * Domain layer の不変条件違反を表す sealed 例外。
