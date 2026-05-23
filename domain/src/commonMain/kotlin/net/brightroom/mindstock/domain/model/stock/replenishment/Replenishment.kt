@@ -9,10 +9,11 @@ import net.brightroom.mindstock.domain.model.user.User
 /**
  * 在庫補充イベント。
  *
- * id を持たない(順序は occurredAt、参照は composition で行う)。
- * Repository 実装での domain object と DB 行の対応付け方法は Plan 4-5 で設計。
+ * `id` は訂正対象の照合に必要(同一内容の事実が複数あった場合の曖昧性回避)。
+ * domain ロジックで id 比較は書かない慣習で運用。
  */
 data class Replenishment(
+    val id: ReplenishmentId,
     val product: Product,
     val quantity: Quantity,
     val occurredAt: OccurredAt,

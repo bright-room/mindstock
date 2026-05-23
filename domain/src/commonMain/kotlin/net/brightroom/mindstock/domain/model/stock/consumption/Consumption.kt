@@ -8,8 +8,11 @@ import net.brightroom.mindstock.domain.model.user.User
 
 /**
  * 在庫消費イベント。
+ *
+ * `id` の扱いは [Replenishment] と同様。
  */
 data class Consumption(
+    val id: ConsumptionId,
     val product: Product,
     val quantity: Quantity,
     val occurredAt: OccurredAt,

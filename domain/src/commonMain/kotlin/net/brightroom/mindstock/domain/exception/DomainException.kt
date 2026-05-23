@@ -44,4 +44,8 @@ sealed class DomainException(
     ) : DomainException("catalog item unit length $length > 10")
 
     class AuthSubjectBlank : DomainException("auth subject must not be blank")
+
+    class InvalidIdentity(
+        val value: Long,
+    ) : DomainException("identity must be >= 0, got $value")
 }
