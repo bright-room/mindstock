@@ -52,11 +52,9 @@ class StockMovementsTest {
             now,
         )
 
-    private fun replenish(qty: Int) =
-        Replenishment(product, Quantity(qty), occurred(), user, Note(""))
+    private fun replenish(qty: Int) = Replenishment(product, Quantity(qty), occurred(), user, Note(""))
 
-    private fun consume(qty: Int) =
-        Consumption(product, Quantity(qty), occurred(), user, Note(""))
+    private fun consume(qty: Int) = Consumption(product, Quantity(qty), occurred(), user, Note(""))
 
     @Test
     fun `netQuantity is zero for empty movements`() {
