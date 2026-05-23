@@ -4,7 +4,10 @@ ktor:
     port: "$PORT:8080"
   application:
     modules:
-      - net.brightroom.mindstock.MainKt.module
+      - "net.brightroom.mindstock.configuration.di.DependenciesConfigurationKt.dependenciesConfigure"
+      - "net.brightroom.mindstock.configuration.external.exposed.ExposedConfigurationKt.exposedConfigure"
+      - "net.brightroom.mindstock.configuration.logging.LoggingConfigurationKt.loggingConfigure"
+      - "net.brightroom.mindstock.configuration.routing.RoutingConfigurationKt.routingConfigure"
 
 external:
   datasource:

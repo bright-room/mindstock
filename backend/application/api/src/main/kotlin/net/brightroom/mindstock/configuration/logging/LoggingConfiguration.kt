@@ -18,7 +18,6 @@ import kotlinx.serialization.Serializable
 import net.brightroom.mindstock.configuration.Environment
 import net.brightroom.mindstock.extensions.kotlinx.serialization.CustomJson
 import org.slf4j.event.Level
-import kotlin.text.get
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
