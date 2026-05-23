@@ -390,7 +390,7 @@ interface InventoryService : RemoteService {
 @Serializable enum class StockEventTargetKind { Replenishment, Consumption }
 @Serializable data class StockEventTarget(val kind: StockEventTargetKind, val id: StockEventId)
 @Serializable data class CorrectStockEvent(
-    val target: StockEventTarget, val newQuantity: Int, val reason: String? = null,
+    val target: StockEventTarget, val newQuantity: Int, val reason: String = "",
 )
 
 @Serializable data class SetDisplayName(val displayName: String)
