@@ -9,6 +9,5 @@ fun Application.dependenciesConfigure(
     @Property("ktor.environment") environment: Environment,
 ) {
     dependencies {
-
     }
 }

@@ -1,6 +1,6 @@
 @file:OptIn(ExperimentalTime::class)
 
-package net.brightroom._extensions.kotlinx.datetime
+package net.brightroom.mindstock.extensions.kotlinx.datetime
 
 import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.TimeZone

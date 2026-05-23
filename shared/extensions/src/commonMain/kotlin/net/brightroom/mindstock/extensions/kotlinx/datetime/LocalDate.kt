@@ -1,4 +1,4 @@
-package net.brightroom._extensions.kotlinx.datetime
+package net.brightroom.mindstock.extensions.kotlinx.datetime
 
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalDateTime

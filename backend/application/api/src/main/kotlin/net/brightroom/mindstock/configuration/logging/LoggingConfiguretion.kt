@@ -135,7 +135,13 @@ private data class RequestLogging(
 )
 
 @Serializable
-private data class RequestContent(val params: Map<String, String> = emptyMap(), val body: String)
+private data class RequestContent(
+    val params: Map<String, String> = emptyMap(),
+    val body: String,
+)
 
 @Serializable
-private data class ResponseLogging(val status: String, val size: Int)
+private data class ResponseLogging(
+    val status: String,
+    val size: Int,
+)
