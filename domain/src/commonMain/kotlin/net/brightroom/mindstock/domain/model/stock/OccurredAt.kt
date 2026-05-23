@@ -14,7 +14,9 @@ import net.brightroom.mindstock.domain.exception.DomainException
  * - secondary constructor `(value, now)` で `value > now` をガード
  */
 @Serializable
-public class OccurredAt(private val value: Instant) {
+public class OccurredAt(
+    private val value: Instant,
+) {
     public constructor(value: Instant, now: Instant) : this(value) {
         if (value > now) throw DomainException.OccurredAtInFuture(value, now)
     }

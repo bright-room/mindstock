@@ -7,6 +7,12 @@ import net.brightroom.mindstock.domain.model.user.UserId
 
 public interface HouseholdRegisterRepository {
     public fun create(id: HouseholdId)
-    public fun join(householdId: HouseholdId, userId: UserId, role: HouseholdMemberRole)
+
+    public fun join(
+        householdId: HouseholdId,
+        userId: UserId,
+        role: HouseholdMemberRole,
+    )
+
     public fun revoke(membershipId: HouseholdMembershipId)
 }

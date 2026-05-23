@@ -1,12 +1,14 @@
 package net.brightroom.mindstock.domain.model.product
 
 import kotlinx.serialization.Serializable
-import kotlin.jvm.JvmInline
 import net.brightroom.mindstock.domain.exception.DomainException
+import kotlin.jvm.JvmInline
 
 @Serializable
 @JvmInline
-public value class ProductArchiveId(private val value: Long) {
+public value class ProductArchiveId(
+    private val value: Long,
+) {
     init {
         if (value < 0) throw DomainException.InvalidIdentity(value)
     }

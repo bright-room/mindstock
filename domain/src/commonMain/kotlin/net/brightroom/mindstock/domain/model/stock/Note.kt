@@ -8,7 +8,9 @@ import kotlin.jvm.JvmInline
  */
 @Serializable
 @JvmInline
-public value class Note(private val value: String) {
+public value class Note(
+    private val value: String,
+) {
     override fun toString(): String = value
 
     internal operator fun invoke(): String = value

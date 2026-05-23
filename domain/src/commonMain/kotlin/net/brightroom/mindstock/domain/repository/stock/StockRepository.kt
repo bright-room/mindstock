@@ -10,11 +10,20 @@ import net.brightroom.mindstock.domain.model.stock.StockReplenishmentId
 
 public interface StockRepository {
     public fun findReplenishmentById(id: StockReplenishmentId): StockReplenishment?
+
     public fun findConsumptionById(id: StockConsumptionId): StockConsumption?
 
-    public fun listReplenishmentsOf(productId: ProductId, limit: Int = 50): List<StockReplenishment>
-    public fun listConsumptionsOf(productId: ProductId, limit: Int = 50): List<StockConsumption>
+    public fun listReplenishmentsOf(
+        productId: ProductId,
+        limit: Int = 50,
+    ): List<StockReplenishment>
+
+    public fun listConsumptionsOf(
+        productId: ProductId,
+        limit: Int = 50,
+    ): List<StockConsumption>
 
     public fun listCorrectionsOf(replenishmentId: StockReplenishmentId): List<StockReplenishmentCorrection>
+
     public fun listCorrectionsOf(consumptionId: StockConsumptionId): List<StockConsumptionCorrection>
 }

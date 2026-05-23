@@ -8,5 +8,8 @@ public interface CatalogItemRepository {
     public fun findById(id: CatalogItemId): CatalogItem?
 
     /** 名前部分一致検索(MVP は単純な LIKE で OK)。 */
-    public fun search(query: String, limit: Int = 50): List<CatalogItem>
+    public fun search(
+        query: String,
+        limit: Int = 50,
+    ): List<CatalogItem>
 }

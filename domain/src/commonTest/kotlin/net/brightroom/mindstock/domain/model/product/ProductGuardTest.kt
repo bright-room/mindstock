@@ -19,53 +19,57 @@ class ProductGuardTest {
 
     @Test
     fun `ensureNotArchived passes when not archived`() {
-        val product = Product(
-            id = ProductId(newUuidV7()),
-            householdId = householdA,
-            catalogItemId = catalogItemId,
-            createdAt = now,
-            latestMinimumStock = null,
-            archivedAt = null,
-        )
+        val product =
+            Product(
+                id = ProductId(newUuidV7()),
+                householdId = householdA,
+                catalogItemId = catalogItemId,
+                createdAt = now,
+                latestMinimumStock = null,
+                archivedAt = null,
+            )
         shouldNotThrow<DomainException.ProductArchived> { product.ensureNotArchived() }
     }
 
     @Test
     fun `ensureNotArchived throws when archived`() {
-        val product = Product(
-            id = ProductId(newUuidV7()),
-            householdId = householdA,
-            catalogItemId = catalogItemId,
-            createdAt = now,
-            latestMinimumStock = null,
-            archivedAt = now,
-        )
+        val product =
+            Product(
+                id = ProductId(newUuidV7()),
+                householdId = householdA,
+                catalogItemId = catalogItemId,
+                createdAt = now,
+                latestMinimumStock = null,
+                archivedAt = now,
+            )
         shouldThrow<DomainException.ProductArchived> { product.ensureNotArchived() }
     }
 
     @Test
     fun `ensureBelongsTo passes when household matches`() {
-        val product = Product(
-            id = ProductId(newUuidV7()),
-            householdId = householdA,
-            catalogItemId = catalogItemId,
-            createdAt = now,
-            latestMinimumStock = null,
-            archivedAt = null,
-        )
+        val product =
+            Product(
+                id = ProductId(newUuidV7()),
+                householdId = householdA,
+                catalogItemId = catalogItemId,
+                createdAt = now,
+                latestMinimumStock = null,
+                archivedAt = null,
+            )
         shouldNotThrow<DomainException.ProductNotInHousehold> { product.ensureBelongsTo(householdA) }
     }
 
     @Test
     fun `ensureBelongsTo throws when household differs`() {
-        val product = Product(
-            id = ProductId(newUuidV7()),
-            householdId = householdA,
-            catalogItemId = catalogItemId,
-            createdAt = now,
-            latestMinimumStock = null,
-            archivedAt = null,
-        )
+        val product =
+            Product(
+                id = ProductId(newUuidV7()),
+                householdId = householdA,
+                catalogItemId = catalogItemId,
+                createdAt = now,
+                latestMinimumStock = null,
+                archivedAt = null,
+            )
         shouldThrow<DomainException.ProductNotInHousehold> { product.ensureBelongsTo(householdB) }
     }
 }
