@@ -10,22 +10,14 @@ kotlin {
             implementation(libs.kotlinx.serialization.json)
             implementation(libs.kotlinx.datetime)
         }
-        commonTest.dependencies {
-            implementation(libs.kotest.assertions.core)
-        }
+        commonTest.dependencies {}
 
         jvmMain.dependencies {}
-        jvmTest.dependencies {
-            implementation(libs.kotest.runner.junit5)
-        }
+        jvmTest.dependencies {}
 
         wasmJsMain.dependencies {
             implementation(npm("@js-joda/timezone", "2.3.0"))
         }
         wasmJsTest.dependencies {}
     }
-}
-
-tasks.withType<Test>().configureEach {
-    useJUnitPlatform()
 }
