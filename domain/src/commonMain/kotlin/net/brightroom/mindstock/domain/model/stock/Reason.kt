@@ -1,6 +1,7 @@
 package net.brightroom.mindstock.domain.model.stock
 
 import kotlinx.serialization.Serializable
+import kotlin.jvm.JvmInline
 
 /**
  * 訂正イベントに付与する理由文。空文字許容(必須化は UseCase/UI で運用)。

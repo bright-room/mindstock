@@ -1,6 +1,7 @@
 package net.brightroom.mindstock.domain.model.user
 
 import kotlinx.serialization.Serializable
+import kotlin.jvm.JvmInline
 import net.brightroom.mindstock.domain.exception.DomainException
 
 /**
