@@ -54,7 +54,10 @@ class StockTest {
     private fun occurred(
         year: Int = 2026,
         day: Int = 1,
-    ) = OccurredAt(Instant.parse("$year-05-0${day}T10:00:00Z"), now)
+    ) = OccurredAt(
+        Instant.parse("$year-05-${day.toString().padStart(2, '0')}T10:00:00Z"),
+        now,
+    )
 
     private fun replenish(
         product: Product,
