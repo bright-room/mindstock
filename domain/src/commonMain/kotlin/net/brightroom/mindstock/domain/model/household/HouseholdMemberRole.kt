@@ -1,6 +1,6 @@
 package net.brightroom.mindstock.domain.model.household
 
-enum class HouseholdMemberRole {
+public enum class HouseholdMemberRole {
     OWNER,
     MEMBER,
 }

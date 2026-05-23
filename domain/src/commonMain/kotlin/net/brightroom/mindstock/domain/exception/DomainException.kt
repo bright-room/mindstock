@@ -1,6 +1,8 @@
 package net.brightroom.mindstock.domain.exception
 
 import kotlinx.datetime.Instant
+import net.brightroom.mindstock.domain.model.household.HouseholdId
+import net.brightroom.mindstock.domain.model.product.ProductId
 
 /**
  * Domain layer の不変条件違反を表す sealed 例外。
@@ -50,11 +52,11 @@ public sealed class DomainException(
     ) : DomainException("identity must be >= 0, got $value")
 
     public class ProductArchived(
-        public val productId: net.brightroom.mindstock.domain.model.product.ProductId,
+        public val productId: ProductId,
     ) : DomainException("product $productId is archived")
 
     public class ProductNotInHousehold(
-        public val productId: net.brightroom.mindstock.domain.model.product.ProductId,
-        public val householdId: net.brightroom.mindstock.domain.model.household.HouseholdId,
+        public val productId: ProductId,
+        public val householdId: HouseholdId,
     ) : DomainException("product $productId does not belong to household $householdId")
 }

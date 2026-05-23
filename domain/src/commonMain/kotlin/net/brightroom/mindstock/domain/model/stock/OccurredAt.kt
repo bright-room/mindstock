@@ -12,9 +12,10 @@ import net.brightroom.mindstock.domain.exception.DomainException
  *
  * - primary constructor `(value)` は無検証(シリアライズ復元用)
  * - secondary constructor `(value, now)` で `value > now` をガード
+ * - `data class` により構造的等価性を持つ(同じ Instant 同士は equals/hashCode で等価)
  */
 @Serializable
-public class OccurredAt(
+public data class OccurredAt(
     private val value: Instant,
 ) {
     public constructor(value: Instant, now: Instant) : this(value) {
