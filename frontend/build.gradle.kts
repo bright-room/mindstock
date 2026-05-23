@@ -7,7 +7,7 @@ plugins {
 kotlin {
     sourceSets {
         commonMain.dependencies {
-            implementation(projects.shared)
+            implementation(projects.rpc)
 
             implementation(compose.runtime)
             implementation(compose.foundation)

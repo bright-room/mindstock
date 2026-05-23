@@ -40,6 +40,7 @@ includeBuild("build-logic")
 
 include(
     ":shared",
+    ":rpc",
     ":domain",
     ":application",
     ":infrastructure",
