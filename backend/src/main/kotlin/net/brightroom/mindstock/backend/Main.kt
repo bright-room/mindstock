@@ -2,6 +2,7 @@ package net.brightroom.mindstock.backend
 
 import com.zaxxer.hikari.HikariDataSource
 import io.ktor.server.application.Application
+import io.ktor.server.application.ApplicationStopped
 import io.ktor.server.application.install
 import io.ktor.server.cio.EngineMain
 import io.ktor.server.plugins.di.DI
@@ -52,4 +53,8 @@ fun Application.exposedConfigure() {
     val dataSource: HikariDataSource = buildHikariDataSource(properties)
     MigrationRunner.migrate(dataSource)
     connectExposed(dataSource)
+
+    monitor.subscribe(ApplicationStopped) {
+        dataSource.close()
+    }
 }
