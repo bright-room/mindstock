@@ -1,6 +1,6 @@
 package net.brightroom.mindstock.domain.model.stock
 
-import kotlinx.datetime.Instant
+import kotlin.time.Instant
 import kotlinx.serialization.Serializable
 import net.brightroom.mindstock.domain.exception.DomainException
 

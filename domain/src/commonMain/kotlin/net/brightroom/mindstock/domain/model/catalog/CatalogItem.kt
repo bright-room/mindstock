@@ -1,6 +1,6 @@
 package net.brightroom.mindstock.domain.model.catalog
 
-import kotlinx.datetime.Instant
+import kotlin.time.Instant
 import net.brightroom.mindstock.domain.model.user.UserId
 
 class CatalogItem(

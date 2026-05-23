@@ -1,6 +1,6 @@
 package net.brightroom.mindstock.domain.model.household
 
-import kotlinx.datetime.Instant
+import kotlin.time.Instant
 
 class HouseholdMembershipRevocation(
     val id: HouseholdMembershipRevocationId,

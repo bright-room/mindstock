@@ -2,7 +2,7 @@ package net.brightroom.mindstock.domain.model.stock
 
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.matchers.shouldBe
-import kotlinx.datetime.Instant
+import kotlin.time.Instant
 import net.brightroom.mindstock.domain.exception.DomainException
 import kotlin.test.Test
 

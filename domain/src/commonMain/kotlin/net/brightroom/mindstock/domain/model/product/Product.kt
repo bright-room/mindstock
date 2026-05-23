@@ -1,6 +1,6 @@
 package net.brightroom.mindstock.domain.model.product
 
-import kotlinx.datetime.Instant
+import kotlin.time.Instant
 import net.brightroom.mindstock.domain.exception.DomainException
 import net.brightroom.mindstock.domain.model.catalog.CatalogItemId
 import net.brightroom.mindstock.domain.model.household.HouseholdId

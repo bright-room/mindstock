@@ -1,6 +1,6 @@
 package net.brightroom.mindstock.domain.model.user
 
-import kotlinx.datetime.Instant
+import kotlin.time.Instant
 
 /**
  * User の表示名変更履歴の 1 行。

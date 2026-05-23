@@ -1,6 +1,6 @@
 package net.brightroom.mindstock.domain.model.user
 
-import kotlinx.datetime.Instant
+import kotlin.time.Instant
 
 /**
  * アプリ内ユーザー集約。`zitadelSub` で外部認証(Zitadel)と紐づく。
