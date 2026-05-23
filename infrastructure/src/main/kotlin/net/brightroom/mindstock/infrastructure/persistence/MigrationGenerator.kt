@@ -1,5 +1,6 @@
 package net.brightroom.mindstock.infrastructure.persistence
 
+import net.brightroom.mindstock.infrastructure.migration.detector.MigratableTables
 import org.jetbrains.exposed.v1.core.ExperimentalDatabaseMigrationApi
 import org.jetbrains.exposed.v1.jdbc.Database
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction

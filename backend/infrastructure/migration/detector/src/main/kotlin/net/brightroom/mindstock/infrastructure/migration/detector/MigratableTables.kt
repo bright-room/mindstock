@@ -1,4 +1,4 @@
-package net.brightroom.mindstock.infrastructure.persistence
+package net.brightroom.mindstock.infrastructure.migration.detector
 
 import net.brightroom.mindstock.infrastructure.schemas.catalog.CatalogItemRevisionsTable
 import net.brightroom.mindstock.infrastructure.schemas.catalog.CatalogItemsTable
