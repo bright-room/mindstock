@@ -1,12 +1,13 @@
 package net.brightroom.mindstock.domain.model.user
 
-import kotlin.time.Instant
+import net.brightroom.mindstock.domain.model.user.auth.AuthIdentity
 
 /**
- * アプリ内ユーザー集約。`zitadelSub` で外部認証(Zitadel)と紐づく。
+ * アプリ内ユーザー集約。
+ * 認証プロバイダの AuthIdentity と表示名を保持する。
  */
-class User(
+data class User(
     val id: UserId,
-    internal val zitadelSub: ZitadelSub,
-    internal val createdAt: Instant,
+    val authIdentity: AuthIdentity,
+    val displayName: DisplayName,
 )
