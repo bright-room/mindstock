@@ -9,7 +9,7 @@ application {
 }
 
 dependencies {
-    implementation(projects.shared)
+    implementation(projects.rpc)
     implementation(projects.domain)
     implementation(projects.backend.application)
     implementation(projects.backend.infrastructure.schemas)

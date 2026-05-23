@@ -75,6 +75,7 @@ mindstock/
 │   ├── settings.gradle.kts
 │   └── src/main/kotlin/
 │       ├── mindstock.kotlin-jvm.gradle.kts
+│       ├── mindstock.kotlin-jvm-testcontainers.gradle.kts
 │       ├── mindstock.kmp-shared.gradle.kts
 │       ├── mindstock.ktor-server.gradle.kts
 │       ├── mindstock.compose-wasm.gradle.kts
@@ -98,14 +99,13 @@ mindstock/
 依存方向:
 
 ```
-frontend ──┐
-           ├──> shared ──> rpc
-backend:api ─┤
-           ├──> backend:application ──> domain
-           └──> backend:infrastructure:* ──> domain
+frontend     ──> rpc
+backend:api  ──> rpc
+backend:api  ──> backend:application ──> domain
+backend:api  ──> backend:infrastructure:* ──> domain
 ```
 
-`domain` は何にも依存しない純粋 Kotlin。`shared` と `domain` は意図的に分離し、ドメインモデルが外部に漏れない。
+`domain` は何にも依存しない純粋 Kotlin。`rpc` は kRPC サービス IF と DTO のみ。`shared` は現時点では依存元なし(将来 frontend/backend の共通型置き場として使う余地を残す)。
 
 ## 4. ドメインモデル
 
