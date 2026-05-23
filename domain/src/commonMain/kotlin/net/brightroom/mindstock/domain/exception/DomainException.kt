@@ -21,4 +21,8 @@ public sealed class DomainException(message: String) : RuntimeException(message)
         public val value: Instant,
         public val now: Instant,
     ) : DomainException("occurredAt $value must be <= now $now")
+
+    public class DisplayNameBlank : DomainException("display name must not be blank")
+    public class DisplayNameTooLong(public val length: Int) :
+        DomainException("display name length $length > 100")
 }
