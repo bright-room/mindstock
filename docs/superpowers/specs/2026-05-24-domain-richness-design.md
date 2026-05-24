@@ -5,6 +5,8 @@
 - 親仕様: [2026-05-23-mindstock-design.md](./2026-05-23-mindstock-design.md)
 - 旧設計: [2026-05-23-domain-layer-design.md](./2026-05-23-domain-layer-design.md)(置き換え)
 
+> **Stock 関連の記述について**: 本文書内の Stock イベント(`Replenishment` / `Consumption`)・訂正(`ReplenishmentCorrection` / `ConsumptionCorrection`)・`EffectiveQuantity` 等に関する設計は、[2026-05-24-stock-movements-unification-design.md](./2026-05-24-stock-movements-unification-design.md) により全面的に再設計済み。具体的には「補充」「消費」を `StockMovement` 階層に統合し、訂正概念そのものを廃止した(訂正は反対方向の movement 追加で代替)。実コードもそれに従っている(`domain/model/stock/movement/` 配下に `Replenishment` / `Consumption` / `StockMovement` / `StockMovementType` / `StockMovements` のみ存在)。本文書の §2.5 訂正関連の言及、§3 Stock パッケージ構成、§4.5 Stock 関連、§5 Stock Repository の訂正系メソッド、§8 `*Correction` リネーム行は、すべて新仕様で読み替えること。
+
 ## 1. なぜリッチ化するか
 
 旧設計はテーブル定義をそのまま Kotlin クラスに写したような構造になり、以下の問題があった:
@@ -30,7 +32,7 @@
 - `household.isMember(user: User): Boolean`(問い合わせ)
 - `stock.currentQuantity(): Int`(計算)
 
-Request クラスは domain には置かない。Request は外部入力(RPC DTO)と domain の間に位置する**腐敗防止層(ACL)**の概念で、Plan 4 で `:backend:application:api` 配下に置くかどうかを再判断する。Plan 3 範囲では Repository は多引数で受ける。
+Request クラスは domain には置かない。Request は外部入力(RPC DTO)と domain の間に位置する**腐敗防止層(ACL)**の概念で、`shared:rpc` 側に DTO として定義する(Plan 4 で確定)。UseCase は Request クラスを受け取らず、named arguments で個別 Value Object を受ける。
 
 ### 2.3 ファーストクラスドメイン概念
 
@@ -38,7 +40,8 @@ Request クラスは domain には置かない。Request は外部入力(RPC DTO
 
 - `Stock`(在庫: 商品 + 補充消費履歴 → 現在数量)
 - `ShoppingList`(買い物リスト: 在庫が閾値以下の商品群)
-- `EffectiveQuantity`(実効数量: 補充/消費イベントに訂正適用後の値)
+
+(初版では `EffectiveQuantity`(訂正適用後の数量)を挙げていたが、stock-movements-unification で訂正概念ごと廃止したため削除済み。)
 
 参考の `LoanStatus` / `Loanability` 等に相当するが、`rule/` のような共通サブパッケージを作らず、それぞれ独立したパッケージに置く。
 
@@ -51,13 +54,14 @@ Request クラスは domain には置かない。Request は外部入力(RPC DTO
 | 種別 | id | 日時 |
 |---|---|---|
 | 集約ルート(User / Household / CatalogItem / Product)| **public**(`val id`) | なし(インフラメタは削除) |
-| Stock イベント(Replenishment / Consumption)| **なし** | `occurredAt: OccurredAt`(ユーザー入力) |
-| Stock 訂正(ReplenishmentCorrection 等)| **なし** | `correctedAt: CorrectedAt`(訂正日時) |
+| Stock movement(Replenishment / Consumption)| **なし** | `occurredAt: OccurredAt`(ユーザー入力) |
+
+(初版では Stock 訂正(`ReplenishmentCorrection` 等、`correctedAt` 持ち)を別行として扱っていたが、stock-movements-unification で訂正概念ごと廃止したため削除済み。)
 
 ポイント:
 - 集約ルートの `id` は public(`data class`)。`a.id == b.id` のような比較は domain ロジックで書かない慣習で運用。Repository 実装はモジュール外から id を読んで SQL に使う
-- Stock イベント / 訂正の `id` は **削除**。順序付けは時刻フィールドで、参照は composition(`target: Replenishment`)で行う。Repository 実装が domain object と DB 行を対応付ける手段は Plan 4-5 で設計(候補: 全フィールドハッシュ、UUID 化、隠し handle 等)
-- `occurredAt`(出来事時刻)・`correctedAt`(訂正日時)はそれぞれ VO 化し、domain で意味のある概念として残す
+- Stock movement の `id` は **削除**。順序付けは `occurredAt` で取れる。stock-movements-unification で訂正概念を廃止したため、Repository は append-only insert のみで domain object と DB 行を逆引きする必要がない
+- `occurredAt`(出来事時刻)は VO 化し、domain で意味のある概念として残す
 
 ### 2.6 immutable
 
@@ -99,28 +103,21 @@ domain/src/commonMain/kotlin/net/brightroom/mindstock/domain/
 │   │   ├── ProductId.kt
 │   │   ├── MinimumStock.kt
 │   │   └── Products.kt                 # コレクション(activeOnly() 等)
-│   ├── stock/
-│   │   ├── Stock.kt                    # 在庫状態(Product + Replenishments + Consumptions)
-│   │   ├── EffectiveQuantity.kt        # 訂正適用後の数量(計算オブジェクト)
+│   ├── stock/                          # ※ stock-movements-unification で再設計済み(下記は歴史的記述)
+│   │   ├── Stock.kt                    # 在庫状態(現行は Product + StockMovements ベース)
 │   │   ├── Quantity.kt
 │   │   ├── OccurredAt.kt
-│   │   ├── CorrectedAt.kt              # 訂正日時 VO
 │   │   ├── Note.kt
-│   │   ├── Reason.kt
-│   │   ├── replenishment/
-│   │   │   ├── Replenishment.kt        # id なし
-│   │   │   ├── Replenishments.kt       # コレクション
-│   │   │   ├── ReplenishmentCorrection.kt    # target: Replenishment(composition)、id なし
-│   │   │   └── ReplenishmentCorrections.kt   # 単一 Replenishment への訂正群
-│   │   └── consumption/
-│   │       ├── Consumption.kt
-│   │       ├── Consumptions.kt
-│   │       ├── ConsumptionCorrection.kt
-│   │       └── ConsumptionCorrections.kt
+│   │   └── movement/                   # ※ 現行構成。下記旧 replenishment/ consumption/ を統合
+│   │       ├── StockMovement.kt        # sealed interface(Replenishment / Consumption)
+│   │       ├── StockMovementType.kt    # enum(REPLENISHMENT / CONSUMPTION)
+│   │       ├── StockMovements.kt       # コレクション
+│   │       ├── Replenishment.kt        # data class、id なし
+│   │       └── Consumption.kt          # data class、id なし
 │   └── shopping/
 │       ├── ShoppingList.kt             # List<Stock> → 買うべきアイテム
 │       └── ShoppingListItem.kt         # 「買うべき」状態の項目(Stock + shortage 数量)
-└── repository/                          # 現状の位置を維持(Repository 移動は Plan 4 検討)
+└── repository/                          # 現状の位置を維持(`domain/repository/` 据え置きで確定)
     ├── user/
     │   ├── UserRepository.kt           # 参照系
     │   └── UserRegisterRepository.kt   # 登録系(register, rename)
@@ -239,9 +236,11 @@ class Products(private val list: List<Product>) {
 - `catalogItem` は composition、`CatalogItem` 本体を持つ(`catalogItemId` ではない)。`name` / `unit` には `product.catalogItem.name` / `product.catalogItem.unit` で直接アクセス(forwarding プロパティは置かない)
 - `minimumStock` は最新値、null なら未設定
 - `archived` は最新状態、`true` なら archive 済
-- `householdId` は domain には出さない。Product は **Household 経由でアクセス**することを前提(Plan 4 で UseCase が `productRepository.listOf(household)` で取得する)
+- `householdId` は domain には出さない。Product は **Household 経由でアクセス**することを前提(UseCase は `productRepository.listOf(household)` で取得する)
 
 ### 4.5 Stock 関連
+
+> 本節は [2026-05-24-stock-movements-unification-design.md](./2026-05-24-stock-movements-unification-design.md) で全面的に再設計済み。`ReplenishmentCorrection` / `ConsumptionCorrection` / `EffectiveQuantity` / `Stock` の correction 適用ロジック / Repository の `correct*` メソッドは **すべて廃止**(訂正概念ごと削除)。実装は `domain/model/stock/movement/` 配下の `StockMovement` 階層のみ。以下の記述は歴史的経緯として残すが、現行設計ではない。
 
 #### Replenishment / Consumption(events)
 
@@ -263,7 +262,7 @@ data class Consumption(
 )
 ```
 
-id を持たない。順序は `occurredAt` で取れる。Repository 実装が domain object を DB 行に対応付ける手段は Plan 4-5 で設計する。
+id を持たない。順序は `occurredAt` で取れる。stock-movements-unification で訂正概念を廃止したため、Repository 実装は append-only insert のみで domain object と DB 行を逆引きする必要がない。
 
 #### Corrections
 
@@ -364,7 +363,7 @@ class Stock(
 }
 ```
 
-注: `it.target == event` は `data class equals`(全フィールド一致)。同一内容の Replenishment が複数あると曖昧になる潜在的問題があるが、MVP では実用上問題なし。Plan 4-5 でこの「同値性問題」を解決する設計が必要(候補: 隠し handle、UUID 化、占位的に一意性を保証するフィールド追加)。
+注: `it.target == event` は `data class equals`(全フィールド一致)。同一内容の Replenishment が複数あると曖昧になる潜在的問題があるが、MVP では実用上問題なし。
 
 ### 4.6 ShoppingList(買い物リスト)
 
@@ -405,7 +404,7 @@ interface HouseholdRegisterRepository {
 // CatalogItem
 interface CatalogItemRepository {
     fun search(query: String, limit: Int = 50): CatalogItems
-    fun findById(id: CatalogItemId): CatalogItem?  // RPC 経由の id 引き(Plan 4 で取り扱い再考)
+    fun findById(id: CatalogItemId): CatalogItem?  // RPC 経由の id 引き(取り扱いは Plan 6 で RPC 設計と合わせて再考)
 }
 interface CatalogItemRegisterRepository {
     fun register(name: CatalogItemName, unit: CatalogItemUnit, createdBy: User): CatalogItem
@@ -453,9 +452,7 @@ interface StockRegisterRepository {
 }
 ```
 
-メソッド引数の数が多くなる(`replenish` は 5 引数)が、Kotlin の named arguments で呼び出し側の可読性は維持できる。Request クラス化したい場合は Plan 4 で `:backend:application:api` に置く(ACL として)。
-
-**未解決(Plan 4-5 で設計)**: domain object に id がないため、Repository 実装が「どの DB 行を訂正対象にするか」を特定する手段が要る。候補: (a) Repository 内部で domain object → DB id の隠し対応表を保持、(b) 履歴テーブルを UUIDv7 化して domain object に opaque な handle を持たせる、(c) 全フィールド一致 + 時刻による絞り込み(同値衝突は実用上稀)。決定は Plan 4-5 で行う。
+メソッド引数の数が多くなる(`replenish` は 5 引数)が、Kotlin の named arguments で呼び出し側の可読性は維持できる。Request クラス化したい場合は `shared:rpc` 側に DTO として定義する(Plan 4 で確定)。
 
 ## 6. Value Object 規約(変更なし)
 
@@ -541,7 +538,7 @@ VO 系の検証例外(`InvalidQuantity`, `InvalidMinimumStock`, `OccurredAtInFut
 
 ## 11. 非ゴール / 持ち越し
 
-- Repository インターフェースの位置(domain vs application): 現状 domain に置いたまま。リファレンスでは application 側だが、Plan 4 で UseCase を書く際に再考
+- Repository インターフェースの位置: `domain/repository/` 据え置きで確定(Plan 4)。
 - DB スキーマ変更: なし(履歴テーブル群はそのまま)
-- Application 層(Scenario / Service クラス): Plan 4
+- Application 層(Command Handler 風): `2026-05-24-usecase-design.md` で確定
 - Read model の発展(audit view 等): MVP では不要、必要になれば追加
