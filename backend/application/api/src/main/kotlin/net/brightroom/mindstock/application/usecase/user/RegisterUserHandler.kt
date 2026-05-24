@@ -10,6 +10,6 @@ class RegisterUserHandler(
 ) {
     fun handle(
         identity: AuthIdentity,
-        defaultName: DisplayName,
-    ): User = userRegisterRepository.register(identity, defaultName)
+        defaultDisplayName: DisplayName,
+    ): User = userRegisterRepository.register(identity, defaultDisplayName)
 }
