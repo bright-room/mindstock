@@ -380,7 +380,7 @@ interface StockRegisterRepository {
 
 Repository インターフェースはトランザクション境界を表現しない。トランザクションは **Ktor plugin で境界に張る**(1 RPC 呼び出し = 1 transaction)。UseCase Handler は `transaction {}` を書かない。詳細は `2026-05-24-usecase-design.md` §4 を参照。
 
-例外: `CatalogItemRegisterRepository.register(...)` は **`catalog_items` + `catalog_item_revisions` の 2 行を 1 つのトランザクションで INSERT する**ことを実装側が保証する(同等の制約として `Product` の `adopt` + 初期 `setMinimumStock` を呼び出し側で 1 トランザクションにする、等。これは UseCase が `transaction` で囲うことで担保する)。
+例外: `CatalogItemRegisterRepository.register(...)` は **`catalog_items` + `catalog_item_revisions` の 2 行を 1 つのトランザクションで INSERT する**ことを実装側が保証する(同等の制約として `Product` の `adopt` + 初期 `setMinimumStock` を呼び出し側で 1 トランザクションにする、等。Plan 4 の Ktor plugin transaction が 1 RPC = 1 transaction を保証するため、これは自動的に担保される)。
 
 ## 9. テスト
 
