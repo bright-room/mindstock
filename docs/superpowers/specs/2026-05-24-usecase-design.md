@@ -215,6 +215,8 @@ Plan 4 段階では Handler クラスファイルだけを作る。DI 登録(`co
 
 Plan 4 ではコンパイルが通り、将来 DI に流し込めるコンストラクタが揃っていることを保証する。
 
+**Plan 5 で実施済み**: `RepositoryConfiguration.kt` / `UseCaseConfiguration.kt` を作成し、`application.yaml` の `ktor.application.modules` に登録した。詳細は `2026-05-24-repository-implementation-design.md` §7 を参照。
+
 ## 8. Repository ポートの位置・ID 引き
 
 - **Repository ポートは `domain/repository/` のまま据え置く**。Application 層には移さない
@@ -235,8 +237,8 @@ Plan 4 ではコンパイルが通り、将来 DI に流し込めるコンスト
 
 ## 10. 対象外(明示的に Plan 5 / 6 で扱う)
 
-- Repository の Exposed 実装(Plan 5)
-- Testcontainers による Handler + Repository + 実 DB の結合テスト(Plan 5)
+- ~~Repository の Exposed 実装(Plan 5)~~ → Plan 5 で完了
+- ~~Testcontainers による Handler + Repository + 実 DB の結合テスト(Plan 5)~~ → Plan 5 で完了
 - kotlinx-rpc サービス IF と Handler 配線(Plan 6)
 - RPC error mapping の具体(Plan 6)
 - 認証(JWT 検証 / current user 取得)の Ktor 側実装(Plan 6 or 別途)

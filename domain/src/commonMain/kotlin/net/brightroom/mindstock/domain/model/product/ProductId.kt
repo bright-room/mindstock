@@ -13,7 +13,7 @@ value class ProductId(
 ) {
     override fun toString(): String = value.toString()
 
-    internal operator fun invoke(): Uuid = value
+    operator fun invoke(): Uuid = value
 
     companion object {
         fun create(): ProductId = ProductId(Uuid.generateV7())

@@ -19,5 +19,5 @@ value class AuthSubject(
 
     override fun toString(): String = value
 
-    internal operator fun invoke(): String = value
+    operator fun invoke(): String = value
 }
