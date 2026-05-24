@@ -70,7 +70,7 @@ git checkout -b feat/usecase-layer
 
 ### Step 1: `domain-richness-design.md` の Request クラス記述を更新
 
-L33 付近、`「Plan 4 で `:backend:application:api` 配下に置くかどうかを再判断する。」` という記述を以下に置き換え:
+L33 付近、「Plan 4 で `:backend:application:api` 配下に置くかどうかを再判断する。」という記述を以下に置き換え:
 
 > Request クラスは domain には置かない。Request は外部入力(RPC DTO)と domain の間に位置する**腐敗防止層(ACL)**の概念で、`shared:rpc` 側に DTO として定義する(Plan 4 で確定)。UseCase は Request クラスを受け取らず、named arguments で個別 Value Object を受ける。
 
@@ -782,7 +782,8 @@ Expected: `ExposedTransactionPlugin.kt`
 Run: `git log --oneline main..HEAD`
 
 Expected(順序):
-```
+
+```text
 <sha> feat(usecase): add ExposedTransactionPlugin skeleton (install deferred to Plan 6)
 <sha> feat(usecase): add Stock aggregate handlers (Replenish/Consume/Get/List/MovementHistory)
 <sha> feat(usecase): add Product aggregate handlers (Adopt/SetMinimumStock/Archive/ListOf/Find)

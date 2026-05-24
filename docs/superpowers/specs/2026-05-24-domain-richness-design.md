@@ -5,6 +5,8 @@
 - 親仕様: [2026-05-23-mindstock-design.md](./2026-05-23-mindstock-design.md)
 - 旧設計: [2026-05-23-domain-layer-design.md](./2026-05-23-domain-layer-design.md)(置き換え)
 
+> **Stock 関連の記述について**: 本文書内の Stock イベント(`Replenishment` / `Consumption`)・訂正(`ReplenishmentCorrection` / `ConsumptionCorrection`)・`EffectiveQuantity` 等に関する設計は、[2026-05-24-stock-movements-unification-design.md](./2026-05-24-stock-movements-unification-design.md) により全面的に再設計済み。具体的には「補充」「消費」を `StockMovement` 階層に統合し、訂正概念そのものを廃止した(訂正は反対方向の movement 追加で代替)。実コードもそれに従っている(`domain/model/stock/movement/` 配下に `Replenishment` / `Consumption` / `StockMovement` / `StockMovementType` / `StockMovements` のみ存在)。本文書の §2.5 訂正関連の言及、§3 Stock パッケージ構成、§4.5 Stock 関連、§5 Stock Repository の訂正系メソッド、§8 `*Correction` リネーム行は、すべて新仕様で読み替えること。
+
 ## 1. なぜリッチ化するか
 
 旧設計はテーブル定義をそのまま Kotlin クラスに写したような構造になり、以下の問題があった:
@@ -38,7 +40,8 @@ Request クラスは domain には置かない。Request は外部入力(RPC DTO
 
 - `Stock`(在庫: 商品 + 補充消費履歴 → 現在数量)
 - `ShoppingList`(買い物リスト: 在庫が閾値以下の商品群)
-- `EffectiveQuantity`(実効数量: 補充/消費イベントに訂正適用後の値)
+
+(初版では `EffectiveQuantity`(訂正適用後の数量)を挙げていたが、stock-movements-unification で訂正概念ごと廃止したため削除済み。)
 
 参考の `LoanStatus` / `Loanability` 等に相当するが、`rule/` のような共通サブパッケージを作らず、それぞれ独立したパッケージに置く。
 
@@ -51,13 +54,14 @@ Request クラスは domain には置かない。Request は外部入力(RPC DTO
 | 種別 | id | 日時 |
 |---|---|---|
 | 集約ルート(User / Household / CatalogItem / Product)| **public**(`val id`) | なし(インフラメタは削除) |
-| Stock イベント(Replenishment / Consumption)| **なし** | `occurredAt: OccurredAt`(ユーザー入力) |
-| Stock 訂正(ReplenishmentCorrection 等)| **なし** | `correctedAt: CorrectedAt`(訂正日時) |
+| Stock movement(Replenishment / Consumption)| **なし** | `occurredAt: OccurredAt`(ユーザー入力) |
+
+(初版では Stock 訂正(`ReplenishmentCorrection` 等、`correctedAt` 持ち)を別行として扱っていたが、stock-movements-unification で訂正概念ごと廃止したため削除済み。)
 
 ポイント:
 - 集約ルートの `id` は public(`data class`)。`a.id == b.id` のような比較は domain ロジックで書かない慣習で運用。Repository 実装はモジュール外から id を読んで SQL に使う
-- Stock イベント / 訂正の `id` は **削除**。順序付けは時刻フィールドで、参照は composition(`target: Replenishment`)で行う。stock-movements-unification で訂正概念を廃止したため、Repository 実装が「どの DB 行を訂正対象にするか」を特定する課題は消滅した
-- `occurredAt`(出来事時刻)・`correctedAt`(訂正日時)はそれぞれ VO 化し、domain で意味のある概念として残す
+- Stock movement の `id` は **削除**。順序付けは `occurredAt` で取れる。stock-movements-unification で訂正概念を廃止したため、Repository は append-only insert のみで domain object と DB 行を逆引きする必要がない
+- `occurredAt`(出来事時刻)は VO 化し、domain で意味のある概念として残す
 
 ### 2.6 immutable
 
@@ -99,24 +103,17 @@ domain/src/commonMain/kotlin/net/brightroom/mindstock/domain/
 │   │   ├── ProductId.kt
 │   │   ├── MinimumStock.kt
 │   │   └── Products.kt                 # コレクション(activeOnly() 等)
-│   ├── stock/
-│   │   ├── Stock.kt                    # 在庫状態(Product + Replenishments + Consumptions)
-│   │   ├── EffectiveQuantity.kt        # 訂正適用後の数量(計算オブジェクト)
+│   ├── stock/                          # ※ stock-movements-unification で再設計済み(下記は歴史的記述)
+│   │   ├── Stock.kt                    # 在庫状態(現行は Product + StockMovements ベース)
 │   │   ├── Quantity.kt
 │   │   ├── OccurredAt.kt
-│   │   ├── CorrectedAt.kt              # 訂正日時 VO
 │   │   ├── Note.kt
-│   │   ├── Reason.kt
-│   │   ├── replenishment/
-│   │   │   ├── Replenishment.kt        # id なし
-│   │   │   ├── Replenishments.kt       # コレクション
-│   │   │   ├── ReplenishmentCorrection.kt    # target: Replenishment(composition)、id なし
-│   │   │   └── ReplenishmentCorrections.kt   # 単一 Replenishment への訂正群
-│   │   └── consumption/
-│   │       ├── Consumption.kt
-│   │       ├── Consumptions.kt
-│   │       ├── ConsumptionCorrection.kt
-│   │       └── ConsumptionCorrections.kt
+│   │   └── movement/                   # ※ 現行構成。下記旧 replenishment/ consumption/ を統合
+│   │       ├── StockMovement.kt        # sealed interface(Replenishment / Consumption)
+│   │       ├── StockMovementType.kt    # enum(REPLENISHMENT / CONSUMPTION)
+│   │       ├── StockMovements.kt       # コレクション
+│   │       ├── Replenishment.kt        # data class、id なし
+│   │       └── Consumption.kt          # data class、id なし
 │   └── shopping/
 │       ├── ShoppingList.kt             # List<Stock> → 買うべきアイテム
 │       └── ShoppingListItem.kt         # 「買うべき」状態の項目(Stock + shortage 数量)
@@ -242,6 +239,8 @@ class Products(private val list: List<Product>) {
 - `householdId` は domain には出さない。Product は **Household 経由でアクセス**することを前提(UseCase は `productRepository.listOf(household)` で取得する)
 
 ### 4.5 Stock 関連
+
+> 本節は [2026-05-24-stock-movements-unification-design.md](./2026-05-24-stock-movements-unification-design.md) で全面的に再設計済み。`ReplenishmentCorrection` / `ConsumptionCorrection` / `EffectiveQuantity` / `Stock` の correction 適用ロジック / Repository の `correct*` メソッドは **すべて廃止**(訂正概念ごと削除)。実装は `domain/model/stock/movement/` 配下の `StockMovement` 階層のみ。以下の記述は歴史的経緯として残すが、現行設計ではない。
 
 #### Replenishment / Consumption(events)
 

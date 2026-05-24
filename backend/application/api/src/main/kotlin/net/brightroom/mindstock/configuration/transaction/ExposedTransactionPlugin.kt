@@ -5,16 +5,20 @@ import io.ktor.util.AttributeKey
 import org.jetbrains.exposed.v1.jdbc.Database
 
 /**
- * 1 RPC 呼び出し = 1 Exposed transaction を境界で開閉する Ktor plugin。
+ * Exposed transaction 境界を将来提供するための Ktor plugin **スケルトン**。
  *
- * Handler / Repository 実装は `transaction {}` を一切書かず、本 plugin が張った
- * transaction を `TransactionManager.currentOrNull()` 経由で拾う前提。
+ * **Plan 4 時点では transaction 開始は未実装**。`onCall` で `Database` を
+ * `call.attributes` に置くだけで、`transaction {}` は張らない。利用側は本 plugin
+ * 経由で active transaction が得られると仮定してはならない。
  *
- * 注: 本 plugin は Plan 4 時点ではファイルのみ用意し、`install(...)` は Plan 6 の
- * kotlinx-rpc サービス配線と同時に行う。Plan 4 段階で install すると、Repository
- * 実装が無いため Handler を呼ぶエンドポイント自体が存在せず動作確認できない。
+ * 最終形は「1 RPC 呼び出し = 1 Exposed transaction を境界で開閉する」。
+ * Handler / Repository 実装が `transaction {}` を書かずに済むよう、本 plugin が
+ * transaction を張り、`TransactionManager.currentOrNull()` 経由で拾う設計
+ * (詳細: docs/superpowers/specs/2026-05-24-usecase-design.md §4)。
  *
- * 詳細設計: docs/superpowers/specs/2026-05-24-usecase-design.md §4
+ * Transaction 開始ロジックと `install(...)` 登録は **Plan 6** で kotlinx-rpc
+ * サービス配線と同時に追加する。Plan 4 段階で install しても、Repository 実装が
+ * 無いため Handler を呼ぶエンドポイント自体が存在せず動作確認できないため。
  */
 val ExposedTransactionPlugin =
     createApplicationPlugin(
@@ -29,8 +33,9 @@ val ExposedTransactionPlugin =
             call.attributes.put(DatabaseAttributeKey, database)
         }
 
-        // Plan 6 で kotlinx-rpc 配線時、ここで RPC 呼び出しを transaction { ... } で囲む。
+        // TODO(Plan 6): ここで RPC 呼び出しを `transaction(database) { ... }` で囲む。
         // 実装フック点(call interceptor / rpc service decorator のいずれか)は Plan 6 で確定。
+        // 現状は skeleton で、transaction は張られない。
     }
 
 class ExposedTransactionConfig {
