@@ -14,7 +14,7 @@ class UserRepositoryImplIntegrationTest :
 
         test("findByAuthIdentity returns null when no user with that subject exists") {
             withRepositoryTestContext {
-                val repo = UserRepositoryImpl(database)
+                val repo = UserRepositoryImpl()
                 val result = tx { repo.findByAuthIdentity(AuthIdentity(AuthProvider.ZITADEL, AuthSubject("unknown"))) }
                 result.shouldBeNull()
             }
@@ -22,8 +22,8 @@ class UserRepositoryImplIntegrationTest :
 
         test("findByAuthIdentity returns user with initial display name") {
             withRepositoryTestContext {
-                val registerRepo = UserRegisterRepositoryImpl(database)
-                val readerRepo = UserRepositoryImpl(database)
+                val registerRepo = UserRegisterRepositoryImpl()
+                val readerRepo = UserRepositoryImpl()
                 val identity = AuthIdentity(AuthProvider.ZITADEL, AuthSubject("subject-1"))
 
                 tx { registerRepo.register(identity, DisplayName("Alice")) }
@@ -36,8 +36,8 @@ class UserRepositoryImplIntegrationTest :
 
         test("findByAuthIdentity returns LATEST display name after rename") {
             withRepositoryTestContext {
-                val registerRepo = UserRegisterRepositoryImpl(database)
-                val readerRepo = UserRepositoryImpl(database)
+                val registerRepo = UserRegisterRepositoryImpl()
+                val readerRepo = UserRepositoryImpl()
                 val identity = AuthIdentity(AuthProvider.ZITADEL, AuthSubject("subject-1"))
 
                 val user = tx { registerRepo.register(identity, DisplayName("Alice")) }

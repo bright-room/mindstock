@@ -16,7 +16,7 @@ class StockRepositoryImplIntegrationTest :
         test("stockOf returns empty StockMovements for a fresh product") {
             withRepositoryTestContext {
                 val (_, _, product) = setupUserHouseholdProduct()
-                val reader = StockRepositoryImpl(database, ProductRepositoryImpl(database))
+                val reader = StockRepositoryImpl(ProductRepositoryImpl())
 
                 val stock = tx { reader.stockOf(product) }
                 stock.movements.size shouldBe 0
@@ -27,8 +27,8 @@ class StockRepositoryImplIntegrationTest :
         test("movementHistory respects limit and returns DESC by occurred_at") {
             withRepositoryTestContext {
                 val (user, _, product) = setupUserHouseholdProduct()
-                val register = StockRegisterRepositoryImpl(database)
-                val reader = StockRepositoryImpl(database, ProductRepositoryImpl(database))
+                val register = StockRegisterRepositoryImpl()
+                val reader = StockRepositoryImpl(ProductRepositoryImpl())
 
                 tx { register.replenish(product, Quantity(1), OccurredAt(Clock.System.now()), user, Note("a")) }
                 tx { register.replenish(product, Quantity(2), OccurredAt(Clock.System.now()), user, Note("b")) }

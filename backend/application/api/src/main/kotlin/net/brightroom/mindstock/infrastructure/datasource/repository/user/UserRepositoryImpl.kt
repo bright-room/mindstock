@@ -8,16 +8,13 @@ import net.brightroom.mindstock.domain.model.user.auth.AuthProvider
 import net.brightroom.mindstock.domain.model.user.auth.AuthSubject
 import net.brightroom.mindstock.domain.repository.user.UserRepository
 import org.jetbrains.exposed.v1.core.TextColumnType
-import org.jetbrains.exposed.v1.jdbc.Database
 import org.jetbrains.exposed.v1.jdbc.transactions.TransactionManager
 import java.util.UUID
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.toKotlinUuid
 
 @OptIn(ExperimentalUuidApi::class)
-class UserRepositoryImpl(
-    private val database: Database,
-) : UserRepository {
+internal class UserRepositoryImpl : UserRepository {
     override fun findByAuthIdentity(identity: AuthIdentity): User? {
         val sql =
             """

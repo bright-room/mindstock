@@ -26,13 +26,13 @@ import kotlin.time.Clock
 internal fun RepositoryTestContext.setupUserHouseholdProduct(): Triple<User, Household, Product> =
     tx {
         val user =
-            UserRegisterRepositoryImpl(database).register(
+            UserRegisterRepositoryImpl().register(
                 AuthIdentity(AuthProvider.ZITADEL, AuthSubject("u")),
                 DisplayName("U"),
             )
-        val household = HouseholdRegisterRepositoryImpl(database).create(user)
-        val item = CatalogItemRegisterRepositoryImpl(database).register(CatalogItemName("Milk"), CatalogItemUnit("L"), user)
-        val product = ProductRegisterRepositoryImpl(database).adopt(household, item)
+        val household = HouseholdRegisterRepositoryImpl().create(user)
+        val item = CatalogItemRegisterRepositoryImpl().register(CatalogItemName("Milk"), CatalogItemUnit("L"), user)
+        val product = ProductRegisterRepositoryImpl().adopt(household, item)
         Triple(user, household, product)
     }
 
@@ -42,8 +42,8 @@ class StockRegisterRepositoryImplIntegrationTest :
         test("replenish inserts REPLENISHMENT movement; stockOf returns +quantity") {
             withRepositoryTestContext {
                 val (user, _, product) = setupUserHouseholdProduct()
-                val stockRegister = StockRegisterRepositoryImpl(database)
-                val stockReader = StockRepositoryImpl(database, ProductRepositoryImpl(database))
+                val stockRegister = StockRegisterRepositoryImpl()
+                val stockReader = StockRepositoryImpl(ProductRepositoryImpl())
 
                 tx {
                     stockRegister.replenish(product, Quantity(3), OccurredAt(Clock.System.now()), user, Note(""))
@@ -56,8 +56,8 @@ class StockRegisterRepositoryImplIntegrationTest :
         test("consume inserts CONSUMPTION movement; stockOf returns net (replenish - consume)") {
             withRepositoryTestContext {
                 val (user, _, product) = setupUserHouseholdProduct()
-                val stockRegister = StockRegisterRepositoryImpl(database)
-                val stockReader = StockRepositoryImpl(database, ProductRepositoryImpl(database))
+                val stockRegister = StockRegisterRepositoryImpl()
+                val stockReader = StockRepositoryImpl(ProductRepositoryImpl())
 
                 tx { stockRegister.replenish(product, Quantity(5), OccurredAt(Clock.System.now()), user, Note("")) }
                 tx { stockRegister.consume(product, Quantity(2), OccurredAt(Clock.System.now()), user, Note("")) }

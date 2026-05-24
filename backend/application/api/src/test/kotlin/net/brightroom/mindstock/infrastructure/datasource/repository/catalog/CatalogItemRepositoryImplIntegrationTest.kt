@@ -21,7 +21,7 @@ class CatalogItemRepositoryImplIntegrationTest :
 
         test("findById returns null when id does not exist") {
             withRepositoryTestContext {
-                val reader = CatalogItemRepositoryImpl(database)
+                val reader = CatalogItemRepositoryImpl()
                 val result = tx { reader.findById(CatalogItemId(Uuid.random())) }
                 result.shouldBeNull()
             }
@@ -29,9 +29,9 @@ class CatalogItemRepositoryImplIntegrationTest :
 
         test("search finds items by partial name match (ILIKE)") {
             withRepositoryTestContext {
-                val userRepo = UserRegisterRepositoryImpl(database)
-                val register = CatalogItemRegisterRepositoryImpl(database)
-                val reader = CatalogItemRepositoryImpl(database)
+                val userRepo = UserRegisterRepositoryImpl()
+                val register = CatalogItemRegisterRepositoryImpl()
+                val reader = CatalogItemRepositoryImpl()
                 val creator = tx { userRepo.register(AuthIdentity(AuthProvider.ZITADEL, AuthSubject("c")), DisplayName("C")) }
 
                 tx { register.register(CatalogItemName("Milk"), CatalogItemUnit("L"), creator) }

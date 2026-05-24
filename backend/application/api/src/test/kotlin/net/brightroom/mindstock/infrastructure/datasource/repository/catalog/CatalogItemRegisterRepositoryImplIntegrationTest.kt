@@ -16,8 +16,8 @@ class CatalogItemRegisterRepositoryImplIntegrationTest :
 
         test("register inserts catalog_items + first revision and returns CatalogItem") {
             withRepositoryTestContext {
-                val userRepo = UserRegisterRepositoryImpl(database)
-                val catalogRepo = CatalogItemRegisterRepositoryImpl(database)
+                val userRepo = UserRegisterRepositoryImpl()
+                val catalogRepo = CatalogItemRegisterRepositoryImpl()
                 val creator = tx { userRepo.register(AuthIdentity(AuthProvider.ZITADEL, AuthSubject("creator")), DisplayName("Creator")) }
 
                 val item = tx { catalogRepo.register(CatalogItemName("Milk"), CatalogItemUnit("L"), creator) }
@@ -29,9 +29,9 @@ class CatalogItemRegisterRepositoryImplIntegrationTest :
 
         test("revise inserts new revision and findById returns the latest") {
             withRepositoryTestContext {
-                val userRepo = UserRegisterRepositoryImpl(database)
-                val catalogRegister = CatalogItemRegisterRepositoryImpl(database)
-                val catalogReader = CatalogItemRepositoryImpl(database)
+                val userRepo = UserRegisterRepositoryImpl()
+                val catalogRegister = CatalogItemRegisterRepositoryImpl()
+                val catalogReader = CatalogItemRepositoryImpl()
                 val editor = tx { userRepo.register(AuthIdentity(AuthProvider.ZITADEL, AuthSubject("editor")), DisplayName("Editor")) }
 
                 val item = tx { catalogRegister.register(CatalogItemName("Milk"), CatalogItemUnit("L"), editor) }

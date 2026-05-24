@@ -22,25 +22,24 @@ import net.brightroom.mindstock.infrastructure.datasource.repository.stock.Stock
 import net.brightroom.mindstock.infrastructure.datasource.repository.stock.StockRepositoryImpl
 import net.brightroom.mindstock.infrastructure.datasource.repository.user.UserRegisterRepositoryImpl
 import net.brightroom.mindstock.infrastructure.datasource.repository.user.UserRepositoryImpl
-import org.jetbrains.exposed.v1.jdbc.Database
 
 fun Application.repositoryConfigure() {
     dependencies {
-        provide<UserRepository> { UserRepositoryImpl(resolve()) }
-        provide<UserRegisterRepository> { UserRegisterRepositoryImpl(resolve()) }
+        provide<UserRepository> { UserRepositoryImpl() }
+        provide<UserRegisterRepository> { UserRegisterRepositoryImpl() }
 
-        provide<HouseholdRepository> { HouseholdRepositoryImpl(resolve()) }
-        provide<HouseholdRegisterRepository> { HouseholdRegisterRepositoryImpl(resolve()) }
+        provide<HouseholdRepository> { HouseholdRepositoryImpl() }
+        provide<HouseholdRegisterRepository> { HouseholdRegisterRepositoryImpl() }
 
-        provide<CatalogItemRepository> { CatalogItemRepositoryImpl(resolve()) }
-        provide<CatalogItemRegisterRepository> { CatalogItemRegisterRepositoryImpl(resolve()) }
+        provide<CatalogItemRepository> { CatalogItemRepositoryImpl() }
+        provide<CatalogItemRegisterRepository> { CatalogItemRegisterRepositoryImpl() }
 
         // ProductRepositoryImpl は具体型でも provide(StockRepositoryImpl が依存に取るため)
-        provide<ProductRepositoryImpl> { ProductRepositoryImpl(resolve()) }
+        provide<ProductRepositoryImpl> { ProductRepositoryImpl() }
         provide<ProductRepository> { resolve<ProductRepositoryImpl>() }
-        provide<ProductRegisterRepository> { ProductRegisterRepositoryImpl(resolve()) }
+        provide<ProductRegisterRepository> { ProductRegisterRepositoryImpl() }
 
-        provide<StockRepository> { StockRepositoryImpl(resolve(), resolve()) }
-        provide<StockRegisterRepository> { StockRegisterRepositoryImpl(resolve()) }
+        provide<StockRepository> { StockRepositoryImpl(resolve()) }
+        provide<StockRegisterRepository> { StockRegisterRepositoryImpl() }
     }
 }

@@ -16,8 +16,8 @@ class HouseholdRepositoryImplIntegrationTest :
 
         test("findOf returns null when user has no household membership") {
             withRepositoryTestContext {
-                val userRepo = UserRegisterRepositoryImpl(database)
-                val householdReader = HouseholdRepositoryImpl(database)
+                val userRepo = UserRegisterRepositoryImpl()
+                val householdReader = HouseholdRepositoryImpl()
                 val user = tx { userRepo.register(AuthIdentity(AuthProvider.ZITADEL, AuthSubject("lonely")), DisplayName("Lonely")) }
 
                 val result = tx { householdReader.findOf(user) }
@@ -28,9 +28,9 @@ class HouseholdRepositoryImplIntegrationTest :
 
         test("findOf returns the household with owner as OWNER member") {
             withRepositoryTestContext {
-                val userRepo = UserRegisterRepositoryImpl(database)
-                val householdRegister = HouseholdRegisterRepositoryImpl(database)
-                val householdReader = HouseholdRepositoryImpl(database)
+                val userRepo = UserRegisterRepositoryImpl()
+                val householdRegister = HouseholdRegisterRepositoryImpl()
+                val householdReader = HouseholdRepositoryImpl()
 
                 val owner = tx { userRepo.register(AuthIdentity(AuthProvider.ZITADEL, AuthSubject("owner")), DisplayName("Owner")) }
                 tx { householdRegister.create(owner) }

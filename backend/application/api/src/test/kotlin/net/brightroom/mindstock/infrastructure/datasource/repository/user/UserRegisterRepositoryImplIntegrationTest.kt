@@ -13,7 +13,7 @@ class UserRegisterRepositoryImplIntegrationTest :
 
         test("register inserts users + display_names and returns User with initial display name") {
             withRepositoryTestContext {
-                val repo = UserRegisterRepositoryImpl(database)
+                val repo = UserRegisterRepositoryImpl()
                 val identity = AuthIdentity(AuthProvider.ZITADEL, AuthSubject("subject-1"))
                 val name = DisplayName("Alice")
 
@@ -26,8 +26,8 @@ class UserRegisterRepositoryImplIntegrationTest :
 
         test("rename inserts a new display_names row and the latest is returned by reader") {
             withRepositoryTestContext {
-                val registerRepo = UserRegisterRepositoryImpl(database)
-                val readerRepo = UserRepositoryImpl(database)
+                val registerRepo = UserRegisterRepositoryImpl()
+                val readerRepo = UserRepositoryImpl()
                 val identity = AuthIdentity(AuthProvider.ZITADEL, AuthSubject("subject-1"))
 
                 val user = tx { registerRepo.register(identity, DisplayName("Alice")) }

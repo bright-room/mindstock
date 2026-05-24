@@ -9,16 +9,13 @@ import net.brightroom.mindstock.domain.repository.product.ProductRegisterReposit
 import net.brightroom.mindstock.infrastructure.datasource.schemas.product.ProductArchivesTable
 import net.brightroom.mindstock.infrastructure.datasource.schemas.product.ProductMinimumStocksTable
 import net.brightroom.mindstock.infrastructure.datasource.schemas.product.ProductsTable
-import org.jetbrains.exposed.v1.jdbc.Database
 import org.jetbrains.exposed.v1.jdbc.insert
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.toJavaUuid
 import kotlin.uuid.toKotlinUuid
 
 @OptIn(ExperimentalUuidApi::class)
-class ProductRegisterRepositoryImpl(
-    private val database: Database,
-) : ProductRegisterRepository {
+internal class ProductRegisterRepositoryImpl : ProductRegisterRepository {
     override fun adopt(
         household: Household,
         catalogItem: CatalogItem,

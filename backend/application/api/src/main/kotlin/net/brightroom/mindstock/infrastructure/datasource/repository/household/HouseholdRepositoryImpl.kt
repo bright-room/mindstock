@@ -12,7 +12,6 @@ import net.brightroom.mindstock.domain.model.user.auth.AuthSubject
 import net.brightroom.mindstock.domain.repository.household.HouseholdRepository
 import org.jetbrains.exposed.v1.core.UUIDColumnType
 import org.jetbrains.exposed.v1.core.statements.StatementType
-import org.jetbrains.exposed.v1.jdbc.Database
 import org.jetbrains.exposed.v1.jdbc.transactions.TransactionManager
 import java.util.UUID
 import kotlin.uuid.ExperimentalUuidApi
@@ -20,9 +19,7 @@ import kotlin.uuid.toJavaUuid
 import kotlin.uuid.toKotlinUuid
 
 @OptIn(ExperimentalUuidApi::class)
-class HouseholdRepositoryImpl(
-    private val database: Database,
-) : HouseholdRepository {
+internal class HouseholdRepositoryImpl : HouseholdRepository {
     override fun findOf(user: User): Household? {
         val sql =
             """

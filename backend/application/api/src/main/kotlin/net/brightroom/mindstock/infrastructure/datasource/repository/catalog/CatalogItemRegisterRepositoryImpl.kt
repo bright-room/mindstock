@@ -7,16 +7,13 @@ import net.brightroom.mindstock.domain.model.user.User
 import net.brightroom.mindstock.domain.repository.catalog.CatalogItemRegisterRepository
 import net.brightroom.mindstock.infrastructure.datasource.schemas.catalog.CatalogItemRevisionsTable
 import net.brightroom.mindstock.infrastructure.datasource.schemas.catalog.CatalogItemsTable
-import org.jetbrains.exposed.v1.jdbc.Database
 import org.jetbrains.exposed.v1.jdbc.insert
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.toJavaUuid
 import kotlin.uuid.toKotlinUuid
 
 @OptIn(ExperimentalUuidApi::class)
-class CatalogItemRegisterRepositoryImpl(
-    private val database: Database,
-) : CatalogItemRegisterRepository {
+internal class CatalogItemRegisterRepositoryImpl : CatalogItemRegisterRepository {
     override fun register(
         name: CatalogItemName,
         unit: CatalogItemUnit,

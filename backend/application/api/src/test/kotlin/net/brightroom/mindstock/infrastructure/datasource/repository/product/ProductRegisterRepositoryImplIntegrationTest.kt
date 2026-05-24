@@ -19,10 +19,10 @@ class ProductRegisterRepositoryImplIntegrationTest :
 
         test("adopt creates a Product with no MinimumStock and not archived") {
             withRepositoryTestContext {
-                val userRepo = UserRegisterRepositoryImpl(database)
-                val householdRepo = HouseholdRegisterRepositoryImpl(database)
-                val catalogRepo = CatalogItemRegisterRepositoryImpl(database)
-                val productRepo = ProductRegisterRepositoryImpl(database)
+                val userRepo = UserRegisterRepositoryImpl()
+                val householdRepo = HouseholdRegisterRepositoryImpl()
+                val catalogRepo = CatalogItemRegisterRepositoryImpl()
+                val productRepo = ProductRegisterRepositoryImpl()
 
                 val user = tx { userRepo.register(AuthIdentity(AuthProvider.ZITADEL, AuthSubject("u")), DisplayName("U")) }
                 val household = tx { householdRepo.create(user) }
@@ -38,11 +38,11 @@ class ProductRegisterRepositoryImplIntegrationTest :
 
         test("setMinimumStock + find reflects the latest minimum stock value") {
             withRepositoryTestContext {
-                val userRepo = UserRegisterRepositoryImpl(database)
-                val householdRepo = HouseholdRegisterRepositoryImpl(database)
-                val catalogRepo = CatalogItemRegisterRepositoryImpl(database)
-                val productRegister = ProductRegisterRepositoryImpl(database)
-                val productReader = ProductRepositoryImpl(database)
+                val userRepo = UserRegisterRepositoryImpl()
+                val householdRepo = HouseholdRegisterRepositoryImpl()
+                val catalogRepo = CatalogItemRegisterRepositoryImpl()
+                val productRegister = ProductRegisterRepositoryImpl()
+                val productReader = ProductRepositoryImpl()
 
                 val user = tx { userRepo.register(AuthIdentity(AuthProvider.ZITADEL, AuthSubject("u")), DisplayName("U")) }
                 val household = tx { householdRepo.create(user) }
@@ -59,11 +59,11 @@ class ProductRegisterRepositoryImplIntegrationTest :
 
         test("archive sets archived = true on Product") {
             withRepositoryTestContext {
-                val userRepo = UserRegisterRepositoryImpl(database)
-                val householdRepo = HouseholdRegisterRepositoryImpl(database)
-                val catalogRepo = CatalogItemRegisterRepositoryImpl(database)
-                val productRegister = ProductRegisterRepositoryImpl(database)
-                val productReader = ProductRepositoryImpl(database)
+                val userRepo = UserRegisterRepositoryImpl()
+                val householdRepo = HouseholdRegisterRepositoryImpl()
+                val catalogRepo = CatalogItemRegisterRepositoryImpl()
+                val productRegister = ProductRegisterRepositoryImpl()
+                val productReader = ProductRepositoryImpl()
 
                 val user = tx { userRepo.register(AuthIdentity(AuthProvider.ZITADEL, AuthSubject("u")), DisplayName("U")) }
                 val household = tx { householdRepo.create(user) }

@@ -7,7 +7,6 @@ import net.brightroom.mindstock.domain.model.product.Products
 import net.brightroom.mindstock.domain.repository.product.ProductRepository
 import net.brightroom.mindstock.infrastructure.datasource.repository.catalog.hydrateCatalogItem
 import org.jetbrains.exposed.v1.core.UUIDColumnType
-import org.jetbrains.exposed.v1.jdbc.Database
 import org.jetbrains.exposed.v1.jdbc.transactions.TransactionManager
 import java.util.UUID
 import kotlin.uuid.ExperimentalUuidApi
@@ -15,9 +14,7 @@ import kotlin.uuid.toJavaUuid
 import kotlin.uuid.toKotlinUuid
 
 @OptIn(ExperimentalUuidApi::class)
-class ProductRepositoryImpl(
-    private val database: Database,
-) : ProductRepository {
+internal class ProductRepositoryImpl : ProductRepository {
     private val baseSql =
         """
         SELECT p.id            AS p_id,

@@ -10,7 +10,6 @@ import net.brightroom.mindstock.infrastructure.datasource.schemas.household.Hous
 import net.brightroom.mindstock.infrastructure.datasource.schemas.household.HouseholdsTable
 import org.jetbrains.exposed.v1.core.SortOrder
 import org.jetbrains.exposed.v1.core.and
-import org.jetbrains.exposed.v1.jdbc.Database
 import org.jetbrains.exposed.v1.jdbc.insert
 import org.jetbrains.exposed.v1.jdbc.selectAll
 import kotlin.uuid.ExperimentalUuidApi
@@ -18,9 +17,7 @@ import kotlin.uuid.toJavaUuid
 import kotlin.uuid.toKotlinUuid
 
 @OptIn(ExperimentalUuidApi::class)
-class HouseholdRegisterRepositoryImpl(
-    private val database: Database,
-) : HouseholdRegisterRepository {
+internal class HouseholdRegisterRepositoryImpl : HouseholdRegisterRepository {
     override fun create(owner: User): Household {
         val newHouseholdId =
             HouseholdsTable.insert {
@@ -65,7 +62,9 @@ class HouseholdRegisterRepositoryImpl(
                         (HouseholdMembershipsTable.user_id eq userUuid)
                 }.orderBy(HouseholdMembershipsTable.id, SortOrder.DESC)
                 .limit(1)
-                .single()[HouseholdMembershipsTable.id]
+                .singleOrNull()
+                ?.get(HouseholdMembershipsTable.id)
+                ?: error("no active membership for user ${user.id} in household ${household.id}")
 
         HouseholdMembershipRevocationsTable.insert {
             it[membership_id] = membershipId

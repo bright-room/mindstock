@@ -18,8 +18,8 @@ class HouseholdRegisterRepositoryImplIntegrationTest :
 
         test("create inserts household + OWNER membership and returns Household with owner as member") {
             withRepositoryTestContext {
-                val userRepo = UserRegisterRepositoryImpl(database)
-                val householdRepo = HouseholdRegisterRepositoryImpl(database)
+                val userRepo = UserRegisterRepositoryImpl()
+                val householdRepo = HouseholdRegisterRepositoryImpl()
                 val owner =
                     tx {
                         userRepo.register(
@@ -40,9 +40,9 @@ class HouseholdRegisterRepositoryImplIntegrationTest :
 
         test("invite adds another active member that appears in findOf") {
             withRepositoryTestContext {
-                val userRepo = UserRegisterRepositoryImpl(database)
-                val householdRepo = HouseholdRegisterRepositoryImpl(database)
-                val householdReader = HouseholdRepositoryImpl(database)
+                val userRepo = UserRegisterRepositoryImpl()
+                val householdRepo = HouseholdRegisterRepositoryImpl()
+                val householdReader = HouseholdRepositoryImpl()
 
                 val owner = tx { userRepo.register(AuthIdentity(AuthProvider.ZITADEL, AuthSubject("owner")), DisplayName("Owner")) }
                 val invitee = tx { userRepo.register(AuthIdentity(AuthProvider.ZITADEL, AuthSubject("invitee")), DisplayName("Invitee")) }
@@ -56,9 +56,9 @@ class HouseholdRegisterRepositoryImplIntegrationTest :
 
         test("revoke removes the revoked member from active membership view") {
             withRepositoryTestContext {
-                val userRepo = UserRegisterRepositoryImpl(database)
-                val householdRepo = HouseholdRegisterRepositoryImpl(database)
-                val householdReader = HouseholdRepositoryImpl(database)
+                val userRepo = UserRegisterRepositoryImpl()
+                val householdRepo = HouseholdRegisterRepositoryImpl()
+                val householdReader = HouseholdRepositoryImpl()
 
                 val owner = tx { userRepo.register(AuthIdentity(AuthProvider.ZITADEL, AuthSubject("owner")), DisplayName("Owner")) }
                 val invitee = tx { userRepo.register(AuthIdentity(AuthProvider.ZITADEL, AuthSubject("invitee")), DisplayName("Invitee")) }

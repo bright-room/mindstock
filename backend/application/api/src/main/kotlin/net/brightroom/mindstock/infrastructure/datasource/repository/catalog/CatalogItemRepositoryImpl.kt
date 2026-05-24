@@ -6,7 +6,6 @@ import net.brightroom.mindstock.domain.model.catalog.CatalogItems
 import net.brightroom.mindstock.domain.repository.catalog.CatalogItemRepository
 import org.jetbrains.exposed.v1.core.TextColumnType
 import org.jetbrains.exposed.v1.core.UUIDColumnType
-import org.jetbrains.exposed.v1.jdbc.Database
 import org.jetbrains.exposed.v1.jdbc.transactions.TransactionManager
 import java.util.UUID
 import kotlin.uuid.ExperimentalUuidApi
@@ -14,9 +13,7 @@ import kotlin.uuid.toJavaUuid
 import kotlin.uuid.toKotlinUuid
 
 @OptIn(ExperimentalUuidApi::class)
-class CatalogItemRepositoryImpl(
-    private val database: Database,
-) : CatalogItemRepository {
+internal class CatalogItemRepositoryImpl : CatalogItemRepository {
     override fun search(
         query: String,
         limit: Int,

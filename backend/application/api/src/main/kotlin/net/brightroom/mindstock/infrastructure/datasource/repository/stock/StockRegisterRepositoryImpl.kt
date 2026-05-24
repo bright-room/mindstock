@@ -10,7 +10,6 @@ import net.brightroom.mindstock.domain.model.stock.movement.StockMovementType
 import net.brightroom.mindstock.domain.model.user.User
 import net.brightroom.mindstock.domain.repository.stock.StockRegisterRepository
 import net.brightroom.mindstock.infrastructure.datasource.schemas.stock.StockMovementsTable
-import org.jetbrains.exposed.v1.jdbc.Database
 import org.jetbrains.exposed.v1.jdbc.insert
 import java.time.ZoneOffset
 import kotlin.time.toJavaInstant
@@ -18,9 +17,7 @@ import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.toJavaUuid
 
 @OptIn(ExperimentalUuidApi::class)
-class StockRegisterRepositoryImpl(
-    private val database: Database,
-) : StockRegisterRepository {
+internal class StockRegisterRepositoryImpl : StockRegisterRepository {
     override fun replenish(
         product: Product,
         quantity: Quantity,

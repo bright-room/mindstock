@@ -20,10 +20,10 @@ class ProductRepositoryImplIntegrationTest :
 
         test("find returns null when no product matches") {
             withRepositoryTestContext {
-                val userRepo = UserRegisterRepositoryImpl(database)
-                val householdRepo = HouseholdRegisterRepositoryImpl(database)
-                val catalogRepo = CatalogItemRegisterRepositoryImpl(database)
-                val productReader = ProductRepositoryImpl(database)
+                val userRepo = UserRegisterRepositoryImpl()
+                val householdRepo = HouseholdRegisterRepositoryImpl()
+                val catalogRepo = CatalogItemRegisterRepositoryImpl()
+                val productReader = ProductRepositoryImpl()
 
                 val user = tx { userRepo.register(AuthIdentity(AuthProvider.ZITADEL, AuthSubject("u")), DisplayName("U")) }
                 val household = tx { householdRepo.create(user) }
@@ -36,11 +36,11 @@ class ProductRepositoryImplIntegrationTest :
 
         test("listOf returns all products of household including archived") {
             withRepositoryTestContext {
-                val userRepo = UserRegisterRepositoryImpl(database)
-                val householdRepo = HouseholdRegisterRepositoryImpl(database)
-                val catalogRepo = CatalogItemRegisterRepositoryImpl(database)
-                val productRegister = ProductRegisterRepositoryImpl(database)
-                val productReader = ProductRepositoryImpl(database)
+                val userRepo = UserRegisterRepositoryImpl()
+                val householdRepo = HouseholdRegisterRepositoryImpl()
+                val catalogRepo = CatalogItemRegisterRepositoryImpl()
+                val productRegister = ProductRegisterRepositoryImpl()
+                val productReader = ProductRepositoryImpl()
 
                 val user = tx { userRepo.register(AuthIdentity(AuthProvider.ZITADEL, AuthSubject("u")), DisplayName("U")) }
                 val household = tx { householdRepo.create(user) }
