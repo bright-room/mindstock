@@ -3,7 +3,7 @@ package net.brightroom.mindstock.infrastructure.migration.executor
 import com.zaxxer.hikari.HikariConfig
 import com.zaxxer.hikari.HikariDataSource
 
-internal fun testHikariDataSource(
+fun testHikariDataSource(
     jdbcUrl: String,
     username: String,
     password: String,
