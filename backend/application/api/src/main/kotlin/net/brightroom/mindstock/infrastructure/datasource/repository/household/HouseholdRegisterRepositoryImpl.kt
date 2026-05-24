@@ -8,10 +8,11 @@ import net.brightroom.mindstock.domain.repository.household.HouseholdRegisterRep
 import net.brightroom.mindstock.infrastructure.datasource.schemas.household.HouseholdMembershipRevocationsTable
 import net.brightroom.mindstock.infrastructure.datasource.schemas.household.HouseholdMembershipsTable
 import net.brightroom.mindstock.infrastructure.datasource.schemas.household.HouseholdsTable
+import org.jetbrains.exposed.v1.core.JoinType
 import org.jetbrains.exposed.v1.core.SortOrder
 import org.jetbrains.exposed.v1.core.and
 import org.jetbrains.exposed.v1.jdbc.insert
-import org.jetbrains.exposed.v1.jdbc.selectAll
+import org.jetbrains.exposed.v1.jdbc.select
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.toJavaUuid
 import kotlin.uuid.toKotlinUuid
@@ -54,12 +55,19 @@ internal class HouseholdRegisterRepositoryImpl : HouseholdRegisterRepository {
     ) {
         val householdUuid = household.id().toJavaUuid()
         val userUuid = user.id().toJavaUuid()
-        val membershipId =
+        val activeMembershipId =
             HouseholdMembershipsTable
-                .selectAll()
+                .join(
+                    HouseholdMembershipRevocationsTable,
+                    JoinType.LEFT,
+                    additionalConstraint = {
+                        HouseholdMembershipRevocationsTable.membership_id eq HouseholdMembershipsTable.id
+                    },
+                ).select(HouseholdMembershipsTable.id)
                 .where {
                     (HouseholdMembershipsTable.household_id eq householdUuid) and
-                        (HouseholdMembershipsTable.user_id eq userUuid)
+                        (HouseholdMembershipsTable.user_id eq userUuid) and
+                        HouseholdMembershipRevocationsTable.id.isNull()
                 }.orderBy(HouseholdMembershipsTable.id, SortOrder.DESC)
                 .limit(1)
                 .singleOrNull()
@@ -67,7 +75,7 @@ internal class HouseholdRegisterRepositoryImpl : HouseholdRegisterRepository {
                 ?: error("no active membership for user ${user.id} in household ${household.id}")
 
         HouseholdMembershipRevocationsTable.insert {
-            it[membership_id] = membershipId
+            it[membership_id] = activeMembershipId
         }
     }
 }

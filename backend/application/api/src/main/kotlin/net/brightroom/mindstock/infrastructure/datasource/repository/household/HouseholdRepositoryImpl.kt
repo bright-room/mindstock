@@ -33,6 +33,7 @@ internal class HouseholdRepositoryImpl : HouseholdRepository {
                 SELECT household_id
                 FROM active
                 WHERE user_id = ?
+                ORDER BY id DESC
                 LIMIT 1
             )
             SELECT a.household_id,
