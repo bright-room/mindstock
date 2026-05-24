@@ -37,6 +37,7 @@ internal class StockRepositoryImpl(
         product: Product,
         limit: Int,
     ): StockMovements {
+        require(limit > 0) { "limit must be > 0" }
         val productUuid = product.id().toJavaUuid()
         val rows =
             StockMovementsTable
