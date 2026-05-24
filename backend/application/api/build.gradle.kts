@@ -1,7 +1,9 @@
 plugins {
     id("net.brightroom.mindstock.ktor-server")
+    id("net.brightroom.mindstock.kotlin-jvm-testcontainers")
     id("org.jetbrains.kotlin.plugin.serialization")
     id("org.jetbrains.kotlinx.rpc.plugin")
+    `java-test-fixtures`
 }
 
 application {
@@ -37,7 +39,20 @@ dependencies {
     implementation(libs.exposed.core)
     implementation(libs.exposed.jdbc)
 
+    testFixturesImplementation(projects.domain)
+    testFixturesImplementation(projects.backend.infrastructure.schemas)
+    testFixturesImplementation(projects.backend.infrastructure.migration.executor)
+    testFixturesImplementation(testFixtures(projects.backend.infrastructure.migration.executor))
+    testFixturesImplementation(libs.exposed.core)
+    testFixturesImplementation(libs.exposed.jdbc)
+    testFixturesImplementation(libs.hikari)
+    testFixturesImplementation(libs.testcontainers.postgres)
+    testFixturesImplementation(libs.kotest.assertions.core)
+
     testImplementation(libs.kotest.runner.junit5)
     testImplementation(libs.kotest.assertions.core)
+    testImplementation(testFixtures(projects.backend.infrastructure.migration.executor))
+    testImplementation(libs.testcontainers.junit)
+    testImplementation(libs.testcontainers.postgres)
     testImplementation(ktorLib.server.testHost)
 }

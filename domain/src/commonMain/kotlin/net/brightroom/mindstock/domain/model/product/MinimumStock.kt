@@ -18,5 +18,5 @@ value class MinimumStock(
 
     override fun toString(): String = value.toString()
 
-    internal operator fun invoke(): Int = value
+    operator fun invoke(): Int = value
 }

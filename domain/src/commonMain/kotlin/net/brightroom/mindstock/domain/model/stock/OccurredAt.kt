@@ -24,5 +24,5 @@ data class OccurredAt(
 
     override fun toString(): String = value.toString()
 
-    internal operator fun invoke(): Instant = value
+    operator fun invoke(): Instant = value
 }
