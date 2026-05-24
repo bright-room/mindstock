@@ -9,6 +9,7 @@ import net.brightroom.mindstock.domain.model.stock.Quantity
 import net.brightroom.mindstock.infrastructure.datasource.repository.product.ProductRepositoryImpl
 import net.brightroom.mindstock.infrastructure.datasource.repository.withRepositoryTestContext
 import kotlin.time.Clock
+import kotlin.time.Duration.Companion.seconds
 
 class StockRepositoryImplIntegrationTest :
     FunSpec({
@@ -30,12 +31,16 @@ class StockRepositoryImplIntegrationTest :
                 val register = StockRegisterRepositoryImpl()
                 val reader = StockRepositoryImpl(ProductRepositoryImpl())
 
-                tx { register.replenish(product, Quantity(1), OccurredAt(Clock.System.now()), user, Note("a")) }
-                tx { register.replenish(product, Quantity(2), OccurredAt(Clock.System.now()), user, Note("b")) }
-                tx { register.replenish(product, Quantity(3), OccurredAt(Clock.System.now()), user, Note("c")) }
+                val t0 = Clock.System.now()
+                tx { register.replenish(product, Quantity(1), OccurredAt(t0), user, Note("a")) }
+                tx { register.replenish(product, Quantity(2), OccurredAt(t0.plus(1.seconds)), user, Note("b")) }
+                tx { register.replenish(product, Quantity(3), OccurredAt(t0.plus(2.seconds)), user, Note("c")) }
 
                 val history = tx { reader.movementHistory(product, limit = 2) }
-                history.asList() shouldHaveSize 2
+                val rows = history.asList()
+                rows shouldHaveSize 2
+                rows[0].quantity shouldBe Quantity(3) // most recent first
+                rows[1].quantity shouldBe Quantity(2)
             }
         }
     })
