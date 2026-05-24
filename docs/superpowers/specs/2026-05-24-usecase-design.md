@@ -134,7 +134,7 @@ Repository ポートの全メソッドと 1:1 対応。read / write をフルセ
 ```kotlin
 // configuration/transaction/ExposedTransactionPlugin.kt
 val ExposedTransactionPlugin = createApplicationPlugin("ExposedTransaction") {
-    val db = application.get<Database>()  // Koin から取得
+    val db = application.get<Database>()  // Ktor DI から取得
     onCall { call ->
         // kotlinx-rpc 呼び出しを transaction で囲む
         // 実装詳細(intercept のフック点)は Plan 4 実装時に確定
@@ -209,21 +209,11 @@ install(StatusPages) {
 
 ## 7. DI 配線
 
-Koin で Handler 群を登録する。
+`:backend:application:api` は Ktor 標準 DI(`io.ktor.server.plugins.di`)を使用する。Handler 群は Plan 5 で Repository 実装が揃った時点で Application 拡張関数として `dependencies { provide<...> { ... } }` ブロックに登録する。
 
-```kotlin
-// configuration/di/UseCaseModule.kt
-val useCaseModule = module {
-    singleOf(::RegisterUserHandler)
-    singleOf(::RenameUserHandler)
-    singleOf(::CreateHouseholdHandler)
-    // ...
-}
-```
+Plan 4 段階では Handler クラスファイルだけを作る。DI 登録(`configuration/di/` 配下の Application 拡張関数追加と `application.yaml` の `ktor.application.modules` への登録)は **Plan 5 で実施**。理由: Repository 実装が存在しないため、Plan 4 段階で DI に登録しても、Application 起動時に依存解決で失敗する。
 
-Repository 実装は Plan 5 で別 module として配線される。Plan 4 段階では Repository ポートは **未配線**(実装が存在しないため、Koin module への登録は Plan 5 で追加)。Plan 4 ではコンパイルが通り、単体テスト(モック)が走ることだけを保証する。
-
-`:backend:application:api` の `MainKt` で `useCaseModule` を `modules { useCaseModule }` で登録する。
+Plan 4 ではコンパイルが通り、将来 DI に流し込めるコンストラクタが揃っていることを保証する。
 
 ## 8. Repository ポートの位置・ID 引き
 

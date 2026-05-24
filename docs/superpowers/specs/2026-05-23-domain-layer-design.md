@@ -285,7 +285,7 @@ sealed class DomainException(message: String) : RuntimeException(message) {
 }
 ```
 
-UseCase 層(Plan 4)で catch して、必要なら親仕様 §6.3 の `InventoryException` サブクラスに翻訳する。`DomainException` は domain の純粋な語彙で、ワイヤー越境はしない。
+Plan 4 では Handler は `DomainException` を catch せず透過させ、Ktor の境界 plugin(`StatusPages` or kotlinx-rpc error interceptor)で一括して RPC error に翻訳する。詳細は `2026-05-24-usecase-design.md` §5 を参照。`DomainException` は domain の純粋な語彙で、ワイヤー越境はしない(境界翻訳の責務は plugin)。
 
 ## 8. Repository ポート
 
@@ -378,7 +378,7 @@ interface StockRegisterRepository {
 
 ### 8.2 トランザクション境界
 
-Repository インターフェースはトランザクション境界を表現しない。**UseCase 層がトランザクションを開閉する**(Plan 4 で `transaction { ... }` ブロックを定義)。
+Repository インターフェースはトランザクション境界を表現しない。トランザクションは **Ktor plugin で境界に張る**(1 RPC 呼び出し = 1 transaction)。UseCase Handler は `transaction {}` を書かない。詳細は `2026-05-24-usecase-design.md` §4 を参照。
 
 例外: `CatalogItemRegisterRepository.register(...)` は **`catalog_items` + `catalog_item_revisions` の 2 行を 1 つのトランザクションで INSERT する**ことを実装側が保証する(同等の制約として `Product` の `adopt` + 初期 `setMinimumStock` を呼び出し側で 1 トランザクションにする、等。これは UseCase が `transaction` で囲うことで担保する)。
 
