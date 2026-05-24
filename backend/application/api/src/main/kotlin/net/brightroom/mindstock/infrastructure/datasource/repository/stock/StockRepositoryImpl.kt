@@ -5,8 +5,8 @@ import net.brightroom.mindstock.domain.model.product.Product
 import net.brightroom.mindstock.domain.model.stock.Stock
 import net.brightroom.mindstock.domain.model.stock.movement.StockMovement
 import net.brightroom.mindstock.domain.model.stock.movement.StockMovements
+import net.brightroom.mindstock.domain.repository.product.ProductRepository
 import net.brightroom.mindstock.domain.repository.stock.StockRepository
-import net.brightroom.mindstock.infrastructure.datasource.repository.product.ProductRepositoryImpl
 import net.brightroom.mindstock.infrastructure.datasource.schemas.stock.StockMovementsTable
 import org.jetbrains.exposed.v1.core.SortOrder
 import org.jetbrains.exposed.v1.jdbc.selectAll
@@ -17,7 +17,7 @@ import kotlin.uuid.toKotlinUuid
 
 @OptIn(ExperimentalUuidApi::class)
 internal class StockRepositoryImpl(
-    private val productRepository: ProductRepositoryImpl,
+    private val productRepository: ProductRepository,
 ) : StockRepository {
     override fun stockOf(product: Product): Stock {
         val movements = loadMovementsFor(listOf(product))[product.id().toJavaUuid()] ?: emptyList()
