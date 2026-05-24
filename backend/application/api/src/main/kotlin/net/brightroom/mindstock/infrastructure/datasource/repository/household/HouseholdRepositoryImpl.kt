@@ -3,17 +3,20 @@ package net.brightroom.mindstock.infrastructure.datasource.repository.household
 import net.brightroom.mindstock.domain.model.household.Household
 import net.brightroom.mindstock.domain.model.household.HouseholdMember
 import net.brightroom.mindstock.domain.model.household.HouseholdMemberRole
-import net.brightroom.mindstock.domain.model.user.DisplayName
 import net.brightroom.mindstock.domain.model.user.User
-import net.brightroom.mindstock.domain.model.user.UserId
-import net.brightroom.mindstock.domain.model.user.auth.AuthIdentity
-import net.brightroom.mindstock.domain.model.user.auth.AuthProvider
-import net.brightroom.mindstock.domain.model.user.auth.AuthSubject
 import net.brightroom.mindstock.domain.repository.household.HouseholdRepository
-import org.jetbrains.exposed.v1.core.UUIDColumnType
-import org.jetbrains.exposed.v1.core.statements.StatementType
-import org.jetbrains.exposed.v1.jdbc.transactions.TransactionManager
-import java.util.UUID
+import net.brightroom.mindstock.infrastructure.datasource.repository.user.toUser
+import net.brightroom.mindstock.infrastructure.datasource.schemas.household.HouseholdMembershipRevocationsTable
+import net.brightroom.mindstock.infrastructure.datasource.schemas.household.HouseholdMembershipsTable
+import net.brightroom.mindstock.infrastructure.datasource.schemas.user.UserDisplayNamesTable
+import net.brightroom.mindstock.infrastructure.datasource.schemas.user.UsersTable
+import org.jetbrains.exposed.v1.core.JoinType
+import org.jetbrains.exposed.v1.core.SortOrder
+import org.jetbrains.exposed.v1.core.alias
+import org.jetbrains.exposed.v1.core.and
+import org.jetbrains.exposed.v1.core.max
+import org.jetbrains.exposed.v1.jdbc.select
+import org.jetbrains.exposed.v1.jdbc.selectAll
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.toJavaUuid
 import kotlin.uuid.toKotlinUuid
@@ -21,78 +24,67 @@ import kotlin.uuid.toKotlinUuid
 @OptIn(ExperimentalUuidApi::class)
 internal class HouseholdRepositoryImpl : HouseholdRepository {
     override fun findOf(user: User): Household? {
-        val sql =
-            """
-            WITH active AS (
-                SELECT m.id, m.household_id, m.user_id, m.role
-                FROM household_memberships m
-                LEFT JOIN household_membership_revocations r ON r.membership_id = m.id
-                WHERE r.id IS NULL
-            ),
-            target_household AS (
-                SELECT household_id
-                FROM active
-                WHERE user_id = ?
-                ORDER BY id DESC
-                LIMIT 1
-            )
-            SELECT a.household_id,
-                   a.role,
-                   u.id AS user_uuid,
-                   u.zitadel_sub,
-                   d.display_name
-            FROM active a
-            INNER JOIN target_household t ON t.household_id = a.household_id
-            INNER JOIN users u ON u.id = a.user_id
-            INNER JOIN (
-                SELECT DISTINCT ON (user_id) user_id, display_name, id
-                FROM user_display_names
-                ORDER BY user_id, id DESC
-            ) d ON d.user_id = u.id
-            ORDER BY a.id
-            """.trimIndent()
+        // --- latest display name per user ---
+        val maxNameIdAlias = UserDisplayNamesTable.id.max().alias("max_name_id")
+        val latestNames =
+            UserDisplayNamesTable
+                .select(UserDisplayNamesTable.user_id, maxNameIdAlias)
+                .groupBy(UserDisplayNamesTable.user_id)
+                .alias("latest_names")
+        val latestNameUserId = latestNames[UserDisplayNamesTable.user_id]
+        val latestNameMaxId = latestNames[maxNameIdAlias]
 
-        data class Row(
-            val householdId: UUID,
-            val role: String,
-            val userUuid: UUID,
-            val sub: String,
-            val name: String,
-        )
-        val rows = mutableListOf<Row>()
+        // --- target household: most recent active membership's household for this user ---
+        val maxMembershipIdAlias = HouseholdMembershipsTable.id.max().alias("max_membership_id")
+        val targetHousehold =
+            HouseholdMembershipsTable
+                .join(
+                    HouseholdMembershipRevocationsTable,
+                    JoinType.LEFT,
+                    additionalConstraint = {
+                        HouseholdMembershipRevocationsTable.membership_id eq HouseholdMembershipsTable.id
+                    },
+                ).select(HouseholdMembershipsTable.household_id, maxMembershipIdAlias)
+                .where {
+                    (HouseholdMembershipsTable.user_id eq user.id().toJavaUuid()) and
+                        HouseholdMembershipRevocationsTable.id.isNull()
+                }.groupBy(HouseholdMembershipsTable.household_id)
+                .orderBy(maxMembershipIdAlias, SortOrder.DESC)
+                .limit(1)
+                .alias("target_household")
 
-        TransactionManager.current().exec(
-            sql,
-            args = listOf(UUIDColumnType() to user.id().toJavaUuid()),
-            explicitStatementType = StatementType.SELECT,
-        ) { rs ->
-            while (rs.next()) {
-                rows.add(
-                    Row(
-                        householdId = rs.getObject("household_id", UUID::class.java),
-                        role = rs.getString("role"),
-                        userUuid = rs.getObject("user_uuid", UUID::class.java),
-                        sub = rs.getString("zitadel_sub"),
-                        name = rs.getString("display_name"),
-                    ),
-                )
-            }
-        }
+        val targetHouseholdId = targetHousehold[HouseholdMembershipsTable.household_id]
+
+        // --- full member list of that household (active memberships only) ---
+        val rows =
+            HouseholdMembershipsTable
+                .join(
+                    HouseholdMembershipRevocationsTable,
+                    JoinType.LEFT,
+                    additionalConstraint = {
+                        HouseholdMembershipRevocationsTable.membership_id eq HouseholdMembershipsTable.id
+                    },
+                ).join(targetHousehold, JoinType.INNER, onColumn = HouseholdMembershipsTable.household_id, otherColumn = targetHouseholdId)
+                .join(UsersTable, JoinType.INNER, onColumn = HouseholdMembershipsTable.user_id, otherColumn = UsersTable.id)
+                .join(latestNames, JoinType.INNER, onColumn = UsersTable.id, otherColumn = latestNameUserId)
+                .join(UserDisplayNamesTable, JoinType.INNER) {
+                    (UserDisplayNamesTable.user_id eq latestNameUserId) and
+                        (UserDisplayNamesTable.id eq latestNameMaxId)
+                }.selectAll()
+                .where { HouseholdMembershipRevocationsTable.id.isNull() }
+                .orderBy(HouseholdMembershipsTable.id, SortOrder.ASC)
+                .toList()
 
         if (rows.isEmpty()) return null
 
+        val householdId = rows.first()[HouseholdMembershipsTable.household_id].toKotlinUuid()
         val members =
-            rows.map { r ->
+            rows.map { row ->
                 HouseholdMember(
-                    user =
-                        User(
-                            id = UserId(r.userUuid.toKotlinUuid()),
-                            authIdentity = AuthIdentity(AuthProvider.ZITADEL, AuthSubject(r.sub)),
-                            displayName = DisplayName(r.name),
-                        ),
-                    role = HouseholdMemberRole.valueOf(r.role),
+                    user = row.toUser(),
+                    role = row[HouseholdMembershipsTable.role],
                 )
             }
-        return hydrateHousehold(rows.first().householdId.toKotlinUuid(), members)
+        return hydrateHousehold(householdId, members)
     }
 }

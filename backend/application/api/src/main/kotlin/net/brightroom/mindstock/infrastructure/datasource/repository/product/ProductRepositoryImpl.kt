@@ -6,89 +6,127 @@ import net.brightroom.mindstock.domain.model.product.Product
 import net.brightroom.mindstock.domain.model.product.Products
 import net.brightroom.mindstock.domain.repository.product.ProductRepository
 import net.brightroom.mindstock.infrastructure.datasource.repository.catalog.hydrateCatalogItem
-import org.jetbrains.exposed.v1.core.UUIDColumnType
-import org.jetbrains.exposed.v1.jdbc.transactions.TransactionManager
-import java.util.UUID
+import net.brightroom.mindstock.infrastructure.datasource.schemas.catalog.CatalogItemRevisionsTable
+import net.brightroom.mindstock.infrastructure.datasource.schemas.catalog.CatalogItemsTable
+import net.brightroom.mindstock.infrastructure.datasource.schemas.product.ProductArchivesTable
+import net.brightroom.mindstock.infrastructure.datasource.schemas.product.ProductMinimumStocksTable
+import net.brightroom.mindstock.infrastructure.datasource.schemas.product.ProductsTable
+import org.jetbrains.exposed.v1.core.JoinType
+import org.jetbrains.exposed.v1.core.QueryAlias
+import org.jetbrains.exposed.v1.core.ResultRow
+import org.jetbrains.exposed.v1.core.alias
+import org.jetbrains.exposed.v1.core.and
+import org.jetbrains.exposed.v1.core.max
+import org.jetbrains.exposed.v1.jdbc.select
+import org.jetbrains.exposed.v1.jdbc.selectAll
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.toJavaUuid
 import kotlin.uuid.toKotlinUuid
 
 @OptIn(ExperimentalUuidApi::class)
 internal class ProductRepositoryImpl : ProductRepository {
-    private val baseSql =
-        """
-        SELECT p.id            AS p_id,
-               ci.id           AS ci_id,
-               r.name          AS ci_name,
-               r.unit          AS ci_unit,
-               m.minimum_stock AS min_stock,
-               (a.id IS NOT NULL) AS archived
-        FROM products p
-        INNER JOIN catalog_items ci ON ci.id = p.catalog_item_id
-        INNER JOIN (
-            SELECT DISTINCT ON (catalog_item_id) catalog_item_id, name, unit, id
-            FROM catalog_item_revisions
-            ORDER BY catalog_item_id, id DESC
-        ) r ON r.catalog_item_id = ci.id
-        LEFT JOIN (
-            SELECT DISTINCT ON (product_id) product_id, minimum_stock, id
-            FROM product_minimum_stocks
-            ORDER BY product_id, id DESC
-        ) m ON m.product_id = p.id
-        LEFT JOIN (
-            SELECT DISTINCT ON (product_id) product_id, id
-            FROM product_archives
-            ORDER BY product_id, id DESC
-        ) a ON a.product_id = p.id
-        """.trimIndent()
+    private data class LatestRevsAlias(
+        val alias: QueryAlias,
+        val catalogItemId: org.jetbrains.exposed.v1.core.Column<java.util.UUID>,
+        val maxId: org.jetbrains.exposed.v1.core.ExpressionWithColumnType<Long?>,
+    )
+
+    private data class LatestMinStocksAlias(
+        val alias: QueryAlias,
+        val productId: org.jetbrains.exposed.v1.core.Column<java.util.UUID>,
+        val maxId: org.jetbrains.exposed.v1.core.ExpressionWithColumnType<Long?>,
+    )
+
+    private data class LatestArchivesAlias(
+        val alias: QueryAlias,
+        val productId: org.jetbrains.exposed.v1.core.Column<java.util.UUID>,
+        val maxId: org.jetbrains.exposed.v1.core.ExpressionWithColumnType<Long?>,
+    )
+
+    private fun buildLatestRevs(): LatestRevsAlias {
+        val maxRevIdAlias = CatalogItemRevisionsTable.id.max().alias("max_rev_id")
+        val alias =
+            CatalogItemRevisionsTable
+                .select(CatalogItemRevisionsTable.catalog_item_id, maxRevIdAlias)
+                .groupBy(CatalogItemRevisionsTable.catalog_item_id)
+                .alias("latest_revs")
+        return LatestRevsAlias(alias, alias[CatalogItemRevisionsTable.catalog_item_id], alias[maxRevIdAlias])
+    }
+
+    private fun buildLatestMinStocks(): LatestMinStocksAlias {
+        val maxMinStockIdAlias = ProductMinimumStocksTable.id.max().alias("max_min_stock_id")
+        val alias =
+            ProductMinimumStocksTable
+                .select(ProductMinimumStocksTable.product_id, maxMinStockIdAlias)
+                .groupBy(ProductMinimumStocksTable.product_id)
+                .alias("latest_min_stocks")
+        return LatestMinStocksAlias(alias, alias[ProductMinimumStocksTable.product_id], alias[maxMinStockIdAlias])
+    }
+
+    private fun buildLatestArchives(): LatestArchivesAlias {
+        val maxArchiveIdAlias = ProductArchivesTable.id.max().alias("max_archive_id")
+        val alias =
+            ProductArchivesTable
+                .select(ProductArchivesTable.product_id, maxArchiveIdAlias)
+                .groupBy(ProductArchivesTable.product_id)
+                .alias("latest_archives")
+        return LatestArchivesAlias(alias, alias[ProductArchivesTable.product_id], alias[maxArchiveIdAlias])
+    }
+
+    private fun buildJoinedQuery() =
+        run {
+            val revs = buildLatestRevs()
+            val minStocks = buildLatestMinStocks()
+            val archives = buildLatestArchives()
+
+            ProductsTable
+                .join(CatalogItemsTable, JoinType.INNER, onColumn = ProductsTable.catalog_item_id, otherColumn = CatalogItemsTable.id)
+                .join(revs.alias, JoinType.INNER, onColumn = CatalogItemsTable.id, otherColumn = revs.catalogItemId)
+                .join(CatalogItemRevisionsTable, JoinType.INNER) {
+                    (CatalogItemRevisionsTable.catalog_item_id eq revs.catalogItemId) and
+                        (CatalogItemRevisionsTable.id eq revs.maxId)
+                }.join(minStocks.alias, JoinType.LEFT, onColumn = ProductsTable.id, otherColumn = minStocks.productId)
+                .join(ProductMinimumStocksTable, JoinType.LEFT) {
+                    (ProductMinimumStocksTable.product_id eq minStocks.productId) and
+                        (ProductMinimumStocksTable.id eq minStocks.maxId)
+                }.join(archives.alias, JoinType.LEFT, onColumn = ProductsTable.id, otherColumn = archives.productId)
+                .join(ProductArchivesTable, JoinType.LEFT) {
+                    (ProductArchivesTable.product_id eq archives.productId) and
+                        (ProductArchivesTable.id eq archives.maxId)
+                }
+        }
 
     override fun listOf(household: Household): Products {
-        val sql = "$baseSql\nWHERE p.household_id = ?"
-        val results = mutableListOf<Product>()
-        TransactionManager.current().exec(
-            sql,
-            args = listOf(UUIDColumnType() to household.id().toJavaUuid()),
-        ) { rs ->
-            while (rs.next()) {
-                results.add(buildProduct(rs))
-            }
-        }
+        val results =
+            buildJoinedQuery()
+                .selectAll()
+                .where { ProductsTable.household_id eq household.id().toJavaUuid() }
+                .map { it.toProduct() }
         return Products(results)
     }
 
     override fun find(
         household: Household,
         catalogItem: CatalogItem,
-    ): Product? {
-        val sql = "$baseSql\nWHERE p.household_id = ? AND p.catalog_item_id = ?"
-        var result: Product? = null
-        TransactionManager.current().exec(
-            sql,
-            args =
-                listOf(
-                    UUIDColumnType() to household.id().toJavaUuid(),
-                    UUIDColumnType() to catalogItem.id().toJavaUuid(),
-                ),
-        ) { rs ->
-            if (rs.next()) {
-                result = buildProduct(rs)
-            }
-        }
-        return result
-    }
+    ): Product? =
+        buildJoinedQuery()
+            .selectAll()
+            .where {
+                (ProductsTable.household_id eq household.id().toJavaUuid()) and
+                    (ProductsTable.catalog_item_id eq catalogItem.id().toJavaUuid())
+            }.singleOrNull()
+            ?.toProduct()
 
-    private fun buildProduct(rs: java.sql.ResultSet): Product {
-        val minStockObj = rs.getObject("min_stock")
-        return hydrateProduct(
-            id = rs.getObject("p_id", UUID::class.java).toKotlinUuid(),
+    private fun ResultRow.toProduct(): Product =
+        hydrateProduct(
+            id = this[ProductsTable.id].toKotlinUuid(),
             catalogItem =
                 hydrateCatalogItem(
-                    id = rs.getObject("ci_id", UUID::class.java).toKotlinUuid(),
-                    name = rs.getString("ci_name"),
-                    unit = rs.getString("ci_unit"),
+                    id = this[CatalogItemsTable.id].toKotlinUuid(),
+                    name = this[CatalogItemRevisionsTable.name],
+                    unit = this[CatalogItemRevisionsTable.unit],
                 ),
-            minimumStock = (minStockObj as? Number)?.toInt(),
-            archived = rs.getBoolean("archived"),
+            minimumStock = this.getOrNull(ProductMinimumStocksTable.minimum_stock),
+            archived = this.getOrNull(ProductArchivesTable.id) != null,
         )
-    }
 }

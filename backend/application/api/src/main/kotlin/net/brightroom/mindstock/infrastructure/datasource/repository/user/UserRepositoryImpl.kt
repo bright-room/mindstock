@@ -1,52 +1,40 @@
 package net.brightroom.mindstock.infrastructure.datasource.repository.user
 
-import net.brightroom.mindstock.domain.model.user.DisplayName
 import net.brightroom.mindstock.domain.model.user.User
-import net.brightroom.mindstock.domain.model.user.UserId
 import net.brightroom.mindstock.domain.model.user.auth.AuthIdentity
-import net.brightroom.mindstock.domain.model.user.auth.AuthProvider
-import net.brightroom.mindstock.domain.model.user.auth.AuthSubject
 import net.brightroom.mindstock.domain.repository.user.UserRepository
-import org.jetbrains.exposed.v1.core.TextColumnType
-import org.jetbrains.exposed.v1.jdbc.transactions.TransactionManager
-import java.util.UUID
+import net.brightroom.mindstock.infrastructure.datasource.schemas.user.UserDisplayNamesTable
+import net.brightroom.mindstock.infrastructure.datasource.schemas.user.UsersTable
+import org.jetbrains.exposed.v1.core.JoinType
+import org.jetbrains.exposed.v1.core.alias
+import org.jetbrains.exposed.v1.core.and
+import org.jetbrains.exposed.v1.core.max
+import org.jetbrains.exposed.v1.jdbc.select
+import org.jetbrains.exposed.v1.jdbc.selectAll
 import kotlin.uuid.ExperimentalUuidApi
-import kotlin.uuid.toKotlinUuid
 
 @OptIn(ExperimentalUuidApi::class)
 internal class UserRepositoryImpl : UserRepository {
     override fun findByAuthIdentity(identity: AuthIdentity): User? {
-        val sql =
-            """
-            SELECT u.id AS user_id,
-                   u.zitadel_sub,
-                   d.display_name
-            FROM users u
-            INNER JOIN (
-                SELECT DISTINCT ON (user_id) user_id, display_name, id
-                FROM user_display_names
-                ORDER BY user_id, id DESC
-            ) d ON d.user_id = u.id
-            WHERE u.zitadel_sub = ?
-            """.trimIndent()
+        // Alias the max() expression so QueryAlias.get() can resolve it correctly.
+        val maxIdAlias = UserDisplayNamesTable.id.max().alias("max_name_id")
+        val latestNames =
+            UserDisplayNamesTable
+                .select(UserDisplayNamesTable.user_id, maxIdAlias)
+                .groupBy(UserDisplayNamesTable.user_id)
+                .alias("latest_names")
 
-        return TransactionManager.current().exec(
-            sql,
-            args = listOf(TextColumnType() to identity.subject()),
-        ) { rs ->
-            if (rs.next()) {
-                User(
-                    id = UserId(rs.getObject("user_id", UUID::class.java).toKotlinUuid()),
-                    authIdentity =
-                        AuthIdentity(
-                            provider = AuthProvider.ZITADEL,
-                            subject = AuthSubject(rs.getString("zitadel_sub")),
-                        ),
-                    displayName = DisplayName(rs.getString("display_name")),
-                )
-            } else {
-                null
-            }
-        }
+        val latestUserId = latestNames[UserDisplayNamesTable.user_id]
+        val latestMaxId = latestNames[maxIdAlias]
+
+        return UsersTable
+            .join(latestNames, JoinType.INNER, onColumn = UsersTable.id, otherColumn = latestUserId)
+            .join(UserDisplayNamesTable, JoinType.INNER) {
+                (UserDisplayNamesTable.user_id eq latestUserId) and
+                    (UserDisplayNamesTable.id eq latestMaxId)
+            }.selectAll()
+            .where { UsersTable.zitadel_sub eq identity.subject() }
+            .singleOrNull()
+            ?.toUser()
     }
 }
