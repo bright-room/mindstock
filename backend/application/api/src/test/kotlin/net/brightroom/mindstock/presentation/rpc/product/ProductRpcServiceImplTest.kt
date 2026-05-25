@@ -75,7 +75,7 @@ class ProductRpcServiceImplTest :
                     archived = false,
                 )
 
-            mockkStatic("net.brightroom.mindstock.configuration.auth.ActorResolverKt")
+            mockkStatic(ApplicationCall::actor)
             every { call.actor(userRepository) } returns user
             every { householdRepository.findById(householdId) } returns household
             every { catalogItemRepository.findById(catalogItemId) } returns catalogItem

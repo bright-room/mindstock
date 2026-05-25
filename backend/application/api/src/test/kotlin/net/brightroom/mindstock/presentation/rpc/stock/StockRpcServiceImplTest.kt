@@ -71,7 +71,7 @@ class StockRpcServiceImplTest :
                 )
             val stock = Stock(product = product, movements = StockMovements(emptyList()))
 
-            mockkStatic("net.brightroom.mindstock.configuration.auth.ActorResolverKt")
+            mockkStatic(ApplicationCall::actor)
             every { call.actor(userRepository) } returns user
             every { productRepository.findById(productId) } returns product
             every { getStockHandler.handle(product) } returns stock

@@ -47,7 +47,7 @@ class CatalogRpcServiceImplTest :
             val query = "milk"
             val limit = 20
 
-            mockkStatic("net.brightroom.mindstock.configuration.auth.ActorResolverKt")
+            mockkStatic(ApplicationCall::actor)
             every { call.actor(userRepository) } returns user
             every { searchHandler.handle(query, limit) } returns expected
 

@@ -51,7 +51,7 @@ class HouseholdRpcServiceImplTest :
                     members = HouseholdMembers(emptyList()),
                 )
 
-            mockkStatic("net.brightroom.mindstock.configuration.auth.ActorResolverKt")
+            mockkStatic(ApplicationCall::actor)
             every { call.actor(userRepository) } returns user
             every { findHandler.handle(user) } returns household
 
