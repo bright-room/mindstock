@@ -32,7 +32,7 @@ Plan 6 では「frontend が呼び出せる RPC API の枠組み」を整える�
 
 ## 2. 全体構成
 
-```
+```text
 shared/rpc/commonMain/
   service/
     UserPublicRpcService        // 認証不要(register のみ)
@@ -131,7 +131,7 @@ mapper 専用層は作らない(集約・VO が直接 `@Serializable` になる�
 
 ### 構成
 
-```
+```text
 configuration/auth/
   AuthConfiguration.kt        Application.authConfigure()
   MindstockPrincipal.kt       data class MindstockPrincipal(val userId: UserId) : Principal
