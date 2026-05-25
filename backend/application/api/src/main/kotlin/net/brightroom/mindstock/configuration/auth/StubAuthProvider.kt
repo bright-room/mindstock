@@ -11,6 +11,5 @@ import kotlin.uuid.Uuid
  */
 object StubAuthProvider {
     @OptIn(ExperimentalUuidApi::class)
-    fun resolve(token: String): MindstockPrincipal? =
-        runCatching { MindstockPrincipal(UserId(Uuid.parse(token))) }.getOrNull()
+    fun resolve(token: String): MindstockPrincipal? = runCatching { MindstockPrincipal(UserId(Uuid.parse(token))) }.getOrNull()
 }

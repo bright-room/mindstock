@@ -35,49 +35,56 @@ import kotlin.uuid.Uuid
 
 @OptIn(ExperimentalUuidApi::class)
 class SerializationRoundTripTest {
-
     private val json = Json { encodeDefaults = true }
 
-    private fun <T> roundTrip(value: T, serializer: kotlinx.serialization.KSerializer<T>): T =
-        json.decodeFromString(serializer, json.encodeToString(serializer, value))
+    private fun <T> roundTrip(
+        value: T,
+        serializer: kotlinx.serialization.KSerializer<T>,
+    ): T = json.decodeFromString(serializer, json.encodeToString(serializer, value))
 
-    private val user = User(
-        id = UserId(Uuid.parse("00000000-0000-0000-0000-000000000001")),
-        authIdentity = AuthIdentity(
-            provider = AuthProvider.ZITADEL,
-            subject = AuthSubject("subject-1"),
-        ),
-        displayName = DisplayName("Alice"),
-    )
+    private val user =
+        User(
+            id = UserId(Uuid.parse("00000000-0000-0000-0000-000000000001")),
+            authIdentity =
+                AuthIdentity(
+                    provider = AuthProvider.ZITADEL,
+                    subject = AuthSubject("subject-1"),
+                ),
+            displayName = DisplayName("Alice"),
+        )
 
-    private val catalogItem = CatalogItem(
-        id = CatalogItemId(Uuid.parse("00000000-0000-0000-0000-000000000002")),
-        name = CatalogItemName("Milk"),
-        unit = CatalogItemUnit("L"),
-    )
+    private val catalogItem =
+        CatalogItem(
+            id = CatalogItemId(Uuid.parse("00000000-0000-0000-0000-000000000002")),
+            name = CatalogItemName("Milk"),
+            unit = CatalogItemUnit("L"),
+        )
 
-    private val product = Product(
-        id = ProductId(Uuid.parse("00000000-0000-0000-0000-000000000003")),
-        catalogItem = catalogItem,
-        minimumStock = MinimumStock(2),
-        archived = false,
-    )
+    private val product =
+        Product(
+            id = ProductId(Uuid.parse("00000000-0000-0000-0000-000000000003")),
+            catalogItem = catalogItem,
+            minimumStock = MinimumStock(2),
+            archived = false,
+        )
 
-    private val replenishment: StockMovement = Replenishment(
-        product = product,
-        quantity = Quantity(5),
-        occurredAt = OccurredAt(Instant.parse("2026-05-25T10:00:00Z")),
-        actor = user,
-        note = Note(""),
-    )
+    private val replenishment: StockMovement =
+        Replenishment(
+            product = product,
+            quantity = Quantity(5),
+            occurredAt = OccurredAt(Instant.parse("2026-05-25T10:00:00Z")),
+            actor = user,
+            note = Note(""),
+        )
 
-    private val consumption: StockMovement = Consumption(
-        product = product,
-        quantity = Quantity(1),
-        occurredAt = OccurredAt(Instant.parse("2026-05-25T11:00:00Z")),
-        actor = user,
-        note = Note("breakfast"),
-    )
+    private val consumption: StockMovement =
+        Consumption(
+            product = product,
+            quantity = Quantity(1),
+            occurredAt = OccurredAt(Instant.parse("2026-05-25T11:00:00Z")),
+            actor = user,
+            note = Note("breakfast"),
+        )
 
     @Test
     fun `User round-trip`() {
@@ -106,10 +113,11 @@ class SerializationRoundTripTest {
 
     @Test
     fun `Stock round-trip`() {
-        val stock = Stock(
-            product = product,
-            movements = StockMovements(listOf(replenishment, consumption)),
-        )
+        val stock =
+            Stock(
+                product = product,
+                movements = StockMovements(listOf(replenishment, consumption)),
+            )
         val restored = roundTrip(stock, Stock.serializer())
         restored.product shouldBe product
         restored.movements.list shouldBe listOf(replenishment, consumption)
@@ -118,12 +126,14 @@ class SerializationRoundTripTest {
 
     @Test
     fun `Household round-trip`() {
-        val household = Household(
-            id = HouseholdId(Uuid.parse("00000000-0000-0000-0000-000000000004")),
-            members = HouseholdMembers(
-                list = listOf(HouseholdMember(user, HouseholdMemberRole.OWNER)),
-            ),
-        )
+        val household =
+            Household(
+                id = HouseholdId(Uuid.parse("00000000-0000-0000-0000-000000000004")),
+                members =
+                    HouseholdMembers(
+                        list = listOf(HouseholdMember(user, HouseholdMemberRole.OWNER)),
+                    ),
+            )
         roundTrip(household, Household.serializer()) shouldBe household
     }
 }

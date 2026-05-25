@@ -1,0 +1,89 @@
+package net.brightroom.mindstock.presentation.rpc.product
+
+import io.ktor.server.application.ApplicationCall
+import net.brightroom.mindstock.application.usecase.product.AdoptProductHandler
+import net.brightroom.mindstock.application.usecase.product.ArchiveProductHandler
+import net.brightroom.mindstock.application.usecase.product.FindProductHandler
+import net.brightroom.mindstock.application.usecase.product.ListProductsOfHouseholdHandler
+import net.brightroom.mindstock.application.usecase.product.SetMinimumStockHandler
+import net.brightroom.mindstock.configuration.auth.actor
+import net.brightroom.mindstock.configuration.error.NotFoundException
+import net.brightroom.mindstock.domain.model.catalog.CatalogItemId
+import net.brightroom.mindstock.domain.model.household.HouseholdId
+import net.brightroom.mindstock.domain.model.product.MinimumStock
+import net.brightroom.mindstock.domain.model.product.Product
+import net.brightroom.mindstock.domain.model.product.ProductId
+import net.brightroom.mindstock.domain.model.product.Products
+import net.brightroom.mindstock.domain.repository.catalog.CatalogItemRepository
+import net.brightroom.mindstock.domain.repository.household.HouseholdRepository
+import net.brightroom.mindstock.domain.repository.product.ProductRepository
+import net.brightroom.mindstock.domain.repository.user.UserRepository
+import net.brightroom.mindstock.presentation.rpc.ProductRpcService
+
+class ProductRpcServiceImpl(
+    private val listProductsOfHousehold: ListProductsOfHouseholdHandler,
+    private val findProduct: FindProductHandler,
+    private val adoptProduct: AdoptProductHandler,
+    private val setMinimumStockHandler: SetMinimumStockHandler,
+    private val archiveProduct: ArchiveProductHandler,
+    private val householdRepository: HouseholdRepository,
+    private val catalogItemRepository: CatalogItemRepository,
+    private val productRepository: ProductRepository,
+    private val userRepository: UserRepository,
+    private val call: ApplicationCall,
+) : ProductRpcService {
+    override suspend fun listOfHousehold(householdId: HouseholdId): Products {
+        call.actor(userRepository)
+        val household =
+            householdRepository.findById(householdId)
+                ?: throw NotFoundException("household not found: $householdId")
+        return listProductsOfHousehold.handle(household)
+    }
+
+    override suspend fun find(
+        householdId: HouseholdId,
+        catalogItemId: CatalogItemId,
+    ): Product? {
+        call.actor(userRepository)
+        val household =
+            householdRepository.findById(householdId)
+                ?: throw NotFoundException("household not found: $householdId")
+        val catalogItem =
+            catalogItemRepository.findById(catalogItemId)
+                ?: throw NotFoundException("catalog item not found: $catalogItemId")
+        return findProduct.handle(household, catalogItem)
+    }
+
+    override suspend fun adopt(
+        householdId: HouseholdId,
+        catalogItemId: CatalogItemId,
+    ): Product {
+        call.actor(userRepository)
+        val household =
+            householdRepository.findById(householdId)
+                ?: throw NotFoundException("household not found: $householdId")
+        val catalogItem =
+            catalogItemRepository.findById(catalogItemId)
+                ?: throw NotFoundException("catalog item not found: $catalogItemId")
+        return adoptProduct.handle(household, catalogItem)
+    }
+
+    override suspend fun setMinimumStock(
+        id: ProductId,
+        minimumStock: MinimumStock,
+    ) {
+        val actor = call.actor(userRepository)
+        val product =
+            productRepository.findById(id)
+                ?: throw NotFoundException("product not found: $id")
+        setMinimumStockHandler.handle(product, minimumStock, actor)
+    }
+
+    override suspend fun archive(id: ProductId) {
+        val actor = call.actor(userRepository)
+        val product =
+            productRepository.findById(id)
+                ?: throw NotFoundException("product not found: $id")
+        archiveProduct.handle(product, actor)
+    }
+}
