@@ -14,6 +14,7 @@ import net.brightroom.mindstock.domain.model.product.MinimumStock
 import net.brightroom.mindstock.domain.model.product.Product
 import net.brightroom.mindstock.domain.model.product.ProductId
 import net.brightroom.mindstock.domain.model.product.Products
+import net.brightroom.mindstock.domain.model.user.User
 import net.brightroom.mindstock.domain.repository.catalog.CatalogItemRepository
 import net.brightroom.mindstock.domain.repository.household.HouseholdRepository
 import net.brightroom.mindstock.domain.repository.product.ProductRepository
@@ -32,8 +33,13 @@ class ProductRpcServiceImpl(
     private val userRepository: UserRepository,
     private val call: ApplicationCall,
 ) : ProductRpcService {
+    // Memoized for the lifetime of this per-connection Service Impl.
+    // NOTE: a rename within the same connection won't refresh this cache until reconnect.
+    private val actor: User by lazy { call.actor(userRepository) }
+
     override suspend fun listOfHousehold(householdId: HouseholdId): Products {
-        call.actor(userRepository)
+        // TODO(authz): verify actor is a member of household $householdId
+        actor
         val household =
             householdRepository.findById(householdId)
                 ?: throw NotFoundException("household not found: $householdId")
@@ -44,7 +50,8 @@ class ProductRpcServiceImpl(
         householdId: HouseholdId,
         catalogItemId: CatalogItemId,
     ): Product? {
-        call.actor(userRepository)
+        // TODO(authz): verify actor is a member of household $householdId
+        actor
         val household =
             householdRepository.findById(householdId)
                 ?: throw NotFoundException("household not found: $householdId")
@@ -58,7 +65,8 @@ class ProductRpcServiceImpl(
         householdId: HouseholdId,
         catalogItemId: CatalogItemId,
     ): Product {
-        call.actor(userRepository)
+        // TODO(authz): verify actor is a member of household $householdId
+        actor
         val household =
             householdRepository.findById(householdId)
                 ?: throw NotFoundException("household not found: $householdId")
@@ -72,7 +80,7 @@ class ProductRpcServiceImpl(
         id: ProductId,
         minimumStock: MinimumStock,
     ) {
-        val actor = call.actor(userRepository)
+        // TODO(authz): verify actor can modify product $id (member of its household)
         val product =
             productRepository.findById(id)
                 ?: throw NotFoundException("product not found: $id")
@@ -80,7 +88,7 @@ class ProductRpcServiceImpl(
     }
 
     override suspend fun archive(id: ProductId) {
-        val actor = call.actor(userRepository)
+        // TODO(authz): verify actor can modify product $id (member of its household)
         val product =
             productRepository.findById(id)
                 ?: throw NotFoundException("product not found: $id")

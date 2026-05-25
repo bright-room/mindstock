@@ -10,6 +10,7 @@ import net.brightroom.mindstock.configuration.error.NotFoundException
 import net.brightroom.mindstock.domain.model.household.Household
 import net.brightroom.mindstock.domain.model.household.HouseholdId
 import net.brightroom.mindstock.domain.model.household.HouseholdMemberRole
+import net.brightroom.mindstock.domain.model.user.User
 import net.brightroom.mindstock.domain.model.user.UserId
 import net.brightroom.mindstock.domain.repository.household.HouseholdRepository
 import net.brightroom.mindstock.domain.repository.user.UserRepository
@@ -24,22 +25,21 @@ class HouseholdRpcServiceImpl(
     private val userRepository: UserRepository,
     private val call: ApplicationCall,
 ) : HouseholdRpcService {
-    override suspend fun findOf(): Household? {
-        val actor = call.actor(userRepository)
-        return findHouseholdOfUser.handle(actor)
-    }
+    // Memoized for the lifetime of this per-connection Service Impl.
+    // NOTE: a rename within the same connection won't refresh this cache until reconnect.
+    private val actor: User by lazy { call.actor(userRepository) }
 
-    override suspend fun create(): Household {
-        val actor = call.actor(userRepository)
-        return createHousehold.handle(actor)
-    }
+    override suspend fun findOf(): Household? = findHouseholdOfUser.handle(actor)
+
+    override suspend fun create(): Household = createHousehold.handle(actor)
 
     override suspend fun invite(
         householdId: HouseholdId,
         invitee: UserId,
         role: HouseholdMemberRole,
     ) {
-        call.actor(userRepository)
+        // TODO(authz): verify actor is a member of household $householdId
+        actor
         val household =
             householdRepository.findById(householdId)
                 ?: throw NotFoundException("household not found: $householdId")
@@ -53,7 +53,8 @@ class HouseholdRpcServiceImpl(
         householdId: HouseholdId,
         target: UserId,
     ) {
-        call.actor(userRepository)
+        // TODO(authz): verify actor is a member of household $householdId
+        actor
         val household =
             householdRepository.findById(householdId)
                 ?: throw NotFoundException("household not found: $householdId")

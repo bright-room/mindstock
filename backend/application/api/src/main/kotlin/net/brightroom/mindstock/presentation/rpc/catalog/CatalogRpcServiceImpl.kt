@@ -12,6 +12,7 @@ import net.brightroom.mindstock.domain.model.catalog.CatalogItemId
 import net.brightroom.mindstock.domain.model.catalog.CatalogItemName
 import net.brightroom.mindstock.domain.model.catalog.CatalogItemUnit
 import net.brightroom.mindstock.domain.model.catalog.CatalogItems
+import net.brightroom.mindstock.domain.model.user.User
 import net.brightroom.mindstock.domain.repository.catalog.CatalogItemRepository
 import net.brightroom.mindstock.domain.repository.user.UserRepository
 import net.brightroom.mindstock.presentation.rpc.CatalogRpcService
@@ -25,33 +26,33 @@ class CatalogRpcServiceImpl(
     private val userRepository: UserRepository,
     private val call: ApplicationCall,
 ) : CatalogRpcService {
+    // Memoized for the lifetime of this per-connection Service Impl.
+    // NOTE: a rename within the same connection won't refresh this cache until reconnect.
+    private val actor: User by lazy { call.actor(userRepository) }
+
     override suspend fun search(
         query: String,
         limit: Int,
     ): CatalogItems {
-        call.actor(userRepository)
+        actor
         return searchHandler.handle(query, limit)
     }
 
     override suspend fun findById(id: CatalogItemId): CatalogItem? {
-        call.actor(userRepository)
+        actor
         return findByIdHandler.handle(id)
     }
 
     override suspend fun register(
         name: CatalogItemName,
         unit: CatalogItemUnit,
-    ): CatalogItem {
-        val actor = call.actor(userRepository)
-        return registerHandler.handle(name, unit, actor)
-    }
+    ): CatalogItem = registerHandler.handle(name, unit, actor)
 
     override suspend fun revise(
         id: CatalogItemId,
         newName: CatalogItemName,
         newUnit: CatalogItemUnit,
     ) {
-        val actor = call.actor(userRepository)
         val catalogItem =
             catalogItemRepository.findById(id)
                 ?: throw NotFoundException("catalog item not found: $id")
