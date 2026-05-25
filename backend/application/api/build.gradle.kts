@@ -55,4 +55,5 @@ dependencies {
     testImplementation(libs.testcontainers.junit)
     testImplementation(libs.testcontainers.postgres)
     testImplementation(ktorLib.server.testHost)
+    testImplementation(libs.mockk)
 }
