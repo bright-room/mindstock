@@ -14,3 +14,16 @@ val CustomJson =
         classDiscriminatorMode = ClassDiscriminatorMode.NONE
         namingStrategy = JsonNamingStrategy.SnakeCase
     }
+
+/**
+ * kRPC-specific [Json] format.
+ *
+ * Mirrors [CustomJson] for API payload shape, but restores the polymorphic class discriminator
+ * because kRPC's internal `KrpcMessage` protocol relies on it for message dispatch.
+ * Using [ClassDiscriminatorMode.NONE] (as [CustomJson] does) breaks kRPC decoding.
+ */
+@OptIn(ExperimentalSerializationApi::class)
+val KrpcJson =
+    Json(from = CustomJson) {
+        classDiscriminatorMode = ClassDiscriminatorMode.POLYMORPHIC
+    }

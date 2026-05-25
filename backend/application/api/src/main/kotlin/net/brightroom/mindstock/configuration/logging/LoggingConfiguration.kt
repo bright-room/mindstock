@@ -26,7 +26,11 @@ fun Application.loggingConfigure(
     @Property("ktor.environment") environment: Environment,
 ) {
     if (!environment.isProduction()) {
-        install(DoubleReceive)
+        install(DoubleReceive) {
+            excludeFromCache { call, _ ->
+                call.request.headers[HttpHeaders.Upgrade]?.contains("websocket", ignoreCase = true) == true
+            }
+        }
     }
 
     install(CallId) {
@@ -71,7 +75,14 @@ fun Application.loggingConfigure(
                     .entries()
                     .associate { it.key to it.value.first() }
 
-            val requestBody = if (environment.isProduction()) "" else runBlocking { call.receiveText() }
+            val isWebSocketUpgrade =
+                call.request.headers[HttpHeaders.Upgrade]?.contains("websocket", ignoreCase = true) == true
+            val requestBody =
+                if (environment.isProduction() || isWebSocketUpgrade) {
+                    ""
+                } else {
+                    runBlocking { call.receiveText() }
+                }
 
             val requestLogging =
                 RequestLogging(

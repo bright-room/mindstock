@@ -41,6 +41,7 @@ import net.brightroom.mindstock.domain.repository.household.HouseholdRepository
 import net.brightroom.mindstock.domain.repository.product.ProductRepository
 import net.brightroom.mindstock.domain.repository.user.UserRepository
 import net.brightroom.mindstock.extensions.kotlinx.serialization.CustomJson
+import net.brightroom.mindstock.extensions.kotlinx.serialization.KrpcJson
 import net.brightroom.mindstock.presentation.rpc.CatalogRpcService
 import net.brightroom.mindstock.presentation.rpc.HouseholdRpcService
 import net.brightroom.mindstock.presentation.rpc.ProductRpcService
@@ -62,7 +63,7 @@ fun Application.routingConfigure(
         jsonIo(CustomJson)
     }
     install(Krpc) {
-        serialization { json(CustomJson) }
+        serialization { json(KrpcJson) }
     }
 
     // Pre-resolve Handlers and Repositories at module-init time.
