@@ -77,6 +77,12 @@ fun Application.loggingConfigure(
 
             val isWebSocketUpgrade =
                 call.request.headers[HttpHeaders.Upgrade]?.contains("websocket", ignoreCase = true) == true
+            // WARNING: runBlocking + receiveText consumes the body stream and blocks the
+            // coroutine dispatcher thread. The isWebSocketUpgrade guard above is REQUIRED —
+            // attempting receiveText() on a WebSocket upgrade request hangs the connection.
+            // Any future non-body request type (SSE / streaming endpoints / file uploads)
+            // must extend this guard before being added to the routing.
+            // TODO: replace with a proper suspend body-capture mechanism when available.
             val requestBody =
                 if (environment.isProduction() || isWebSocketUpgrade) {
                     ""

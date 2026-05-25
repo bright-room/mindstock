@@ -63,8 +63,11 @@ fun e2eTest(block: suspend E2eContext.() -> Unit) {
                 try {
                     ctx.block()
                 } finally {
-                    ctx.closeOpenedRpcClients()
-                    client.close()
+                    try {
+                        ctx.closeOpenedRpcClients()
+                    } finally {
+                        client.close()
+                    }
                 }
             }
         } finally {
@@ -90,9 +93,10 @@ class E2eContext(
         path: String,
     ): RpcClient {
         val token = asUser.id().toString()
-        return httpClient.rpc("/api/v1/$path") {
-            authorize(token)
-        }.also { opened += it }
+        return httpClient
+            .rpc("/api/v1/$path") {
+                authorize(token)
+            }.also { opened += it }
     }
 
     internal fun closeOpenedRpcClients() {
