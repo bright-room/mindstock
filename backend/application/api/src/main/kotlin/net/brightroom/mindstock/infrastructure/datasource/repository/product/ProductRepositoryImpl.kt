@@ -3,6 +3,7 @@ package net.brightroom.mindstock.infrastructure.datasource.repository.product
 import net.brightroom.mindstock.domain.model.catalog.CatalogItem
 import net.brightroom.mindstock.domain.model.household.Household
 import net.brightroom.mindstock.domain.model.product.Product
+import net.brightroom.mindstock.domain.model.product.ProductId
 import net.brightroom.mindstock.domain.model.product.Products
 import net.brightroom.mindstock.domain.repository.product.ProductRepository
 import net.brightroom.mindstock.infrastructure.datasource.repository.catalog.hydrateCatalogItem
@@ -115,6 +116,13 @@ internal class ProductRepositoryImpl : ProductRepository {
                 (ProductsTable.household_id eq household.id().toJavaUuid()) and
                     (ProductsTable.catalog_item_id eq catalogItem.id().toJavaUuid())
             }.singleOrNull()
+            ?.toProduct()
+
+    override fun findById(id: ProductId): Product? =
+        buildJoinedQuery()
+            .selectAll()
+            .where { ProductsTable.id eq id().toJavaUuid() }
+            .singleOrNull()
             ?.toProduct()
 
     private fun ResultRow.toProduct(): Product =

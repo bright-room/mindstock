@@ -3,6 +3,7 @@ package net.brightroom.mindstock.domain.repository.product
 import net.brightroom.mindstock.domain.model.catalog.CatalogItem
 import net.brightroom.mindstock.domain.model.household.Household
 import net.brightroom.mindstock.domain.model.product.Product
+import net.brightroom.mindstock.domain.model.product.ProductId
 import net.brightroom.mindstock.domain.model.product.Products
 
 interface ProductRepository {
@@ -14,4 +15,7 @@ interface ProductRepository {
         household: Household,
         catalogItem: CatalogItem,
     ): Product?
+
+    /** id 引き(主に RPC 経由)。 */
+    fun findById(id: ProductId): Product?
 }
