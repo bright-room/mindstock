@@ -1,6 +1,7 @@
 package net.brightroom.mindstock.infrastructure.datasource.repository.household
 
 import net.brightroom.mindstock.domain.model.household.Household
+import net.brightroom.mindstock.domain.model.household.HouseholdId
 import net.brightroom.mindstock.domain.model.household.HouseholdMember
 import net.brightroom.mindstock.domain.model.household.HouseholdMemberRole
 import net.brightroom.mindstock.domain.model.user.User
@@ -8,6 +9,7 @@ import net.brightroom.mindstock.domain.repository.household.HouseholdRepository
 import net.brightroom.mindstock.infrastructure.datasource.repository.user.toUser
 import net.brightroom.mindstock.infrastructure.datasource.schemas.household.HouseholdMembershipRevocationsTable
 import net.brightroom.mindstock.infrastructure.datasource.schemas.household.HouseholdMembershipsTable
+import net.brightroom.mindstock.infrastructure.datasource.schemas.household.HouseholdsTable
 import net.brightroom.mindstock.infrastructure.datasource.schemas.user.UserDisplayNamesTable
 import net.brightroom.mindstock.infrastructure.datasource.schemas.user.UsersTable
 import org.jetbrains.exposed.v1.core.JoinType
@@ -86,5 +88,58 @@ internal class HouseholdRepositoryImpl : HouseholdRepository {
                 )
             }
         return hydrateHousehold(householdId, members)
+    }
+
+    override fun findById(id: HouseholdId): Household? {
+        val householdJavaUuid = id().toJavaUuid()
+
+        // --- household existence check (returns even if all memberships are revoked) ---
+        val householdExists =
+            HouseholdsTable
+                .select(HouseholdsTable.id)
+                .where { HouseholdsTable.id eq householdJavaUuid }
+                .limit(1)
+                .firstOrNull() != null
+        if (!householdExists) return null
+
+        // --- latest display name per user ---
+        val maxNameIdAlias = UserDisplayNamesTable.id.max().alias("max_name_id")
+        val latestNames =
+            UserDisplayNamesTable
+                .select(UserDisplayNamesTable.user_id, maxNameIdAlias)
+                .groupBy(UserDisplayNamesTable.user_id)
+                .alias("latest_names")
+        val latestNameUserId = latestNames[UserDisplayNamesTable.user_id]
+        val latestNameMaxId = latestNames[maxNameIdAlias]
+
+        // --- full member list of that household (active memberships only) ---
+        val rows =
+            HouseholdMembershipsTable
+                .join(
+                    HouseholdMembershipRevocationsTable,
+                    JoinType.LEFT,
+                    additionalConstraint = {
+                        HouseholdMembershipRevocationsTable.membership_id eq HouseholdMembershipsTable.id
+                    },
+                ).join(UsersTable, JoinType.INNER, onColumn = HouseholdMembershipsTable.user_id, otherColumn = UsersTable.id)
+                .join(latestNames, JoinType.INNER, onColumn = UsersTable.id, otherColumn = latestNameUserId)
+                .join(UserDisplayNamesTable, JoinType.INNER) {
+                    (UserDisplayNamesTable.user_id eq latestNameUserId) and
+                        (UserDisplayNamesTable.id eq latestNameMaxId)
+                }.selectAll()
+                .where {
+                    (HouseholdMembershipsTable.household_id eq householdJavaUuid) and
+                        HouseholdMembershipRevocationsTable.id.isNull()
+                }.orderBy(HouseholdMembershipsTable.id, SortOrder.ASC)
+                .toList()
+
+        val members =
+            rows.map { row ->
+                HouseholdMember(
+                    user = row.toUser(),
+                    role = row[HouseholdMembershipsTable.role],
+                )
+            }
+        return hydrateHousehold(id(), members)
     }
 }

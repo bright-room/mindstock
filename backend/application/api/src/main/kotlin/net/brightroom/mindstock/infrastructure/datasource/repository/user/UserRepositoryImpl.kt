@@ -1,21 +1,29 @@
 package net.brightroom.mindstock.infrastructure.datasource.repository.user
 
 import net.brightroom.mindstock.domain.model.user.User
+import net.brightroom.mindstock.domain.model.user.UserId
 import net.brightroom.mindstock.domain.model.user.auth.AuthIdentity
 import net.brightroom.mindstock.domain.repository.user.UserRepository
 import net.brightroom.mindstock.infrastructure.datasource.schemas.user.UserDisplayNamesTable
 import net.brightroom.mindstock.infrastructure.datasource.schemas.user.UsersTable
 import org.jetbrains.exposed.v1.core.JoinType
+import org.jetbrains.exposed.v1.core.Op
+import org.jetbrains.exposed.v1.core.SqlExpressionBuilder
 import org.jetbrains.exposed.v1.core.alias
 import org.jetbrains.exposed.v1.core.and
 import org.jetbrains.exposed.v1.core.max
 import org.jetbrains.exposed.v1.jdbc.select
 import org.jetbrains.exposed.v1.jdbc.selectAll
 import kotlin.uuid.ExperimentalUuidApi
+import kotlin.uuid.toJavaUuid
 
 @OptIn(ExperimentalUuidApi::class)
 internal class UserRepositoryImpl : UserRepository {
-    override fun findByAuthIdentity(identity: AuthIdentity): User? {
+    override fun findByAuthIdentity(identity: AuthIdentity): User? = queryLatest { UsersTable.zitadel_sub eq identity.subject() }
+
+    override fun findById(id: UserId): User? = queryLatest { UsersTable.id eq id().toJavaUuid() }
+
+    private fun queryLatest(where: SqlExpressionBuilder.() -> Op<Boolean>): User? {
         // Alias the max() expression so QueryAlias.get() can resolve it correctly.
         val maxIdAlias = UserDisplayNamesTable.id.max().alias("max_name_id")
         val latestNames =
@@ -33,7 +41,7 @@ internal class UserRepositoryImpl : UserRepository {
                 (UserDisplayNamesTable.user_id eq latestUserId) and
                     (UserDisplayNamesTable.id eq latestMaxId)
             }.selectAll()
-            .where { UsersTable.zitadel_sub eq identity.subject() }
+            .where { where() }
             .singleOrNull()
             ?.toUser()
     }

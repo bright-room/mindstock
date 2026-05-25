@@ -32,6 +32,7 @@ dependencies {
     implementation(ktorLib.server.callLogging)
     implementation(libs.kotlinx.rpc.server)
     implementation(libs.kotlinx.rpc.server.ktor)
+    implementation(libs.kotlinx.rpc.serialization.json)
     implementation(libs.koin.ktor)
     implementation(libs.logback.classic)
     implementation(libs.kotlin.logging.jvm)
@@ -55,4 +56,5 @@ dependencies {
     testImplementation(libs.testcontainers.junit)
     testImplementation(libs.testcontainers.postgres)
     testImplementation(ktorLib.server.testHost)
+    testImplementation(libs.mockk)
 }

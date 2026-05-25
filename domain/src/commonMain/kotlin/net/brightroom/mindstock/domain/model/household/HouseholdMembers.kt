@@ -1,5 +1,6 @@
 package net.brightroom.mindstock.domain.model.household
 
+import kotlinx.serialization.Serializable
 import net.brightroom.mindstock.domain.model.user.User
 
 /**
@@ -7,8 +8,9 @@ import net.brightroom.mindstock.domain.model.user.User
  *
  * アクティブなメンバーのみを保持(Repository が revoked を除外して読み込む)。
  */
-class HouseholdMembers(
-    private val list: List<HouseholdMember>,
+@Serializable
+data class HouseholdMembers(
+    val list: List<HouseholdMember>,
 ) {
     /** OWNER ロールのメンバーを返す。存在しなければ null。 */
     fun owner(): User? = list.firstOrNull { it.role == HouseholdMemberRole.OWNER }?.user
