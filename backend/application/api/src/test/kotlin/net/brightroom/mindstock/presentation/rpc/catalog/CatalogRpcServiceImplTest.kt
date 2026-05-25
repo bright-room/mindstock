@@ -3,6 +3,7 @@ package net.brightroom.mindstock.presentation.rpc.catalog
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
 import io.ktor.server.application.ApplicationCall
+import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.mockkStatic
@@ -21,6 +22,7 @@ import net.brightroom.mindstock.domain.model.user.auth.AuthProvider
 import net.brightroom.mindstock.domain.model.user.auth.AuthSubject
 import net.brightroom.mindstock.domain.repository.catalog.CatalogItemRepository
 import net.brightroom.mindstock.domain.repository.user.UserRepository
+import org.jetbrains.exposed.v1.jdbc.Database
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
@@ -37,6 +39,7 @@ class CatalogRpcServiceImplTest :
             val catalogItemRepository = mockk<CatalogItemRepository>()
             val userRepository = mockk<UserRepository>()
             val call = mockk<ApplicationCall>()
+            val database = mockk<Database>()
             val user =
                 User(
                     id = UserId(Uuid.parse("00000000-0000-0000-0000-000000000001")),
@@ -51,6 +54,15 @@ class CatalogRpcServiceImplTest :
             every { call.actor(userRepository) } returns user
             every { searchHandler.handle(query, limit) } returns expected
 
+            mockkStatic("net.brightroom.mindstock.configuration.transaction.TransactionKt")
+            coEvery {
+                net.brightroom.mindstock.configuration.transaction
+                    .tx<Any?>(any(), any())
+            } coAnswers {
+                val block = arg<suspend () -> Any?>(1)
+                block()
+            }
+
             val impl =
                 CatalogRpcServiceImpl(
                     searchHandler = searchHandler,
@@ -60,6 +72,7 @@ class CatalogRpcServiceImplTest :
                     catalogItemRepository = catalogItemRepository,
                     userRepository = userRepository,
                     call = call,
+                    database = database,
                 )
             impl.search(query, limit) shouldBe expected
         }

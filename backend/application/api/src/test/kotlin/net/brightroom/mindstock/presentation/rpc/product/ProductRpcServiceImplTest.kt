@@ -3,6 +3,7 @@ package net.brightroom.mindstock.presentation.rpc.product
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
 import io.ktor.server.application.ApplicationCall
+import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.mockkStatic
@@ -32,6 +33,7 @@ import net.brightroom.mindstock.domain.repository.catalog.CatalogItemRepository
 import net.brightroom.mindstock.domain.repository.household.HouseholdRepository
 import net.brightroom.mindstock.domain.repository.product.ProductRepository
 import net.brightroom.mindstock.domain.repository.user.UserRepository
+import org.jetbrains.exposed.v1.jdbc.Database
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
@@ -51,6 +53,7 @@ class ProductRpcServiceImplTest :
             val productRepository = mockk<ProductRepository>()
             val userRepository = mockk<UserRepository>()
             val call = mockk<ApplicationCall>()
+            val database = mockk<Database>()
 
             val user =
                 User(
@@ -81,6 +84,15 @@ class ProductRpcServiceImplTest :
             every { catalogItemRepository.findById(catalogItemId) } returns catalogItem
             every { findHandler.handle(household, catalogItem) } returns product
 
+            mockkStatic("net.brightroom.mindstock.configuration.transaction.TransactionKt")
+            coEvery {
+                net.brightroom.mindstock.configuration.transaction
+                    .tx<Any?>(any(), any())
+            } coAnswers {
+                val block = arg<suspend () -> Any?>(1)
+                block()
+            }
+
             val impl =
                 ProductRpcServiceImpl(
                     listProductsOfHousehold = listHandler,
@@ -93,6 +105,7 @@ class ProductRpcServiceImplTest :
                     productRepository = productRepository,
                     userRepository = userRepository,
                     call = call,
+                    database = database,
                 )
             impl.find(householdId, catalogItemId) shouldBe product
         }

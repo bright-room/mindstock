@@ -7,6 +7,7 @@ import net.brightroom.mindstock.application.usecase.catalog.ReviseCatalogItemHan
 import net.brightroom.mindstock.application.usecase.catalog.SearchCatalogItemsHandler
 import net.brightroom.mindstock.configuration.auth.actor
 import net.brightroom.mindstock.configuration.error.NotFoundException
+import net.brightroom.mindstock.configuration.transaction.tx
 import net.brightroom.mindstock.domain.model.catalog.CatalogItem
 import net.brightroom.mindstock.domain.model.catalog.CatalogItemId
 import net.brightroom.mindstock.domain.model.catalog.CatalogItemName
@@ -16,6 +17,7 @@ import net.brightroom.mindstock.domain.model.user.User
 import net.brightroom.mindstock.domain.repository.catalog.CatalogItemRepository
 import net.brightroom.mindstock.domain.repository.user.UserRepository
 import net.brightroom.mindstock.presentation.rpc.CatalogRpcService
+import org.jetbrains.exposed.v1.jdbc.Database
 
 class CatalogRpcServiceImpl(
     private val searchHandler: SearchCatalogItemsHandler,
@@ -25,6 +27,7 @@ class CatalogRpcServiceImpl(
     private val catalogItemRepository: CatalogItemRepository,
     private val userRepository: UserRepository,
     private val call: ApplicationCall,
+    private val database: Database,
 ) : CatalogRpcService {
     // Memoized for the lifetime of this per-connection Service Impl.
     // NOTE: a rename within the same connection won't refresh this cache until reconnect.
@@ -33,26 +36,28 @@ class CatalogRpcServiceImpl(
     override suspend fun search(
         query: String,
         limit: Int,
-    ): CatalogItems {
-        actor
-        return searchHandler.handle(query, limit)
-    }
+    ): CatalogItems =
+        tx(database) {
+            actor
+            searchHandler.handle(query, limit)
+        }
 
-    override suspend fun findById(id: CatalogItemId): CatalogItem? {
-        actor
-        return findByIdHandler.handle(id)
-    }
+    override suspend fun findById(id: CatalogItemId): CatalogItem? =
+        tx(database) {
+            actor
+            findByIdHandler.handle(id)
+        }
 
     override suspend fun register(
         name: CatalogItemName,
         unit: CatalogItemUnit,
-    ): CatalogItem = registerHandler.handle(name, unit, actor)
+    ): CatalogItem = tx(database) { registerHandler.handle(name, unit, actor) }
 
     override suspend fun revise(
         id: CatalogItemId,
         newName: CatalogItemName,
         newUnit: CatalogItemUnit,
-    ) {
+    ) = tx(database) {
         val catalogItem =
             catalogItemRepository.findById(id)
                 ?: throw NotFoundException("catalog item not found: $id")

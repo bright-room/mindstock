@@ -7,6 +7,7 @@ import net.brightroom.mindstock.application.usecase.household.InviteMemberHandle
 import net.brightroom.mindstock.application.usecase.household.RevokeMembershipHandler
 import net.brightroom.mindstock.configuration.auth.actor
 import net.brightroom.mindstock.configuration.error.NotFoundException
+import net.brightroom.mindstock.configuration.transaction.tx
 import net.brightroom.mindstock.domain.model.household.Household
 import net.brightroom.mindstock.domain.model.household.HouseholdId
 import net.brightroom.mindstock.domain.model.household.HouseholdMemberRole
@@ -15,6 +16,7 @@ import net.brightroom.mindstock.domain.model.user.UserId
 import net.brightroom.mindstock.domain.repository.household.HouseholdRepository
 import net.brightroom.mindstock.domain.repository.user.UserRepository
 import net.brightroom.mindstock.presentation.rpc.HouseholdRpcService
+import org.jetbrains.exposed.v1.jdbc.Database
 
 class HouseholdRpcServiceImpl(
     private val findHouseholdOfUser: FindHouseholdOfUserHandler,
@@ -24,20 +26,21 @@ class HouseholdRpcServiceImpl(
     private val householdRepository: HouseholdRepository,
     private val userRepository: UserRepository,
     private val call: ApplicationCall,
+    private val database: Database,
 ) : HouseholdRpcService {
     // Memoized for the lifetime of this per-connection Service Impl.
     // NOTE: a rename within the same connection won't refresh this cache until reconnect.
     private val actor: User by lazy { call.actor(userRepository) }
 
-    override suspend fun findOf(): Household? = findHouseholdOfUser.handle(actor)
+    override suspend fun findOf(): Household? = tx(database) { findHouseholdOfUser.handle(actor) }
 
-    override suspend fun create(): Household = createHousehold.handle(actor)
+    override suspend fun create(): Household = tx(database) { createHousehold.handle(actor) }
 
     override suspend fun invite(
         householdId: HouseholdId,
         invitee: UserId,
         role: HouseholdMemberRole,
-    ) {
+    ) = tx(database) {
         // TODO(authz): verify actor is a member of household $householdId
         actor
         val household =
@@ -52,7 +55,7 @@ class HouseholdRpcServiceImpl(
     override suspend fun revoke(
         householdId: HouseholdId,
         target: UserId,
-    ) {
+    ) = tx(database) {
         // TODO(authz): verify actor is a member of household $householdId
         actor
         val household =

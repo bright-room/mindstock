@@ -53,6 +53,7 @@ import net.brightroom.mindstock.presentation.rpc.product.ProductRpcServiceImpl
 import net.brightroom.mindstock.presentation.rpc.stock.StockRpcServiceImpl
 import net.brightroom.mindstock.presentation.rpc.user.UserPublicRpcServiceImpl
 import net.brightroom.mindstock.presentation.rpc.user.UserRpcServiceImpl
+import org.jetbrains.exposed.v1.jdbc.Database
 
 fun Application.routingConfigure(
     @Property("ktor.environment") environment: Environment,
@@ -98,11 +99,13 @@ fun Application.routingConfigure(
     val catalogItemRepository: CatalogItemRepository by dependencies
     val productRepository: ProductRepository by dependencies
 
+    val database: Database by dependencies
+
     routing {
         // 認証不要
         rpc("/api/v1/user/public") {
             registerService<UserPublicRpcService> {
-                UserPublicRpcServiceImpl(registerUserHandler)
+                UserPublicRpcServiceImpl(registerUserHandler, database)
             }
         }
         // 認証必要
@@ -114,6 +117,7 @@ fun Application.routingConfigure(
                         renameUserHandler,
                         userRepository,
                         call,
+                        database,
                     )
                 }
             }
@@ -128,6 +132,7 @@ fun Application.routingConfigure(
                         householdRepository,
                         userRepository,
                         call,
+                        database,
                     )
                 }
             }
@@ -142,6 +147,7 @@ fun Application.routingConfigure(
                         catalogItemRepository,
                         userRepository,
                         call,
+                        database,
                     )
                 }
             }
@@ -159,6 +165,7 @@ fun Application.routingConfigure(
                         productRepository,
                         userRepository,
                         call,
+                        database,
                     )
                 }
             }
@@ -175,6 +182,7 @@ fun Application.routingConfigure(
                         householdRepository,
                         userRepository,
                         call,
+                        database,
                     )
                 }
             }
