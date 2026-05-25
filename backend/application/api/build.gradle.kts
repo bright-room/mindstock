@@ -57,4 +57,9 @@ dependencies {
     testImplementation(libs.testcontainers.postgres)
     testImplementation(ktorLib.server.testHost)
     testImplementation(libs.mockk)
+    testImplementation(libs.kotlinx.rpc.client)
+    testImplementation(libs.kotlinx.rpc.client.ktor)
+    testImplementation(ktorLib.client.cio)
+    testImplementation(ktorLib.client.websockets)
+    testImplementation(ktorLib.client.contentNegotiation)
 }
