@@ -18,7 +18,6 @@ import net.brightroom.mindstock.infrastructure.migration.executor.TestContainers
 import net.brightroom.mindstock.infrastructure.migration.executor.testHikariDataSource
 import org.jetbrains.exposed.v1.jdbc.Database
 import javax.sql.DataSource
-import kotlin.uuid.ExperimentalUuidApi
 
 /**
  * 1 e2e test = 1 fresh Postgres schema + 1 testApplication + 1 krpc HttpClient.
@@ -86,13 +85,12 @@ class E2eContext(
     /** Opens a Krpc connection to `/api/v1/$path` with no auth header. */
     fun publicRpcClient(path: String): RpcClient = httpClient.rpc("/api/v1/$path").also { opened += it }
 
-    /** Opens a Krpc connection to `/api/v1/$path` with a Bearer token derived from [asUser]'s id. */
-    @OptIn(ExperimentalUuidApi::class)
+    /** Opens a Krpc connection to `/api/v1/$path` with a Bearer token derived from [asUser]'s AuthSubject. */
     fun authenticatedRpcClient(
         asUser: User,
         path: String,
     ): RpcClient {
-        val token = asUser.id().toString()
+        val token = asUser.authIdentity.subject()
         return httpClient
             .rpc("/api/v1/$path") {
                 authorize(token)

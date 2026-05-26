@@ -1,15 +1,13 @@
 package net.brightroom.mindstock.configuration.auth
 
-import net.brightroom.mindstock.domain.model.user.UserId
-import kotlin.uuid.ExperimentalUuidApi
-import kotlin.uuid.Uuid
+import net.brightroom.mindstock.domain.model.user.auth.AuthIdentity
+import net.brightroom.mindstock.domain.model.user.auth.AuthProvider
+import net.brightroom.mindstock.domain.model.user.auth.AuthSubject
 
 /**
- * 開発・テスト専用の認証スタブ。
- * Bearer token をそのまま UserId (UUID 文字列) として解釈する。
- * 本格的な認証 (JWT 検証等) は別 Plan で置き換える。
+ * 開発・テスト専用の認証スタブ(一時的)。Task 7 で削除する。
+ * Bearer token をそのまま AuthSubject として解釈する。
  */
 object StubAuthProvider {
-    @OptIn(ExperimentalUuidApi::class)
-    fun resolve(token: String): MindstockPrincipal? = runCatching { MindstockPrincipal(UserId(Uuid.parse(token))) }.getOrNull()
+    fun resolve(token: String): MindstockPrincipal = MindstockPrincipal(AuthIdentity(AuthProvider.ZITADEL, AuthSubject(token)))
 }
