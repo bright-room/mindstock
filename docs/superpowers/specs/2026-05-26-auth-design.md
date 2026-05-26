@@ -142,7 +142,7 @@ Browser の `WebSocket` API は `Authorization` ヘッダを設定できない�
 ### 4.2 プロトコル設計
 
 クライアントは handshake で:
-```
+```http
 Sec-WebSocket-Protocol: mindstock.v1, mindstock.bearer.<base64url(jwt)>
 ```
 を送る。

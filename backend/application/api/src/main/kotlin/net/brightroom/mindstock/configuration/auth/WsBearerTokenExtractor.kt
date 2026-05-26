@@ -5,6 +5,7 @@ import io.ktor.http.auth.AuthScheme
 import io.ktor.http.auth.HttpAuthHeader
 import io.ktor.server.application.ApplicationCall
 import io.ktor.server.request.header
+import java.nio.charset.StandardCharsets
 import java.util.Base64
 
 /**
@@ -21,7 +22,7 @@ object WsBearerTokenExtractor {
         call.request.header(HttpHeaders.Authorization)?.let { value ->
             val parts = value.trim().split(" ", limit = 2)
             if (parts.size == 2 && parts[0].equals(AuthScheme.Bearer, ignoreCase = true)) {
-                return HttpAuthHeader.Single(AuthScheme.Bearer, parts[1])
+                return HttpAuthHeader.Single(AuthScheme.Bearer, parts[1].trim())
             }
         }
         val protocols =
@@ -33,7 +34,7 @@ object WsBearerTokenExtractor {
         val b64 = bearerEntry.removePrefix(WS_PROTOCOL_BEARER_PREFIX)
         val decoded =
             runCatching {
-                String(Base64.getUrlDecoder().decode(b64))
+                String(Base64.getUrlDecoder().decode(b64), StandardCharsets.UTF_8)
             }.getOrElse { return null }
         return HttpAuthHeader.Single(AuthScheme.Bearer, decoded)
     }
