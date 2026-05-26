@@ -21,5 +21,50 @@ services:
       retries: 3
     restart: "unless-stopped"
 
+  zitadel-db:
+    image: "postgres:18.0-alpine"
+    container_name: "mindstock-zitadel-db"
+    environment:
+      POSTGRES_DB: "zitadel"
+      POSTGRES_USER: "zitadel"
+      POSTGRES_PASSWORD: "zitadel"
+      POSTGRES_INITDB_ARGS: "--encoding=UTF-8 --locale=C"
+      TZ: "Asia/Tokyo"
+    volumes:
+      - "mindstock-zitadel-pgdata:/var/lib/postgresql"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U zitadel -d zitadel"]
+      interval: "20s"
+      timeout: "5s"
+      retries: 3
+    restart: "unless-stopped"
+
+  zitadel:
+    image: "ghcr.io/zitadel/zitadel:v2.71.0"
+    container_name: "mindstock-zitadel"
+    command: 'start-from-init --masterkey "MasterkeyNeedsToHave32Characters" --tlsMode disabled'
+    environment:
+      ZITADEL_DATABASE_POSTGRES_HOST: "zitadel-db"
+      ZITADEL_DATABASE_POSTGRES_PORT: "5432"
+      ZITADEL_DATABASE_POSTGRES_DATABASE: "zitadel"
+      ZITADEL_DATABASE_POSTGRES_USER_USERNAME: "zitadel"
+      ZITADEL_DATABASE_POSTGRES_USER_PASSWORD: "zitadel"
+      ZITADEL_DATABASE_POSTGRES_USER_SSL_MODE: "disable"
+      ZITADEL_DATABASE_POSTGRES_ADMIN_USERNAME: "zitadel"
+      ZITADEL_DATABASE_POSTGRES_ADMIN_PASSWORD: "zitadel"
+      ZITADEL_DATABASE_POSTGRES_ADMIN_SSL_MODE: "disable"
+      ZITADEL_EXTERNALSECURE: "false"
+      ZITADEL_EXTERNALDOMAIN: "localhost"
+      ZITADEL_EXTERNALPORT: "8081"
+      ZITADEL_FIRSTINSTANCE_ORG_HUMAN_EMAIL_ADDRESS: "admin@localhost"
+      ZITADEL_FIRSTINSTANCE_ORG_HUMAN_PASSWORD: "Password1!"
+    ports:
+      - "8081:8080"
+    depends_on:
+      zitadel-db:
+        condition: "service_healthy"
+    restart: "unless-stopped"
+
 volumes:
   mindstock-pgdata:
+  mindstock-zitadel-pgdata:
