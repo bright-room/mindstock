@@ -17,8 +17,9 @@ class UserPublicRpcServiceImpl(
     private val database: Database,
 ) : UserPublicRpcService {
     override suspend fun register(displayName: DisplayName): User {
-        val principal = call.principal<MindstockPrincipal>()
-            ?: throw UnauthorizedException("missing principal")
+        val principal =
+            call.principal<MindstockPrincipal>()
+                ?: throw UnauthorizedException("missing principal")
         return tx(database) { registerUser.handle(principal.authIdentity, displayName) }
     }
 }

@@ -10,37 +10,35 @@ import net.brightroom.mindstock.domain.model.user.auth.AuthIdentity
 import net.brightroom.mindstock.domain.model.user.auth.AuthProvider
 import net.brightroom.mindstock.domain.model.user.auth.AuthSubject
 import net.brightroom.mindstock.domain.repository.user.UserRepository
+import net.brightroom.mindstock.e2e.auth.TestJwtIssuer
 import net.brightroom.mindstock.e2e.e2eTest
 import net.brightroom.mindstock.infrastructure.datasource.repository.user.UserRepositoryImpl
 import net.brightroom.mindstock.presentation.rpc.UserPublicRpcService
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 
 /**
- * E2E for [UserPublicRpcService]: WebSocket → kRPC → Handler → Repository → Postgres.
+ * E2E for [UserPublicRpcService]: WebSocket → JWT(`user-public` realm) → kRPC → Handler → Repository → Postgres.
  *
- * Note on invariant tests: the only argument-level invariant on [UserPublicRpcService.register]
- * is `DisplayName` non-blank/length, which is enforced by the domain VO's `init { require(...) }`
- * and therefore fires **client-side** at parameter construction — it never reaches the server.
- *
- * Server-side errors (e.g. uniqueness violation on `(provider, subject)`) DO propagate to the
- * awaiting client suspend call as a thrown exception — see the "propagates server exception"
- * test below, which pins down the behaviour. See [net.brightroom.mindstock.configuration.transaction.tx]
- * for why this requires a `supervisorScope` wrapper around `newSuspendedTransaction`.
+ * `register()` no longer takes `AuthIdentity`; it derives the identity from the verified
+ * JWT `sub` (mapped to `AuthProvider.ZITADEL`) on the server side. The tests below issue
+ * real JWTs through [TestJwtIssuer] / [SharedJwksServer] and assert the persisted identity
+ * matches the token's subject.
  */
 class UserPublicRpcServiceE2eTest :
     FunSpec({
-        test("register persists a new User and returns it with assigned id") {
+        test("register persists a new User keyed off the JWT sub and returns it with assigned id") {
             e2eTest {
-                val rpc = publicRpcClient("user/public").withService<UserPublicRpcService>()
-                val identity = AuthIdentity(AuthProvider.ZITADEL, AuthSubject("user-1"))
-                val user =
-                    rpc.register(
-                        displayName = DisplayName("Alice"),
-                        authIdentity = identity,
-                    )
+                val sub = "new-user-sub"
+                val token = TestJwtIssuer.issue(subject = sub)
+                val rpc =
+                    authenticatedRpcClientWithToken(token = token, path = "user/public")
+                        .withService<UserPublicRpcService>()
 
+                val user = rpc.register(DisplayName("Alice"))
+
+                val expectedIdentity = AuthIdentity(AuthProvider.ZITADEL, AuthSubject(sub))
                 user.displayName shouldBe DisplayName("Alice")
-                user.authIdentity shouldBe identity
+                user.authIdentity shouldBe expectedIdentity
 
                 val persisted =
                     transaction(database) {
@@ -48,7 +46,7 @@ class UserPublicRpcServiceE2eTest :
                     }
                 persisted.shouldNotBeNull()
                 persisted.displayName shouldBe DisplayName("Alice")
-                persisted.authIdentity shouldBe identity
+                persisted.authIdentity shouldBe expectedIdentity
             }
         }
 
@@ -56,23 +54,26 @@ class UserPublicRpcServiceE2eTest :
         // Regression guard for the `tx` helper's `supervisorScope` wrapper: if that wrapper
         // is removed, the server-side ExposedSQLException's cancellation leaks past kRPC
         // and brings down the testApplication scope, failing the test *after* the catch.
-        test("register propagates server exception (duplicate auth identity) to client") {
+        test("register propagates server exception (duplicate sub) to client") {
             e2eTest {
-                val rpc = publicRpcClient("user/public").withService<UserPublicRpcService>()
-                val identity = AuthIdentity(AuthProvider.ZITADEL, AuthSubject("dupe-subject"))
-                rpc.register(DisplayName("First"), identity)
+                val dupeSub = "dupe-subject"
+                val dupeToken = TestJwtIssuer.issue(subject = dupeSub)
+                val rpc =
+                    authenticatedRpcClientWithToken(token = dupeToken, path = "user/public")
+                        .withService<UserPublicRpcService>()
+                rpc.register(DisplayName("First"))
 
                 shouldThrowAny {
-                    rpc.register(DisplayName("Second"), identity)
+                    rpc.register(DisplayName("Second"))
                 }
 
-                // The connection must still be usable after the failure — proves the
-                // exception did not also leak via the server's connection scope.
-                val third =
-                    rpc.register(
-                        DisplayName("Third"),
-                        AuthIdentity(AuthProvider.ZITADEL, AuthSubject("different-subject")),
-                    )
+                // The pipeline must still be usable for a *different* sub after the failure
+                // — proves the exception did not also leak via the server's connection scope.
+                val freshToken = TestJwtIssuer.issue(subject = "different-subject")
+                val freshRpc =
+                    authenticatedRpcClientWithToken(token = freshToken, path = "user/public")
+                        .withService<UserPublicRpcService>()
+                val third = freshRpc.register(DisplayName("Third"))
                 third.displayName shouldBe DisplayName("Third")
             }
         }
