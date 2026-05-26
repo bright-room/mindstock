@@ -271,11 +271,11 @@ suspend fun register(displayName: DisplayName): User
 
 ### 7.1 e2e ヘルパーの設計
 
-Zitadel コンテナはテストでは使わない。テストプロセス内で RSA 鍵ペアを生成し、JWKS を testApplication の routing にスタブ host する:
+Zitadel コンテナはテストでは使わない。テストプロセス内で RSA 鍵ペアを生成し、JWKS endpoint は test suite 単位の singleton として `embeddedServer(CIO, port=0)` で起動した実 HTTP サーバで host する (`JwkProvider` は実 HTTP 接続を要求するため、testApplication 内 routing では満たせない)。動的ポートを `external.auth.jwks-url` に注入する:
 
 1. テスト suite 起動時に静的 RSA 鍵ペアを 1 つ生成(`TestKeyPair`)
-2. testApplication 内で `routing { get("/test-jwks") { call.respondText(jwks json) } }` を追加し、JWKS endpoint をスタブ
-3. testApplication の `environment { config = MapApplicationConfig(...) }` で `auth.issuer`, `auth.jwks-url`, `auth.audience` を上書き(`test-issuer`, `http://localhost:.../test-jwks`, `mindstock-backend-test`)
+2. suite 単位の singleton `SharedJwksServer` (`embeddedServer(CIO, port=0)`) で `/test-jwks` を host し、起動後に割り当てられた動的ポートを取得
+3. testApplication の `environment { config = MapApplicationConfig(...) }` で `auth.issuer`, `auth.jwks-url`, `auth.audience` を上書き(`test-issuer`, `http://localhost:<dynamic-port>/test-jwks`, `mindstock-backend-test`)
 4. `authenticatedRpcClient(asUser = user)` が:
    - `user.authIdentity.subject` を sub に入れて `TestJwtIssuer` で署名
    - WS 接続時に `Sec-WebSocket-Protocol: mindstock.v1, mindstock.bearer.<token>` を付与
