@@ -19,14 +19,14 @@ http://localhost:8081 が応答するまで 30 秒ほど待つ。
 2. `admin@localhost` / `Password1!` でログイン
 3. Project `mindstock` を作成
 4. Application `mindstock-frontend` を「User Agent (PKCE)」で作成
-5. API `mindstock-backend` を「JWT」で作成し、Audience を `mindstock-backend` に設定
+5. API `mindstock-backend` を「JWT」で作成。作成後に表示される Resource ID(数値文字列)をコピーして `AUTH_AUDIENCE` に設定する
 
-### backend 用の環境変数 (デフォルト値で動く)
+### backend 用の環境変数
 
 ```sh
 AUTH_ISSUER="http://localhost:8081"
-AUTH_AUDIENCE="mindstock-backend"
+AUTH_AUDIENCE="<API mindstock-backend の Resource ID をここに>"
 AUTH_JWKS_URL="http://localhost:8081/oauth/v2/keys"
 ```
 
-これらは `application.yaml` のデフォルトで埋まっているため、ローカル開発では設定不要。
+`AUTH_AUDIENCE` は初回セットアップで Zitadel が割り当てる Resource ID(数値文字列)なので、必ず実際の値で上書きすること(`application.yaml` のデフォルト `mindstock-backend` のままだと、Zitadel access_token の `aud` claim と一致せず検証失敗となる)。
