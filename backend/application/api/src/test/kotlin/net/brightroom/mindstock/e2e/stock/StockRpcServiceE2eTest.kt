@@ -159,6 +159,12 @@ class StockRpcServiceE2eTest :
                 history.list[0].shouldBeInstanceOf<Replenishment>()
                 history.list[1].shouldBeInstanceOf<Consumption>()
                 history.list[2].shouldBeInstanceOf<Replenishment>()
+                history.list.map { it.occurredAt } shouldBe
+                    listOf(
+                        OccurredAt(Instant.parse("2026-05-26T10:00:00Z")),
+                        OccurredAt(Instant.parse("2026-05-26T09:00:00Z")),
+                        OccurredAt(Instant.parse("2026-05-26T08:00:00Z")),
+                    )
             }
         }
 

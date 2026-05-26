@@ -87,8 +87,8 @@ testImplementation(ktorLib.client.contentNegotiation)
 
 - [ ] **Step 4: build 確認**
 
-```
-cd /Users/nonaka.koki/dev/ghq/github.com/bright-room/mindstock
+```bash
+cd "$(git rev-parse --show-toplevel)"
 ./gradlew :backend:application:api:dependencies --configuration testRuntimeClasspath 2>&1 | grep -E "kotlinx-rpc-krpc-client|ktor-client-cio"
 ```
 
@@ -96,7 +96,7 @@ cd /Users/nonaka.koki/dev/ghq/github.com/bright-room/mindstock
 
 - [ ] **Step 5: Commit**
 
-```
+```bash
 git add gradle/libs.versions.toml backend/application/api/build.gradle.kts
 git commit -m "build(test): add kotlinx-rpc client + Ktor WebSocket client deps for e2e tests"
 ```
@@ -252,7 +252,7 @@ class SmokeE2eTest : FunSpec({
 
 - [ ] **Step 3: 実行と debugging loop**
 
-```
+```bash
 ./gradlew :backend:application:api:test --tests "net.brightroom.mindstock.e2e.SmokeE2eTest"
 ```
 
@@ -269,7 +269,7 @@ class SmokeE2eTest : FunSpec({
 
 smoke テストは今後の Task 4 の正式 `UserPublicRpcServiceE2eTest` で吸収するので、Task 4 完了時に削除する。Plan 7 完了時点で smoke ファイルは残らない。
 
-```
+```bash
 git add backend/application/api/src/test/kotlin/net/brightroom/mindstock/e2e/E2eTestSupport.kt \
         backend/application/api/src/test/kotlin/net/brightroom/mindstock/e2e/SmokeE2eTest.kt
 git commit -m "test(e2e): add E2eTestSupport scaffold + smoke test proving full RPC wiring"
@@ -368,7 +368,7 @@ fun E2eContext.seedProduct(
 
 - [ ] **Step 3: コンパイル確認**
 
-```
+```bash
 ./gradlew :backend:application:api:compileTestKotlin
 ```
 
@@ -376,7 +376,7 @@ fun E2eContext.seedProduct(
 
 - [ ] **Step 4: Commit**
 
-```
+```bash
 git add backend/application/api/src/test/kotlin/net/brightroom/mindstock/e2e/Fixtures.kt
 git commit -m "test(e2e): add seed helpers (seedUser/seedHousehold/seedCatalogItem/seedProduct)"
 ```
@@ -460,7 +460,7 @@ class UserPublicRpcServiceE2eTest : FunSpec({
 
 - [ ] **Step 2: 実行**
 
-```
+```bash
 ./gradlew :backend:application:api:test --tests "net.brightroom.mindstock.e2e.user.UserPublicRpcServiceE2eTest"
 ```
 
@@ -474,7 +474,7 @@ git rm backend/application/api/src/test/kotlin/net/brightroom/mindstock/e2e/Smok
 
 - [ ] **Step 4: Commit**
 
-```
+```bash
 git add backend/application/api/src/test/kotlin/net/brightroom/mindstock/e2e/user/UserPublicRpcServiceE2eTest.kt
 git rm backend/application/api/src/test/kotlin/net/brightroom/mindstock/e2e/SmokeE2eTest.kt
 git commit -m "test(e2e): cover UserPublicRpcService.register and drop smoke placeholder"
@@ -571,13 +571,13 @@ private fun fakeUserWithId(uuid: Uuid): User =
 
 - [ ] **Step 2: 実行**
 
-```
+```bash
 ./gradlew :backend:application:api:test --tests "*UserRpcServiceE2eTest"
 ```
 
 - [ ] **Step 3: Commit**
 
-```
+```bash
 git add backend/application/api/src/test/kotlin/net/brightroom/mindstock/e2e/user/UserRpcServiceE2eTest.kt
 git commit -m "test(e2e): cover UserRpcService.rename happy/no-auth/unknown-id"
 ```
@@ -715,13 +715,13 @@ class HouseholdRpcServiceE2eTest : FunSpec({
 
 - [ ] **Step 2: 実行 → 期待: 6 テスト PASS**
 
-```
+```bash
 ./gradlew :backend:application:api:test --tests "*HouseholdRpcServiceE2eTest"
 ```
 
 - [ ] **Step 3: Commit**
 
-```
+```bash
 git add backend/application/api/src/test/kotlin/net/brightroom/mindstock/e2e/household/
 git commit -m "test(e2e): cover HouseholdRpcService (findOf/create/invite/revoke + NotFound)"
 ```
@@ -844,7 +844,7 @@ class CatalogRpcServiceE2eTest : FunSpec({
 
 - [ ] **Step 2: 実行 + Commit**
 
-```
+```bash
 ./gradlew :backend:application:api:test --tests "*CatalogRpcServiceE2eTest"
 git add backend/application/api/src/test/kotlin/net/brightroom/mindstock/e2e/catalog/
 git commit -m "test(e2e): cover CatalogRpcService (register/findById/search/revise + invariant)"
@@ -1015,7 +1015,7 @@ class ProductRpcServiceE2eTest : FunSpec({
 
 - [ ] **Step 2: 実行 + Commit**
 
-```
+```bash
 ./gradlew :backend:application:api:test --tests "*ProductRpcServiceE2eTest"
 git add backend/application/api/src/test/kotlin/net/brightroom/mindstock/e2e/product/
 git commit -m "test(e2e): cover ProductRpcService (CRUD + NotFound + tx rollback)"
@@ -1221,7 +1221,7 @@ class StockRpcServiceE2eTest : FunSpec({
 
 - [ ] **Step 2: 実行 + Commit**
 
-```
+```bash
 ./gradlew :backend:application:api:test --tests "*StockRpcServiceE2eTest"
 git add backend/application/api/src/test/kotlin/net/brightroom/mindstock/e2e/stock/
 git commit -m "test(e2e): cover StockRpcService (replenish/consume/get/list/history + edge cases)"
@@ -1235,7 +1235,7 @@ git commit -m "test(e2e): cover StockRpcService (replenish/consume/get/list/hist
 
 - [ ] **Step 1: 全 e2e テスト実行**
 
-```
+```bash
 ./gradlew :backend:application:api:test --tests "net.brightroom.mindstock.e2e.*"
 ```
 
@@ -1245,7 +1245,7 @@ git commit -m "test(e2e): cover StockRpcService (replenish/consume/get/list/hist
 
 - [ ] **Step 2: 全ビルド**
 
-```
+```bash
 ./gradlew build
 ./gradlew check
 ```
@@ -1255,14 +1255,14 @@ git commit -m "test(e2e): cover StockRpcService (replenish/consume/get/list/hist
 - [ ] **Step 3: もし failing test があれば修正コミット**
 
 修正は元のタスクに紐付ける形で:
-```
+```bash
 git commit -m "fix(e2e): adjust <test> after observing actual <thing>"
 ```
 
 - [ ] **Step 4: PR 作成準備**
 
 ブランチ `feat/integration-tests` は既に origin に push する必要あり:
-```
+```bash
 git push -u origin feat/integration-tests
 ```
 

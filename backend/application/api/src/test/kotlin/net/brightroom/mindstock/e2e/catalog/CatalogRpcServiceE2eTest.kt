@@ -2,7 +2,9 @@ package net.brightroom.mindstock.e2e.catalog
 
 import io.kotest.assertions.throwables.shouldThrowAny
 import io.kotest.core.spec.style.FunSpec
+import io.kotest.matchers.collections.shouldContain
 import io.kotest.matchers.collections.shouldHaveAtLeastSize
+import io.kotest.matchers.collections.shouldNotContain
 import io.kotest.matchers.nulls.shouldBeNull
 import io.kotest.matchers.nulls.shouldNotBeNull
 import io.kotest.matchers.shouldBe
@@ -84,6 +86,10 @@ class CatalogRpcServiceE2eTest :
                 val results = rpc.search("Apple", limit = 50)
 
                 results.list shouldHaveAtLeastSize 2
+                val names = results.list.map { it.name }
+                names shouldContain CatalogItemName("Apple Juice")
+                names shouldContain CatalogItemName("Apple Pie")
+                names shouldNotContain CatalogItemName("Banana")
             }
         }
 
