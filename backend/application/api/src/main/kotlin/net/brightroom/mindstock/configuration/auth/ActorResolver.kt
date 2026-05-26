@@ -8,9 +8,11 @@ import net.brightroom.mindstock.domain.repository.user.UserRepository
 
 /**
  * 認証済み呼び出し元の User 集約を解決する。
- * Principal が無い、あるいは UserId に紐づく User が存在しない場合は [UnauthorizedException] を投げる。
+ *
+ * 1. Principal が無い → [UnauthorizedException]("missing principal")
+ * 2. AuthIdentity に紐づく User が DB に存在しない → [UnauthorizedException]("unknown user")
  */
 fun ApplicationCall.actor(userRepository: UserRepository): User {
     val principal = principal<MindstockPrincipal>() ?: throw UnauthorizedException("missing principal")
-    return userRepository.findById(principal.userId) ?: throw UnauthorizedException("unknown user")
+    return userRepository.findByAuthIdentity(principal.authIdentity) ?: throw UnauthorizedException("unknown user")
 }

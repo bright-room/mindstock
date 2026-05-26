@@ -23,3 +23,7 @@ external:
       maximum-pool-size: 10
       auto-commit: false
       transaction-isolation: "TRANSACTION_REPEATABLE_READ"
+  auth:
+    issuer: "$AUTH_ISSUER:http://localhost:8081"
+    audience: "$AUTH_AUDIENCE:mindstock-backend"
+    jwks-url: "$AUTH_JWKS_URL:http://localhost:8081/oauth/v2/keys"
