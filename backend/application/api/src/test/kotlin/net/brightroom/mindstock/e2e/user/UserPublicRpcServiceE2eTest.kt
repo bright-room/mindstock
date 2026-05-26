@@ -1,5 +1,6 @@
 package net.brightroom.mindstock.e2e.user
 
+import io.kotest.assertions.throwables.shouldThrowAny
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.nulls.shouldNotBeNull
 import io.kotest.matchers.shouldBe
@@ -21,12 +22,10 @@ import org.jetbrains.exposed.v1.jdbc.transactions.transaction
  * is `DisplayName` non-blank/length, which is enforced by the domain VO's `init { require(...) }`
  * and therefore fires **client-side** at parameter construction — it never reaches the server.
  *
- * The next candidate was a server-side uniqueness violation on `(provider, subject)` (the
- * `users_zitadel_sub_unique` index). Empirically the resulting `ExposedSQLException` does
- * thrown server-side but is **not propagated synchronously to the kRPC client suspend call**
- * in the current setup — it surfaces asynchronously on channel/teardown and is not catchable
- * via `shouldThrowAny { rpc.register(...) }`. Validating that behaviour properly belongs in
- * an RPC error-handling task, not here, so we keep just the happy-path persistence test.
+ * Server-side errors (e.g. uniqueness violation on `(provider, subject)`) DO propagate to the
+ * awaiting client suspend call as a thrown exception — see the "propagates server exception"
+ * test below, which pins down the behaviour. See [net.brightroom.mindstock.configuration.transaction.tx]
+ * for why this requires a `supervisorScope` wrapper around `newSuspendedTransaction`.
  */
 class UserPublicRpcServiceE2eTest :
     FunSpec({
@@ -50,6 +49,31 @@ class UserPublicRpcServiceE2eTest :
                 persisted.shouldNotBeNull()
                 persisted.displayName shouldBe DisplayName("Alice")
                 persisted.authIdentity shouldBe identity
+            }
+        }
+
+        // Pinning test for the server→client exception propagation contract.
+        // Regression guard for the `tx` helper's `supervisorScope` wrapper: if that wrapper
+        // is removed, the server-side ExposedSQLException's cancellation leaks past kRPC
+        // and brings down the testApplication scope, failing the test *after* the catch.
+        test("register propagates server exception (duplicate auth identity) to client") {
+            e2eTest {
+                val rpc = publicRpcClient("user/public").withService<UserPublicRpcService>()
+                val identity = AuthIdentity(AuthProvider.ZITADEL, AuthSubject("dupe-subject"))
+                rpc.register(DisplayName("First"), identity)
+
+                shouldThrowAny {
+                    rpc.register(DisplayName("Second"), identity)
+                }
+
+                // The connection must still be usable after the failure — proves the
+                // exception did not also leak via the server's connection scope.
+                val third =
+                    rpc.register(
+                        DisplayName("Third"),
+                        AuthIdentity(AuthProvider.ZITADEL, AuthSubject("different-subject")),
+                    )
+                third.displayName shouldBe DisplayName("Third")
             }
         }
     })
