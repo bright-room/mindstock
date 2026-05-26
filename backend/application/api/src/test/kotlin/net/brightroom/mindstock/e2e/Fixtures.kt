@@ -29,7 +29,12 @@ import kotlin.uuid.Uuid
  */
 
 @OptIn(ExperimentalUuidApi::class)
-private fun shortRandom(): String = Uuid.random().toString().replace("-", "").take(8)
+private fun shortRandom(): String =
+    Uuid
+        .random()
+        .toString()
+        .replace("-", "")
+        .take(8)
 
 fun E2eContext.seedUser(
     displayName: String = "User-${shortRandom()}",
