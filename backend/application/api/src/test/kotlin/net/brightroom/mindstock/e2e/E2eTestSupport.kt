@@ -28,6 +28,7 @@ import net.brightroom.mindstock.infrastructure.migration.executor.MigrationRunne
 import net.brightroom.mindstock.infrastructure.migration.executor.TestContainersPostgres
 import net.brightroom.mindstock.infrastructure.migration.executor.testHikariDataSource
 import org.jetbrains.exposed.v1.jdbc.Database
+import java.util.Base64
 import javax.sql.DataSource
 
 private const val TEST_JWKS_PATH = "/test-jwks"
@@ -146,6 +147,18 @@ class E2eContext(
             .rpc("/api/v1/$path") {
                 authorize(token)
             }.also { opened += it }
+
+    /** Sec-WebSocket-Protocol で token を渡して接続する。 */
+    fun authenticatedRpcClientViaWsProtocol(
+        token: String,
+        path: String,
+    ): RpcClient {
+        val b64 = Base64.getUrlEncoder().withoutPadding().encodeToString(token.toByteArray())
+        return httpClient
+            .rpc("/api/v1/$path") {
+                headers.append(HttpHeaders.SecWebSocketProtocol, "mindstock.v1, mindstock.bearer.$b64")
+            }.also { opened += it }
+    }
 
     internal fun closeOpenedRpcClients() {
         opened.forEach { it.close("e2e test completed") }

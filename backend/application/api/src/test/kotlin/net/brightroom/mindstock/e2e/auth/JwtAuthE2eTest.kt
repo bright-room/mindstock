@@ -74,6 +74,16 @@ class JwtAuthE2eTest :
             }
         }
 
+        test("token via Sec-WebSocket-Protocol succeeds") {
+            e2eTest {
+                val user = seedUser(displayName = "Alice")
+                val token = TestJwtIssuer.issue(subject = user.authIdentity.subject())
+                val rpc =
+                    authenticatedRpcClientViaWsProtocol(token = token, path = "user").withService<UserRpcService>()
+                rpc.rename(DisplayName("Renamed"))
+            }
+        }
+
         test("unregistered sub may call register via user-public realm") {
             e2eTest {
                 val newSub = "brand-new-user-sub"
