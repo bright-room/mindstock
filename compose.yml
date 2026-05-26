@@ -22,7 +22,7 @@ services:
     restart: "unless-stopped"
 
   zitadel-db:
-    image: "postgres:18.0-alpine"
+    image: "postgres:17-alpine"
     container_name: "mindstock-zitadel-db"
     environment:
       POSTGRES_DB: "zitadel"

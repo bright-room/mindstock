@@ -186,7 +186,7 @@ services:
   postgres:               # 既存 (mindstock app DB)
     ...
   zitadel-db:             # Zitadel 専用 PG
-    image: postgres:18.0-alpine
+    image: postgres:17-alpine
     environment:
       POSTGRES_DB: zitadel
       POSTGRES_USER: zitadel
@@ -235,6 +235,7 @@ volumes:
 - masterkey はローカル開発用の固定値。本番では別管理(別 Plan)
 - ports 衝突回避のため Zitadel はホスト側 8081 に出す(コンテナ内は 8080)
 - バージョン pin は実装時の最新 stable に合わせる
+- zitadel-db は PG 17 系を使う(Zitadel v2.71.0 は PG 18 の partitioned unlogged table 制約と非互換)
 
 ## 6. ドメイン・リポジトリ層への影響
 
