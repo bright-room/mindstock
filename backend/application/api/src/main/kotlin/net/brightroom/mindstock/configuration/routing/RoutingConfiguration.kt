@@ -103,13 +103,16 @@ fun Application.routingConfigure(
     val database: Database by dependencies
 
     routing {
-        // 認証不要
-        rpc("/api/v1/user/public") {
-            registerService<UserPublicRpcService> {
-                UserPublicRpcServiceImpl(registerUserHandler, database)
+        // JWT 検証は通すが User 未登録でも通る (register 専用)
+        authenticate("user-public") {
+            rpc("/api/v1/user/public") {
+                val call = this.applicationCall
+                registerService<UserPublicRpcService> {
+                    UserPublicRpcServiceImpl(registerUserHandler, call, database)
+                }
             }
         }
-        // 認証必要
+        // JWT 検証 + User 登録チェック
         authenticate("user") {
             rpc("/api/v1/user") {
                 val call = this.applicationCall
