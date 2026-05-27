@@ -50,6 +50,7 @@ class AuthClientTest {
             assertTrue(body.contains("grant_type=authorization_code"))
             assertTrue(body.contains("code=THE_CODE"))
             assertTrue(body.contains("client_id=c1"))
+            assertTrue(body.contains("redirect_uri=https%3A%2F%2Fapp.example%2Fauth%2Fcallback"))
             assertTrue(body.contains("code_verifier=THE_VERIFIER"))
             respond(
                 """{"access_token":"AT","refresh_token":"RT","id_token":"IT","expires_in":3600,"token_type":"Bearer"}""",
@@ -71,6 +72,7 @@ class AuthClientTest {
             val body = (req.body as io.ktor.http.content.OutgoingContent.ByteArrayContent).bytes().decodeToString()
             assertTrue(body.contains("grant_type=refresh_token"))
             assertTrue(body.contains("refresh_token=OLD_RT"))
+            assertTrue(body.contains("client_id=c1"))
             respond(
                 """{"access_token":"AT2","refresh_token":"NEW_RT","id_token":"IT2","expires_in":3600,"token_type":"Bearer"}""",
                 HttpStatusCode.OK,
