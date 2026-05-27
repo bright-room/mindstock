@@ -84,6 +84,8 @@ frontend は現在 `App.kt` が `Text("mindstock")` のスタブのみ。backend
 
 `scope` の `urn:zitadel:iam:org:project:id:${project_id}:aud` は Zitadel 特有の指定で、これがないと access_token の `aud` が backend が期待する API Resource ID にならない。Plan 8 で `AUTH_AUDIENCE` に設定した値と一致させるため、`project_id` も env で注入する。
 
+加えて、Zitadel の Application 設定で **Access Token Type = JWT** にする必要がある。デフォルトの "Bearer" は opaque token を返し backend の JWT 検証を通らない。これは Zitadel 管理 UI 側の設定で、コードでは制御できない(README に記載する)。
+
 ### 3.2 起動時のブートストラップ
 
 ```
@@ -103,12 +105,13 @@ AuthBootstrap.start():
   Authenticating:
       rpc = RpcClientFactory.create(tokens.access_token)
       try rpc<HouseholdRpcService>.findOf()  // user レルムに ping
-        → 成功:        state = Ready
-        → 401:         state = NeedRegister
-        → その他失敗: state = Error
+        → 成功:                 state = Ready
+        → 例外(任意):           state = NeedRegister  ※下記参照
 ```
 
-ping に使う RPC は「副作用なし・必ず authenticate 必須・1 RPC で済む」もの。`HouseholdRpcService.findOf(): Household?` を採用(401 = 未登録、null = 世帯未作成だが User 登録済み、Household = Ready)。
+ping に使う RPC は「副作用なし・必ず authenticate 必須・1 RPC で済む」もの。`HouseholdRpcService.findOf(): Household?` を採用(成功 = User 登録済み、例外 = User 未登録の可能性が最も高い)。
+
+**ping の例外を全て `NeedRegister` 扱いにする理由**: ブラウザの WebSocket API は handshake 失敗時の HTTP ステータスを JS に公開しない仕様(セキュリティ上の制約)。そのため kotlinx-rpc は 401 と他の失敗を区別できず `WebSocketException` をひと括りで投げる。初回ログインの典型的な失敗は「User 未登録による 401」なので、ping 失敗は `NeedRegister` に倒し RegisterDialog を表示する。本物のネットワーク障害でも RegisterDialog が出てしまうが、その場合は続く `register` 呼び出しも失敗するので dialog 上にエラーが出る(回復可能)。より堅牢な切り分けを行うには HTTP-based の health endpoint を別途用意する必要があり、後続 Plan に積む。
 
 ### 3.3 401 リトライ
 
@@ -163,17 +166,33 @@ auth/
   AuthCallbackHandler.kt ── /auth/callback の処理 (state 照合 + token 交換)
 
 rpc/
-  RpcClientFactory.kt    ── access_token を受け取って kotlinx-rpc client を作る/破棄する
-                            Sec-WebSocket-Protocol: mindstock.v1, mindstock.bearer.<b64url>
+  RpcClientFactory.kt    ── access_token を受け取って kotlinx-rpc client を作る/破棄する。
+                            URL scheme は ws:// に変換(browser WebSocket 仕様)。
+                            Sec-WebSocket-Protocol は `mindstock.v1` と `mindstock.bearer.<b64url>`
+                            の 2 値を**別エントリで append**(browser WS は subprotocols 配列で
+                            扱うため、カンマ区切り 1 文字列にすると空白入りトークンとして拒否される)。
   RpcCallWrapper.kt      ── 401 を 1 度だけ refresh + retry する suspend ヘルパ
 
 ui/
-  App.kt                 [改] AuthState で分岐するシェル
+  App.kt                 [改] AuthState で分岐するシェル(webMain に配置: kotlinx.browser.window を直接使う)
   login/LoginScreen.kt   [新] 「ログイン」ボタンのみ
   register/RegisterDialog.kt [新] displayName 入力 → UserPublicRpcService.register
   callback/AuthCallbackScreen.kt [新] ローディング表示のみ
   shell/AppShell.kt      [新] Ready 時の stub。"Hello, ${user.displayName}" と Logout ボタン。
+
+theme/
+  Typography.kt          [新] NotoSansJP の FontFamily + appTypography()。MaterialTheme に渡す。
+                            composeResources/font/NotoSansJP-*.ttf を 9 ウェイト分配置。
 ```
+
+### 4.0 backend 追加変更(Plan 8 への上乗せ)
+
+frontend だけでは閉じない backend 側の変更:
+
+| ファイル | 種別 | 内容 |
+|---|---|---|
+| `backend/.../configuration/auth/WsSubprotocolEcho.kt` | 新規 | `WsSubprotocolEchoPlugin`: WS handshake で client が `Sec-WebSocket-Protocol` を提示した場合、`mindstock.v1` を response に echo する。`mindstock.bearer.*` は token を含むため echo しない。WHATWG WebSocket 仕様により echo が無いとブラウザは接続を fail させる(curl/JVM client では発生しないため Plan 8 の e2e では露見しなかった)。 |
+| `backend/.../configuration/routing/RoutingConfiguration.kt` | 改 | `install(WsSubprotocolEchoPlugin)` を `routing { }` の前に追加。 |
 
 ### 4.1 設定値の注入
 
@@ -205,6 +224,20 @@ kotlin.sourceSets.commonMain.kotlin.srcDir(generateAuthConfig)
 
 漏れたらマズいのは access_token / refresh_token / backend 側の secret であり、それらは frontend には置かない。
 
+### 4.3 dev サーバ構成
+
+`./gradlew :backend:application:api:run` と `./gradlew :frontend:wasmJsBrowserDevelopmentRun` は両方ともデフォルトで 8080 を取りに行くため衝突する。frontend dev サーバ(webpack-dev-server)を 8080 に固定し、backend を 8090 にずらす:
+
+- `mise.toml [env]` で `PORT=8090`(backend application.yaml の `ktor.deployment.port` を上書き)
+- `frontend/webpack.config.d/proxy.js` で webpack-dev-server に以下を設定:
+  - `port: 8080`
+  - `proxy: [{ context: ['/api'], target: 'http://localhost:8090', ws: true }]`(REST + WS を backend に転送)
+  - `historyApiFallback: true`(`/auth/callback` 等の SPA ルートを index.html に流す)
+
+`frontend/src/webMain/resources/index.html` には `<base href="/">` を入れる。これがないと `/auth/callback` などサブパスから相対パスの `frontend.js` / `composeResources/...` 等を読みに行って 404 になる。`href="/styles.css"` / `src="/frontend.js"` のように静的アセットも絶対パスで指定する。
+
+本番は frontend と backend を同じ origin で配信する想定なので proxy 設定は不要、`<base href="/">` だけは残す。
+
 ## 5. エラーハンドリング
 
 | 失敗箇所 | 検知 | ユーザー向け挙動 |
@@ -214,8 +247,7 @@ kotlin.sourceSets.commonMain.kotlin.srcDir(generateAuthConfig)
 | state 不一致 | AuthCallbackHandler が拒否 | 同上(CSRF 疑い) |
 | refresh_token 失効 (invalid_grant) | AuthClient が `OidcException(reauth=true)` | TokenStore.clear() → LoggedOut |
 | RPC 401 (操作中) | UnauthorizedException | RpcCallWrapper が refresh 1 回 → 再 401 なら LoggedOut |
-| RPC ping で 401 (起動時 NeedRegister 判定) | UnauthorizedException | NeedRegister state → RegisterDialog |
-| RPC ping で他のエラー | 任意の Exception | Error state、"接続できませんでした"+再試行 |
+| RPC ping で失敗(401/その他何でも) | 任意の Exception | NeedRegister state → RegisterDialog(browser WS は handshake 失敗のステータスを公開しないため切り分け不能、§3.2 参照) |
 | register で重複 | RpcException | NeedRegister のまま、ダイアログにエラー表示 |
 | Web Crypto API 未対応 | Pkce 初期化失敗 | "対応していないブラウザです" 固定表示 |
 

@@ -29,6 +29,7 @@ import net.brightroom.mindstock.frontend.auth.TokenStore
 import net.brightroom.mindstock.frontend.auth.Tokens
 import net.brightroom.mindstock.frontend.rpc.RpcClientFactory
 import net.brightroom.mindstock.frontend.rpc.UnauthorizedException
+import net.brightroom.mindstock.frontend.theme.appTypography
 import net.brightroom.mindstock.frontend.ui.callback.AuthCallbackScreen
 import net.brightroom.mindstock.frontend.ui.login.LoginScreen
 import net.brightroom.mindstock.frontend.ui.register.RegisterDialog
@@ -58,7 +59,11 @@ fun App() {
         AuthClient(httpClient, AuthConfig.ISSUER, AuthConfig.CLIENT_ID, AuthConfig.REDIRECT_URI)
     }
     val rpcFactory = remember {
-        RpcClientFactory(httpClient, baseUrl = window.location.origin)
+        // kotlinx-rpc は URL の scheme で transport を選ぶ。WS 接続のため ws:// に変換。
+        val wsBase = window.location.origin
+            .replaceFirst("https://", "wss://")
+            .replaceFirst("http://", "ws://")
+        RpcClientFactory(httpClient, baseUrl = wsBase)
     }
 
     LaunchedEffect(Unit) {
@@ -67,20 +72,23 @@ fun App() {
             return@LaunchedEffect
         }
         val ping: suspend (Tokens) -> PingResult = { tokens ->
+            // Browser WebSocket は 401 handshake のステータスを JS に公開しないため、kotlinx-rpc は
+            // 401 と他の失敗を区別できず WebSocketException を投げる。初回ログインの最も普通の失敗は
+            // 「User 未登録による 401」なので、ping 失敗は Unauthorized 扱いにして RegisterDialog に倒す。
+            // 本当のネットワーク障害でも RegisterDialog が出てしまうが、その場合は register 呼び出しが
+            // 失敗して dialog 上にエラー表示されるので回復可能。
             try {
                 val rpc = rpcFactory.open("household", tokens.accessToken)
                 rpc.withService<HouseholdRpcService>().findOf()
                 PingResult.Success
-            } catch (_: UnauthorizedException) {
-                PingResult.Unauthorized
             } catch (_: Throwable) {
-                PingResult.Other
+                PingResult.Unauthorized
             }
         }
         state = AuthBootstrap(authClient, ping).start()
     }
 
-    MaterialTheme {
+    MaterialTheme(typography = appTypography()) {
         when (val s = state) {
             is AuthState.LoggedOut -> LoginScreen(onLogin = { scope.launch { startLogin() } })
             is AuthState.Authenticating -> AuthCallbackScreen()

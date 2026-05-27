@@ -30,7 +30,10 @@ class RpcClientFactory(
     fun open(path: String, accessToken: String): KtorRpcClient {
         val b64 = encodeTokenBase64Url(accessToken)
         val rpc = rpcHttp.rpc("$baseUrl/api/v1/$path") {
-            headers.append(HttpHeaders.SecWebSocketProtocol, "mindstock.v1, mindstock.bearer.$b64")
+            // Browser WebSocket は subprotocols を別エントリで受け取る必要がある。
+            // 1 つの値にカンマ区切りで詰めると「空白入り subprotocol 名」と扱われ拒否される。
+            headers.append(HttpHeaders.SecWebSocketProtocol, "mindstock.v1")
+            headers.append(HttpHeaders.SecWebSocketProtocol, "mindstock.bearer.$b64")
         }
         opened += rpc
         return rpc
@@ -40,7 +43,8 @@ class RpcClientFactory(
     internal suspend fun openRaw(path: String, accessToken: String) {
         val b64 = encodeTokenBase64Url(accessToken)
         rawHttp.get("$baseUrl/api/v1/$path") {
-            headers.append(HttpHeaders.SecWebSocketProtocol, "mindstock.v1, mindstock.bearer.$b64")
+            headers.append(HttpHeaders.SecWebSocketProtocol, "mindstock.v1")
+            headers.append(HttpHeaders.SecWebSocketProtocol, "mindstock.bearer.$b64")
         }
     }
 
