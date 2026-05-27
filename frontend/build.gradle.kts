@@ -39,7 +39,7 @@ kotlin {
         commonTest.dependencies {
             implementation(kotlin("test"))
             implementation(ktorLib.client.mock)
-            implementation(libs.kotlinx.coroutines.core) // for runTest
+            implementation(libs.kotlinx.coroutines.test)
         }
     }
 }
@@ -53,6 +53,12 @@ val generateAuthConfig = tasks.register("generateAuthConfig") {
     val clientId = providers.environmentVariable("AUTH_CLIENT_ID")
     val audience = providers.environmentVariable("AUTH_AUDIENCE")
     val projectId = providers.environmentVariable("AUTH_PROJECT_ID")
+    inputs.property("issuer", issuer)
+    inputs.property("redirectUri", redirectUri)
+    inputs.property("postLogout", postLogout)
+    inputs.property("clientId", clientId)
+    inputs.property("audience", audience)
+    inputs.property("projectId", projectId)
     doLast {
         val out = outDir.get().asFile.resolve("net/brightroom/mindstock/frontend/auth/AuthConfig.kt")
         out.parentFile.mkdirs()
