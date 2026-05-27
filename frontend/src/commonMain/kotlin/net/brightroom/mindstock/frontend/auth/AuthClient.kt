@@ -66,7 +66,14 @@ class AuthClient(
             throw OidcException(errorCode, desc, reauthRequired = reauth)
         }
         val text = resp.bodyAsText()
-        val tr = JSON.decodeFromString(TokenResponse.serializer(), text)
+        val tr = runCatching { JSON.decodeFromString(TokenResponse.serializer(), text) }
+            .getOrElse {
+                throw OidcException(
+                    errorCode = "parse_error",
+                    errorDescription = it.message?.take(200),
+                    reauthRequired = false,
+                )
+            }
         return Tokens.fromTokenResponse(tr.accessToken, tr.refreshToken, tr.idToken, tr.expiresIn, now)
     }
 

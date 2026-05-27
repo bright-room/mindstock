@@ -3,10 +3,8 @@ package net.brightroom.mindstock.frontend.auth
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.mock.MockEngine
 import io.ktor.client.engine.mock.respond
-import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.headersOf
-import io.ktor.serialization.kotlinx.json.json
 import io.ktor.http.ContentType
 import io.ktor.http.HttpHeaders
 import kotlinx.coroutines.test.runTest
@@ -18,9 +16,7 @@ import kotlin.test.assertTrue
 
 class AuthClientTest {
     private fun client(handler: suspend io.ktor.client.engine.mock.MockRequestHandleScope.(io.ktor.client.request.HttpRequestData) -> io.ktor.client.request.HttpResponseData): HttpClient =
-        HttpClient(MockEngine { req -> handler(req) }) {
-            install(ContentNegotiation) { json() }
-        }
+        HttpClient(MockEngine { req -> handler(req) })
 
     @Test
     fun buildAuthorizeUrl_includes_pkce_state_scope() {
