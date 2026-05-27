@@ -102,13 +102,13 @@ AuthBootstrap.start():
 
   Authenticating:
       rpc = RpcClientFactory.create(tokens.access_token)
-      try rpc<HouseholdRpcService>.list()  // user レルムに ping
+      try rpc<HouseholdRpcService>.findOf()  // user レルムに ping
         → 成功:        state = Ready
         → 401:         state = NeedRegister
         → その他失敗: state = Error
 ```
 
-ping に使う RPC は「副作用なし・必ず authenticate 必須・1 RPC で済む」もの。`HouseholdRpcService.list` を採用(他に適切なものがあれば実装段階で差し替え)。
+ping に使う RPC は「副作用なし・必ず authenticate 必須・1 RPC で済む」もの。`HouseholdRpcService.findOf(): Household?` を採用(401 = 未登録、null = 世帯未作成だが User 登録済み、Household = Ready)。
 
 ### 3.3 401 リトライ
 
