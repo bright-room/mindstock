@@ -14,19 +14,22 @@ import kotlin.io.encoding.ExperimentalEncodingApi
 
 @OptIn(ExperimentalEncodingApi::class)
 class RpcClientFactory(
-    private val http: HttpClient,
+    http: HttpClient,
     private val baseUrl: String,
 ) {
+    /** Pre-configured client with Krpc + WebSockets installed; reused across opens. */
+    private val rpcHttp: HttpClient = http.config {
+        installKrpc { serialization { json(KrpcJson) } }
+        install(WebSockets)
+    }
+    private val rawHttp: HttpClient = http
+
     private val opened = mutableListOf<KtorRpcClient>()
 
     /** 認証済み Krpc クライアントを開く。 */
     fun open(path: String, accessToken: String): KtorRpcClient {
         val b64 = encodeTokenBase64Url(accessToken)
-        val client = http.config {
-            installKrpc { serialization { json(KrpcJson) } }
-            install(WebSockets)
-        }
-        val rpc = client.rpc("$baseUrl/api/v1/$path") {
+        val rpc = rpcHttp.rpc("$baseUrl/api/v1/$path") {
             headers.append(HttpHeaders.SecWebSocketProtocol, "mindstock.v1, mindstock.bearer.$b64")
         }
         opened += rpc
@@ -36,7 +39,7 @@ class RpcClientFactory(
     /** Test helper: send one HTTP GET with the same headers so MockEngine can inspect them. */
     internal suspend fun openRaw(path: String, accessToken: String) {
         val b64 = encodeTokenBase64Url(accessToken)
-        http.get("$baseUrl/api/v1/$path") {
+        rawHttp.get("$baseUrl/api/v1/$path") {
             headers.append(HttpHeaders.SecWebSocketProtocol, "mindstock.v1, mindstock.bearer.$b64")
         }
     }

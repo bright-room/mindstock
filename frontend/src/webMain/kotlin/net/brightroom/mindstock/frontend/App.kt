@@ -145,7 +145,9 @@ private suspend fun handleCallback(authClient: AuthClient, setState: (AuthState)
     val params = window.location.search.removePrefix("?").split("&").mapNotNull {
         if (it.isBlank()) return@mapNotNull null
         val idx = it.indexOf('=')
-        if (idx < 0) it to "" else it.substring(0, idx) to it.substring(idx + 1)
+        val rawKey = if (idx < 0) it else it.substring(0, idx)
+        val rawVal = if (idx < 0) "" else it.substring(idx + 1)
+        runCatching { decodeUriComponent(rawKey) to decodeUriComponent(rawVal) }.getOrNull()
     }.toMap()
     val savedState = window.sessionStorage.getItem(STATE_KEY)
     val savedVerifier = window.sessionStorage.getItem(VERIFIER_KEY)
