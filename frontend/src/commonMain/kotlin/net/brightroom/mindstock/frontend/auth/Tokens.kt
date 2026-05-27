@@ -3,6 +3,7 @@ package net.brightroom.mindstock.frontend.auth
 import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant
 import kotlinx.serialization.Serializable
+import kotlin.time.Duration.Companion.seconds
 
 @Serializable
 data class Tokens(
@@ -11,10 +12,8 @@ data class Tokens(
     val idToken: String,
     val expiresAt: Instant,
 ) {
-    fun willExpireWithin(seconds: Int, now: Instant = Clock.System.now()): Boolean =
-        expiresAt <= now.plusSeconds(seconds)
-
-    private fun Instant.plusSeconds(s: Int): Instant = Instant.fromEpochSeconds(epochSeconds + s)
+    fun willExpireWithin(seconds: Long, now: Instant = Clock.System.now()): Boolean =
+        expiresAt <= now + seconds.seconds
 
     companion object {
         fun fromTokenResponse(
@@ -23,6 +22,6 @@ data class Tokens(
             idToken: String,
             expiresInSeconds: Long,
             now: Instant = Clock.System.now(),
-        ): Tokens = Tokens(accessToken, refreshToken, idToken, Instant.fromEpochSeconds(now.epochSeconds + expiresInSeconds))
+        ): Tokens = Tokens(accessToken, refreshToken, idToken, now + expiresInSeconds.seconds)
     }
 }

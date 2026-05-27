@@ -11,14 +11,14 @@ class TokensTest {
     fun willExpireWithin_true_when_expiry_is_inside_window() {
         val now = Instant.fromEpochSeconds(1_000_000)
         val t = Tokens("a", "r", "i", expiresAt = Instant.fromEpochSeconds(1_000_030))
-        assertTrue(t.willExpireWithin(60, now))
+        assertTrue(t.willExpireWithin(60L, now))
     }
 
     @Test
     fun willExpireWithin_false_when_expiry_is_outside_window() {
         val now = Instant.fromEpochSeconds(1_000_000)
         val t = Tokens("a", "r", "i", expiresAt = Instant.fromEpochSeconds(1_000_120))
-        assertFalse(t.willExpireWithin(60, now))
+        assertFalse(t.willExpireWithin(60L, now))
     }
 
     @Test
