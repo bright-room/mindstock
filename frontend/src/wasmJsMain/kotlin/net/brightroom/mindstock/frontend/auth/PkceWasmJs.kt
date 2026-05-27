@@ -5,6 +5,14 @@ import org.khronos.webgl.ArrayBuffer
 import org.khronos.webgl.Uint8Array
 import org.khronos.webgl.get
 
+@JsFun("(n) => { var a = new Uint8Array(n); globalThis.crypto.getRandomValues(a); return a; }")
+private external fun createRandomBytesWasm(n: Int): Uint8Array
+
+internal actual fun secureRandomBytes(n: Int): ByteArray {
+    val arr = createRandomBytesWasm(n)
+    return ByteArray(n) { arr[it].toByte() }
+}
+
 internal actual suspend fun sha256(bytes: ByteArray): ByteArray {
     val uint8 = newUint8Array(bytes.size)
     for (i in bytes.indices) setUint8(uint8, i, bytes[i].toInt() and 0xFF)
