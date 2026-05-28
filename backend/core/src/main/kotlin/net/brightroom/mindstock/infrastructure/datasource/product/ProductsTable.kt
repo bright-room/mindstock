@@ -1,10 +1,10 @@
 @file:OptIn(kotlin.uuid.ExperimentalUuidApi::class)
 
-package net.brightroom.mindstock.infrastructure.datasource.schemas.product
+package net.brightroom.mindstock.infrastructure.datasource.product
 
-import net.brightroom.mindstock.infrastructure.datasource.schemas.AggregateRootTable
-import net.brightroom.mindstock.infrastructure.datasource.schemas.catalog.CatalogItemsTable
-import net.brightroom.mindstock.infrastructure.datasource.schemas.household.HouseholdsTable
+import net.brightroom.mindstock.infrastructure.datasource.AggregateRootTable
+import net.brightroom.mindstock.infrastructure.datasource.catalog.CatalogItemsTable
+import net.brightroom.mindstock.infrastructure.datasource.household.HouseholdsTable
 import org.jetbrains.exposed.v1.core.ReferenceOption
 import org.jetbrains.exposed.v1.datetime.CurrentTimestampWithTimeZone
 import org.jetbrains.exposed.v1.datetime.timestampWithTimeZone

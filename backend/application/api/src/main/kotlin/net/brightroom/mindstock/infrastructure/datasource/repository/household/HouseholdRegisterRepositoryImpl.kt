@@ -5,9 +5,9 @@ import net.brightroom.mindstock.domain.model.household.Household
 import net.brightroom.mindstock.domain.model.household.HouseholdMember
 import net.brightroom.mindstock.domain.model.household.HouseholdMemberRole
 import net.brightroom.mindstock.domain.model.user.User
-import net.brightroom.mindstock.infrastructure.datasource.schemas.household.HouseholdMembershipRevocationsTable
-import net.brightroom.mindstock.infrastructure.datasource.schemas.household.HouseholdMembershipsTable
-import net.brightroom.mindstock.infrastructure.datasource.schemas.household.HouseholdsTable
+import net.brightroom.mindstock.infrastructure.datasource.household.HouseholdMembershipRevocationsTable
+import net.brightroom.mindstock.infrastructure.datasource.household.HouseholdMembershipsTable
+import net.brightroom.mindstock.infrastructure.datasource.household.HouseholdsTable
 import org.jetbrains.exposed.v1.core.JoinType
 import org.jetbrains.exposed.v1.core.SortOrder
 import org.jetbrains.exposed.v1.core.and

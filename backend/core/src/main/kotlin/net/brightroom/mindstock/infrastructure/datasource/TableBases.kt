@@ -1,6 +1,6 @@
 @file:OptIn(kotlin.uuid.ExperimentalUuidApi::class)
 
-package net.brightroom.mindstock.infrastructure.datasource.schemas
+package net.brightroom.mindstock.infrastructure.datasource
 
 import org.jetbrains.exposed.v1.core.Table
 

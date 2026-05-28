@@ -1,8 +1,8 @@
 @file:OptIn(kotlin.uuid.ExperimentalUuidApi::class)
 
-package net.brightroom.mindstock.infrastructure.datasource.schemas.household
+package net.brightroom.mindstock.infrastructure.datasource.household
 
-import net.brightroom.mindstock.infrastructure.datasource.schemas.AggregateRootTable
+import net.brightroom.mindstock.infrastructure.datasource.AggregateRootTable
 import org.jetbrains.exposed.v1.datetime.CurrentTimestampWithTimeZone
 import org.jetbrains.exposed.v1.datetime.timestampWithTimeZone
 

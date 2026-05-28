@@ -5,8 +5,8 @@ import net.brightroom.mindstock.domain.model.catalog.CatalogItem
 import net.brightroom.mindstock.domain.model.catalog.CatalogItemName
 import net.brightroom.mindstock.domain.model.catalog.CatalogItemUnit
 import net.brightroom.mindstock.domain.model.user.User
-import net.brightroom.mindstock.infrastructure.datasource.schemas.catalog.CatalogItemRevisionsTable
-import net.brightroom.mindstock.infrastructure.datasource.schemas.catalog.CatalogItemsTable
+import net.brightroom.mindstock.infrastructure.datasource.catalog.CatalogItemRevisionsTable
+import net.brightroom.mindstock.infrastructure.datasource.catalog.CatalogItemsTable
 import org.jetbrains.exposed.v1.jdbc.insert
 import kotlin.uuid.ExperimentalUuidApi
 

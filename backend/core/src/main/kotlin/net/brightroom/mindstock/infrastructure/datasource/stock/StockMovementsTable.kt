@@ -1,11 +1,11 @@
 @file:OptIn(kotlin.uuid.ExperimentalUuidApi::class)
 
-package net.brightroom.mindstock.infrastructure.datasource.schemas.stock
+package net.brightroom.mindstock.infrastructure.datasource.stock
 
 import net.brightroom.mindstock.domain.model.stock.movement.StockMovementType
-import net.brightroom.mindstock.infrastructure.datasource.schemas.HistoryTable
-import net.brightroom.mindstock.infrastructure.datasource.schemas.product.ProductsTable
-import net.brightroom.mindstock.infrastructure.datasource.schemas.user.UsersTable
+import net.brightroom.mindstock.infrastructure.datasource.HistoryTable
+import net.brightroom.mindstock.infrastructure.datasource.product.ProductsTable
+import net.brightroom.mindstock.infrastructure.datasource.user.UsersTable
 import org.jetbrains.exposed.v1.core.ReferenceOption
 import org.jetbrains.exposed.v1.core.greater
 import org.jetbrains.exposed.v1.datetime.CurrentTimestampWithTimeZone

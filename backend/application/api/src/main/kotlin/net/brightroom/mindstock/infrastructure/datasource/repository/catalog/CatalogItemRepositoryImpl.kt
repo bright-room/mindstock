@@ -4,8 +4,8 @@ import net.brightroom.mindstock.application.repository.catalog.CatalogItemReposi
 import net.brightroom.mindstock.domain.model.catalog.CatalogItem
 import net.brightroom.mindstock.domain.model.catalog.CatalogItemId
 import net.brightroom.mindstock.domain.model.catalog.CatalogItems
-import net.brightroom.mindstock.infrastructure.datasource.schemas.catalog.CatalogItemRevisionsTable
-import net.brightroom.mindstock.infrastructure.datasource.schemas.catalog.CatalogItemsTable
+import net.brightroom.mindstock.infrastructure.datasource.catalog.CatalogItemRevisionsTable
+import net.brightroom.mindstock.infrastructure.datasource.catalog.CatalogItemsTable
 import org.jetbrains.exposed.v1.core.Column
 import org.jetbrains.exposed.v1.core.ExpressionWithColumnType
 import org.jetbrains.exposed.v1.core.JoinType

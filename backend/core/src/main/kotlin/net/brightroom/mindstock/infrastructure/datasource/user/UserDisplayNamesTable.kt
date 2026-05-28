@@ -1,8 +1,8 @@
 @file:OptIn(kotlin.uuid.ExperimentalUuidApi::class)
 
-package net.brightroom.mindstock.infrastructure.datasource.schemas.user
+package net.brightroom.mindstock.infrastructure.datasource.user
 
-import net.brightroom.mindstock.infrastructure.datasource.schemas.HistoryTable
+import net.brightroom.mindstock.infrastructure.datasource.HistoryTable
 import org.jetbrains.exposed.v1.core.ReferenceOption
 import org.jetbrains.exposed.v1.datetime.CurrentTimestampWithTimeZone
 import org.jetbrains.exposed.v1.datetime.timestampWithTimeZone

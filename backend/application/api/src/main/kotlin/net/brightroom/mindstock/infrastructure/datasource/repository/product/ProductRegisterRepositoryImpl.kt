@@ -6,9 +6,9 @@ import net.brightroom.mindstock.domain.model.household.Household
 import net.brightroom.mindstock.domain.model.product.MinimumStock
 import net.brightroom.mindstock.domain.model.product.Product
 import net.brightroom.mindstock.domain.model.user.User
-import net.brightroom.mindstock.infrastructure.datasource.schemas.product.ProductArchivesTable
-import net.brightroom.mindstock.infrastructure.datasource.schemas.product.ProductMinimumStocksTable
-import net.brightroom.mindstock.infrastructure.datasource.schemas.product.ProductsTable
+import net.brightroom.mindstock.infrastructure.datasource.product.ProductArchivesTable
+import net.brightroom.mindstock.infrastructure.datasource.product.ProductMinimumStocksTable
+import net.brightroom.mindstock.infrastructure.datasource.product.ProductsTable
 import org.jetbrains.exposed.v1.jdbc.insert
 import kotlin.uuid.ExperimentalUuidApi
 

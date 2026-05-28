@@ -6,8 +6,8 @@ import net.brightroom.mindstock.domain.model.user.UserId
 import net.brightroom.mindstock.domain.model.user.auth.AuthIdentity
 import net.brightroom.mindstock.domain.model.user.auth.AuthProvider
 import net.brightroom.mindstock.domain.model.user.auth.AuthSubject
-import net.brightroom.mindstock.infrastructure.datasource.schemas.user.UserDisplayNamesTable
-import net.brightroom.mindstock.infrastructure.datasource.schemas.user.UsersTable
+import net.brightroom.mindstock.infrastructure.datasource.user.UserDisplayNamesTable
+import net.brightroom.mindstock.infrastructure.datasource.user.UsersTable
 import org.jetbrains.exposed.v1.core.ResultRow
 import kotlin.uuid.ExperimentalUuidApi
 

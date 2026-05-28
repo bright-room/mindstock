@@ -6,12 +6,12 @@ import net.brightroom.mindstock.domain.model.household.Household
 import net.brightroom.mindstock.domain.model.product.Product
 import net.brightroom.mindstock.domain.model.product.ProductId
 import net.brightroom.mindstock.domain.model.product.Products
+import net.brightroom.mindstock.infrastructure.datasource.catalog.CatalogItemRevisionsTable
+import net.brightroom.mindstock.infrastructure.datasource.catalog.CatalogItemsTable
+import net.brightroom.mindstock.infrastructure.datasource.product.ProductArchivesTable
+import net.brightroom.mindstock.infrastructure.datasource.product.ProductMinimumStocksTable
+import net.brightroom.mindstock.infrastructure.datasource.product.ProductsTable
 import net.brightroom.mindstock.infrastructure.datasource.repository.catalog.hydrateCatalogItem
-import net.brightroom.mindstock.infrastructure.datasource.schemas.catalog.CatalogItemRevisionsTable
-import net.brightroom.mindstock.infrastructure.datasource.schemas.catalog.CatalogItemsTable
-import net.brightroom.mindstock.infrastructure.datasource.schemas.product.ProductArchivesTable
-import net.brightroom.mindstock.infrastructure.datasource.schemas.product.ProductMinimumStocksTable
-import net.brightroom.mindstock.infrastructure.datasource.schemas.product.ProductsTable
 import org.jetbrains.exposed.v1.core.Column
 import org.jetbrains.exposed.v1.core.ExpressionWithColumnType
 import org.jetbrains.exposed.v1.core.JoinType

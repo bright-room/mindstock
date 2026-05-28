@@ -7,7 +7,7 @@ import net.brightroom.mindstock.domain.model.product.Product
 import net.brightroom.mindstock.domain.model.stock.Stock
 import net.brightroom.mindstock.domain.model.stock.movement.StockMovement
 import net.brightroom.mindstock.domain.model.stock.movement.StockMovements
-import net.brightroom.mindstock.infrastructure.datasource.schemas.stock.StockMovementsTable
+import net.brightroom.mindstock.infrastructure.datasource.stock.StockMovementsTable
 import org.jetbrains.exposed.v1.core.SortOrder
 import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.core.inList

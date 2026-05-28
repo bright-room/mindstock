@@ -15,7 +15,6 @@ dependencies {
     implementation(projects.shared.extensions)
     implementation(projects.domain)
     implementation(projects.backend.core)
-    implementation(projects.backend.infrastructure.schemas)
     implementation(libs.flyway.core)
     implementation(libs.flyway.database.postgresql)
     implementation(libs.postgres.jdbc)
@@ -44,7 +43,7 @@ dependencies {
     implementation(libs.exposed.jdbc)
 
     testFixturesImplementation(projects.domain)
-    testFixturesImplementation(projects.backend.infrastructure.schemas)
+    testFixturesImplementation(testFixtures(projects.backend.core))
     testFixturesImplementation(libs.flyway.core)
     testFixturesImplementation(libs.flyway.database.postgresql)
     testFixturesImplementation(libs.postgres.jdbc)

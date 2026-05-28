@@ -9,7 +9,7 @@ import net.brightroom.mindstock.domain.model.stock.movement.Consumption
 import net.brightroom.mindstock.domain.model.stock.movement.Replenishment
 import net.brightroom.mindstock.domain.model.stock.movement.StockMovementType
 import net.brightroom.mindstock.domain.model.user.User
-import net.brightroom.mindstock.infrastructure.datasource.schemas.stock.StockMovementsTable
+import net.brightroom.mindstock.infrastructure.datasource.stock.StockMovementsTable
 import org.jetbrains.exposed.v1.jdbc.insert
 import java.time.ZoneOffset
 import kotlin.time.toJavaInstant
