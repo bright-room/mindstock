@@ -10,7 +10,7 @@ import io.mockk.every
 import io.mockk.mockk
 import io.mockk.mockkStatic
 import io.mockk.unmockkAll
-import net.brightroom.mindstock.application.usecase.user.RegisterUserHandler
+import net.brightroom.mindstock.application.service.user.UserRegisterService
 import net.brightroom.mindstock.configuration.auth.MindstockPrincipal
 import net.brightroom.mindstock.configuration.error.UnauthorizedException
 import net.brightroom.mindstock.domain.model.user.DisplayName
@@ -28,8 +28,8 @@ class UserPublicRpcServiceImplTest :
     FunSpec({
         afterTest { unmockkAll() }
 
-        test("register pulls AuthIdentity from the call's Principal and delegates to RegisterUserHandler") {
-            val handler = mockk<RegisterUserHandler>()
+        test("register pulls AuthIdentity from the call's Principal and delegates to UserRegisterService") {
+            val userRegisterService = mockk<UserRegisterService>()
             val database = mockk<Database>()
             val call = mockk<ApplicationCall>()
             val displayName = DisplayName("Alice")
@@ -43,7 +43,7 @@ class UserPublicRpcServiceImplTest :
 
             mockkStatic("io.ktor.server.auth.AuthenticationKt")
             every { call.principal<MindstockPrincipal>() } returns MindstockPrincipal(authIdentity)
-            every { handler.handle(authIdentity, displayName) } returns expected
+            every { userRegisterService.register(authIdentity, displayName) } returns expected
 
             mockkStatic("net.brightroom.mindstock.configuration.transaction.TransactionKt")
             coEvery {
@@ -55,19 +55,19 @@ class UserPublicRpcServiceImplTest :
                 block()
             }
 
-            val impl = UserPublicRpcServiceImpl(handler, call, database)
+            val impl = UserPublicRpcServiceImpl(userRegisterService, call, database)
             impl.register(displayName) shouldBe expected
         }
 
         test("register throws UnauthorizedException when Principal is missing") {
-            val handler = mockk<RegisterUserHandler>()
+            val userRegisterService = mockk<UserRegisterService>()
             val database = mockk<Database>()
             val call = mockk<ApplicationCall>()
 
             mockkStatic("io.ktor.server.auth.AuthenticationKt")
             every { call.principal<MindstockPrincipal>() } returns null
 
-            val impl = UserPublicRpcServiceImpl(handler, call, database)
+            val impl = UserPublicRpcServiceImpl(userRegisterService, call, database)
             shouldThrow<UnauthorizedException> {
                 impl.register(DisplayName("Anyone"))
             }

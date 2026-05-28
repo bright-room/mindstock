@@ -11,11 +11,8 @@ import io.mockk.unmockkAll
 import net.brightroom.mindstock.application.repository.household.HouseholdRepository
 import net.brightroom.mindstock.application.repository.product.ProductRepository
 import net.brightroom.mindstock.application.repository.user.UserRepository
-import net.brightroom.mindstock.application.usecase.stock.ConsumeStockHandler
-import net.brightroom.mindstock.application.usecase.stock.GetMovementHistoryHandler
-import net.brightroom.mindstock.application.usecase.stock.GetStockHandler
-import net.brightroom.mindstock.application.usecase.stock.ListStocksHandler
-import net.brightroom.mindstock.application.usecase.stock.ReplenishStockHandler
+import net.brightroom.mindstock.application.service.stock.StockRegisterService
+import net.brightroom.mindstock.application.service.stock.StockService
 import net.brightroom.mindstock.configuration.auth.actor
 import net.brightroom.mindstock.domain.model.catalog.CatalogItem
 import net.brightroom.mindstock.domain.model.catalog.CatalogItemId
@@ -40,12 +37,9 @@ class StockRpcServiceImplTest :
     FunSpec({
         afterTest { unmockkAll() }
 
-        test("get resolves actor, product then delegates to GetStockHandler") {
-            val getStockHandler = mockk<GetStockHandler>()
-            val listStocksHandler = mockk<ListStocksHandler>()
-            val movementHistoryHandler = mockk<GetMovementHistoryHandler>()
-            val replenishHandler = mockk<ReplenishStockHandler>()
-            val consumeHandler = mockk<ConsumeStockHandler>()
+        test("get resolves actor, product then delegates to StockService") {
+            val stockService = mockk<StockService>()
+            val stockRegisterService = mockk<StockRegisterService>()
             val productRepository = mockk<ProductRepository>()
             val householdRepository = mockk<HouseholdRepository>()
             val userRepository = mockk<UserRepository>()
@@ -77,7 +71,7 @@ class StockRpcServiceImplTest :
             mockkStatic(ApplicationCall::actor)
             every { call.actor(userRepository) } returns user
             every { productRepository.findById(productId) } returns product
-            every { getStockHandler.handle(product) } returns stock
+            every { stockService.get(product) } returns stock
 
             mockkStatic("net.brightroom.mindstock.configuration.transaction.TransactionKt")
             coEvery {
@@ -90,11 +84,8 @@ class StockRpcServiceImplTest :
 
             val impl =
                 StockRpcServiceImpl(
-                    getStock = getStockHandler,
-                    listStocks = listStocksHandler,
-                    getMovementHistory = movementHistoryHandler,
-                    replenishStock = replenishHandler,
-                    consumeStock = consumeHandler,
+                    stockService = stockService,
+                    stockRegisterService = stockRegisterService,
                     productRepository = productRepository,
                     householdRepository = householdRepository,
                     userRepository = userRepository,

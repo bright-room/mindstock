@@ -10,10 +10,8 @@ import io.mockk.mockkStatic
 import io.mockk.unmockkAll
 import net.brightroom.mindstock.application.repository.catalog.CatalogItemRepository
 import net.brightroom.mindstock.application.repository.user.UserRepository
-import net.brightroom.mindstock.application.usecase.catalog.FindCatalogItemByIdHandler
-import net.brightroom.mindstock.application.usecase.catalog.RegisterCatalogItemHandler
-import net.brightroom.mindstock.application.usecase.catalog.ReviseCatalogItemHandler
-import net.brightroom.mindstock.application.usecase.catalog.SearchCatalogItemsHandler
+import net.brightroom.mindstock.application.service.catalog.CatalogItemRegisterService
+import net.brightroom.mindstock.application.service.catalog.CatalogItemService
 import net.brightroom.mindstock.configuration.auth.actor
 import net.brightroom.mindstock.domain.model.catalog.CatalogItems
 import net.brightroom.mindstock.domain.model.user.DisplayName
@@ -31,11 +29,9 @@ class CatalogRpcServiceImplTest :
     FunSpec({
         afterTest { unmockkAll() }
 
-        test("search resolves actor and delegates to SearchCatalogItemsHandler") {
-            val searchHandler = mockk<SearchCatalogItemsHandler>()
-            val findByIdHandler = mockk<FindCatalogItemByIdHandler>()
-            val registerHandler = mockk<RegisterCatalogItemHandler>()
-            val reviseHandler = mockk<ReviseCatalogItemHandler>()
+        test("search resolves actor and delegates to CatalogItemService") {
+            val catalogItemService = mockk<CatalogItemService>()
+            val catalogItemRegisterService = mockk<CatalogItemRegisterService>()
             val catalogItemRepository = mockk<CatalogItemRepository>()
             val userRepository = mockk<UserRepository>()
             val call = mockk<ApplicationCall>()
@@ -52,7 +48,7 @@ class CatalogRpcServiceImplTest :
 
             mockkStatic(ApplicationCall::actor)
             every { call.actor(userRepository) } returns user
-            every { searchHandler.handle(query, limit) } returns expected
+            every { catalogItemService.search(query, limit) } returns expected
 
             mockkStatic("net.brightroom.mindstock.configuration.transaction.TransactionKt")
             coEvery {
@@ -65,10 +61,8 @@ class CatalogRpcServiceImplTest :
 
             val impl =
                 CatalogRpcServiceImpl(
-                    searchHandler = searchHandler,
-                    findByIdHandler = findByIdHandler,
-                    registerHandler = registerHandler,
-                    reviseHandler = reviseHandler,
+                    catalogItemService = catalogItemService,
+                    catalogItemRegisterService = catalogItemRegisterService,
                     catalogItemRepository = catalogItemRepository,
                     userRepository = userRepository,
                     call = call,

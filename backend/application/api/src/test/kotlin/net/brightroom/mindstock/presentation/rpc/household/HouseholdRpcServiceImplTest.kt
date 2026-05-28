@@ -10,10 +10,8 @@ import io.mockk.mockkStatic
 import io.mockk.unmockkAll
 import net.brightroom.mindstock.application.repository.household.HouseholdRepository
 import net.brightroom.mindstock.application.repository.user.UserRepository
-import net.brightroom.mindstock.application.usecase.household.CreateHouseholdHandler
-import net.brightroom.mindstock.application.usecase.household.FindHouseholdOfUserHandler
-import net.brightroom.mindstock.application.usecase.household.InviteMemberHandler
-import net.brightroom.mindstock.application.usecase.household.RevokeMembershipHandler
+import net.brightroom.mindstock.application.service.household.HouseholdRegisterService
+import net.brightroom.mindstock.application.service.household.HouseholdService
 import net.brightroom.mindstock.configuration.auth.actor
 import net.brightroom.mindstock.domain.model.household.Household
 import net.brightroom.mindstock.domain.model.household.HouseholdId
@@ -33,11 +31,9 @@ class HouseholdRpcServiceImplTest :
     FunSpec({
         afterTest { unmockkAll() }
 
-        test("findOf resolves actor and delegates to FindHouseholdOfUserHandler") {
-            val findHandler = mockk<FindHouseholdOfUserHandler>()
-            val createHandler = mockk<CreateHouseholdHandler>()
-            val inviteHandler = mockk<InviteMemberHandler>()
-            val revokeHandler = mockk<RevokeMembershipHandler>()
+        test("findOf resolves actor and delegates to HouseholdService") {
+            val householdService = mockk<HouseholdService>()
+            val householdRegisterService = mockk<HouseholdRegisterService>()
             val householdRepository = mockk<HouseholdRepository>()
             val userRepository = mockk<UserRepository>()
             val call = mockk<ApplicationCall>()
@@ -56,7 +52,7 @@ class HouseholdRpcServiceImplTest :
 
             mockkStatic(ApplicationCall::actor)
             every { call.actor(userRepository) } returns user
-            every { findHandler.handle(user) } returns household
+            every { householdService.findOf(user) } returns household
 
             mockkStatic("net.brightroom.mindstock.configuration.transaction.TransactionKt")
             coEvery {
@@ -69,10 +65,8 @@ class HouseholdRpcServiceImplTest :
 
             val impl =
                 HouseholdRpcServiceImpl(
-                    findHouseholdOfUser = findHandler,
-                    createHousehold = createHandler,
-                    inviteMember = inviteHandler,
-                    revokeMembership = revokeHandler,
+                    householdService = householdService,
+                    householdRegisterService = householdRegisterService,
                     householdRepository = householdRepository,
                     userRepository = userRepository,
                     call = call,

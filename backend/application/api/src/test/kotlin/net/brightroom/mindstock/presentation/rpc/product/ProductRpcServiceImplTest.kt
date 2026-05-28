@@ -12,11 +12,8 @@ import net.brightroom.mindstock.application.repository.catalog.CatalogItemReposi
 import net.brightroom.mindstock.application.repository.household.HouseholdRepository
 import net.brightroom.mindstock.application.repository.product.ProductRepository
 import net.brightroom.mindstock.application.repository.user.UserRepository
-import net.brightroom.mindstock.application.usecase.product.AdoptProductHandler
-import net.brightroom.mindstock.application.usecase.product.ArchiveProductHandler
-import net.brightroom.mindstock.application.usecase.product.FindProductHandler
-import net.brightroom.mindstock.application.usecase.product.ListProductsOfHouseholdHandler
-import net.brightroom.mindstock.application.usecase.product.SetMinimumStockHandler
+import net.brightroom.mindstock.application.service.product.ProductRegisterService
+import net.brightroom.mindstock.application.service.product.ProductService
 import net.brightroom.mindstock.configuration.auth.actor
 import net.brightroom.mindstock.domain.model.catalog.CatalogItem
 import net.brightroom.mindstock.domain.model.catalog.CatalogItemId
@@ -42,12 +39,9 @@ class ProductRpcServiceImplTest :
     FunSpec({
         afterTest { unmockkAll() }
 
-        test("find resolves actor, household, catalog item then delegates to FindProductHandler") {
-            val listHandler = mockk<ListProductsOfHouseholdHandler>()
-            val findHandler = mockk<FindProductHandler>()
-            val adoptHandler = mockk<AdoptProductHandler>()
-            val setMinimumStockHandler = mockk<SetMinimumStockHandler>()
-            val archiveHandler = mockk<ArchiveProductHandler>()
+        test("find resolves actor, household, catalog item then delegates to ProductService") {
+            val productService = mockk<ProductService>()
+            val productRegisterService = mockk<ProductRegisterService>()
             val householdRepository = mockk<HouseholdRepository>()
             val catalogItemRepository = mockk<CatalogItemRepository>()
             val productRepository = mockk<ProductRepository>()
@@ -82,7 +76,7 @@ class ProductRpcServiceImplTest :
             every { call.actor(userRepository) } returns user
             every { householdRepository.findById(householdId) } returns household
             every { catalogItemRepository.findById(catalogItemId) } returns catalogItem
-            every { findHandler.handle(household, catalogItem) } returns product
+            every { productService.find(household, catalogItem) } returns product
 
             mockkStatic("net.brightroom.mindstock.configuration.transaction.TransactionKt")
             coEvery {
@@ -95,11 +89,8 @@ class ProductRpcServiceImplTest :
 
             val impl =
                 ProductRpcServiceImpl(
-                    listProductsOfHousehold = listHandler,
-                    findProduct = findHandler,
-                    adoptProduct = adoptHandler,
-                    setMinimumStockHandler = setMinimumStockHandler,
-                    archiveProduct = archiveHandler,
+                    productService = productService,
+                    productRegisterService = productRegisterService,
                     householdRepository = householdRepository,
                     catalogItemRepository = catalogItemRepository,
                     productRepository = productRepository,

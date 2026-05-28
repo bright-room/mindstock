@@ -9,7 +9,7 @@ import io.mockk.mockkStatic
 import io.mockk.unmockkAll
 import io.mockk.verify
 import net.brightroom.mindstock.application.repository.user.UserRepository
-import net.brightroom.mindstock.application.usecase.user.RenameUserHandler
+import net.brightroom.mindstock.application.service.user.UserRegisterService
 import net.brightroom.mindstock.configuration.auth.actor
 import net.brightroom.mindstock.domain.model.user.DisplayName
 import net.brightroom.mindstock.domain.model.user.User
@@ -26,8 +26,8 @@ class UserRpcServiceImplTest :
     FunSpec({
         afterTest { unmockkAll() }
 
-        test("rename resolves actor via ApplicationCall and delegates to handler") {
-            val handler = mockk<RenameUserHandler>(relaxed = true)
+        test("rename resolves actor via ApplicationCall and delegates to UserRegisterService") {
+            val userRegisterService = mockk<UserRegisterService>(relaxed = true)
             val userRepository = mockk<UserRepository>()
             val call = mockk<ApplicationCall>()
             val database = mockk<Database>()
@@ -50,10 +50,10 @@ class UserRpcServiceImplTest :
                 block()
             }
 
-            val impl = UserRpcServiceImpl(handler, userRepository, call, database)
+            val impl = UserRpcServiceImpl(userRegisterService, userRepository, call, database)
             val newName = DisplayName("Bob")
             impl.rename(newName)
 
-            verify { handler.handle(user, newName) }
+            verify { userRegisterService.rename(user, newName) }
         }
     })
