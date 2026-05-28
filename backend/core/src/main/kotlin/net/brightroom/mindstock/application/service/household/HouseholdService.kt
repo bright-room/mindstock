@@ -1,11 +1,11 @@
-package net.brightroom.mindstock.application.usecase.household
+package net.brightroom.mindstock.application.service.household
 
 import net.brightroom.mindstock.application.repository.household.HouseholdRepository
 import net.brightroom.mindstock.domain.model.household.Household
 import net.brightroom.mindstock.domain.model.user.User
 
-class FindHouseholdOfUserHandler(
+class HouseholdService(
     private val householdRepository: HouseholdRepository,
 ) {
-    fun handle(user: User): Household? = householdRepository.findOf(user)
+    fun findOf(user: User): Household? = householdRepository.findOf(user)
 }

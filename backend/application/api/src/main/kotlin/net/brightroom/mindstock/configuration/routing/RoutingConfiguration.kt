@@ -20,10 +20,8 @@ import net.brightroom.mindstock.application.repository.product.ProductRepository
 import net.brightroom.mindstock.application.repository.user.UserRepository
 import net.brightroom.mindstock.application.service.catalog.CatalogItemRegisterService
 import net.brightroom.mindstock.application.service.catalog.CatalogItemService
-import net.brightroom.mindstock.application.usecase.household.CreateHouseholdHandler
-import net.brightroom.mindstock.application.usecase.household.FindHouseholdOfUserHandler
-import net.brightroom.mindstock.application.usecase.household.InviteMemberHandler
-import net.brightroom.mindstock.application.usecase.household.RevokeMembershipHandler
+import net.brightroom.mindstock.application.service.household.HouseholdRegisterService
+import net.brightroom.mindstock.application.service.household.HouseholdService
 import net.brightroom.mindstock.application.usecase.product.AdoptProductHandler
 import net.brightroom.mindstock.application.usecase.product.ArchiveProductHandler
 import net.brightroom.mindstock.application.usecase.product.FindProductHandler
@@ -71,10 +69,8 @@ fun Application.routingConfigure(
     val registerUserHandler: RegisterUserHandler by dependencies
     val renameUserHandler: RenameUserHandler by dependencies
 
-    val findHouseholdOfUserHandler: FindHouseholdOfUserHandler by dependencies
-    val createHouseholdHandler: CreateHouseholdHandler by dependencies
-    val inviteMemberHandler: InviteMemberHandler by dependencies
-    val revokeMembershipHandler: RevokeMembershipHandler by dependencies
+    val householdService: HouseholdService by dependencies
+    val householdRegisterService: HouseholdRegisterService by dependencies
 
     val catalogItemService: CatalogItemService by dependencies
     val catalogItemRegisterService: CatalogItemRegisterService by dependencies
@@ -127,10 +123,8 @@ fun Application.routingConfigure(
                 val call = this.applicationCall
                 registerService<HouseholdRpcService> {
                     HouseholdRpcServiceImpl(
-                        findHouseholdOfUserHandler,
-                        createHouseholdHandler,
-                        inviteMemberHandler,
-                        revokeMembershipHandler,
+                        householdService,
+                        householdRegisterService,
                         householdRepository,
                         userRepository,
                         call,

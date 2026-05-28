@@ -3,10 +3,8 @@ package net.brightroom.mindstock.presentation.rpc.household
 import io.ktor.server.application.ApplicationCall
 import net.brightroom.mindstock.application.repository.household.HouseholdRepository
 import net.brightroom.mindstock.application.repository.user.UserRepository
-import net.brightroom.mindstock.application.usecase.household.CreateHouseholdHandler
-import net.brightroom.mindstock.application.usecase.household.FindHouseholdOfUserHandler
-import net.brightroom.mindstock.application.usecase.household.InviteMemberHandler
-import net.brightroom.mindstock.application.usecase.household.RevokeMembershipHandler
+import net.brightroom.mindstock.application.service.household.HouseholdRegisterService
+import net.brightroom.mindstock.application.service.household.HouseholdService
 import net.brightroom.mindstock.configuration.auth.actor
 import net.brightroom.mindstock.configuration.error.NotFoundException
 import net.brightroom.mindstock.configuration.transaction.tx
@@ -19,10 +17,8 @@ import net.brightroom.mindstock.presentation.rpc.HouseholdRpcService
 import org.jetbrains.exposed.v1.jdbc.Database
 
 class HouseholdRpcServiceImpl(
-    private val findHouseholdOfUser: FindHouseholdOfUserHandler,
-    private val createHousehold: CreateHouseholdHandler,
-    private val inviteMember: InviteMemberHandler,
-    private val revokeMembership: RevokeMembershipHandler,
+    private val householdService: HouseholdService,
+    private val householdRegisterService: HouseholdRegisterService,
     private val householdRepository: HouseholdRepository,
     private val userRepository: UserRepository,
     private val call: ApplicationCall,
@@ -32,9 +28,9 @@ class HouseholdRpcServiceImpl(
     // NOTE: a rename within the same connection won't refresh this cache until reconnect.
     private val actor: User by lazy { call.actor(userRepository) }
 
-    override suspend fun findOf(): Household? = tx(database) { findHouseholdOfUser.handle(actor) }
+    override suspend fun findOf(): Household? = tx(database) { householdService.findOf(actor) }
 
-    override suspend fun create(): Household = tx(database) { createHousehold.handle(actor) }
+    override suspend fun create(): Household = tx(database) { householdRegisterService.create(actor) }
 
     override suspend fun invite(
         householdId: HouseholdId,
@@ -49,7 +45,7 @@ class HouseholdRpcServiceImpl(
         val user =
             userRepository.findById(invitee)
                 ?: throw NotFoundException("user not found: $invitee")
-        inviteMember.handle(household, user, role)
+        householdRegisterService.invite(household, user, role)
     }
 
     override suspend fun revoke(
@@ -64,6 +60,6 @@ class HouseholdRpcServiceImpl(
         val user =
             userRepository.findById(target)
                 ?: throw NotFoundException("user not found: $target")
-        revokeMembership.handle(household, user)
+        householdRegisterService.revoke(household, user)
     }
 }
