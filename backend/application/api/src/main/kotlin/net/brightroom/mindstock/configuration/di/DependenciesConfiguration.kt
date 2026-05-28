@@ -19,11 +19,8 @@ import net.brightroom.mindstock.application.service.household.HouseholdRegisterS
 import net.brightroom.mindstock.application.service.household.HouseholdService
 import net.brightroom.mindstock.application.service.product.ProductRegisterService
 import net.brightroom.mindstock.application.service.product.ProductService
-import net.brightroom.mindstock.application.usecase.stock.ConsumeStockHandler
-import net.brightroom.mindstock.application.usecase.stock.GetMovementHistoryHandler
-import net.brightroom.mindstock.application.usecase.stock.GetStockHandler
-import net.brightroom.mindstock.application.usecase.stock.ListStocksHandler
-import net.brightroom.mindstock.application.usecase.stock.ReplenishStockHandler
+import net.brightroom.mindstock.application.service.stock.StockRegisterService
+import net.brightroom.mindstock.application.service.stock.StockService
 import net.brightroom.mindstock.application.usecase.user.RegisterUserHandler
 import net.brightroom.mindstock.application.usecase.user.RenameUserHandler
 import net.brightroom.mindstock.configuration.Environment
@@ -76,10 +73,7 @@ fun Application.dependenciesConfigure(
         provide<ProductRegisterService> { ProductRegisterService(resolve()) }
 
         // Stock
-        provide<ReplenishStockHandler> { ReplenishStockHandler(resolve()) }
-        provide<ConsumeStockHandler> { ConsumeStockHandler(resolve()) }
-        provide<GetStockHandler> { GetStockHandler(resolve()) }
-        provide<ListStocksHandler> { ListStocksHandler(resolve()) }
-        provide<GetMovementHistoryHandler> { GetMovementHistoryHandler(resolve()) }
+        provide<StockService> { StockService(resolve()) }
+        provide<StockRegisterService> { StockRegisterService(resolve()) }
     }
 }

@@ -24,11 +24,8 @@ import net.brightroom.mindstock.application.service.household.HouseholdRegisterS
 import net.brightroom.mindstock.application.service.household.HouseholdService
 import net.brightroom.mindstock.application.service.product.ProductRegisterService
 import net.brightroom.mindstock.application.service.product.ProductService
-import net.brightroom.mindstock.application.usecase.stock.ConsumeStockHandler
-import net.brightroom.mindstock.application.usecase.stock.GetMovementHistoryHandler
-import net.brightroom.mindstock.application.usecase.stock.GetStockHandler
-import net.brightroom.mindstock.application.usecase.stock.ListStocksHandler
-import net.brightroom.mindstock.application.usecase.stock.ReplenishStockHandler
+import net.brightroom.mindstock.application.service.stock.StockRegisterService
+import net.brightroom.mindstock.application.service.stock.StockService
 import net.brightroom.mindstock.application.usecase.user.RegisterUserHandler
 import net.brightroom.mindstock.application.usecase.user.RenameUserHandler
 import net.brightroom.mindstock.configuration.Environment
@@ -75,11 +72,8 @@ fun Application.routingConfigure(
     val productService: ProductService by dependencies
     val productRegisterService: ProductRegisterService by dependencies
 
-    val getStockHandler: GetStockHandler by dependencies
-    val listStocksHandler: ListStocksHandler by dependencies
-    val getMovementHistoryHandler: GetMovementHistoryHandler by dependencies
-    val replenishStockHandler: ReplenishStockHandler by dependencies
-    val consumeStockHandler: ConsumeStockHandler by dependencies
+    val stockService: StockService by dependencies
+    val stockRegisterService: StockRegisterService by dependencies
 
     val userRepository: UserRepository by dependencies
     val householdRepository: HouseholdRepository by dependencies
@@ -158,11 +152,8 @@ fun Application.routingConfigure(
                 val call = this.applicationCall
                 registerService<StockRpcService> {
                     StockRpcServiceImpl(
-                        getStockHandler,
-                        listStocksHandler,
-                        getMovementHistoryHandler,
-                        replenishStockHandler,
-                        consumeStockHandler,
+                        stockService,
+                        stockRegisterService,
                         productRepository,
                         householdRepository,
                         userRepository,

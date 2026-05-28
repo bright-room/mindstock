@@ -4,11 +4,8 @@ import io.ktor.server.application.ApplicationCall
 import net.brightroom.mindstock.application.repository.household.HouseholdRepository
 import net.brightroom.mindstock.application.repository.product.ProductRepository
 import net.brightroom.mindstock.application.repository.user.UserRepository
-import net.brightroom.mindstock.application.usecase.stock.ConsumeStockHandler
-import net.brightroom.mindstock.application.usecase.stock.GetMovementHistoryHandler
-import net.brightroom.mindstock.application.usecase.stock.GetStockHandler
-import net.brightroom.mindstock.application.usecase.stock.ListStocksHandler
-import net.brightroom.mindstock.application.usecase.stock.ReplenishStockHandler
+import net.brightroom.mindstock.application.service.stock.StockRegisterService
+import net.brightroom.mindstock.application.service.stock.StockService
 import net.brightroom.mindstock.configuration.auth.actor
 import net.brightroom.mindstock.configuration.error.NotFoundException
 import net.brightroom.mindstock.configuration.transaction.tx
@@ -26,11 +23,8 @@ import net.brightroom.mindstock.presentation.rpc.StockRpcService
 import org.jetbrains.exposed.v1.jdbc.Database
 
 class StockRpcServiceImpl(
-    private val getStock: GetStockHandler,
-    private val listStocks: ListStocksHandler,
-    private val getMovementHistory: GetMovementHistoryHandler,
-    private val replenishStock: ReplenishStockHandler,
-    private val consumeStock: ConsumeStockHandler,
+    private val stockService: StockService,
+    private val stockRegisterService: StockRegisterService,
     private val productRepository: ProductRepository,
     private val householdRepository: HouseholdRepository,
     private val userRepository: UserRepository,
@@ -48,7 +42,7 @@ class StockRpcServiceImpl(
             val product =
                 productRepository.findById(productId)
                     ?: throw NotFoundException("product not found: $productId")
-            getStock.handle(product)
+            stockService.get(product)
         }
 
     override suspend fun list(householdId: HouseholdId): List<Stock> =
@@ -58,7 +52,7 @@ class StockRpcServiceImpl(
             val household =
                 householdRepository.findById(householdId)
                     ?: throw NotFoundException("household not found: $householdId")
-            listStocks.handle(household)
+            stockService.list(household)
         }
 
     override suspend fun movementHistory(
@@ -71,7 +65,7 @@ class StockRpcServiceImpl(
             val product =
                 productRepository.findById(productId)
                     ?: throw NotFoundException("product not found: $productId")
-            getMovementHistory.handle(product, limit)
+            stockService.getMovementHistory(product, limit)
         }
 
     override suspend fun replenish(
@@ -85,7 +79,7 @@ class StockRpcServiceImpl(
             val product =
                 productRepository.findById(productId)
                     ?: throw NotFoundException("product not found: $productId")
-            replenishStock.handle(product, qty, occurredAt, actor, note)
+            stockRegisterService.replenish(product, qty, occurredAt, actor, note)
         }
 
     override suspend fun consume(
@@ -99,6 +93,6 @@ class StockRpcServiceImpl(
             val product =
                 productRepository.findById(productId)
                     ?: throw NotFoundException("product not found: $productId")
-            consumeStock.handle(product, qty, occurredAt, actor, note)
+            stockRegisterService.consume(product, qty, occurredAt, actor, note)
         }
 }
