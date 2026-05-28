@@ -43,10 +43,8 @@ rootProject.name = "mindstock"
 // composite build for convention plugins
 includeBuild("build-logic")
 
-include(
-    ":shared:rpc",
-    ":shared:extensions",
-)
+include(":shared")
+include(":shared:rpc")
 
 include(":domain")
 

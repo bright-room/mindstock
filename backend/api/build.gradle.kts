@@ -14,7 +14,7 @@ dependencies {
     implementation(projects.backend.core)
     implementation(projects.domain)
     implementation(projects.shared.rpc)
-    implementation(projects.shared.extensions)
+    implementation(projects.shared)
 
     implementation(ktorLib.server.core)
     implementation(ktorLib.server.cio)
