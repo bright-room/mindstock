@@ -13,10 +13,8 @@ import net.brightroom.mindstock.application.repository.stock.StockRegisterReposi
 import net.brightroom.mindstock.application.repository.stock.StockRepository
 import net.brightroom.mindstock.application.repository.user.UserRegisterRepository
 import net.brightroom.mindstock.application.repository.user.UserRepository
-import net.brightroom.mindstock.application.usecase.catalog.FindCatalogItemByIdHandler
-import net.brightroom.mindstock.application.usecase.catalog.RegisterCatalogItemHandler
-import net.brightroom.mindstock.application.usecase.catalog.ReviseCatalogItemHandler
-import net.brightroom.mindstock.application.usecase.catalog.SearchCatalogItemsHandler
+import net.brightroom.mindstock.application.service.catalog.CatalogItemRegisterService
+import net.brightroom.mindstock.application.service.catalog.CatalogItemService
 import net.brightroom.mindstock.application.usecase.household.CreateHouseholdHandler
 import net.brightroom.mindstock.application.usecase.household.FindHouseholdOfUserHandler
 import net.brightroom.mindstock.application.usecase.household.InviteMemberHandler
@@ -77,10 +75,8 @@ fun Application.dependenciesConfigure(
         provide<FindHouseholdOfUserHandler> { FindHouseholdOfUserHandler(resolve()) }
 
         // CatalogItem
-        provide<RegisterCatalogItemHandler> { RegisterCatalogItemHandler(resolve()) }
-        provide<ReviseCatalogItemHandler> { ReviseCatalogItemHandler(resolve()) }
-        provide<SearchCatalogItemsHandler> { SearchCatalogItemsHandler(resolve()) }
-        provide<FindCatalogItemByIdHandler> { FindCatalogItemByIdHandler(resolve()) }
+        provide<CatalogItemService> { CatalogItemService(resolve()) }
+        provide<CatalogItemRegisterService> { CatalogItemRegisterService(resolve()) }
 
         // Product
         provide<AdoptProductHandler> { AdoptProductHandler(resolve()) }

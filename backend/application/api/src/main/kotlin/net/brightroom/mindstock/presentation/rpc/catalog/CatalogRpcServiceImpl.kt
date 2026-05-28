@@ -3,10 +3,8 @@ package net.brightroom.mindstock.presentation.rpc.catalog
 import io.ktor.server.application.ApplicationCall
 import net.brightroom.mindstock.application.repository.catalog.CatalogItemRepository
 import net.brightroom.mindstock.application.repository.user.UserRepository
-import net.brightroom.mindstock.application.usecase.catalog.FindCatalogItemByIdHandler
-import net.brightroom.mindstock.application.usecase.catalog.RegisterCatalogItemHandler
-import net.brightroom.mindstock.application.usecase.catalog.ReviseCatalogItemHandler
-import net.brightroom.mindstock.application.usecase.catalog.SearchCatalogItemsHandler
+import net.brightroom.mindstock.application.service.catalog.CatalogItemRegisterService
+import net.brightroom.mindstock.application.service.catalog.CatalogItemService
 import net.brightroom.mindstock.configuration.auth.actor
 import net.brightroom.mindstock.configuration.error.NotFoundException
 import net.brightroom.mindstock.configuration.transaction.tx
@@ -20,10 +18,8 @@ import net.brightroom.mindstock.presentation.rpc.CatalogRpcService
 import org.jetbrains.exposed.v1.jdbc.Database
 
 class CatalogRpcServiceImpl(
-    private val searchHandler: SearchCatalogItemsHandler,
-    private val findByIdHandler: FindCatalogItemByIdHandler,
-    private val registerHandler: RegisterCatalogItemHandler,
-    private val reviseHandler: ReviseCatalogItemHandler,
+    private val catalogItemService: CatalogItemService,
+    private val catalogItemRegisterService: CatalogItemRegisterService,
     private val catalogItemRepository: CatalogItemRepository,
     private val userRepository: UserRepository,
     private val call: ApplicationCall,
@@ -39,19 +35,19 @@ class CatalogRpcServiceImpl(
     ): CatalogItems =
         tx(database) {
             actor
-            searchHandler.handle(query, limit)
+            catalogItemService.search(query, limit)
         }
 
     override suspend fun findById(id: CatalogItemId): CatalogItem? =
         tx(database) {
             actor
-            findByIdHandler.handle(id)
+            catalogItemService.findById(id)
         }
 
     override suspend fun register(
         name: CatalogItemName,
         unit: CatalogItemUnit,
-    ): CatalogItem = tx(database) { registerHandler.handle(name, unit, actor) }
+    ): CatalogItem = tx(database) { catalogItemRegisterService.register(name, unit, actor) }
 
     override suspend fun revise(
         id: CatalogItemId,
@@ -61,6 +57,6 @@ class CatalogRpcServiceImpl(
         val catalogItem =
             catalogItemRepository.findById(id)
                 ?: throw NotFoundException("catalog item not found: $id")
-        reviseHandler.handle(catalogItem, newName, newUnit, actor)
+        catalogItemRegisterService.revise(catalogItem, newName, newUnit, actor)
     }
 }

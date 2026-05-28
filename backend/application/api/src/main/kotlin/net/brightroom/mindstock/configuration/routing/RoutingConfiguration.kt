@@ -18,10 +18,8 @@ import net.brightroom.mindstock.application.repository.catalog.CatalogItemReposi
 import net.brightroom.mindstock.application.repository.household.HouseholdRepository
 import net.brightroom.mindstock.application.repository.product.ProductRepository
 import net.brightroom.mindstock.application.repository.user.UserRepository
-import net.brightroom.mindstock.application.usecase.catalog.FindCatalogItemByIdHandler
-import net.brightroom.mindstock.application.usecase.catalog.RegisterCatalogItemHandler
-import net.brightroom.mindstock.application.usecase.catalog.ReviseCatalogItemHandler
-import net.brightroom.mindstock.application.usecase.catalog.SearchCatalogItemsHandler
+import net.brightroom.mindstock.application.service.catalog.CatalogItemRegisterService
+import net.brightroom.mindstock.application.service.catalog.CatalogItemService
 import net.brightroom.mindstock.application.usecase.household.CreateHouseholdHandler
 import net.brightroom.mindstock.application.usecase.household.FindHouseholdOfUserHandler
 import net.brightroom.mindstock.application.usecase.household.InviteMemberHandler
@@ -78,10 +76,8 @@ fun Application.routingConfigure(
     val inviteMemberHandler: InviteMemberHandler by dependencies
     val revokeMembershipHandler: RevokeMembershipHandler by dependencies
 
-    val searchCatalogItemsHandler: SearchCatalogItemsHandler by dependencies
-    val findCatalogItemByIdHandler: FindCatalogItemByIdHandler by dependencies
-    val registerCatalogItemHandler: RegisterCatalogItemHandler by dependencies
-    val reviseCatalogItemHandler: ReviseCatalogItemHandler by dependencies
+    val catalogItemService: CatalogItemService by dependencies
+    val catalogItemRegisterService: CatalogItemRegisterService by dependencies
 
     val listProductsOfHouseholdHandler: ListProductsOfHouseholdHandler by dependencies
     val findProductHandler: FindProductHandler by dependencies
@@ -146,10 +142,8 @@ fun Application.routingConfigure(
                 val call = this.applicationCall
                 registerService<CatalogRpcService> {
                     CatalogRpcServiceImpl(
-                        searchCatalogItemsHandler,
-                        findCatalogItemByIdHandler,
-                        registerCatalogItemHandler,
-                        reviseCatalogItemHandler,
+                        catalogItemService,
+                        catalogItemRegisterService,
                         catalogItemRepository,
                         userRepository,
                         call,
