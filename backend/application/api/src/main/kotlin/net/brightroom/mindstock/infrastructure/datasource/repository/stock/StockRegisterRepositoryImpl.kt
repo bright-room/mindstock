@@ -14,7 +14,6 @@ import org.jetbrains.exposed.v1.jdbc.insert
 import java.time.ZoneOffset
 import kotlin.time.toJavaInstant
 import kotlin.uuid.ExperimentalUuidApi
-import kotlin.uuid.toJavaUuid
 
 @OptIn(ExperimentalUuidApi::class)
 internal class StockRegisterRepositoryImpl : StockRegisterRepository {
@@ -49,11 +48,11 @@ internal class StockRegisterRepositoryImpl : StockRegisterRepository {
         type: StockMovementType,
     ) {
         StockMovementsTable.insert {
-            it[product_id] = product.id().toJavaUuid()
+            it[product_id] = product.id()
             it[StockMovementsTable.type] = type
             it[StockMovementsTable.quantity] = quantity()
             it[occurred_at] = occurredAt().toJavaInstant().atOffset(ZoneOffset.UTC)
-            it[acted_by] = actor.id().toJavaUuid()
+            it[acted_by] = actor.id()
             it[StockMovementsTable.note] = note()
         }
     }

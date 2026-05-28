@@ -9,18 +9,19 @@ import net.brightroom.mindstock.domain.repository.product.ProductRepository
 import net.brightroom.mindstock.domain.repository.stock.StockRepository
 import net.brightroom.mindstock.infrastructure.datasource.schemas.stock.StockMovementsTable
 import org.jetbrains.exposed.v1.core.SortOrder
+import org.jetbrains.exposed.v1.core.eq
+import org.jetbrains.exposed.v1.core.inList
 import org.jetbrains.exposed.v1.jdbc.selectAll
 import kotlin.time.toKotlinInstant
 import kotlin.uuid.ExperimentalUuidApi
-import kotlin.uuid.toJavaUuid
-import kotlin.uuid.toKotlinUuid
+import kotlin.uuid.Uuid
 
 @OptIn(ExperimentalUuidApi::class)
 internal class StockRepositoryImpl(
     private val productRepository: ProductRepository,
 ) : StockRepository {
     override fun stockOf(product: Product): Stock {
-        val movements = loadMovementsFor(listOf(product))[product.id().toJavaUuid()] ?: emptyList()
+        val movements = loadMovementsFor(listOf(product))[product.id()] ?: emptyList()
         return Stock(product, StockMovements(movements))
     }
 
@@ -29,7 +30,7 @@ internal class StockRepositoryImpl(
         if (products.isEmpty()) return emptyList()
         val byProductId = loadMovementsFor(products)
         return products.map { p ->
-            Stock(p, StockMovements(byProductId[p.id().toJavaUuid()] ?: emptyList()))
+            Stock(p, StockMovements(byProductId[p.id()] ?: emptyList()))
         }
     }
 
@@ -38,11 +39,10 @@ internal class StockRepositoryImpl(
         limit: Int,
     ): StockMovements {
         require(limit > 0) { "limit must be > 0" }
-        val productUuid = product.id().toJavaUuid()
         val rows =
             StockMovementsTable
                 .selectAll()
-                .where { StockMovementsTable.product_id eq productUuid }
+                .where { StockMovementsTable.product_id eq product.id() }
                 .orderBy(
                     StockMovementsTable.occurred_at to SortOrder.DESC,
                     StockMovementsTable.id to SortOrder.DESC,
@@ -50,7 +50,7 @@ internal class StockRepositoryImpl(
                 .map { row ->
                     toStockMovement(
                         product = product,
-                        actorId = row[StockMovementsTable.acted_by].toKotlinUuid(),
+                        actorId = row[StockMovementsTable.acted_by],
                         type = row[StockMovementsTable.type],
                         quantity = row[StockMovementsTable.quantity],
                         occurredAt = row[StockMovementsTable.occurred_at].toInstant().toKotlinInstant(),
@@ -61,10 +61,10 @@ internal class StockRepositoryImpl(
     }
 
     /** product 群に対する全 movement を 1 クエリで取得し、productId UUID ごとにグルーピング。 */
-    private fun loadMovementsFor(products: List<Product>): Map<java.util.UUID, List<StockMovement>> {
+    private fun loadMovementsFor(products: List<Product>): Map<Uuid, List<StockMovement>> {
         if (products.isEmpty()) return emptyMap()
-        val productUuids = products.map { it.id().toJavaUuid() }
-        val productByUuid = products.associateBy { it.id().toJavaUuid() }
+        val productUuids = products.map { it.id() }
+        val productByUuid = products.associateBy { it.id() }
 
         val pairs =
             StockMovementsTable
@@ -80,7 +80,7 @@ internal class StockRepositoryImpl(
                     productUuid to
                         toStockMovement(
                             product = product,
-                            actorId = row[StockMovementsTable.acted_by].toKotlinUuid(),
+                            actorId = row[StockMovementsTable.acted_by],
                             type = row[StockMovementsTable.type],
                             quantity = row[StockMovementsTable.quantity],
                             occurredAt = row[StockMovementsTable.occurred_at].toInstant().toKotlinInstant(),

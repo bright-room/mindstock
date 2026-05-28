@@ -8,22 +8,21 @@ import net.brightroom.mindstock.infrastructure.datasource.schemas.user.UserDispl
 import net.brightroom.mindstock.infrastructure.datasource.schemas.user.UsersTable
 import org.jetbrains.exposed.v1.core.JoinType
 import org.jetbrains.exposed.v1.core.Op
-import org.jetbrains.exposed.v1.core.SqlExpressionBuilder
 import org.jetbrains.exposed.v1.core.alias
 import org.jetbrains.exposed.v1.core.and
+import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.core.max
 import org.jetbrains.exposed.v1.jdbc.select
 import org.jetbrains.exposed.v1.jdbc.selectAll
 import kotlin.uuid.ExperimentalUuidApi
-import kotlin.uuid.toJavaUuid
 
 @OptIn(ExperimentalUuidApi::class)
 internal class UserRepositoryImpl : UserRepository {
     override fun findByAuthIdentity(identity: AuthIdentity): User? = queryLatest { UsersTable.zitadel_sub eq identity.subject() }
 
-    override fun findById(id: UserId): User? = queryLatest { UsersTable.id eq id().toJavaUuid() }
+    override fun findById(id: UserId): User? = queryLatest { UsersTable.id eq id() }
 
-    private fun queryLatest(where: SqlExpressionBuilder.() -> Op<Boolean>): User? {
+    private fun queryLatest(where: () -> Op<Boolean>): User? {
         // Alias the max() expression so QueryAlias.get() can resolve it correctly.
         val maxIdAlias = UserDisplayNamesTable.id.max().alias("max_name_id")
         val latestNames =

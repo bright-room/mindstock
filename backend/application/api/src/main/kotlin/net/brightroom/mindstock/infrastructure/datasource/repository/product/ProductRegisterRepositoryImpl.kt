@@ -11,8 +11,6 @@ import net.brightroom.mindstock.infrastructure.datasource.schemas.product.Produc
 import net.brightroom.mindstock.infrastructure.datasource.schemas.product.ProductsTable
 import org.jetbrains.exposed.v1.jdbc.insert
 import kotlin.uuid.ExperimentalUuidApi
-import kotlin.uuid.toJavaUuid
-import kotlin.uuid.toKotlinUuid
 
 @OptIn(ExperimentalUuidApi::class)
 internal class ProductRegisterRepositoryImpl : ProductRegisterRepository {
@@ -22,12 +20,12 @@ internal class ProductRegisterRepositoryImpl : ProductRegisterRepository {
     ): Product {
         val newId =
             ProductsTable.insert {
-                it[household_id] = household.id().toJavaUuid()
-                it[catalog_item_id] = catalogItem.id().toJavaUuid()
+                it[household_id] = household.id()
+                it[catalog_item_id] = catalogItem.id()
             } get ProductsTable.id
 
         return hydrateProduct(
-            id = newId.toKotlinUuid(),
+            id = newId,
             catalogItem = catalogItem,
             minimumStock = null,
             archived = false,
@@ -40,9 +38,9 @@ internal class ProductRegisterRepositoryImpl : ProductRegisterRepository {
         editedBy: User,
     ) {
         ProductMinimumStocksTable.insert {
-            it[product_id] = product.id().toJavaUuid()
+            it[product_id] = product.id()
             it[minimum_stock] = value()
-            it[edited_by] = editedBy.id().toJavaUuid()
+            it[edited_by] = editedBy.id()
         }
     }
 
@@ -51,8 +49,8 @@ internal class ProductRegisterRepositoryImpl : ProductRegisterRepository {
         by: User,
     ) {
         ProductArchivesTable.insert {
-            it[product_id] = product.id().toJavaUuid()
-            it[archived_by] = by.id().toJavaUuid()
+            it[product_id] = product.id()
+            it[archived_by] = by.id()
         }
     }
 }

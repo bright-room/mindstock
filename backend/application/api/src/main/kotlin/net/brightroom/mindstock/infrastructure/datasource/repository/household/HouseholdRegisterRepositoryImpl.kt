@@ -11,11 +11,11 @@ import net.brightroom.mindstock.infrastructure.datasource.schemas.household.Hous
 import org.jetbrains.exposed.v1.core.JoinType
 import org.jetbrains.exposed.v1.core.SortOrder
 import org.jetbrains.exposed.v1.core.and
+import org.jetbrains.exposed.v1.core.eq
+import org.jetbrains.exposed.v1.core.isNull
 import org.jetbrains.exposed.v1.jdbc.insert
 import org.jetbrains.exposed.v1.jdbc.select
 import kotlin.uuid.ExperimentalUuidApi
-import kotlin.uuid.toJavaUuid
-import kotlin.uuid.toKotlinUuid
 
 @OptIn(ExperimentalUuidApi::class)
 internal class HouseholdRegisterRepositoryImpl : HouseholdRegisterRepository {
@@ -27,12 +27,12 @@ internal class HouseholdRegisterRepositoryImpl : HouseholdRegisterRepository {
 
         HouseholdMembershipsTable.insert {
             it[household_id] = newHouseholdId
-            it[user_id] = owner.id().toJavaUuid()
+            it[user_id] = owner.id()
             it[role] = HouseholdMemberRole.OWNER
         }
 
         return hydrateHousehold(
-            householdId = newHouseholdId.toKotlinUuid(),
+            householdId = newHouseholdId,
             members = listOf(HouseholdMember(owner, HouseholdMemberRole.OWNER)),
         )
     }
@@ -43,8 +43,8 @@ internal class HouseholdRegisterRepositoryImpl : HouseholdRegisterRepository {
         role: HouseholdMemberRole,
     ) {
         HouseholdMembershipsTable.insert {
-            it[household_id] = household.id().toJavaUuid()
-            it[user_id] = user.id().toJavaUuid()
+            it[household_id] = household.id()
+            it[user_id] = user.id()
             it[this.role] = role
         }
     }
@@ -53,8 +53,6 @@ internal class HouseholdRegisterRepositoryImpl : HouseholdRegisterRepository {
         household: Household,
         user: User,
     ) {
-        val householdUuid = household.id().toJavaUuid()
-        val userUuid = user.id().toJavaUuid()
         val activeMembershipId =
             HouseholdMembershipsTable
                 .join(
@@ -65,8 +63,8 @@ internal class HouseholdRegisterRepositoryImpl : HouseholdRegisterRepository {
                     },
                 ).select(HouseholdMembershipsTable.id)
                 .where {
-                    (HouseholdMembershipsTable.household_id eq householdUuid) and
-                        (HouseholdMembershipsTable.user_id eq userUuid) and
+                    (HouseholdMembershipsTable.household_id eq household.id()) and
+                        (HouseholdMembershipsTable.user_id eq user.id()) and
                         HouseholdMembershipRevocationsTable.id.isNull()
                 }.orderBy(HouseholdMembershipsTable.id, SortOrder.DESC)
                 .limit(1)

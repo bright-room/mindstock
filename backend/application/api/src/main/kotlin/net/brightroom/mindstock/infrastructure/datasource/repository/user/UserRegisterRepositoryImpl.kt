@@ -6,10 +6,10 @@ import net.brightroom.mindstock.domain.model.user.auth.AuthIdentity
 import net.brightroom.mindstock.domain.repository.user.UserRegisterRepository
 import net.brightroom.mindstock.infrastructure.datasource.schemas.user.UserDisplayNamesTable
 import net.brightroom.mindstock.infrastructure.datasource.schemas.user.UsersTable
+import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.jdbc.insert
 import org.jetbrains.exposed.v1.jdbc.selectAll
 import kotlin.uuid.ExperimentalUuidApi
-import kotlin.uuid.toJavaUuid
 
 @OptIn(ExperimentalUuidApi::class)
 internal class UserRegisterRepositoryImpl : UserRegisterRepository {
@@ -39,7 +39,7 @@ internal class UserRegisterRepositoryImpl : UserRegisterRepository {
         newName: DisplayName,
     ) {
         UserDisplayNamesTable.insert {
-            it[user_id] = user.id().toJavaUuid()
+            it[user_id] = user.id()
             it[display_name] = newName()
         }
     }

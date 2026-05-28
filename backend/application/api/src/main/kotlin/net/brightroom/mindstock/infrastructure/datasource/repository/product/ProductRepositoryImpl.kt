@@ -12,36 +12,38 @@ import net.brightroom.mindstock.infrastructure.datasource.schemas.catalog.Catalo
 import net.brightroom.mindstock.infrastructure.datasource.schemas.product.ProductArchivesTable
 import net.brightroom.mindstock.infrastructure.datasource.schemas.product.ProductMinimumStocksTable
 import net.brightroom.mindstock.infrastructure.datasource.schemas.product.ProductsTable
+import org.jetbrains.exposed.v1.core.Column
+import org.jetbrains.exposed.v1.core.ExpressionWithColumnType
 import org.jetbrains.exposed.v1.core.JoinType
 import org.jetbrains.exposed.v1.core.QueryAlias
 import org.jetbrains.exposed.v1.core.ResultRow
 import org.jetbrains.exposed.v1.core.alias
 import org.jetbrains.exposed.v1.core.and
+import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.core.max
 import org.jetbrains.exposed.v1.jdbc.select
 import org.jetbrains.exposed.v1.jdbc.selectAll
 import kotlin.uuid.ExperimentalUuidApi
-import kotlin.uuid.toJavaUuid
-import kotlin.uuid.toKotlinUuid
+import kotlin.uuid.Uuid
 
 @OptIn(ExperimentalUuidApi::class)
 internal class ProductRepositoryImpl : ProductRepository {
     private data class LatestRevsAlias(
         val alias: QueryAlias,
-        val catalogItemId: org.jetbrains.exposed.v1.core.Column<java.util.UUID>,
-        val maxId: org.jetbrains.exposed.v1.core.ExpressionWithColumnType<Long?>,
+        val catalogItemId: Column<Uuid>,
+        val maxId: ExpressionWithColumnType<Long?>,
     )
 
     private data class LatestMinStocksAlias(
         val alias: QueryAlias,
-        val productId: org.jetbrains.exposed.v1.core.Column<java.util.UUID>,
-        val maxId: org.jetbrains.exposed.v1.core.ExpressionWithColumnType<Long?>,
+        val productId: Column<Uuid>,
+        val maxId: ExpressionWithColumnType<Long?>,
     )
 
     private data class LatestArchivesAlias(
         val alias: QueryAlias,
-        val productId: org.jetbrains.exposed.v1.core.Column<java.util.UUID>,
-        val maxId: org.jetbrains.exposed.v1.core.ExpressionWithColumnType<Long?>,
+        val productId: Column<Uuid>,
+        val maxId: ExpressionWithColumnType<Long?>,
     )
 
     private fun buildLatestRevs(): LatestRevsAlias {
@@ -101,7 +103,7 @@ internal class ProductRepositoryImpl : ProductRepository {
         val results =
             buildJoinedQuery()
                 .selectAll()
-                .where { ProductsTable.household_id eq household.id().toJavaUuid() }
+                .where { ProductsTable.household_id eq household.id() }
                 .map { it.toProduct() }
         return Products(results)
     }
@@ -113,24 +115,24 @@ internal class ProductRepositoryImpl : ProductRepository {
         buildJoinedQuery()
             .selectAll()
             .where {
-                (ProductsTable.household_id eq household.id().toJavaUuid()) and
-                    (ProductsTable.catalog_item_id eq catalogItem.id().toJavaUuid())
+                (ProductsTable.household_id eq household.id()) and
+                    (ProductsTable.catalog_item_id eq catalogItem.id())
             }.singleOrNull()
             ?.toProduct()
 
     override fun findById(id: ProductId): Product? =
         buildJoinedQuery()
             .selectAll()
-            .where { ProductsTable.id eq id().toJavaUuid() }
+            .where { ProductsTable.id eq id() }
             .singleOrNull()
             ?.toProduct()
 
     private fun ResultRow.toProduct(): Product =
         hydrateProduct(
-            id = this[ProductsTable.id].toKotlinUuid(),
+            id = this[ProductsTable.id],
             catalogItem =
                 hydrateCatalogItem(
-                    id = this[CatalogItemsTable.id].toKotlinUuid(),
+                    id = this[CatalogItemsTable.id],
                     name = this[CatalogItemRevisionsTable.name],
                     unit = this[CatalogItemRevisionsTable.unit],
                 ),

@@ -16,12 +16,12 @@ import org.jetbrains.exposed.v1.core.JoinType
 import org.jetbrains.exposed.v1.core.SortOrder
 import org.jetbrains.exposed.v1.core.alias
 import org.jetbrains.exposed.v1.core.and
+import org.jetbrains.exposed.v1.core.eq
+import org.jetbrains.exposed.v1.core.isNull
 import org.jetbrains.exposed.v1.core.max
 import org.jetbrains.exposed.v1.jdbc.select
 import org.jetbrains.exposed.v1.jdbc.selectAll
 import kotlin.uuid.ExperimentalUuidApi
-import kotlin.uuid.toJavaUuid
-import kotlin.uuid.toKotlinUuid
 
 @OptIn(ExperimentalUuidApi::class)
 internal class HouseholdRepositoryImpl : HouseholdRepository {
@@ -48,7 +48,7 @@ internal class HouseholdRepositoryImpl : HouseholdRepository {
                     },
                 ).select(HouseholdMembershipsTable.household_id, maxMembershipIdAlias)
                 .where {
-                    (HouseholdMembershipsTable.user_id eq user.id().toJavaUuid()) and
+                    (HouseholdMembershipsTable.user_id eq user.id()) and
                         HouseholdMembershipRevocationsTable.id.isNull()
                 }.groupBy(HouseholdMembershipsTable.household_id)
                 .orderBy(maxMembershipIdAlias, SortOrder.DESC)
@@ -79,7 +79,7 @@ internal class HouseholdRepositoryImpl : HouseholdRepository {
 
         if (rows.isEmpty()) return null
 
-        val householdId = rows.first()[HouseholdMembershipsTable.household_id].toKotlinUuid()
+        val householdId = rows.first()[HouseholdMembershipsTable.household_id]
         val members =
             rows.map { row ->
                 HouseholdMember(
@@ -91,13 +91,11 @@ internal class HouseholdRepositoryImpl : HouseholdRepository {
     }
 
     override fun findById(id: HouseholdId): Household? {
-        val householdJavaUuid = id().toJavaUuid()
-
         // --- household existence check (returns even if all memberships are revoked) ---
         val householdExists =
             HouseholdsTable
                 .select(HouseholdsTable.id)
-                .where { HouseholdsTable.id eq householdJavaUuid }
+                .where { HouseholdsTable.id eq id() }
                 .limit(1)
                 .firstOrNull() != null
         if (!householdExists) return null
@@ -128,7 +126,7 @@ internal class HouseholdRepositoryImpl : HouseholdRepository {
                         (UserDisplayNamesTable.id eq latestNameMaxId)
                 }.selectAll()
                 .where {
-                    (HouseholdMembershipsTable.household_id eq householdJavaUuid) and
+                    (HouseholdMembershipsTable.household_id eq id()) and
                         HouseholdMembershipRevocationsTable.id.isNull()
                 }.orderBy(HouseholdMembershipsTable.id, SortOrder.ASC)
                 .toList()

@@ -10,12 +10,11 @@ import net.brightroom.mindstock.infrastructure.datasource.schemas.user.UserDispl
 import net.brightroom.mindstock.infrastructure.datasource.schemas.user.UsersTable
 import org.jetbrains.exposed.v1.core.ResultRow
 import kotlin.uuid.ExperimentalUuidApi
-import kotlin.uuid.toKotlinUuid
 
 @OptIn(ExperimentalUuidApi::class)
 internal fun ResultRow.toUser(): User =
     User(
-        id = UserId(this[UsersTable.id].toKotlinUuid()),
+        id = UserId(this[UsersTable.id]),
         authIdentity =
             AuthIdentity(
                 provider = AuthProvider.ZITADEL,

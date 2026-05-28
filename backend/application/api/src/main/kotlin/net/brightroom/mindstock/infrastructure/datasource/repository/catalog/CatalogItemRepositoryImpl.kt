@@ -6,25 +6,28 @@ import net.brightroom.mindstock.domain.model.catalog.CatalogItems
 import net.brightroom.mindstock.domain.repository.catalog.CatalogItemRepository
 import net.brightroom.mindstock.infrastructure.datasource.schemas.catalog.CatalogItemRevisionsTable
 import net.brightroom.mindstock.infrastructure.datasource.schemas.catalog.CatalogItemsTable
+import org.jetbrains.exposed.v1.core.Column
+import org.jetbrains.exposed.v1.core.ExpressionWithColumnType
 import org.jetbrains.exposed.v1.core.JoinType
 import org.jetbrains.exposed.v1.core.QueryAlias
 import org.jetbrains.exposed.v1.core.SortOrder
 import org.jetbrains.exposed.v1.core.alias
 import org.jetbrains.exposed.v1.core.and
+import org.jetbrains.exposed.v1.core.eq
+import org.jetbrains.exposed.v1.core.like
 import org.jetbrains.exposed.v1.core.max
 import org.jetbrains.exposed.v1.core.upperCase
 import org.jetbrains.exposed.v1.jdbc.select
 import org.jetbrains.exposed.v1.jdbc.selectAll
 import kotlin.uuid.ExperimentalUuidApi
-import kotlin.uuid.toJavaUuid
-import kotlin.uuid.toKotlinUuid
+import kotlin.uuid.Uuid
 
 @OptIn(ExperimentalUuidApi::class)
 internal class CatalogItemRepositoryImpl : CatalogItemRepository {
     private data class LatestRevs(
         val alias: QueryAlias,
-        val catalogItemId: org.jetbrains.exposed.v1.core.Column<java.util.UUID>,
-        val maxId: org.jetbrains.exposed.v1.core.ExpressionWithColumnType<Long?>,
+        val catalogItemId: Column<Uuid>,
+        val maxId: ExpressionWithColumnType<Long?>,
     )
 
     private fun buildLatestRevs(): LatestRevs {
@@ -57,7 +60,7 @@ internal class CatalogItemRepositoryImpl : CatalogItemRepository {
                 .limit(limit)
                 .map { row ->
                     hydrateCatalogItem(
-                        id = row[CatalogItemsTable.id].toKotlinUuid(),
+                        id = row[CatalogItemsTable.id],
                         name = row[CatalogItemRevisionsTable.name],
                         unit = row[CatalogItemRevisionsTable.unit],
                     )
@@ -75,11 +78,11 @@ internal class CatalogItemRepositoryImpl : CatalogItemRepository {
                 (CatalogItemRevisionsTable.catalog_item_id eq latestRevs.catalogItemId) and
                     (CatalogItemRevisionsTable.id eq latestRevs.maxId)
             }.selectAll()
-            .where { CatalogItemsTable.id eq id().toJavaUuid() }
+            .where { CatalogItemsTable.id eq id() }
             .singleOrNull()
             ?.let { row ->
                 hydrateCatalogItem(
-                    id = row[CatalogItemsTable.id].toKotlinUuid(),
+                    id = row[CatalogItemsTable.id],
                     name = row[CatalogItemRevisionsTable.name],
                     unit = row[CatalogItemRevisionsTable.unit],
                 )
