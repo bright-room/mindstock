@@ -83,7 +83,7 @@ net.brightroom.mindstock/
 └── Main.kt                         空 main(起動してすぐ正常終了する程度)
 ```
 
-`build.gradle.kts` は `:backend:core` 依存だけ通し、ビルドが green になる状態にする。中身は将来の batch Plan で詰める。**configuration の共通化は今回はしない** — schedules に実装が入ったタイミングで、`:backend:api` との重複を見て core 側へ抜き出すかを再評価する。
+`build.gradle.kts` は `:backend:core` 依存だけ通し、ビルドが green になる状態にする。中身は将来の batch Plan で詰める。**configuration の共通化は今後もしない** — `:backend:api` と `:backend:schedules` は entrypoint の目的が異なる(HTTP server vs batch runner)ため、共通化を狙うと無理な抽象が生まれる。重複は許容し、それぞれの configurer は独立して進化させる。
 
 ## 6. `:shared` と `:rpc`
 
@@ -221,11 +221,10 @@ testcontainers JVM lib (`libs.testcontainers.postgres`, `libs.testcontainers.jun
 
 - **Exposed plugin の `generateMigrations` は build-time に testcontainers で Postgres を立てて diff を取る** — つまり dev ローカルで migration を作る時は Docker 必須。普段の test 実行(unit / integration)では不要。CI で `generateMigrations` は流さない(commit された SQL を信頼)
 - **Phase 1 で `:backend:infrastructure:schemas` に plugin を適用、Phase 2 で `:backend:core` に移す** — 同じ plugin が一度引っ越す形になるが、Phase 1 完了時点で動作確認できる状態にする方を優先する
-- **schedules に実装が入った時に configuration 重複が立ち上がる** — 今回は許容、follow-up memory で再評価のトリガーを残す
+- **`:backend:api` と `:backend:schedules` の `configuration/` が重複する** — 重複を許容方針とする。両 entrypoint は目的(HTTP server vs batch runner)が異なり、共通化は無理な抽象を生む。再評価しない
 - **生成 SQL の連番不連続** — 構築段階でどこにも deploy していないため許容
 
 ## 13. 後続(memory に残すべき内容)
 
-- `:backend:schedules` に実装が入った時点で、`:backend:api` との `configuration/` 重複を評価し、必要なら `:backend:core` 側に薄い configurer を抜き出す
 - `*Handler` の rename(Application Service として `*Service` 命名に統一するか否か)は別 Plan
 - frontend auth refactor(`frontend-auth-refactor-followup`)は引き続き別 Plan
