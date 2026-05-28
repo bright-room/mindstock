@@ -24,9 +24,9 @@ import net.brightroom.mindstock.domain.model.user.User
 import net.brightroom.mindstock.e2e.auth.TestJwks
 import net.brightroom.mindstock.e2e.auth.TestJwtIssuer
 import net.brightroom.mindstock.extensions.kotlinx.serialization.KrpcJson
-import net.brightroom.mindstock.infrastructure.migration.executor.MigrationRunner
-import net.brightroom.mindstock.infrastructure.migration.executor.TestContainersPostgres
-import net.brightroom.mindstock.infrastructure.migration.executor.testHikariDataSource
+import net.brightroom.mindstock.infrastructure.datasource.testcontainers.TestContainersPostgres
+import net.brightroom.mindstock.infrastructure.datasource.testcontainers.testHikariDataSource
+import org.flywaydb.core.Flyway
 import org.jetbrains.exposed.v1.jdbc.Database
 import java.util.Base64
 import javax.sql.DataSource
@@ -78,7 +78,12 @@ fun e2eTest(block: suspend E2eContext.() -> Unit) {
                 TestContainersPostgres.password,
             )
         try {
-            MigrationRunner.migrate(dataSource)
+            Flyway
+                .configure()
+                .dataSource(dataSource)
+                .locations("classpath:db/migration")
+                .load()
+                .migrate()
             val database = Database.connect(dataSource)
             testApplication {
                 environment {

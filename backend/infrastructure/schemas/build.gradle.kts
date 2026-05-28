@@ -15,7 +15,7 @@ dependencies {
 exposed {
     migrations {
         tablesPackage.set("net.brightroom.mindstock.infrastructure.datasource.schemas")
-        fileDirectory.set(layout.projectDirectory.dir("../migration/executor/src/main/resources/db/migration").asFile)
+        fileDirectory.set(rootProject.layout.projectDirectory.dir("backend/application/api/src/main/resources/db/migration").asFile)
         testContainersImageName.set("postgres:18.0-alpine")
     }
 }

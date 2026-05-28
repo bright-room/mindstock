@@ -5,7 +5,7 @@ import com.zaxxer.hikari.HikariDataSource
 import io.ktor.server.application.Application
 import io.ktor.server.plugins.di.annotations.Property
 import net.brightroom.mindstock.configuration.external.exposed.ExposedDataSourceProperties
-import net.brightroom.mindstock.infrastructure.migration.executor.MigrationRunner
+import org.flywaydb.core.Flyway
 
 fun Application.migrationConfigure(
     @Property("external.datasource.database") properties: ExposedDataSourceProperties,
@@ -21,6 +21,11 @@ fun Application.migrationConfigure(
         }
 
     HikariDataSource(hikariConfig).use { dataSource ->
-        MigrationRunner.migrate(dataSource)
+        Flyway
+            .configure()
+            .dataSource(dataSource)
+            .locations("classpath:db/migration")
+            .load()
+            .migrate()
     }
 }
