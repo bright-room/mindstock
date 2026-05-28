@@ -24,7 +24,7 @@ import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
 @OptIn(ExperimentalUuidApi::class)
-class UserPublicRpcServiceImplTest :
+class UserPublicControllerTest :
     FunSpec({
         afterTest { unmockkAll() }
 
@@ -55,7 +55,7 @@ class UserPublicRpcServiceImplTest :
                 block()
             }
 
-            val impl = UserPublicRpcServiceImpl(userRegisterService, call, database)
+            val impl = UserPublicController(userRegisterService, call, database)
             impl.register(displayName) shouldBe expected
         }
 
@@ -67,7 +67,7 @@ class UserPublicRpcServiceImplTest :
             mockkStatic("io.ktor.server.auth.AuthenticationKt")
             every { call.principal<MindstockPrincipal>() } returns null
 
-            val impl = UserPublicRpcServiceImpl(userRegisterService, call, database)
+            val impl = UserPublicController(userRegisterService, call, database)
             shouldThrow<UnauthorizedException> {
                 impl.register(DisplayName("Anyone"))
             }

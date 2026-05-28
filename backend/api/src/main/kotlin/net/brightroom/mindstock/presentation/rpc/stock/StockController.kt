@@ -22,7 +22,7 @@ import net.brightroom.mindstock.domain.model.user.User
 import net.brightroom.mindstock.presentation.rpc.StockRpcService
 import org.jetbrains.exposed.v1.jdbc.Database
 
-class StockRpcServiceImpl(
+class StockController(
     private val stockService: StockService,
     private val stockRegisterService: StockRegisterService,
     private val productRepository: ProductRepository,

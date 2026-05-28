@@ -27,7 +27,7 @@ import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
 @OptIn(ExperimentalUuidApi::class)
-class HouseholdRpcServiceImplTest :
+class HouseholdControllerTest :
     FunSpec({
         afterTest { unmockkAll() }
 
@@ -64,7 +64,7 @@ class HouseholdRpcServiceImplTest :
             }
 
             val impl =
-                HouseholdRpcServiceImpl(
+                HouseholdController(
                     householdService = householdService,
                     householdRegisterService = householdRegisterService,
                     householdRepository = householdRepository,

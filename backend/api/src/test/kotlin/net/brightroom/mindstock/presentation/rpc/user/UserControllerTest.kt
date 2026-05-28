@@ -1,19 +1,16 @@
-package net.brightroom.mindstock.presentation.rpc.catalog
+package net.brightroom.mindstock.presentation.rpc.user
 
 import io.kotest.core.spec.style.FunSpec
-import io.kotest.matchers.shouldBe
 import io.ktor.server.application.ApplicationCall
 import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.mockkStatic
 import io.mockk.unmockkAll
-import net.brightroom.mindstock.application.repository.catalog.CatalogItemRepository
+import io.mockk.verify
 import net.brightroom.mindstock.application.repository.user.UserRepository
-import net.brightroom.mindstock.application.service.catalog.CatalogItemRegisterService
-import net.brightroom.mindstock.application.service.catalog.CatalogItemService
+import net.brightroom.mindstock.application.service.user.UserRegisterService
 import net.brightroom.mindstock.configuration.auth.actor
-import net.brightroom.mindstock.domain.model.catalog.CatalogItems
 import net.brightroom.mindstock.domain.model.user.DisplayName
 import net.brightroom.mindstock.domain.model.user.User
 import net.brightroom.mindstock.domain.model.user.UserId
@@ -25,14 +22,12 @@ import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
 @OptIn(ExperimentalUuidApi::class)
-class CatalogRpcServiceImplTest :
+class UserControllerTest :
     FunSpec({
         afterTest { unmockkAll() }
 
-        test("search resolves actor and delegates to CatalogItemService") {
-            val catalogItemService = mockk<CatalogItemService>()
-            val catalogItemRegisterService = mockk<CatalogItemRegisterService>()
-            val catalogItemRepository = mockk<CatalogItemRepository>()
+        test("rename resolves actor via ApplicationCall and delegates to UserRegisterService") {
+            val userRegisterService = mockk<UserRegisterService>(relaxed = true)
             val userRepository = mockk<UserRepository>()
             val call = mockk<ApplicationCall>()
             val database = mockk<Database>()
@@ -42,13 +37,9 @@ class CatalogRpcServiceImplTest :
                     authIdentity = AuthIdentity(AuthProvider.ZITADEL, AuthSubject("sub-1")),
                     displayName = DisplayName("Alice"),
                 )
-            val expected = CatalogItems(emptyList())
-            val query = "milk"
-            val limit = 20
 
             mockkStatic(ApplicationCall::actor)
             every { call.actor(userRepository) } returns user
-            every { catalogItemService.search(query, limit) } returns expected
 
             mockkStatic("net.brightroom.mindstock.configuration.transaction.TransactionKt")
             coEvery {
@@ -59,15 +50,10 @@ class CatalogRpcServiceImplTest :
                 block()
             }
 
-            val impl =
-                CatalogRpcServiceImpl(
-                    catalogItemService = catalogItemService,
-                    catalogItemRegisterService = catalogItemRegisterService,
-                    catalogItemRepository = catalogItemRepository,
-                    userRepository = userRepository,
-                    call = call,
-                    database = database,
-                )
-            impl.search(query, limit) shouldBe expected
+            val impl = UserController(userRegisterService, userRepository, call, database)
+            val newName = DisplayName("Bob")
+            impl.rename(newName)
+
+            verify { userRegisterService.rename(user, newName) }
         }
     })

@@ -11,6 +11,7 @@ application {
 }
 
 dependencies {
+    implementation(projects.backend.api)
     implementation(projects.shared.rpc)
     implementation(projects.shared.extensions)
     implementation(projects.domain)

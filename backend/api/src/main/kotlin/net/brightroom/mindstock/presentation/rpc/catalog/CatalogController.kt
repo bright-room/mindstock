@@ -17,7 +17,7 @@ import net.brightroom.mindstock.domain.model.user.User
 import net.brightroom.mindstock.presentation.rpc.CatalogRpcService
 import org.jetbrains.exposed.v1.jdbc.Database
 
-class CatalogRpcServiceImpl(
+class CatalogController(
     private val catalogItemService: CatalogItemService,
     private val catalogItemRegisterService: CatalogItemRegisterService,
     private val catalogItemRepository: CatalogItemRepository,

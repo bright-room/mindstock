@@ -33,7 +33,7 @@ import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
 @OptIn(ExperimentalUuidApi::class)
-class StockRpcServiceImplTest :
+class StockControllerTest :
     FunSpec({
         afterTest { unmockkAll() }
 
@@ -83,7 +83,7 @@ class StockRpcServiceImplTest :
             }
 
             val impl =
-                StockRpcServiceImpl(
+                StockController(
                     stockService = stockService,
                     stockRegisterService = stockRegisterService,
                     productRepository = productRepository,

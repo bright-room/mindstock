@@ -16,7 +16,7 @@ import net.brightroom.mindstock.domain.model.user.UserId
 import net.brightroom.mindstock.presentation.rpc.HouseholdRpcService
 import org.jetbrains.exposed.v1.jdbc.Database
 
-class HouseholdRpcServiceImpl(
+class HouseholdController(
     private val householdService: HouseholdService,
     private val householdRegisterService: HouseholdRegisterService,
     private val householdRepository: HouseholdRepository,

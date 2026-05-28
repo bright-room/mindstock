@@ -10,7 +10,7 @@ import net.brightroom.mindstock.domain.model.user.User
 import net.brightroom.mindstock.presentation.rpc.UserRpcService
 import org.jetbrains.exposed.v1.jdbc.Database
 
-class UserRpcServiceImpl(
+class UserController(
     private val userRegisterService: UserRegisterService,
     private val userRepository: UserRepository,
     private val call: ApplicationCall,

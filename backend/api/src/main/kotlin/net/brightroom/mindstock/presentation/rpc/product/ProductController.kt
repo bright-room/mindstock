@@ -20,7 +20,7 @@ import net.brightroom.mindstock.domain.model.user.User
 import net.brightroom.mindstock.presentation.rpc.ProductRpcService
 import org.jetbrains.exposed.v1.jdbc.Database
 
-class ProductRpcServiceImpl(
+class ProductController(
     private val productService: ProductService,
     private val productRegisterService: ProductRegisterService,
     private val householdRepository: HouseholdRepository,

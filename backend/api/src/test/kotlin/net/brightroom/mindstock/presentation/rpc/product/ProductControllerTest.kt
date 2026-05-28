@@ -35,7 +35,7 @@ import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
 @OptIn(ExperimentalUuidApi::class)
-class ProductRpcServiceImplTest :
+class ProductControllerTest :
     FunSpec({
         afterTest { unmockkAll() }
 
@@ -88,7 +88,7 @@ class ProductRpcServiceImplTest :
             }
 
             val impl =
-                ProductRpcServiceImpl(
+                ProductController(
                     productService = productService,
                     productRegisterService = productRegisterService,
                     householdRepository = householdRepository,

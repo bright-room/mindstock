@@ -37,12 +37,12 @@ import net.brightroom.mindstock.presentation.rpc.ProductRpcService
 import net.brightroom.mindstock.presentation.rpc.StockRpcService
 import net.brightroom.mindstock.presentation.rpc.UserPublicRpcService
 import net.brightroom.mindstock.presentation.rpc.UserRpcService
-import net.brightroom.mindstock.presentation.rpc.catalog.CatalogRpcServiceImpl
-import net.brightroom.mindstock.presentation.rpc.household.HouseholdRpcServiceImpl
-import net.brightroom.mindstock.presentation.rpc.product.ProductRpcServiceImpl
-import net.brightroom.mindstock.presentation.rpc.stock.StockRpcServiceImpl
-import net.brightroom.mindstock.presentation.rpc.user.UserPublicRpcServiceImpl
-import net.brightroom.mindstock.presentation.rpc.user.UserRpcServiceImpl
+import net.brightroom.mindstock.presentation.rpc.catalog.CatalogController
+import net.brightroom.mindstock.presentation.rpc.household.HouseholdController
+import net.brightroom.mindstock.presentation.rpc.product.ProductController
+import net.brightroom.mindstock.presentation.rpc.stock.StockController
+import net.brightroom.mindstock.presentation.rpc.user.UserController
+import net.brightroom.mindstock.presentation.rpc.user.UserPublicController
 import org.jetbrains.exposed.v1.jdbc.Database
 
 fun Application.routingConfigure(
@@ -88,7 +88,7 @@ fun Application.routingConfigure(
             rpc("/api/v1/user/public") {
                 val call = this.applicationCall
                 registerService<UserPublicRpcService> {
-                    UserPublicRpcServiceImpl(userRegisterService, call, database)
+                    UserPublicController(userRegisterService, call, database)
                 }
             }
         }
@@ -97,7 +97,7 @@ fun Application.routingConfigure(
             rpc("/api/v1/user") {
                 val call = this.applicationCall
                 registerService<UserRpcService> {
-                    UserRpcServiceImpl(
+                    UserController(
                         userRegisterService,
                         userRepository,
                         call,
@@ -108,7 +108,7 @@ fun Application.routingConfigure(
             rpc("/api/v1/household") {
                 val call = this.applicationCall
                 registerService<HouseholdRpcService> {
-                    HouseholdRpcServiceImpl(
+                    HouseholdController(
                         householdService,
                         householdRegisterService,
                         householdRepository,
@@ -121,7 +121,7 @@ fun Application.routingConfigure(
             rpc("/api/v1/catalog") {
                 val call = this.applicationCall
                 registerService<CatalogRpcService> {
-                    CatalogRpcServiceImpl(
+                    CatalogController(
                         catalogItemService,
                         catalogItemRegisterService,
                         catalogItemRepository,
@@ -134,7 +134,7 @@ fun Application.routingConfigure(
             rpc("/api/v1/product") {
                 val call = this.applicationCall
                 registerService<ProductRpcService> {
-                    ProductRpcServiceImpl(
+                    ProductController(
                         productService,
                         productRegisterService,
                         householdRepository,
@@ -149,7 +149,7 @@ fun Application.routingConfigure(
             rpc("/api/v1/stock") {
                 val call = this.applicationCall
                 registerService<StockRpcService> {
-                    StockRpcServiceImpl(
+                    StockController(
                         stockService,
                         stockRegisterService,
                         productRepository,
