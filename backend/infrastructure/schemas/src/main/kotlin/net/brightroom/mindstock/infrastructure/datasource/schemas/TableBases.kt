@@ -1,13 +1,13 @@
+@file:OptIn(kotlin.uuid.ExperimentalUuidApi::class)
+
 package net.brightroom.mindstock.infrastructure.datasource.schemas
 
-import org.jetbrains.exposed.v1.core.CustomFunction
 import org.jetbrains.exposed.v1.core.Table
-import org.jetbrains.exposed.v1.core.UUIDColumnType
 
 abstract class AggregateRootTable(
     name: String,
 ) : Table(name) {
-    val id = uuid("id").defaultExpression(CustomFunction("uuidv7", UUIDColumnType()))
+    val id = uuid("id").autoGenerate(UuidVersion.V7)
     override val primaryKey = PrimaryKey(id)
 }
 

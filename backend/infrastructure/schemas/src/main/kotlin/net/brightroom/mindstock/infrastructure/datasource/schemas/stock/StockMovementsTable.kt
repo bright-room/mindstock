@@ -1,3 +1,5 @@
+@file:OptIn(kotlin.uuid.ExperimentalUuidApi::class)
+
 package net.brightroom.mindstock.infrastructure.datasource.schemas.stock
 
 import net.brightroom.mindstock.domain.model.stock.movement.StockMovementType
@@ -6,6 +8,7 @@ import net.brightroom.mindstock.infrastructure.datasource.schemas.product.Produc
 import net.brightroom.mindstock.infrastructure.datasource.schemas.user.UsersTable
 import net.brightroom.mindstock.infrastructure.migration.annotation.Migratable
 import org.jetbrains.exposed.v1.core.ReferenceOption
+import org.jetbrains.exposed.v1.core.greater
 import org.jetbrains.exposed.v1.datetime.CurrentTimestampWithTimeZone
 import org.jetbrains.exposed.v1.datetime.timestampWithTimeZone
 

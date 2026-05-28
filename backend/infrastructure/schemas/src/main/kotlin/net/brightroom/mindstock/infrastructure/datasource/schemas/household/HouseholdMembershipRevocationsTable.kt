@@ -1,3 +1,5 @@
+@file:OptIn(kotlin.uuid.ExperimentalUuidApi::class)
+
 package net.brightroom.mindstock.infrastructure.datasource.schemas.household
 
 import net.brightroom.mindstock.infrastructure.datasource.schemas.HistoryTable

@@ -10,7 +10,7 @@ dependencies {
     implementation(libs.exposed.core)
     implementation(libs.exposed.jdbc)
     implementation(libs.exposed.kotlin.datetime)
-    implementation(libs.exposed.migration)
+    implementation(libs.exposed.migration.jdbc)
     implementation(libs.hikari)
     implementation(libs.postgres.jdbc)
     implementation(libs.flyway.core)
