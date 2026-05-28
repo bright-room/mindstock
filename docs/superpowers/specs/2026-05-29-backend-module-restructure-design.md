@@ -72,10 +72,11 @@ net.brightroom.mindstock/
 | 更新系 Application Service | `<Ctx>RegisterService` | `application.service.<ctx>/` |
 | Repository interface(参照) | `<Ctx>Repository` | `application.repository.<ctx>/` |
 | Repository interface(更新) | `<Ctx>RegisterRepository` | `application.repository.<ctx>/` |
-| Repository 実装 | `<Ctx>DataSource` | `infrastructure.datasource.<ctx>/`(1 クラスで参照 + 更新両 interface を実装) |
+| Repository 実装(参照) | `<Ctx>DataSource` implements `<Ctx>Repository` | `infrastructure.datasource.<ctx>/` |
+| Repository 実装(更新) | `<Ctx>RegisterDataSource` implements `<Ctx>RegisterRepository` | `infrastructure.datasource.<ctx>/` |
 | Exposed Table | 現状の命名を維持 | `infrastructure.datasource.<ctx>/` |
 
-Service と Repository が `<Ctx>` / `<Ctx>Register` の対で揃うため、参照 / 更新の責務がクラス名から一目で読める。
+Service / Repository / DataSource が `<Ctx>` / `<Ctx>Register` の 3 段すべてで対称になり、参照 / 更新の責務がクラス名から一目で読める。Repository interface 1 つ ↔ DataSource クラス 1 つ ↔ Service クラス 1 つの 1:1:1 対応。
 
 ### Handler → Service 集約マッピング
 
