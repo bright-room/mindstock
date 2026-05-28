@@ -48,31 +48,82 @@ mindstock/
 
 **module 数の変化**: 現 10 → 新 7。
 
-## 3. `:backend:core` の内部パッケージ
+## 3. `:backend:core` の内部パッケージと命名規則
 
 ```
 net.brightroom.mindstock/
 ├── application/
-│   ├── service/<ctx>/              Application Service(現 usecase/<ctx>/*Handler を移植)
-│   └── repository/<ctx>/           Repository interface(旧 :domain の domain.repository.* から移動)
+│   ├── service/<ctx>/              <Ctx>QueryService / <Ctx>RecordService
+│   └── repository/<ctx>/           <Ctx>Repository / <Ctx>RegisterRepository(2 系統維持)
 └── infrastructure/
-    ├── datasource/<ctx>/           Repository 実装 + Exposed Table(旧 :backend:infrastructure:schemas + application/api の repo impl 統合)
+    ├── datasource/<ctx>/           <Ctx>DataSource(Repository 実装)+ Exposed Table
     └── transfer/                   外部連携(初期は空、placeholder)
 ```
 
 `<ctx>` = `catalog / household / product / stock / user`。
 
-Application Service クラスは `*Handler` 命名を維持(後続の rename は別 Plan)。Repository 実装と Exposed Table は同じ `infrastructure.datasource.<ctx>` 配下に同居させる(`.tmp/library` の方式)。
+### 命名規則(`.tmp/library` 準拠)
 
-## 4. `:backend:api` の内部パッケージ
+| 種類 | 命名 | 配置 |
+|---|---|---|
+| 参照系 Application Service | `<Ctx>QueryService` | `application.service.<ctx>/` |
+| 更新系 Application Service | `<Ctx>RecordService` | `application.service.<ctx>/` |
+| Repository interface(参照) | `<Ctx>Repository` | `application.repository.<ctx>/` |
+| Repository interface(更新) | `<Ctx>RegisterRepository` | `application.repository.<ctx>/`(現状の 2 系統分離を維持) |
+| Repository 実装 | `<Ctx>DataSource` | `infrastructure.datasource.<ctx>/`(1 クラスで参照 + 更新両 interface を実装) |
+| Exposed Table | 現状の命名を維持 | `infrastructure.datasource.<ctx>/` |
+
+### Handler → Service 集約マッピング
+
+現在 1 usecase = 1 `*Handler` クラスだが、library 流に `<Ctx>QueryService` / `<Ctx>RecordService` 各 1 クラスへ集約する。Handler のメソッド名は Service のメソッドとして残す。
+
+| 旧 Handler | 新 Service のメソッド |
+|---|---|
+| `RegisterCatalogItemHandler` | `CatalogItemRecordService.register(...)` |
+| `ReviseCatalogItemHandler` | `CatalogItemRecordService.revise(...)` |
+| `SearchCatalogItemsHandler` | `CatalogItemQueryService.search(...)` |
+| `FindCatalogItemByIdHandler` | `CatalogItemQueryService.findById(...)` |
+| `CreateHouseholdHandler` | `HouseholdRecordService.create(...)` |
+| `InviteMemberHandler` | `HouseholdRecordService.invite(...)` |
+| `RevokeMembershipHandler` | `HouseholdRecordService.revoke(...)` |
+| `FindHouseholdOfUserHandler` | `HouseholdQueryService.findOf(...)` |
+| `AdoptProductHandler` | `ProductRecordService.adopt(...)` |
+| `ArchiveProductHandler` | `ProductRecordService.archive(...)` |
+| `SetMinimumStockHandler` | `ProductRecordService.setMinimumStock(...)` |
+| `FindProductHandler` | `ProductQueryService.find(...)` |
+| `ListProductsOfHouseholdHandler` | `ProductQueryService.listOf(...)` |
+| `ReplenishStockHandler` | `StockRecordService.replenish(...)` |
+| `ConsumeStockHandler` | `StockRecordService.consume(...)` |
+| `GetStockHandler` | `StockQueryService.get(...)` |
+| `ListStocksHandler` | `StockQueryService.list(...)` |
+| `GetMovementHistoryHandler` | `StockQueryService.getMovementHistory(...)` |
+| `RegisterUserHandler` | `UserRecordService.register(...)` |
+| `RenameUserHandler` | `UserRecordService.rename(...)` |
+
+参照系 Service が無いコンテキスト(`user`)は `UserQueryService` を作らない。Need が出た時に追加。
+
+## 4. `:backend:api` の内部パッケージと命名規則
 
 ```
 net.brightroom.mindstock/
 ├── Main.kt
 ├── configuration/                  Ktor 固有(routing, auth, RPC plugin, error, callLogging 等)
 └── presentation/
-    └── rpc/<ctx>/                  RPC server 実装(現 application/api の rpc/* から移動)
+    └── rpc/<ctx>/                  <Ctx>Controller(RPC server 実装、library 流に Controller 命名)
 ```
+
+### RPC server 実装の命名
+
+`.tmp/library` の MVC Controller 命名(`LoanRegisterController`, `RetentionController` 等)を mindstock の RPC server 実装へ転用する。RPC service interface(`:rpc` 側)と RPC server 実装(`:backend:api` 側)を以下のペアで対応させる。
+
+| `:rpc` interface | `:backend:api` 実装 |
+|---|---|
+| `CatalogRpcService` | `presentation.rpc.catalog.CatalogController` |
+| `HouseholdRpcService` | `presentation.rpc.household.HouseholdController` |
+| `ProductRpcService` | `presentation.rpc.product.ProductController` |
+| `StockRpcService` | `presentation.rpc.stock.StockController` |
+| `UserRpcService` | `presentation.rpc.user.UserController` |
+| `UserPublicRpcService` | `presentation.rpc.user.UserPublicController` |
 
 `configuration/migration/MigrationConfiguration.kt` は **`:backend:api` 起動時に Flyway core API で `migrate()` を呼ぶ 1 クラス**に置き換える(旧 `:backend:infrastructure:migration:executor` のロジックを圧縮)。
 
@@ -204,8 +255,8 @@ testcontainers JVM lib (`libs.testcontainers.postgres`, `libs.testcontainers.jun
 3. `settings.gradle.kts` から `:backend:application:api`, `:backend:infrastructure:schemas` を削除、新 module を include
 4. Repository interface を `:domain/domain/repository/*` → `:backend:core/application/repository/<ctx>/*` へ移動
 5. Exposed Table を `:backend:infrastructure:schemas` → `:backend:core/infrastructure/datasource/<ctx>/*` へ移動(Repository 実装と同居)
-6. Application Service(`*Handler`)を旧 `application/api/usecase/<ctx>` → `:backend:core/application/service/<ctx>` へ移動
-7. RPC server 実装を旧 `application/api/.../rpc/<ctx>` → `:backend:api/presentation/rpc/<ctx>` へ移動
+6. `*Handler` 群を `:backend:core/application/service/<ctx>` 配下の `<Ctx>QueryService` / `<Ctx>RecordService` に集約 rename(§3 マッピング表に従う)
+7. RPC server 実装を旧 `application/api/.../rpc/<ctx>` → `:backend:api/presentation/rpc/<ctx>/<Ctx>Controller` に rename + 移動(§4 マッピング表に従う)
 8. `:backend:api` に Exposed Gradle plugin の適用先を移動(Phase 1 で schemas に置いたものを core に移す。core は library module なので plugin 適用先は core)
 9. `:shared:rpc` 削除 → `:rpc` 新設、package rename(`presentation.rpc` → `rpc`)、全参照を更新
 10. `:shared:extensions` 削除 → `:shared` 新設、内容をそのまま移植
@@ -226,5 +277,4 @@ testcontainers JVM lib (`libs.testcontainers.postgres`, `libs.testcontainers.jun
 
 ## 13. 後続(memory に残すべき内容)
 
-- `*Handler` の rename(Application Service として `*Service` 命名に統一するか否か)は別 Plan
 - frontend auth refactor(`frontend-auth-refactor-followup`)は引き続き別 Plan
