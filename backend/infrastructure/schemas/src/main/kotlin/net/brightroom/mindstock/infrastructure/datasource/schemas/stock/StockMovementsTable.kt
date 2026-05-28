@@ -6,13 +6,11 @@ import net.brightroom.mindstock.domain.model.stock.movement.StockMovementType
 import net.brightroom.mindstock.infrastructure.datasource.schemas.HistoryTable
 import net.brightroom.mindstock.infrastructure.datasource.schemas.product.ProductsTable
 import net.brightroom.mindstock.infrastructure.datasource.schemas.user.UsersTable
-import net.brightroom.mindstock.infrastructure.migration.annotation.Migratable
 import org.jetbrains.exposed.v1.core.ReferenceOption
 import org.jetbrains.exposed.v1.core.greater
 import org.jetbrains.exposed.v1.datetime.CurrentTimestampWithTimeZone
 import org.jetbrains.exposed.v1.datetime.timestampWithTimeZone
 
-@Migratable
 object StockMovementsTable : HistoryTable("stock_movements") {
     val product_id = reference("product_id", ProductsTable.id, onDelete = ReferenceOption.RESTRICT)
     val type = enumerationByName<StockMovementType>("type", 20)

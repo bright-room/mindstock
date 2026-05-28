@@ -5,8 +5,6 @@ plugins {
 
 dependencies {
     implementation(projects.domain)
-    implementation(projects.backend.infrastructure.migration.annotation)
-
     implementation(libs.exposed.core)
     implementation(libs.exposed.kotlin.datetime)
     implementation(libs.exposed.jdbc)
@@ -15,7 +13,11 @@ dependencies {
 exposed {
     migrations {
         tablesPackage.set("net.brightroom.mindstock.infrastructure.datasource.schemas")
-        fileDirectory.set(rootProject.layout.projectDirectory.dir("backend/application/api/src/main/resources/db/migration").asFile)
+        fileDirectory.set(
+            rootProject.layout.projectDirectory
+                .dir("backend/application/api/src/main/resources/db/migration")
+                .asFile,
+        )
         testContainersImageName.set("postgres:18.0-alpine")
     }
 }
