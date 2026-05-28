@@ -54,9 +54,10 @@ mindstock/
 net.brightroom.mindstock/
 ├── application/
 │   ├── service/<ctx>/              <Ctx>Service / <Ctx>RegisterService
+│   ├── scenario/                   複数 ctx 跨ぎユースケース用(本 Plan 時点では空、package 予約のみ)
 │   └── repository/<ctx>/           <Ctx>Repository / <Ctx>RegisterRepository(2 系統維持)
 └── infrastructure/
-    ├── datasource/<ctx>/           <Ctx>DataSource(Repository 実装)+ Exposed Table
+    ├── datasource/<ctx>/           <Ctx>DataSource / <Ctx>RegisterDataSource + Exposed Table
     └── transfer/                   外部連携(初期は空、placeholder)
 ```
 
@@ -106,6 +107,16 @@ Service / Repository / DataSource が `<Ctx>` / `<Ctx>Register` の 3 段すべ�
 | `RenameUserHandler` | `UserRegisterService.rename(...)` |
 
 参照系 Service が無いコンテキスト(`user`)は `UserService` を作らない。Need が出た時に追加。
+
+### Scenario 層の方針
+
+`application.scenario/` package を予約するが、**本 Plan では Scenario クラスを 1 つも作らない**。現状の全 Handler を調査した結果、複数 Repository / 複数 ctx を跨ぐ usecase は 0 件であり、library 流の単一 Service ラッパー Scenario は採用しない(YAGNI)。
+
+**今後 Scenario として切り出すルール**:
+
+- 2 つ以上の異なる `<Ctx>Service` / `<Ctx>RegisterService` を呼ぶ usecase が出た場合は `application.scenario.<ctx>/<Verb>Scenario` として新規作成
+- 単一 Service / 単一 Repository のままで成立する usecase は Service 直叩きを継続(Controller → Service)
+- 切り出す判断は本 Plan ではなく、その usecase の実装 Plan の中で行う
 
 ## 4. `:backend:api` の内部パッケージと命名規則
 
