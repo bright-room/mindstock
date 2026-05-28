@@ -102,6 +102,8 @@ fun Application.routingConfigure(
 
     val database: Database by dependencies
 
+    install(net.brightroom.mindstock.configuration.auth.WsSubprotocolEchoPlugin)
+
     routing {
         // JWT 検証は通すが User 未登録でも通る (register 専用)
         authenticate("user-public") {
