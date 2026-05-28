@@ -53,7 +53,7 @@ mindstock/
 ```
 net.brightroom.mindstock/
 ├── application/
-│   ├── service/<ctx>/              <Ctx>QueryService / <Ctx>RecordService
+│   ├── service/<ctx>/              <Ctx>Service / <Ctx>RegisterService
 │   └── repository/<ctx>/           <Ctx>Repository / <Ctx>RegisterRepository(2 系統維持)
 └── infrastructure/
     ├── datasource/<ctx>/           <Ctx>DataSource(Repository 実装)+ Exposed Table
@@ -62,45 +62,49 @@ net.brightroom.mindstock/
 
 `<ctx>` = `catalog / household / product / stock / user`。
 
-### 命名規則(`.tmp/library` 準拠)
+### 命名規則
+
+`.tmp/library` の集約方針(参照系 / 更新系を Service クラスに集約)を採用しつつ、suffix は Repository と対称になるよう `Service` / `RegisterService` を用いる(library の `QueryService` / `RecordService` 命名は採らない)。
 
 | 種類 | 命名 | 配置 |
 |---|---|---|
-| 参照系 Application Service | `<Ctx>QueryService` | `application.service.<ctx>/` |
-| 更新系 Application Service | `<Ctx>RecordService` | `application.service.<ctx>/` |
+| 参照系 Application Service | `<Ctx>Service` | `application.service.<ctx>/` |
+| 更新系 Application Service | `<Ctx>RegisterService` | `application.service.<ctx>/` |
 | Repository interface(参照) | `<Ctx>Repository` | `application.repository.<ctx>/` |
-| Repository interface(更新) | `<Ctx>RegisterRepository` | `application.repository.<ctx>/`(現状の 2 系統分離を維持) |
+| Repository interface(更新) | `<Ctx>RegisterRepository` | `application.repository.<ctx>/` |
 | Repository 実装 | `<Ctx>DataSource` | `infrastructure.datasource.<ctx>/`(1 クラスで参照 + 更新両 interface を実装) |
 | Exposed Table | 現状の命名を維持 | `infrastructure.datasource.<ctx>/` |
 
+Service と Repository が `<Ctx>` / `<Ctx>Register` の対で揃うため、参照 / 更新の責務がクラス名から一目で読める。
+
 ### Handler → Service 集約マッピング
 
-現在 1 usecase = 1 `*Handler` クラスだが、library 流に `<Ctx>QueryService` / `<Ctx>RecordService` 各 1 クラスへ集約する。Handler のメソッド名は Service のメソッドとして残す。
+現在 1 usecase = 1 `*Handler` クラスだが、参照系 / 更新系で各 1 クラスへ集約する。Handler のメソッド名は Service のメソッドとして残す。
 
 | 旧 Handler | 新 Service のメソッド |
 |---|---|
-| `RegisterCatalogItemHandler` | `CatalogItemRecordService.register(...)` |
-| `ReviseCatalogItemHandler` | `CatalogItemRecordService.revise(...)` |
-| `SearchCatalogItemsHandler` | `CatalogItemQueryService.search(...)` |
-| `FindCatalogItemByIdHandler` | `CatalogItemQueryService.findById(...)` |
-| `CreateHouseholdHandler` | `HouseholdRecordService.create(...)` |
-| `InviteMemberHandler` | `HouseholdRecordService.invite(...)` |
-| `RevokeMembershipHandler` | `HouseholdRecordService.revoke(...)` |
-| `FindHouseholdOfUserHandler` | `HouseholdQueryService.findOf(...)` |
-| `AdoptProductHandler` | `ProductRecordService.adopt(...)` |
-| `ArchiveProductHandler` | `ProductRecordService.archive(...)` |
-| `SetMinimumStockHandler` | `ProductRecordService.setMinimumStock(...)` |
-| `FindProductHandler` | `ProductQueryService.find(...)` |
-| `ListProductsOfHouseholdHandler` | `ProductQueryService.listOf(...)` |
-| `ReplenishStockHandler` | `StockRecordService.replenish(...)` |
-| `ConsumeStockHandler` | `StockRecordService.consume(...)` |
-| `GetStockHandler` | `StockQueryService.get(...)` |
-| `ListStocksHandler` | `StockQueryService.list(...)` |
-| `GetMovementHistoryHandler` | `StockQueryService.getMovementHistory(...)` |
-| `RegisterUserHandler` | `UserRecordService.register(...)` |
-| `RenameUserHandler` | `UserRecordService.rename(...)` |
+| `RegisterCatalogItemHandler` | `CatalogItemRegisterService.register(...)` |
+| `ReviseCatalogItemHandler` | `CatalogItemRegisterService.revise(...)` |
+| `SearchCatalogItemsHandler` | `CatalogItemService.search(...)` |
+| `FindCatalogItemByIdHandler` | `CatalogItemService.findById(...)` |
+| `CreateHouseholdHandler` | `HouseholdRegisterService.create(...)` |
+| `InviteMemberHandler` | `HouseholdRegisterService.invite(...)` |
+| `RevokeMembershipHandler` | `HouseholdRegisterService.revoke(...)` |
+| `FindHouseholdOfUserHandler` | `HouseholdService.findOf(...)` |
+| `AdoptProductHandler` | `ProductRegisterService.adopt(...)` |
+| `ArchiveProductHandler` | `ProductRegisterService.archive(...)` |
+| `SetMinimumStockHandler` | `ProductRegisterService.setMinimumStock(...)` |
+| `FindProductHandler` | `ProductService.find(...)` |
+| `ListProductsOfHouseholdHandler` | `ProductService.listOf(...)` |
+| `ReplenishStockHandler` | `StockRegisterService.replenish(...)` |
+| `ConsumeStockHandler` | `StockRegisterService.consume(...)` |
+| `GetStockHandler` | `StockService.get(...)` |
+| `ListStocksHandler` | `StockService.list(...)` |
+| `GetMovementHistoryHandler` | `StockService.getMovementHistory(...)` |
+| `RegisterUserHandler` | `UserRegisterService.register(...)` |
+| `RenameUserHandler` | `UserRegisterService.rename(...)` |
 
-参照系 Service が無いコンテキスト(`user`)は `UserQueryService` を作らない。Need が出た時に追加。
+参照系 Service が無いコンテキスト(`user`)は `UserService` を作らない。Need が出た時に追加。
 
 ## 4. `:backend:api` の内部パッケージと命名規則
 
