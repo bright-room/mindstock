@@ -57,7 +57,7 @@ AUTH_PROJECT_ID="<Project mindstock の ID>"
 
 `AUTH_CLIENT_ID` / `AUTH_AUDIENCE` / `AUTH_PROJECT_ID` が未設定だと `./gradlew :frontend:generateAuthConfig` がビルド失敗する(意図的)。`mise.toml` の `[env]` セクションや `.envrc` で管理するのが便利。
 
-### 起動
+### frontend の起動
 
 ```sh
 docker compose up -d

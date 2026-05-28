@@ -170,5 +170,9 @@ private suspend fun handleCallback(authClient: AuthClient, setState: (AuthState)
         window.location.replace(returnTo)
     } catch (e: OidcException) {
         setState(AuthState.Error("ログインに失敗しました: ${e.errorCode}"))
+    } catch (e: Throwable) {
+        // sessionStorage アクセス失敗 / window.location.replace のエッジケース等、想定外の例外も
+        // 画面に表示して LoggedOut へ戻れるようにする。
+        setState(AuthState.Error("ログインに失敗しました: ${e.message ?: e::class.simpleName ?: "不明なエラー"}"))
     }
 }

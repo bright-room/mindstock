@@ -26,7 +26,13 @@ class RpcCallWrapper(
             block()
         } catch (e: Throwable) {
             if (!e.isUnauthorized()) throw e
-            val refreshed = reauth.refresh()
+            val refreshed = try {
+                reauth.refresh()
+            } catch (_: Throwable) {
+                // refresh が例外で死んだら呼び出し元は再認証を求めるべき。契約 (false 戻り = 再認証要求)
+                // と同じ扱いに正規化する。
+                throw ReauthRequiredException()
+            }
             if (!refreshed) throw ReauthRequiredException()
             try {
                 block()

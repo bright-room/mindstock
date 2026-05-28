@@ -15,7 +15,9 @@ class AuthBootstrap(
         if (tokens.willExpireWithin(refreshLeewaySeconds, now)) {
             tokens = try {
                 authClient.refresh(tokens.refreshToken, now).also { TokenStore.save(it) }
-            } catch (_: OidcException) {
+            } catch (_: Throwable) {
+                // OidcException (invalid_grant 等) も、ネットワーク失敗 / JSON パース失敗も
+                // refresh が成立しない以上は再ログインを促す。state を細分化しても UX が増えない。
                 TokenStore.clear()
                 return AuthState.LoggedOut
             }
