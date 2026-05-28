@@ -1,7 +1,9 @@
 plugins {
     id("net.brightroom.mindstock.ktor-server")
+    id("net.brightroom.mindstock.kotlin-jvm-testcontainers")
     id("org.jetbrains.kotlin.plugin.serialization")
     id("org.jetbrains.kotlinx.rpc.plugin")
+    `java-test-fixtures`
 }
 
 application {
@@ -40,9 +42,25 @@ dependencies {
     implementation(libs.flyway.core)
     implementation(libs.flyway.database.postgresql)
 
+    testFixturesImplementation(projects.domain)
+    testFixturesImplementation(testFixtures(projects.backend.core))
+    testFixturesImplementation(libs.flyway.core)
+    testFixturesImplementation(libs.flyway.database.postgresql)
+    testFixturesImplementation(libs.postgres.jdbc)
+    testFixturesImplementation(libs.exposed.core)
+    testFixturesImplementation(libs.exposed.jdbc)
+    testFixturesImplementation(libs.hikari)
+    testFixturesImplementation(libs.testcontainers.postgres)
+    testFixturesImplementation(libs.kotest.assertions.core)
+
     testImplementation(testFixtures(projects.backend.core))
+    testImplementation(testFixtures(projects.backend.api))
     testImplementation(libs.kotest.runner.junit5)
     testImplementation(libs.kotest.assertions.core)
+    testImplementation(libs.flyway.core)
+    testImplementation(libs.flyway.database.postgresql)
+    testImplementation(libs.testcontainers.junit)
+    testImplementation(libs.testcontainers.postgres)
     testImplementation(ktorLib.server.testHost)
     testImplementation(libs.mockk)
     testImplementation(libs.kotlinx.rpc.client)
