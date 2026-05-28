@@ -26,8 +26,7 @@ import net.brightroom.mindstock.application.service.product.ProductRegisterServi
 import net.brightroom.mindstock.application.service.product.ProductService
 import net.brightroom.mindstock.application.service.stock.StockRegisterService
 import net.brightroom.mindstock.application.service.stock.StockService
-import net.brightroom.mindstock.application.usecase.user.RegisterUserHandler
-import net.brightroom.mindstock.application.usecase.user.RenameUserHandler
+import net.brightroom.mindstock.application.service.user.UserRegisterService
 import net.brightroom.mindstock.configuration.Environment
 import net.brightroom.mindstock.configuration.auth.applicationCall
 import net.brightroom.mindstock.extensions.kotlinx.serialization.CustomJson
@@ -60,8 +59,7 @@ fun Application.routingConfigure(
     // The factory passed to `registerService<T> { ... }` is non-suspend, so we
     // cannot call the suspend `resolve<T>()` inside it. Capture references here
     // and reuse them across per-connection Service Impl instantiations.
-    val registerUserHandler: RegisterUserHandler by dependencies
-    val renameUserHandler: RenameUserHandler by dependencies
+    val userRegisterService: UserRegisterService by dependencies
 
     val householdService: HouseholdService by dependencies
     val householdRegisterService: HouseholdRegisterService by dependencies
@@ -90,7 +88,7 @@ fun Application.routingConfigure(
             rpc("/api/v1/user/public") {
                 val call = this.applicationCall
                 registerService<UserPublicRpcService> {
-                    UserPublicRpcServiceImpl(registerUserHandler, call, database)
+                    UserPublicRpcServiceImpl(userRegisterService, call, database)
                 }
             }
         }
@@ -100,7 +98,7 @@ fun Application.routingConfigure(
                 val call = this.applicationCall
                 registerService<UserRpcService> {
                     UserRpcServiceImpl(
-                        renameUserHandler,
+                        userRegisterService,
                         userRepository,
                         call,
                         database,

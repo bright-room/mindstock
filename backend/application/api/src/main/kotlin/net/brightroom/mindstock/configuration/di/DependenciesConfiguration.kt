@@ -21,8 +21,7 @@ import net.brightroom.mindstock.application.service.product.ProductRegisterServi
 import net.brightroom.mindstock.application.service.product.ProductService
 import net.brightroom.mindstock.application.service.stock.StockRegisterService
 import net.brightroom.mindstock.application.service.stock.StockService
-import net.brightroom.mindstock.application.usecase.user.RegisterUserHandler
-import net.brightroom.mindstock.application.usecase.user.RenameUserHandler
+import net.brightroom.mindstock.application.service.user.UserRegisterService
 import net.brightroom.mindstock.configuration.Environment
 import net.brightroom.mindstock.infrastructure.datasource.catalog.CatalogItemDataSource
 import net.brightroom.mindstock.infrastructure.datasource.catalog.CatalogItemRegisterDataSource
@@ -57,8 +56,7 @@ fun Application.dependenciesConfigure(
 
         // Handler (20)
         // User
-        provide<RegisterUserHandler> { RegisterUserHandler(resolve()) }
-        provide<RenameUserHandler> { RenameUserHandler(resolve()) }
+        provide<UserRegisterService> { UserRegisterService(resolve()) }
 
         // Household
         provide<HouseholdService> { HouseholdService(resolve()) }

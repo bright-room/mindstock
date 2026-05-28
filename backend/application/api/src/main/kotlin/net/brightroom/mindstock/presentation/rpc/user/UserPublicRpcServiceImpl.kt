@@ -2,7 +2,7 @@ package net.brightroom.mindstock.presentation.rpc.user
 
 import io.ktor.server.application.ApplicationCall
 import io.ktor.server.auth.principal
-import net.brightroom.mindstock.application.usecase.user.RegisterUserHandler
+import net.brightroom.mindstock.application.service.user.UserRegisterService
 import net.brightroom.mindstock.configuration.auth.MindstockPrincipal
 import net.brightroom.mindstock.configuration.error.UnauthorizedException
 import net.brightroom.mindstock.configuration.transaction.tx
@@ -12,7 +12,7 @@ import net.brightroom.mindstock.presentation.rpc.UserPublicRpcService
 import org.jetbrains.exposed.v1.jdbc.Database
 
 class UserPublicRpcServiceImpl(
-    private val registerUser: RegisterUserHandler,
+    private val userRegisterService: UserRegisterService,
     private val call: ApplicationCall,
     private val database: Database,
 ) : UserPublicRpcService {
@@ -20,6 +20,6 @@ class UserPublicRpcServiceImpl(
         val principal =
             call.principal<MindstockPrincipal>()
                 ?: throw UnauthorizedException("missing principal")
-        return tx(database) { registerUser.handle(principal.authIdentity, displayName) }
+        return tx(database) { userRegisterService.register(principal.authIdentity, displayName) }
     }
 }

@@ -2,7 +2,7 @@ package net.brightroom.mindstock.presentation.rpc.user
 
 import io.ktor.server.application.ApplicationCall
 import net.brightroom.mindstock.application.repository.user.UserRepository
-import net.brightroom.mindstock.application.usecase.user.RenameUserHandler
+import net.brightroom.mindstock.application.service.user.UserRegisterService
 import net.brightroom.mindstock.configuration.auth.actor
 import net.brightroom.mindstock.configuration.transaction.tx
 import net.brightroom.mindstock.domain.model.user.DisplayName
@@ -11,7 +11,7 @@ import net.brightroom.mindstock.presentation.rpc.UserRpcService
 import org.jetbrains.exposed.v1.jdbc.Database
 
 class UserRpcServiceImpl(
-    private val rename: RenameUserHandler,
+    private val userRegisterService: UserRegisterService,
     private val userRepository: UserRepository,
     private val call: ApplicationCall,
     private val database: Database,
@@ -23,5 +23,5 @@ class UserRpcServiceImpl(
     // userRepository.findBy* call has a transactional context.
     private val actor: User by lazy { call.actor(userRepository) }
 
-    override suspend fun rename(displayName: DisplayName) = tx(database) { rename.handle(actor, displayName) }
+    override suspend fun rename(displayName: DisplayName) = tx(database) { userRegisterService.rename(actor, displayName) }
 }

@@ -1,15 +1,22 @@
-package net.brightroom.mindstock.application.usecase.user
+package net.brightroom.mindstock.application.service.user
 
 import net.brightroom.mindstock.application.repository.user.UserRegisterRepository
 import net.brightroom.mindstock.domain.model.user.DisplayName
 import net.brightroom.mindstock.domain.model.user.User
 import net.brightroom.mindstock.domain.model.user.auth.AuthIdentity
 
-class RegisterUserHandler(
+class UserRegisterService(
     private val userRegisterRepository: UserRegisterRepository,
 ) {
-    fun handle(
+    fun register(
         identity: AuthIdentity,
         defaultDisplayName: DisplayName,
     ): User = userRegisterRepository.register(identity, defaultDisplayName)
+
+    fun rename(
+        user: User,
+        newName: DisplayName,
+    ) {
+        userRegisterRepository.rename(user, newName)
+    }
 }
