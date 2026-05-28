@@ -95,3 +95,4 @@ compose-compiler = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "
 ktor = { id = "io.ktor.plugin", version.ref = "ktor" }
 kotlinx-rpc = { id = "org.jetbrains.kotlinx.rpc.plugin", version.ref = "kotlinx-rpc" }
 spotless = { id = "com.diffplug.spotless", version.ref = "spotless" }
+exposed-migration = { id = "org.jetbrains.exposed.plugin", version.ref = "exposed" }

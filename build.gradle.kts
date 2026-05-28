@@ -6,4 +6,5 @@ plugins {
     alias(libs.plugins.compose.compiler) apply false
     alias(libs.plugins.ktor) apply false
     alias(libs.plugins.kotlinx.rpc) apply false
+    alias(libs.plugins.exposed.migration) apply false
 }
