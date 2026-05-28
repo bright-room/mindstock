@@ -14,6 +14,10 @@ import kotlinx.rpc.krpc.ktor.server.Krpc
 import kotlinx.rpc.krpc.ktor.server.rpc
 import kotlinx.rpc.krpc.serialization.json.json
 import kotlinx.serialization.ExperimentalSerializationApi
+import net.brightroom.mindstock.application.repository.catalog.CatalogItemRepository
+import net.brightroom.mindstock.application.repository.household.HouseholdRepository
+import net.brightroom.mindstock.application.repository.product.ProductRepository
+import net.brightroom.mindstock.application.repository.user.UserRepository
 import net.brightroom.mindstock.application.usecase.catalog.FindCatalogItemByIdHandler
 import net.brightroom.mindstock.application.usecase.catalog.RegisterCatalogItemHandler
 import net.brightroom.mindstock.application.usecase.catalog.ReviseCatalogItemHandler
@@ -36,10 +40,6 @@ import net.brightroom.mindstock.application.usecase.user.RegisterUserHandler
 import net.brightroom.mindstock.application.usecase.user.RenameUserHandler
 import net.brightroom.mindstock.configuration.Environment
 import net.brightroom.mindstock.configuration.auth.applicationCall
-import net.brightroom.mindstock.domain.repository.catalog.CatalogItemRepository
-import net.brightroom.mindstock.domain.repository.household.HouseholdRepository
-import net.brightroom.mindstock.domain.repository.product.ProductRepository
-import net.brightroom.mindstock.domain.repository.user.UserRepository
 import net.brightroom.mindstock.extensions.kotlinx.serialization.CustomJson
 import net.brightroom.mindstock.extensions.kotlinx.serialization.KrpcJson
 import net.brightroom.mindstock.presentation.rpc.CatalogRpcService

@@ -1,11 +1,11 @@
 package net.brightroom.mindstock.infrastructure.datasource.repository.product
 
+import net.brightroom.mindstock.application.repository.product.ProductRepository
 import net.brightroom.mindstock.domain.model.catalog.CatalogItem
 import net.brightroom.mindstock.domain.model.household.Household
 import net.brightroom.mindstock.domain.model.product.Product
 import net.brightroom.mindstock.domain.model.product.ProductId
 import net.brightroom.mindstock.domain.model.product.Products
-import net.brightroom.mindstock.domain.repository.product.ProductRepository
 import net.brightroom.mindstock.infrastructure.datasource.repository.catalog.hydrateCatalogItem
 import net.brightroom.mindstock.infrastructure.datasource.schemas.catalog.CatalogItemRevisionsTable
 import net.brightroom.mindstock.infrastructure.datasource.schemas.catalog.CatalogItemsTable

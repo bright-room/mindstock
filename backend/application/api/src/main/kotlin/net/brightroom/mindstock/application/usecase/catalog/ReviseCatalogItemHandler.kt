@@ -1,10 +1,10 @@
 package net.brightroom.mindstock.application.usecase.catalog
 
+import net.brightroom.mindstock.application.repository.catalog.CatalogItemRegisterRepository
 import net.brightroom.mindstock.domain.model.catalog.CatalogItem
 import net.brightroom.mindstock.domain.model.catalog.CatalogItemName
 import net.brightroom.mindstock.domain.model.catalog.CatalogItemUnit
 import net.brightroom.mindstock.domain.model.user.User
-import net.brightroom.mindstock.domain.repository.catalog.CatalogItemRegisterRepository
 
 class ReviseCatalogItemHandler(
     private val catalogItemRegisterRepository: CatalogItemRegisterRepository,

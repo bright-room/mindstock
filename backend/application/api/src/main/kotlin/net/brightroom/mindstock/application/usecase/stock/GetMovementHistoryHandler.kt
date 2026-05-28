@@ -1,8 +1,8 @@
 package net.brightroom.mindstock.application.usecase.stock
 
+import net.brightroom.mindstock.application.repository.stock.StockRepository
 import net.brightroom.mindstock.domain.model.product.Product
 import net.brightroom.mindstock.domain.model.stock.movement.StockMovements
-import net.brightroom.mindstock.domain.repository.stock.StockRepository
 
 class GetMovementHistoryHandler(
     private val stockRepository: StockRepository,

@@ -1,5 +1,6 @@
 package net.brightroom.mindstock.infrastructure.datasource.repository.stock
 
+import net.brightroom.mindstock.application.repository.stock.StockRegisterRepository
 import net.brightroom.mindstock.domain.model.product.Product
 import net.brightroom.mindstock.domain.model.stock.Note
 import net.brightroom.mindstock.domain.model.stock.OccurredAt
@@ -8,7 +9,6 @@ import net.brightroom.mindstock.domain.model.stock.movement.Consumption
 import net.brightroom.mindstock.domain.model.stock.movement.Replenishment
 import net.brightroom.mindstock.domain.model.stock.movement.StockMovementType
 import net.brightroom.mindstock.domain.model.user.User
-import net.brightroom.mindstock.domain.repository.stock.StockRegisterRepository
 import net.brightroom.mindstock.infrastructure.datasource.schemas.stock.StockMovementsTable
 import org.jetbrains.exposed.v1.jdbc.insert
 import java.time.ZoneOffset

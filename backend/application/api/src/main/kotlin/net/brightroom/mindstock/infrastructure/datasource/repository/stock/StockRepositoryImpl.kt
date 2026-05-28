@@ -1,12 +1,12 @@
 package net.brightroom.mindstock.infrastructure.datasource.repository.stock
 
+import net.brightroom.mindstock.application.repository.product.ProductRepository
+import net.brightroom.mindstock.application.repository.stock.StockRepository
 import net.brightroom.mindstock.domain.model.household.Household
 import net.brightroom.mindstock.domain.model.product.Product
 import net.brightroom.mindstock.domain.model.stock.Stock
 import net.brightroom.mindstock.domain.model.stock.movement.StockMovement
 import net.brightroom.mindstock.domain.model.stock.movement.StockMovements
-import net.brightroom.mindstock.domain.repository.product.ProductRepository
-import net.brightroom.mindstock.domain.repository.stock.StockRepository
 import net.brightroom.mindstock.infrastructure.datasource.schemas.stock.StockMovementsTable
 import org.jetbrains.exposed.v1.core.SortOrder
 import org.jetbrains.exposed.v1.core.eq

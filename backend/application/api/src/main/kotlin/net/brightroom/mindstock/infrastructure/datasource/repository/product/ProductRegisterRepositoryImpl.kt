@@ -1,11 +1,11 @@
 package net.brightroom.mindstock.infrastructure.datasource.repository.product
 
+import net.brightroom.mindstock.application.repository.product.ProductRegisterRepository
 import net.brightroom.mindstock.domain.model.catalog.CatalogItem
 import net.brightroom.mindstock.domain.model.household.Household
 import net.brightroom.mindstock.domain.model.product.MinimumStock
 import net.brightroom.mindstock.domain.model.product.Product
 import net.brightroom.mindstock.domain.model.user.User
-import net.brightroom.mindstock.domain.repository.product.ProductRegisterRepository
 import net.brightroom.mindstock.infrastructure.datasource.schemas.product.ProductArchivesTable
 import net.brightroom.mindstock.infrastructure.datasource.schemas.product.ProductMinimumStocksTable
 import net.brightroom.mindstock.infrastructure.datasource.schemas.product.ProductsTable

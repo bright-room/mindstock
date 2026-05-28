@@ -2,9 +2,9 @@ package net.brightroom.mindstock.configuration.auth
 
 import io.ktor.server.application.ApplicationCall
 import io.ktor.server.auth.principal
+import net.brightroom.mindstock.application.repository.user.UserRepository
 import net.brightroom.mindstock.configuration.error.UnauthorizedException
 import net.brightroom.mindstock.domain.model.user.User
-import net.brightroom.mindstock.domain.repository.user.UserRepository
 
 /**
  * 認証済み呼び出し元の User 集約を解決する。

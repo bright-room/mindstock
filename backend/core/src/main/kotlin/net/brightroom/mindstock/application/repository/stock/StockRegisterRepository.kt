@@ -1,4 +1,4 @@
-package net.brightroom.mindstock.domain.repository.stock
+package net.brightroom.mindstock.application.repository.stock
 
 import net.brightroom.mindstock.domain.model.product.Product
 import net.brightroom.mindstock.domain.model.stock.Note

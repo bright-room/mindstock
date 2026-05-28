@@ -1,6 +1,9 @@
 package net.brightroom.mindstock.presentation.rpc.stock
 
 import io.ktor.server.application.ApplicationCall
+import net.brightroom.mindstock.application.repository.household.HouseholdRepository
+import net.brightroom.mindstock.application.repository.product.ProductRepository
+import net.brightroom.mindstock.application.repository.user.UserRepository
 import net.brightroom.mindstock.application.usecase.stock.ConsumeStockHandler
 import net.brightroom.mindstock.application.usecase.stock.GetMovementHistoryHandler
 import net.brightroom.mindstock.application.usecase.stock.GetStockHandler
@@ -19,9 +22,6 @@ import net.brightroom.mindstock.domain.model.stock.movement.Consumption
 import net.brightroom.mindstock.domain.model.stock.movement.Replenishment
 import net.brightroom.mindstock.domain.model.stock.movement.StockMovements
 import net.brightroom.mindstock.domain.model.user.User
-import net.brightroom.mindstock.domain.repository.household.HouseholdRepository
-import net.brightroom.mindstock.domain.repository.product.ProductRepository
-import net.brightroom.mindstock.domain.repository.user.UserRepository
 import net.brightroom.mindstock.presentation.rpc.StockRpcService
 import org.jetbrains.exposed.v1.jdbc.Database
 

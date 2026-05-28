@@ -1,12 +1,12 @@
 package net.brightroom.mindstock.application.usecase.stock
 
+import net.brightroom.mindstock.application.repository.stock.StockRegisterRepository
 import net.brightroom.mindstock.domain.model.product.Product
 import net.brightroom.mindstock.domain.model.stock.Note
 import net.brightroom.mindstock.domain.model.stock.OccurredAt
 import net.brightroom.mindstock.domain.model.stock.Quantity
 import net.brightroom.mindstock.domain.model.stock.movement.Replenishment
 import net.brightroom.mindstock.domain.model.user.User
-import net.brightroom.mindstock.domain.repository.stock.StockRegisterRepository
 
 class ReplenishStockHandler(
     private val stockRegisterRepository: StockRegisterRepository,

@@ -1,6 +1,10 @@
 package net.brightroom.mindstock.presentation.rpc.product
 
 import io.ktor.server.application.ApplicationCall
+import net.brightroom.mindstock.application.repository.catalog.CatalogItemRepository
+import net.brightroom.mindstock.application.repository.household.HouseholdRepository
+import net.brightroom.mindstock.application.repository.product.ProductRepository
+import net.brightroom.mindstock.application.repository.user.UserRepository
 import net.brightroom.mindstock.application.usecase.product.AdoptProductHandler
 import net.brightroom.mindstock.application.usecase.product.ArchiveProductHandler
 import net.brightroom.mindstock.application.usecase.product.FindProductHandler
@@ -16,10 +20,6 @@ import net.brightroom.mindstock.domain.model.product.Product
 import net.brightroom.mindstock.domain.model.product.ProductId
 import net.brightroom.mindstock.domain.model.product.Products
 import net.brightroom.mindstock.domain.model.user.User
-import net.brightroom.mindstock.domain.repository.catalog.CatalogItemRepository
-import net.brightroom.mindstock.domain.repository.household.HouseholdRepository
-import net.brightroom.mindstock.domain.repository.product.ProductRepository
-import net.brightroom.mindstock.domain.repository.user.UserRepository
 import net.brightroom.mindstock.presentation.rpc.ProductRpcService
 import org.jetbrains.exposed.v1.jdbc.Database
 

@@ -1,6 +1,8 @@
 package net.brightroom.mindstock.presentation.rpc.household
 
 import io.ktor.server.application.ApplicationCall
+import net.brightroom.mindstock.application.repository.household.HouseholdRepository
+import net.brightroom.mindstock.application.repository.user.UserRepository
 import net.brightroom.mindstock.application.usecase.household.CreateHouseholdHandler
 import net.brightroom.mindstock.application.usecase.household.FindHouseholdOfUserHandler
 import net.brightroom.mindstock.application.usecase.household.InviteMemberHandler
@@ -13,8 +15,6 @@ import net.brightroom.mindstock.domain.model.household.HouseholdId
 import net.brightroom.mindstock.domain.model.household.HouseholdMemberRole
 import net.brightroom.mindstock.domain.model.user.User
 import net.brightroom.mindstock.domain.model.user.UserId
-import net.brightroom.mindstock.domain.repository.household.HouseholdRepository
-import net.brightroom.mindstock.domain.repository.user.UserRepository
 import net.brightroom.mindstock.presentation.rpc.HouseholdRpcService
 import org.jetbrains.exposed.v1.jdbc.Database
 

@@ -8,6 +8,8 @@ import io.mockk.every
 import io.mockk.mockk
 import io.mockk.mockkStatic
 import io.mockk.unmockkAll
+import net.brightroom.mindstock.application.repository.catalog.CatalogItemRepository
+import net.brightroom.mindstock.application.repository.user.UserRepository
 import net.brightroom.mindstock.application.usecase.catalog.FindCatalogItemByIdHandler
 import net.brightroom.mindstock.application.usecase.catalog.RegisterCatalogItemHandler
 import net.brightroom.mindstock.application.usecase.catalog.ReviseCatalogItemHandler
@@ -20,8 +22,6 @@ import net.brightroom.mindstock.domain.model.user.UserId
 import net.brightroom.mindstock.domain.model.user.auth.AuthIdentity
 import net.brightroom.mindstock.domain.model.user.auth.AuthProvider
 import net.brightroom.mindstock.domain.model.user.auth.AuthSubject
-import net.brightroom.mindstock.domain.repository.catalog.CatalogItemRepository
-import net.brightroom.mindstock.domain.repository.user.UserRepository
 import org.jetbrains.exposed.v1.jdbc.Database
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid

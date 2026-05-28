@@ -1,10 +1,10 @@
 package net.brightroom.mindstock.infrastructure.datasource.repository.household
 
+import net.brightroom.mindstock.application.repository.household.HouseholdRegisterRepository
 import net.brightroom.mindstock.domain.model.household.Household
 import net.brightroom.mindstock.domain.model.household.HouseholdMember
 import net.brightroom.mindstock.domain.model.household.HouseholdMemberRole
 import net.brightroom.mindstock.domain.model.user.User
-import net.brightroom.mindstock.domain.repository.household.HouseholdRegisterRepository
 import net.brightroom.mindstock.infrastructure.datasource.schemas.household.HouseholdMembershipRevocationsTable
 import net.brightroom.mindstock.infrastructure.datasource.schemas.household.HouseholdMembershipsTable
 import net.brightroom.mindstock.infrastructure.datasource.schemas.household.HouseholdsTable

@@ -32,7 +32,7 @@ exposed {
     migrations {
         tablesPackage.set("net.brightroom.mindstock.infrastructure.datasource")
         fileDirectory.set(
-            layout.projectDirectory.dir("src/main/resources/db/migration").asFile
+            layout.projectDirectory.dir("src/main/resources/db/migration").asFile,
         )
         testContainersImageName.set("postgres:18.0-alpine")
     }

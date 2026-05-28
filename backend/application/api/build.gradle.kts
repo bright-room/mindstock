@@ -14,6 +14,7 @@ dependencies {
     implementation(projects.shared.rpc)
     implementation(projects.shared.extensions)
     implementation(projects.domain)
+    implementation(projects.backend.core)
     implementation(projects.backend.infrastructure.schemas)
     implementation(libs.flyway.core)
     implementation(libs.flyway.database.postgresql)

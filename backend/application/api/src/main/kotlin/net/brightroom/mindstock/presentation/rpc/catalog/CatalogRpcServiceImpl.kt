@@ -1,6 +1,8 @@
 package net.brightroom.mindstock.presentation.rpc.catalog
 
 import io.ktor.server.application.ApplicationCall
+import net.brightroom.mindstock.application.repository.catalog.CatalogItemRepository
+import net.brightroom.mindstock.application.repository.user.UserRepository
 import net.brightroom.mindstock.application.usecase.catalog.FindCatalogItemByIdHandler
 import net.brightroom.mindstock.application.usecase.catalog.RegisterCatalogItemHandler
 import net.brightroom.mindstock.application.usecase.catalog.ReviseCatalogItemHandler
@@ -14,8 +16,6 @@ import net.brightroom.mindstock.domain.model.catalog.CatalogItemName
 import net.brightroom.mindstock.domain.model.catalog.CatalogItemUnit
 import net.brightroom.mindstock.domain.model.catalog.CatalogItems
 import net.brightroom.mindstock.domain.model.user.User
-import net.brightroom.mindstock.domain.repository.catalog.CatalogItemRepository
-import net.brightroom.mindstock.domain.repository.user.UserRepository
 import net.brightroom.mindstock.presentation.rpc.CatalogRpcService
 import org.jetbrains.exposed.v1.jdbc.Database
 

@@ -1,7 +1,7 @@
 package net.brightroom.mindstock.application.usecase.catalog
 
+import net.brightroom.mindstock.application.repository.catalog.CatalogItemRepository
 import net.brightroom.mindstock.domain.model.catalog.CatalogItems
-import net.brightroom.mindstock.domain.repository.catalog.CatalogItemRepository
 
 class SearchCatalogItemsHandler(
     private val catalogItemRepository: CatalogItemRepository,

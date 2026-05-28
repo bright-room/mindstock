@@ -1,4 +1,4 @@
-package net.brightroom.mindstock.domain.repository.catalog
+package net.brightroom.mindstock.application.repository.catalog
 
 import net.brightroom.mindstock.domain.model.catalog.CatalogItem
 import net.brightroom.mindstock.domain.model.catalog.CatalogItemId

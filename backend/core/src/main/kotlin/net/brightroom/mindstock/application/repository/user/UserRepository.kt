@@ -1,4 +1,4 @@
-package net.brightroom.mindstock.domain.repository.user
+package net.brightroom.mindstock.application.repository.user
 
 import net.brightroom.mindstock.domain.model.user.User
 import net.brightroom.mindstock.domain.model.user.UserId
