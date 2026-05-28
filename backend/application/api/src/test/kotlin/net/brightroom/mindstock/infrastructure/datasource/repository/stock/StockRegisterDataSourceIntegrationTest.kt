@@ -1,4 +1,4 @@
-package net.brightroom.mindstock.infrastructure.datasource.repository.stock
+package net.brightroom.mindstock.infrastructure.datasource.stock
 
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
@@ -14,36 +14,36 @@ import net.brightroom.mindstock.domain.model.user.User
 import net.brightroom.mindstock.domain.model.user.auth.AuthIdentity
 import net.brightroom.mindstock.domain.model.user.auth.AuthProvider
 import net.brightroom.mindstock.domain.model.user.auth.AuthSubject
+import net.brightroom.mindstock.infrastructure.datasource.catalog.CatalogItemRegisterDataSource
+import net.brightroom.mindstock.infrastructure.datasource.household.HouseholdRegisterDataSource
+import net.brightroom.mindstock.infrastructure.datasource.product.ProductDataSource
+import net.brightroom.mindstock.infrastructure.datasource.product.ProductRegisterDataSource
 import net.brightroom.mindstock.infrastructure.datasource.repository.RepositoryTestContext
-import net.brightroom.mindstock.infrastructure.datasource.repository.catalog.CatalogItemRegisterRepositoryImpl
-import net.brightroom.mindstock.infrastructure.datasource.repository.household.HouseholdRegisterRepositoryImpl
-import net.brightroom.mindstock.infrastructure.datasource.repository.product.ProductRegisterRepositoryImpl
-import net.brightroom.mindstock.infrastructure.datasource.repository.product.ProductRepositoryImpl
-import net.brightroom.mindstock.infrastructure.datasource.repository.user.UserRegisterRepositoryImpl
 import net.brightroom.mindstock.infrastructure.datasource.repository.withRepositoryTestContext
+import net.brightroom.mindstock.infrastructure.datasource.user.UserRegisterDataSource
 import kotlin.time.Clock
 
 internal fun RepositoryTestContext.setupUserHouseholdProduct(): Triple<User, Household, Product> =
     tx {
         val user =
-            UserRegisterRepositoryImpl().register(
+            UserRegisterDataSource().register(
                 AuthIdentity(AuthProvider.ZITADEL, AuthSubject("u")),
                 DisplayName("U"),
             )
-        val household = HouseholdRegisterRepositoryImpl().create(user)
-        val item = CatalogItemRegisterRepositoryImpl().register(CatalogItemName("Milk"), CatalogItemUnit("L"), user)
-        val product = ProductRegisterRepositoryImpl().adopt(household, item)
+        val household = HouseholdRegisterDataSource().create(user)
+        val item = CatalogItemRegisterDataSource().register(CatalogItemName("Milk"), CatalogItemUnit("L"), user)
+        val product = ProductRegisterDataSource().adopt(household, item)
         Triple(user, household, product)
     }
 
-class StockRegisterRepositoryImplIntegrationTest :
+class StockRegisterDataSourceIntegrationTest :
     FunSpec({
 
         test("replenish inserts REPLENISHMENT movement; stockOf returns +quantity") {
             withRepositoryTestContext {
                 val (user, _, product) = setupUserHouseholdProduct()
-                val stockRegister = StockRegisterRepositoryImpl()
-                val stockReader = StockRepositoryImpl(ProductRepositoryImpl())
+                val stockRegister = StockRegisterDataSource()
+                val stockReader = StockDataSource(ProductDataSource())
 
                 tx {
                     stockRegister.replenish(product, Quantity(3), OccurredAt(Clock.System.now()), user, Note(""))
@@ -56,8 +56,8 @@ class StockRegisterRepositoryImplIntegrationTest :
         test("consume inserts CONSUMPTION movement; stockOf returns net (replenish - consume)") {
             withRepositoryTestContext {
                 val (user, _, product) = setupUserHouseholdProduct()
-                val stockRegister = StockRegisterRepositoryImpl()
-                val stockReader = StockRepositoryImpl(ProductRepositoryImpl())
+                val stockRegister = StockRegisterDataSource()
+                val stockReader = StockDataSource(ProductDataSource())
 
                 tx { stockRegister.replenish(product, Quantity(5), OccurredAt(Clock.System.now()), user, Note("")) }
                 tx { stockRegister.consume(product, Quantity(2), OccurredAt(Clock.System.now()), user, Note("")) }

@@ -1,4 +1,4 @@
-package net.brightroom.mindstock.infrastructure.datasource.repository.household
+package net.brightroom.mindstock.infrastructure.datasource.household
 
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.collections.shouldContain
@@ -10,16 +10,16 @@ import net.brightroom.mindstock.domain.model.user.DisplayName
 import net.brightroom.mindstock.domain.model.user.auth.AuthIdentity
 import net.brightroom.mindstock.domain.model.user.auth.AuthProvider
 import net.brightroom.mindstock.domain.model.user.auth.AuthSubject
-import net.brightroom.mindstock.infrastructure.datasource.repository.user.UserRegisterRepositoryImpl
 import net.brightroom.mindstock.infrastructure.datasource.repository.withRepositoryTestContext
+import net.brightroom.mindstock.infrastructure.datasource.user.UserRegisterDataSource
 
-class HouseholdRegisterRepositoryImplIntegrationTest :
+class HouseholdRegisterDataSourceIntegrationTest :
     FunSpec({
 
         test("create inserts household + OWNER membership and returns Household with owner as member") {
             withRepositoryTestContext {
-                val userRepo = UserRegisterRepositoryImpl()
-                val householdRepo = HouseholdRegisterRepositoryImpl()
+                val userRepo = UserRegisterDataSource()
+                val householdRepo = HouseholdRegisterDataSource()
                 val owner =
                     tx {
                         userRepo.register(
@@ -40,9 +40,9 @@ class HouseholdRegisterRepositoryImplIntegrationTest :
 
         test("invite adds another active member that appears in findOf") {
             withRepositoryTestContext {
-                val userRepo = UserRegisterRepositoryImpl()
-                val householdRepo = HouseholdRegisterRepositoryImpl()
-                val householdReader = HouseholdRepositoryImpl()
+                val userRepo = UserRegisterDataSource()
+                val householdRepo = HouseholdRegisterDataSource()
+                val householdReader = HouseholdDataSource()
 
                 val owner = tx { userRepo.register(AuthIdentity(AuthProvider.ZITADEL, AuthSubject("owner")), DisplayName("Owner")) }
                 val invitee = tx { userRepo.register(AuthIdentity(AuthProvider.ZITADEL, AuthSubject("invitee")), DisplayName("Invitee")) }
@@ -56,9 +56,9 @@ class HouseholdRegisterRepositoryImplIntegrationTest :
 
         test("revoke removes the revoked member from active membership view") {
             withRepositoryTestContext {
-                val userRepo = UserRegisterRepositoryImpl()
-                val householdRepo = HouseholdRegisterRepositoryImpl()
-                val householdReader = HouseholdRepositoryImpl()
+                val userRepo = UserRegisterDataSource()
+                val householdRepo = HouseholdRegisterDataSource()
+                val householdReader = HouseholdDataSource()
 
                 val owner = tx { userRepo.register(AuthIdentity(AuthProvider.ZITADEL, AuthSubject("owner")), DisplayName("Owner")) }
                 val invitee = tx { userRepo.register(AuthIdentity(AuthProvider.ZITADEL, AuthSubject("invitee")), DisplayName("Invitee")) }

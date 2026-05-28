@@ -10,10 +10,10 @@ import net.brightroom.mindstock.domain.model.user.User
 import net.brightroom.mindstock.domain.model.user.auth.AuthIdentity
 import net.brightroom.mindstock.domain.model.user.auth.AuthProvider
 import net.brightroom.mindstock.domain.model.user.auth.AuthSubject
-import net.brightroom.mindstock.infrastructure.datasource.repository.catalog.CatalogItemRegisterRepositoryImpl
-import net.brightroom.mindstock.infrastructure.datasource.repository.household.HouseholdRegisterRepositoryImpl
-import net.brightroom.mindstock.infrastructure.datasource.repository.product.ProductRegisterRepositoryImpl
-import net.brightroom.mindstock.infrastructure.datasource.repository.user.UserRegisterRepositoryImpl
+import net.brightroom.mindstock.infrastructure.datasource.catalog.CatalogItemRegisterDataSource
+import net.brightroom.mindstock.infrastructure.datasource.household.HouseholdRegisterDataSource
+import net.brightroom.mindstock.infrastructure.datasource.product.ProductRegisterDataSource
+import net.brightroom.mindstock.infrastructure.datasource.user.UserRegisterDataSource
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
@@ -42,7 +42,7 @@ fun E2eContext.seedUser(
     subject: String = "sub-${shortRandom()}",
 ): User =
     transaction(database) {
-        UserRegisterRepositoryImpl().register(
+        UserRegisterDataSource().register(
             identity = AuthIdentity(provider, AuthSubject(subject)),
             defaultDisplayName = DisplayName(displayName),
         )
@@ -50,7 +50,7 @@ fun E2eContext.seedUser(
 
 fun E2eContext.seedHousehold(owner: User): Household =
     transaction(database) {
-        HouseholdRegisterRepositoryImpl().create(owner)
+        HouseholdRegisterDataSource().create(owner)
     }
 
 fun E2eContext.seedCatalogItem(
@@ -59,7 +59,7 @@ fun E2eContext.seedCatalogItem(
     unit: String = "個",
 ): CatalogItem =
     transaction(database) {
-        CatalogItemRegisterRepositoryImpl().register(
+        CatalogItemRegisterDataSource().register(
             name = CatalogItemName(name),
             unit = CatalogItemUnit(unit),
             createdBy = createdBy,
@@ -71,5 +71,5 @@ fun E2eContext.seedProduct(
     catalogItem: CatalogItem,
 ): Product =
     transaction(database) {
-        ProductRegisterRepositoryImpl().adopt(household, catalogItem)
+        ProductRegisterDataSource().adopt(household, catalogItem)
     }

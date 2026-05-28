@@ -1,4 +1,4 @@
-package net.brightroom.mindstock.infrastructure.datasource.repository.household
+package net.brightroom.mindstock.infrastructure.datasource.household
 
 import net.brightroom.mindstock.application.repository.household.HouseholdRepository
 import net.brightroom.mindstock.domain.model.household.Household
@@ -9,9 +9,9 @@ import net.brightroom.mindstock.domain.model.user.User
 import net.brightroom.mindstock.infrastructure.datasource.household.HouseholdMembershipRevocationsTable
 import net.brightroom.mindstock.infrastructure.datasource.household.HouseholdMembershipsTable
 import net.brightroom.mindstock.infrastructure.datasource.household.HouseholdsTable
-import net.brightroom.mindstock.infrastructure.datasource.repository.user.toUser
 import net.brightroom.mindstock.infrastructure.datasource.user.UserDisplayNamesTable
 import net.brightroom.mindstock.infrastructure.datasource.user.UsersTable
+import net.brightroom.mindstock.infrastructure.datasource.user.toUser
 import org.jetbrains.exposed.v1.core.JoinType
 import org.jetbrains.exposed.v1.core.SortOrder
 import org.jetbrains.exposed.v1.core.alias
@@ -24,7 +24,7 @@ import org.jetbrains.exposed.v1.jdbc.selectAll
 import kotlin.uuid.ExperimentalUuidApi
 
 @OptIn(ExperimentalUuidApi::class)
-internal class HouseholdRepositoryImpl : HouseholdRepository {
+class HouseholdDataSource : HouseholdRepository {
     override fun findOf(user: User): Household? {
         // --- latest display name per user ---
         val maxNameIdAlias = UserDisplayNamesTable.id.max().alias("max_name_id")

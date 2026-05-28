@@ -1,4 +1,4 @@
-package net.brightroom.mindstock.infrastructure.datasource.repository.user
+package net.brightroom.mindstock.infrastructure.datasource.user
 
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
@@ -8,12 +8,12 @@ import net.brightroom.mindstock.domain.model.user.auth.AuthProvider
 import net.brightroom.mindstock.domain.model.user.auth.AuthSubject
 import net.brightroom.mindstock.infrastructure.datasource.repository.withRepositoryTestContext
 
-class UserRegisterRepositoryImplIntegrationTest :
+class UserRegisterDataSourceIntegrationTest :
     FunSpec({
 
         test("register inserts users + display_names and returns User with initial display name") {
             withRepositoryTestContext {
-                val repo = UserRegisterRepositoryImpl()
+                val repo = UserRegisterDataSource()
                 val identity = AuthIdentity(AuthProvider.ZITADEL, AuthSubject("subject-1"))
                 val name = DisplayName("Alice")
 
@@ -26,8 +26,8 @@ class UserRegisterRepositoryImplIntegrationTest :
 
         test("rename inserts a new display_names row and the latest is returned by reader") {
             withRepositoryTestContext {
-                val registerRepo = UserRegisterRepositoryImpl()
-                val readerRepo = UserRepositoryImpl()
+                val registerRepo = UserRegisterDataSource()
+                val readerRepo = UserDataSource()
                 val identity = AuthIdentity(AuthProvider.ZITADEL, AuthSubject("subject-1"))
 
                 val user = tx { registerRepo.register(identity, DisplayName("Alice")) }

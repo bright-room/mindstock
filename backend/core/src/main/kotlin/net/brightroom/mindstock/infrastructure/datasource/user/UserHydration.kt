@@ -1,4 +1,4 @@
-package net.brightroom.mindstock.infrastructure.datasource.repository.user
+package net.brightroom.mindstock.infrastructure.datasource.user
 
 import net.brightroom.mindstock.domain.model.user.DisplayName
 import net.brightroom.mindstock.domain.model.user.User

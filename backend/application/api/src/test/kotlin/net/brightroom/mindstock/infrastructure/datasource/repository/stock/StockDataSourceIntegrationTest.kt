@@ -1,4 +1,4 @@
-package net.brightroom.mindstock.infrastructure.datasource.repository.stock
+package net.brightroom.mindstock.infrastructure.datasource.stock
 
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.collections.shouldHaveSize
@@ -6,18 +6,18 @@ import io.kotest.matchers.shouldBe
 import net.brightroom.mindstock.domain.model.stock.Note
 import net.brightroom.mindstock.domain.model.stock.OccurredAt
 import net.brightroom.mindstock.domain.model.stock.Quantity
-import net.brightroom.mindstock.infrastructure.datasource.repository.product.ProductRepositoryImpl
+import net.brightroom.mindstock.infrastructure.datasource.product.ProductDataSource
 import net.brightroom.mindstock.infrastructure.datasource.repository.withRepositoryTestContext
 import kotlin.time.Clock
 import kotlin.time.Duration.Companion.seconds
 
-class StockRepositoryImplIntegrationTest :
+class StockDataSourceIntegrationTest :
     FunSpec({
 
         test("stockOf returns empty StockMovements for a fresh product") {
             withRepositoryTestContext {
                 val (_, _, product) = setupUserHouseholdProduct()
-                val reader = StockRepositoryImpl(ProductRepositoryImpl())
+                val reader = StockDataSource(ProductDataSource())
 
                 val stock = tx { reader.stockOf(product) }
                 stock.movements.size shouldBe 0
@@ -28,8 +28,8 @@ class StockRepositoryImplIntegrationTest :
         test("movementHistory respects limit and returns DESC by occurred_at") {
             withRepositoryTestContext {
                 val (user, _, product) = setupUserHouseholdProduct()
-                val register = StockRegisterRepositoryImpl()
-                val reader = StockRepositoryImpl(ProductRepositoryImpl())
+                val register = StockRegisterDataSource()
+                val reader = StockDataSource(ProductDataSource())
 
                 val t0 = Clock.System.now()
                 tx { register.replenish(product, Quantity(1), OccurredAt(t0), user, Note("a")) }

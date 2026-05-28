@@ -34,36 +34,36 @@ import net.brightroom.mindstock.application.usecase.stock.ReplenishStockHandler
 import net.brightroom.mindstock.application.usecase.user.RegisterUserHandler
 import net.brightroom.mindstock.application.usecase.user.RenameUserHandler
 import net.brightroom.mindstock.configuration.Environment
-import net.brightroom.mindstock.infrastructure.datasource.repository.catalog.CatalogItemRegisterRepositoryImpl
-import net.brightroom.mindstock.infrastructure.datasource.repository.catalog.CatalogItemRepositoryImpl
-import net.brightroom.mindstock.infrastructure.datasource.repository.household.HouseholdRegisterRepositoryImpl
-import net.brightroom.mindstock.infrastructure.datasource.repository.household.HouseholdRepositoryImpl
-import net.brightroom.mindstock.infrastructure.datasource.repository.product.ProductRegisterRepositoryImpl
-import net.brightroom.mindstock.infrastructure.datasource.repository.product.ProductRepositoryImpl
-import net.brightroom.mindstock.infrastructure.datasource.repository.stock.StockRegisterRepositoryImpl
-import net.brightroom.mindstock.infrastructure.datasource.repository.stock.StockRepositoryImpl
-import net.brightroom.mindstock.infrastructure.datasource.repository.user.UserRegisterRepositoryImpl
-import net.brightroom.mindstock.infrastructure.datasource.repository.user.UserRepositoryImpl
+import net.brightroom.mindstock.infrastructure.datasource.catalog.CatalogItemDataSource
+import net.brightroom.mindstock.infrastructure.datasource.catalog.CatalogItemRegisterDataSource
+import net.brightroom.mindstock.infrastructure.datasource.household.HouseholdDataSource
+import net.brightroom.mindstock.infrastructure.datasource.household.HouseholdRegisterDataSource
+import net.brightroom.mindstock.infrastructure.datasource.product.ProductDataSource
+import net.brightroom.mindstock.infrastructure.datasource.product.ProductRegisterDataSource
+import net.brightroom.mindstock.infrastructure.datasource.stock.StockDataSource
+import net.brightroom.mindstock.infrastructure.datasource.stock.StockRegisterDataSource
+import net.brightroom.mindstock.infrastructure.datasource.user.UserDataSource
+import net.brightroom.mindstock.infrastructure.datasource.user.UserRegisterDataSource
 
 fun Application.dependenciesConfigure(
     @Property("ktor.environment") environment: Environment,
 ) {
     dependencies {
         // Repository (10)
-        provide<UserRepository> { UserRepositoryImpl() }
-        provide<UserRegisterRepository> { UserRegisterRepositoryImpl() }
+        provide<UserRepository> { UserDataSource() }
+        provide<UserRegisterRepository> { UserRegisterDataSource() }
 
-        provide<HouseholdRepository> { HouseholdRepositoryImpl() }
-        provide<HouseholdRegisterRepository> { HouseholdRegisterRepositoryImpl() }
+        provide<HouseholdRepository> { HouseholdDataSource() }
+        provide<HouseholdRegisterRepository> { HouseholdRegisterDataSource() }
 
-        provide<CatalogItemRepository> { CatalogItemRepositoryImpl() }
-        provide<CatalogItemRegisterRepository> { CatalogItemRegisterRepositoryImpl() }
+        provide<CatalogItemRepository> { CatalogItemDataSource() }
+        provide<CatalogItemRegisterRepository> { CatalogItemRegisterDataSource() }
 
-        provide<ProductRepository> { ProductRepositoryImpl() }
-        provide<ProductRegisterRepository> { ProductRegisterRepositoryImpl() }
+        provide<ProductRepository> { ProductDataSource() }
+        provide<ProductRegisterRepository> { ProductRegisterDataSource() }
 
-        provide<StockRepository> { StockRepositoryImpl(resolve()) }
-        provide<StockRegisterRepository> { StockRegisterRepositoryImpl() }
+        provide<StockRepository> { StockDataSource(resolve()) }
+        provide<StockRegisterRepository> { StockRegisterDataSource() }
 
         // Handler (20)
         // User

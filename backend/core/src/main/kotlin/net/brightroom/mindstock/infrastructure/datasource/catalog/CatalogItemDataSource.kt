@@ -1,4 +1,4 @@
-package net.brightroom.mindstock.infrastructure.datasource.repository.catalog
+package net.brightroom.mindstock.infrastructure.datasource.catalog
 
 import net.brightroom.mindstock.application.repository.catalog.CatalogItemRepository
 import net.brightroom.mindstock.domain.model.catalog.CatalogItem
@@ -23,7 +23,7 @@ import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
 @OptIn(ExperimentalUuidApi::class)
-internal class CatalogItemRepositoryImpl : CatalogItemRepository {
+class CatalogItemDataSource : CatalogItemRepository {
     private data class LatestRevs(
         val alias: QueryAlias,
         val catalogItemId: Column<Uuid>,

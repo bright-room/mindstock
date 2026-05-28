@@ -1,4 +1,4 @@
-package net.brightroom.mindstock.infrastructure.datasource.repository.household
+package net.brightroom.mindstock.infrastructure.datasource.household
 
 import net.brightroom.mindstock.application.repository.household.HouseholdRegisterRepository
 import net.brightroom.mindstock.domain.model.household.Household
@@ -18,7 +18,7 @@ import org.jetbrains.exposed.v1.jdbc.select
 import kotlin.uuid.ExperimentalUuidApi
 
 @OptIn(ExperimentalUuidApi::class)
-internal class HouseholdRegisterRepositoryImpl : HouseholdRegisterRepository {
+class HouseholdRegisterDataSource : HouseholdRegisterRepository {
     override fun create(owner: User): Household {
         val newHouseholdId =
             HouseholdsTable.insert {

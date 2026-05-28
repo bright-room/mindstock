@@ -1,4 +1,4 @@
-package net.brightroom.mindstock.infrastructure.datasource.repository.stock
+package net.brightroom.mindstock.infrastructure.datasource.stock
 
 import net.brightroom.mindstock.application.repository.stock.StockRegisterRepository
 import net.brightroom.mindstock.domain.model.product.Product
@@ -16,7 +16,7 @@ import kotlin.time.toJavaInstant
 import kotlin.uuid.ExperimentalUuidApi
 
 @OptIn(ExperimentalUuidApi::class)
-internal class StockRegisterRepositoryImpl : StockRegisterRepository {
+class StockRegisterDataSource : StockRegisterRepository {
     override fun replenish(
         product: Product,
         quantity: Quantity,

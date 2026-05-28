@@ -1,4 +1,4 @@
-package net.brightroom.mindstock.infrastructure.datasource.repository.user
+package net.brightroom.mindstock.infrastructure.datasource.user
 
 import net.brightroom.mindstock.application.repository.user.UserRegisterRepository
 import net.brightroom.mindstock.domain.model.user.DisplayName
@@ -12,7 +12,7 @@ import org.jetbrains.exposed.v1.jdbc.selectAll
 import kotlin.uuid.ExperimentalUuidApi
 
 @OptIn(ExperimentalUuidApi::class)
-internal class UserRegisterRepositoryImpl : UserRegisterRepository {
+class UserRegisterDataSource : UserRegisterRepository {
     override fun register(
         identity: AuthIdentity,
         defaultDisplayName: DisplayName,

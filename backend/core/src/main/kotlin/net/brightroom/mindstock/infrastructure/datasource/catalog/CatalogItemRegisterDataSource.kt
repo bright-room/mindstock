@@ -1,4 +1,4 @@
-package net.brightroom.mindstock.infrastructure.datasource.repository.catalog
+package net.brightroom.mindstock.infrastructure.datasource.catalog
 
 import net.brightroom.mindstock.application.repository.catalog.CatalogItemRegisterRepository
 import net.brightroom.mindstock.domain.model.catalog.CatalogItem
@@ -11,7 +11,7 @@ import org.jetbrains.exposed.v1.jdbc.insert
 import kotlin.uuid.ExperimentalUuidApi
 
 @OptIn(ExperimentalUuidApi::class)
-internal class CatalogItemRegisterRepositoryImpl : CatalogItemRegisterRepository {
+class CatalogItemRegisterDataSource : CatalogItemRegisterRepository {
     override fun register(
         name: CatalogItemName,
         unit: CatalogItemUnit,

@@ -1,4 +1,4 @@
-package net.brightroom.mindstock.infrastructure.datasource.repository.product
+package net.brightroom.mindstock.infrastructure.datasource.product
 
 import net.brightroom.mindstock.domain.model.catalog.CatalogItem
 import net.brightroom.mindstock.domain.model.product.MinimumStock

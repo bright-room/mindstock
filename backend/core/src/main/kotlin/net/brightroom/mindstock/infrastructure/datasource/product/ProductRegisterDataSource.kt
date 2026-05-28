@@ -1,4 +1,4 @@
-package net.brightroom.mindstock.infrastructure.datasource.repository.product
+package net.brightroom.mindstock.infrastructure.datasource.product
 
 import net.brightroom.mindstock.application.repository.product.ProductRegisterRepository
 import net.brightroom.mindstock.domain.model.catalog.CatalogItem
@@ -13,7 +13,7 @@ import org.jetbrains.exposed.v1.jdbc.insert
 import kotlin.uuid.ExperimentalUuidApi
 
 @OptIn(ExperimentalUuidApi::class)
-internal class ProductRegisterRepositoryImpl : ProductRegisterRepository {
+class ProductRegisterDataSource : ProductRegisterRepository {
     override fun adopt(
         household: Household,
         catalogItem: CatalogItem,

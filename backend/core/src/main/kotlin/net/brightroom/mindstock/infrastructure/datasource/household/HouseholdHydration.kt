@@ -1,4 +1,4 @@
-package net.brightroom.mindstock.infrastructure.datasource.repository.household
+package net.brightroom.mindstock.infrastructure.datasource.household
 
 import net.brightroom.mindstock.domain.model.household.Household
 import net.brightroom.mindstock.domain.model.household.HouseholdId

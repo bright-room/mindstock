@@ -14,7 +14,7 @@ import net.brightroom.mindstock.domain.model.user.auth.AuthProvider
 import net.brightroom.mindstock.domain.model.user.auth.AuthSubject
 import net.brightroom.mindstock.e2e.e2eTest
 import net.brightroom.mindstock.e2e.seedUser
-import net.brightroom.mindstock.infrastructure.datasource.repository.user.UserRepositoryImpl
+import net.brightroom.mindstock.infrastructure.datasource.user.UserDataSource
 import net.brightroom.mindstock.presentation.rpc.UserRpcService
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import kotlin.uuid.ExperimentalUuidApi
@@ -44,7 +44,7 @@ class UserRpcServiceE2eTest :
 
                 val persisted =
                     transaction(database) {
-                        (UserRepositoryImpl() as UserRepository).findById(user.id)
+                        (UserDataSource() as UserRepository).findById(user.id)
                     }
                 persisted.shouldNotBeNull()
                 persisted.displayName shouldBe DisplayName("New Name")

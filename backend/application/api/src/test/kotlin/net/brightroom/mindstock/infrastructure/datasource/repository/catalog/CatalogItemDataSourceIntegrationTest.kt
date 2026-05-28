@@ -1,4 +1,4 @@
-package net.brightroom.mindstock.infrastructure.datasource.repository.catalog
+package net.brightroom.mindstock.infrastructure.datasource.catalog
 
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.collections.shouldHaveSize
@@ -10,18 +10,18 @@ import net.brightroom.mindstock.domain.model.user.DisplayName
 import net.brightroom.mindstock.domain.model.user.auth.AuthIdentity
 import net.brightroom.mindstock.domain.model.user.auth.AuthProvider
 import net.brightroom.mindstock.domain.model.user.auth.AuthSubject
-import net.brightroom.mindstock.infrastructure.datasource.repository.user.UserRegisterRepositoryImpl
 import net.brightroom.mindstock.infrastructure.datasource.repository.withRepositoryTestContext
+import net.brightroom.mindstock.infrastructure.datasource.user.UserRegisterDataSource
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
 @OptIn(ExperimentalUuidApi::class)
-class CatalogItemRepositoryImplIntegrationTest :
+class CatalogItemDataSourceIntegrationTest :
     FunSpec({
 
         test("findById returns null when id does not exist") {
             withRepositoryTestContext {
-                val reader = CatalogItemRepositoryImpl()
+                val reader = CatalogItemDataSource()
                 val result = tx { reader.findById(CatalogItemId(Uuid.random())) }
                 result.shouldBeNull()
             }
@@ -29,9 +29,9 @@ class CatalogItemRepositoryImplIntegrationTest :
 
         test("search finds items by partial name match (ILIKE)") {
             withRepositoryTestContext {
-                val userRepo = UserRegisterRepositoryImpl()
-                val register = CatalogItemRegisterRepositoryImpl()
-                val reader = CatalogItemRepositoryImpl()
+                val userRepo = UserRegisterDataSource()
+                val register = CatalogItemRegisterDataSource()
+                val reader = CatalogItemDataSource()
                 val creator = tx { userRepo.register(AuthIdentity(AuthProvider.ZITADEL, AuthSubject("c")), DisplayName("C")) }
 
                 tx { register.register(CatalogItemName("Milk"), CatalogItemUnit("L"), creator) }

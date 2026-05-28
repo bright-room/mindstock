@@ -1,4 +1,4 @@
-package net.brightroom.mindstock.infrastructure.datasource.repository.product
+package net.brightroom.mindstock.infrastructure.datasource.product
 
 import net.brightroom.mindstock.application.repository.product.ProductRepository
 import net.brightroom.mindstock.domain.model.catalog.CatalogItem
@@ -8,10 +8,10 @@ import net.brightroom.mindstock.domain.model.product.ProductId
 import net.brightroom.mindstock.domain.model.product.Products
 import net.brightroom.mindstock.infrastructure.datasource.catalog.CatalogItemRevisionsTable
 import net.brightroom.mindstock.infrastructure.datasource.catalog.CatalogItemsTable
+import net.brightroom.mindstock.infrastructure.datasource.catalog.hydrateCatalogItem
 import net.brightroom.mindstock.infrastructure.datasource.product.ProductArchivesTable
 import net.brightroom.mindstock.infrastructure.datasource.product.ProductMinimumStocksTable
 import net.brightroom.mindstock.infrastructure.datasource.product.ProductsTable
-import net.brightroom.mindstock.infrastructure.datasource.repository.catalog.hydrateCatalogItem
 import org.jetbrains.exposed.v1.core.Column
 import org.jetbrains.exposed.v1.core.ExpressionWithColumnType
 import org.jetbrains.exposed.v1.core.JoinType
@@ -27,7 +27,7 @@ import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
 @OptIn(ExperimentalUuidApi::class)
-internal class ProductRepositoryImpl : ProductRepository {
+class ProductDataSource : ProductRepository {
     private data class LatestRevsAlias(
         val alias: QueryAlias,
         val catalogItemId: Column<Uuid>,

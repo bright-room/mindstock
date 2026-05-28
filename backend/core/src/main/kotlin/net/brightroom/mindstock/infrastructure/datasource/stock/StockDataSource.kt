@@ -1,4 +1,4 @@
-package net.brightroom.mindstock.infrastructure.datasource.repository.stock
+package net.brightroom.mindstock.infrastructure.datasource.stock
 
 import net.brightroom.mindstock.application.repository.product.ProductRepository
 import net.brightroom.mindstock.application.repository.stock.StockRepository
@@ -17,7 +17,7 @@ import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
 @OptIn(ExperimentalUuidApi::class)
-internal class StockRepositoryImpl(
+class StockDataSource(
     private val productRepository: ProductRepository,
 ) : StockRepository {
     override fun stockOf(product: Product): Stock {

@@ -1,4 +1,4 @@
-package net.brightroom.mindstock.infrastructure.datasource.repository.user
+package net.brightroom.mindstock.infrastructure.datasource.user
 
 import net.brightroom.mindstock.application.repository.user.UserRepository
 import net.brightroom.mindstock.domain.model.user.User
@@ -17,7 +17,7 @@ import org.jetbrains.exposed.v1.jdbc.selectAll
 import kotlin.uuid.ExperimentalUuidApi
 
 @OptIn(ExperimentalUuidApi::class)
-internal class UserRepositoryImpl : UserRepository {
+class UserDataSource : UserRepository {
     override fun findByAuthIdentity(identity: AuthIdentity): User? = queryLatest { UsersTable.zitadel_sub eq identity.subject() }
 
     override fun findById(id: UserId): User? = queryLatest { UsersTable.id eq id() }
