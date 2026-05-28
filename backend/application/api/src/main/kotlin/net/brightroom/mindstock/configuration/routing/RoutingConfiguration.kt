@@ -22,11 +22,8 @@ import net.brightroom.mindstock.application.service.catalog.CatalogItemRegisterS
 import net.brightroom.mindstock.application.service.catalog.CatalogItemService
 import net.brightroom.mindstock.application.service.household.HouseholdRegisterService
 import net.brightroom.mindstock.application.service.household.HouseholdService
-import net.brightroom.mindstock.application.usecase.product.AdoptProductHandler
-import net.brightroom.mindstock.application.usecase.product.ArchiveProductHandler
-import net.brightroom.mindstock.application.usecase.product.FindProductHandler
-import net.brightroom.mindstock.application.usecase.product.ListProductsOfHouseholdHandler
-import net.brightroom.mindstock.application.usecase.product.SetMinimumStockHandler
+import net.brightroom.mindstock.application.service.product.ProductRegisterService
+import net.brightroom.mindstock.application.service.product.ProductService
 import net.brightroom.mindstock.application.usecase.stock.ConsumeStockHandler
 import net.brightroom.mindstock.application.usecase.stock.GetMovementHistoryHandler
 import net.brightroom.mindstock.application.usecase.stock.GetStockHandler
@@ -75,11 +72,8 @@ fun Application.routingConfigure(
     val catalogItemService: CatalogItemService by dependencies
     val catalogItemRegisterService: CatalogItemRegisterService by dependencies
 
-    val listProductsOfHouseholdHandler: ListProductsOfHouseholdHandler by dependencies
-    val findProductHandler: FindProductHandler by dependencies
-    val adoptProductHandler: AdoptProductHandler by dependencies
-    val setMinimumStockHandler: SetMinimumStockHandler by dependencies
-    val archiveProductHandler: ArchiveProductHandler by dependencies
+    val productService: ProductService by dependencies
+    val productRegisterService: ProductRegisterService by dependencies
 
     val getStockHandler: GetStockHandler by dependencies
     val listStocksHandler: ListStocksHandler by dependencies
@@ -149,11 +143,8 @@ fun Application.routingConfigure(
                 val call = this.applicationCall
                 registerService<ProductRpcService> {
                     ProductRpcServiceImpl(
-                        listProductsOfHouseholdHandler,
-                        findProductHandler,
-                        adoptProductHandler,
-                        setMinimumStockHandler,
-                        archiveProductHandler,
+                        productService,
+                        productRegisterService,
                         householdRepository,
                         catalogItemRepository,
                         productRepository,

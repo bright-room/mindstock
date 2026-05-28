@@ -17,11 +17,8 @@ import net.brightroom.mindstock.application.service.catalog.CatalogItemRegisterS
 import net.brightroom.mindstock.application.service.catalog.CatalogItemService
 import net.brightroom.mindstock.application.service.household.HouseholdRegisterService
 import net.brightroom.mindstock.application.service.household.HouseholdService
-import net.brightroom.mindstock.application.usecase.product.AdoptProductHandler
-import net.brightroom.mindstock.application.usecase.product.ArchiveProductHandler
-import net.brightroom.mindstock.application.usecase.product.FindProductHandler
-import net.brightroom.mindstock.application.usecase.product.ListProductsOfHouseholdHandler
-import net.brightroom.mindstock.application.usecase.product.SetMinimumStockHandler
+import net.brightroom.mindstock.application.service.product.ProductRegisterService
+import net.brightroom.mindstock.application.service.product.ProductService
 import net.brightroom.mindstock.application.usecase.stock.ConsumeStockHandler
 import net.brightroom.mindstock.application.usecase.stock.GetMovementHistoryHandler
 import net.brightroom.mindstock.application.usecase.stock.GetStockHandler
@@ -75,11 +72,8 @@ fun Application.dependenciesConfigure(
         provide<CatalogItemRegisterService> { CatalogItemRegisterService(resolve()) }
 
         // Product
-        provide<AdoptProductHandler> { AdoptProductHandler(resolve()) }
-        provide<SetMinimumStockHandler> { SetMinimumStockHandler(resolve()) }
-        provide<ArchiveProductHandler> { ArchiveProductHandler(resolve()) }
-        provide<ListProductsOfHouseholdHandler> { ListProductsOfHouseholdHandler(resolve()) }
-        provide<FindProductHandler> { FindProductHandler(resolve()) }
+        provide<ProductService> { ProductService(resolve()) }
+        provide<ProductRegisterService> { ProductRegisterService(resolve()) }
 
         // Stock
         provide<ReplenishStockHandler> { ReplenishStockHandler(resolve()) }
