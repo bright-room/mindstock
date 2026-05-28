@@ -1,10 +1,14 @@
 package net.brightroom.mindstock.frontend.rpc
 
 /** RPC 呼び出しが 401 相当だった事を表す例外。 */
-class UnauthorizedException(message: String = "401") : RuntimeException(message)
+class UnauthorizedException(
+    message: String = "401",
+) : RuntimeException(message)
 
 /** refresh しても 401 が続く、または refresh 自体が失敗した。呼び出し元は LoggedOut に遷移すべき。 */
-class ReauthRequiredException(message: String = "re-authentication required") : RuntimeException(message)
+class ReauthRequiredException(
+    message: String = "re-authentication required",
+) : RuntimeException(message)
 
 interface Reauth {
     /** 成功なら true、refresh_token が失効していたら false。 */
@@ -26,13 +30,14 @@ class RpcCallWrapper(
             block()
         } catch (e: Throwable) {
             if (!e.isUnauthorized()) throw e
-            val refreshed = try {
-                reauth.refresh()
-            } catch (_: Throwable) {
-                // refresh が例外で死んだら呼び出し元は再認証を求めるべき。契約 (false 戻り = 再認証要求)
-                // と同じ扱いに正規化する。
-                throw ReauthRequiredException()
-            }
+            val refreshed =
+                try {
+                    reauth.refresh()
+                } catch (_: Throwable) {
+                    // refresh が例外で死んだら呼び出し元は再認証を求めるべき。契約 (false 戻り = 再認証要求)
+                    // と同じ扱いに正規化する。
+                    throw ReauthRequiredException()
+                }
             if (!refreshed) throw ReauthRequiredException()
             try {
                 block()

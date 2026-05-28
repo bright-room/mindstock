@@ -49,22 +49,26 @@ fun App() {
     var registerError by remember { mutableStateOf<String?>(null) }
     var registerSubmitting by remember { mutableStateOf(false) }
 
-    val httpClient = remember {
-        HttpClient {
-            install(ContentNegotiation) { json() }
-            install(WebSockets)
+    val httpClient =
+        remember {
+            HttpClient {
+                install(ContentNegotiation) { json() }
+                install(WebSockets)
+            }
         }
-    }
-    val authClient = remember {
-        AuthClient(httpClient, AuthConfig.ISSUER, AuthConfig.CLIENT_ID, AuthConfig.REDIRECT_URI)
-    }
-    val rpcFactory = remember {
-        // kotlinx-rpc は URL の scheme で transport を選ぶ。WS 接続のため ws:// に変換。
-        val wsBase = window.location.origin
-            .replaceFirst("https://", "wss://")
-            .replaceFirst("http://", "ws://")
-        RpcClientFactory(httpClient, baseUrl = wsBase)
-    }
+    val authClient =
+        remember {
+            AuthClient(httpClient, AuthConfig.ISSUER, AuthConfig.CLIENT_ID, AuthConfig.REDIRECT_URI)
+        }
+    val rpcFactory =
+        remember {
+            // kotlinx-rpc は URL の scheme で transport を選ぶ。WS 接続のため ws:// に変換。
+            val wsBase =
+                window.location.origin
+                    .replaceFirst("https://", "wss://")
+                    .replaceFirst("http://", "ws://")
+            RpcClientFactory(httpClient, baseUrl = wsBase)
+        }
 
     LaunchedEffect(Unit) {
         if (window.location.pathname == "/auth/callback") {
@@ -90,41 +94,55 @@ fun App() {
 
     MaterialTheme(typography = appTypography()) {
         when (val s = state) {
-            is AuthState.LoggedOut -> LoginScreen(onLogin = { scope.launch { startLogin() } })
-            is AuthState.Authenticating -> AuthCallbackScreen()
-            is AuthState.NeedRegister -> RegisterDialog(
-                errorMessage = registerError,
-                submitting = registerSubmitting,
-                onSubmit = { name ->
-                    registerSubmitting = true
-                    registerError = null
-                    scope.launch {
-                        try {
-                            val tokens = TokenStore.load() ?: error("no tokens")
-                            val rpc = rpcFactory.open("user/public", tokens.accessToken)
-                            rpc.withService<UserPublicRpcService>().register(DisplayName(name))
-                            displayName = name
-                            state = AuthState.Ready(tokens)
-                        } catch (e: Throwable) {
-                            registerError = e.message ?: "登録に失敗しました"
-                        } finally {
-                            registerSubmitting = false
+            is AuthState.LoggedOut -> {
+                LoginScreen(onLogin = { scope.launch { startLogin() } })
+            }
+
+            is AuthState.Authenticating -> {
+                AuthCallbackScreen()
+            }
+
+            is AuthState.NeedRegister -> {
+                RegisterDialog(
+                    errorMessage = registerError,
+                    submitting = registerSubmitting,
+                    onSubmit = { name ->
+                        registerSubmitting = true
+                        registerError = null
+                        scope.launch {
+                            try {
+                                val tokens = TokenStore.load() ?: error("no tokens")
+                                val rpc = rpcFactory.open("user/public", tokens.accessToken)
+                                rpc.withService<UserPublicRpcService>().register(DisplayName(name))
+                                displayName = name
+                                state = AuthState.Ready(tokens)
+                            } catch (e: Throwable) {
+                                registerError = e.message ?: "登録に失敗しました"
+                            } finally {
+                                registerSubmitting = false
+                            }
                         }
-                    }
-                },
-            )
-            is AuthState.Ready -> AppShell(
-                displayName = displayName ?: "user",
-                onLogout = {
-                    val idToken = s.tokens.idToken
-                    TokenStore.clear()
-                    rpcFactory.closeAll()
-                    window.location.assign(
-                        AuthClient.endSessionUrl(AuthConfig.ISSUER, idToken, AuthConfig.POST_LOGOUT_REDIRECT_URI),
-                    )
-                },
-            )
-            is AuthState.Error -> Text(s.message)
+                    },
+                )
+            }
+
+            is AuthState.Ready -> {
+                AppShell(
+                    displayName = displayName ?: "user",
+                    onLogout = {
+                        val idToken = s.tokens.idToken
+                        TokenStore.clear()
+                        rpcFactory.closeAll()
+                        window.location.assign(
+                            AuthClient.endSessionUrl(AuthConfig.ISSUER, idToken, AuthConfig.POST_LOGOUT_REDIRECT_URI),
+                        )
+                    },
+                )
+            }
+
+            is AuthState.Error -> {
+                Text(s.message)
+            }
         }
     }
 }
@@ -138,25 +156,33 @@ private suspend fun startLogin() {
     window.sessionStorage.setItem(RETURN_TO_KEY, returnTo)
     val challenge = Pkce.challenge(verifier)
     val scope = "openid profile offline_access urn:zitadel:iam:org:project:id:${AuthConfig.PROJECT_ID}:aud"
-    val url = AuthClient.buildAuthorizeUrl(
-        issuer = AuthConfig.ISSUER,
-        clientId = AuthConfig.CLIENT_ID,
-        redirectUri = AuthConfig.REDIRECT_URI,
-        scope = scope,
-        state = state,
-        codeChallenge = challenge,
-    )
+    val url =
+        AuthClient.buildAuthorizeUrl(
+            issuer = AuthConfig.ISSUER,
+            clientId = AuthConfig.CLIENT_ID,
+            redirectUri = AuthConfig.REDIRECT_URI,
+            scope = scope,
+            state = state,
+            codeChallenge = challenge,
+        )
     window.location.assign(url)
 }
 
-private suspend fun handleCallback(authClient: AuthClient, setState: (AuthState) -> Unit) {
-    val params = window.location.search.removePrefix("?").split("&").mapNotNull {
-        if (it.isBlank()) return@mapNotNull null
-        val idx = it.indexOf('=')
-        val rawKey = if (idx < 0) it else it.substring(0, idx)
-        val rawVal = if (idx < 0) "" else it.substring(idx + 1)
-        runCatching { decodeUriComponent(rawKey) to decodeUriComponent(rawVal) }.getOrNull()
-    }.toMap()
+private suspend fun handleCallback(
+    authClient: AuthClient,
+    setState: (AuthState) -> Unit,
+) {
+    val params =
+        window.location.search
+            .removePrefix("?")
+            .split("&")
+            .mapNotNull {
+                if (it.isBlank()) return@mapNotNull null
+                val idx = it.indexOf('=')
+                val rawKey = if (idx < 0) it else it.substring(0, idx)
+                val rawVal = if (idx < 0) "" else it.substring(idx + 1)
+                runCatching { decodeUriComponent(rawKey) to decodeUriComponent(rawVal) }.getOrNull()
+            }.toMap()
     val savedState = window.sessionStorage.getItem(STATE_KEY)
     val savedVerifier = window.sessionStorage.getItem(VERIFIER_KEY)
     val handler = AuthCallbackHandler(authClient, savedState, savedVerifier)

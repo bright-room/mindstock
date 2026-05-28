@@ -11,8 +11,7 @@ internal actual fun secureRandomBytes(n: Int): ByteArray {
     return ByteArray(n) { arr[it].toByte() }
 }
 
-private fun createRandomBytesJs(n: Int): Uint8Array =
-    js("globalThis.crypto.getRandomValues(new Uint8Array(n))")
+private fun createRandomBytesJs(n: Int): Uint8Array = js("globalThis.crypto.getRandomValues(new Uint8Array(n))")
 
 internal actual suspend fun sha256(bytes: ByteArray): ByteArray {
     val input = Int8Array(bytes.toTypedArray())
@@ -27,7 +26,6 @@ internal actual fun base64UrlNoPad(bytes: ByteArray): String {
     return jsBtoaJs(sb.toString()).replace('+', '-').replace('/', '_').trimEnd('=')
 }
 
-private fun subtleDigestJs(data: ArrayBuffer): kotlin.js.Promise<ArrayBuffer> =
-    js("globalThis.crypto.subtle.digest('SHA-256', data)")
+private fun subtleDigestJs(data: ArrayBuffer): kotlin.js.Promise<ArrayBuffer> = js("globalThis.crypto.subtle.digest('SHA-256', data)")
 
 private fun jsBtoaJs(s: String): String = js("globalThis.btoa(s)")

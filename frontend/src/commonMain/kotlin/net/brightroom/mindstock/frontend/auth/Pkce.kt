@@ -18,10 +18,11 @@ object Pkce {
         return sb.toString()
     }
 
-    suspend fun challenge(verifier: String): String =
-        base64UrlNoPad(sha256(verifier.encodeToByteArray()))
+    suspend fun challenge(verifier: String): String = base64UrlNoPad(sha256(verifier.encodeToByteArray()))
 }
 
 internal expect fun secureRandomBytes(n: Int): ByteArray
+
 internal expect suspend fun sha256(bytes: ByteArray): ByteArray
+
 internal expect fun base64UrlNoPad(bytes: ByteArray): String

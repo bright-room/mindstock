@@ -7,7 +7,9 @@ import kotlin.test.assertEquals
 import kotlin.test.assertNull
 
 class TokenStoreTest {
-    @AfterTest fun cleanup() { TokenStore.clear() }
+    @AfterTest fun cleanup() {
+        TokenStore.clear()
+    }
 
     @Test
     fun save_and_load_roundtrip() {

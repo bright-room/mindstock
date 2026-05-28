@@ -31,7 +31,11 @@ internal actual fun base64UrlNoPad(bytes: ByteArray): String {
 private external fun newUint8Array(size: Int): Uint8Array
 
 @JsFun("(arr, i, v) => { arr[i] = v; }")
-private external fun setUint8(arr: Uint8Array, index: Int, value: Int)
+private external fun setUint8(
+    arr: Uint8Array,
+    index: Int,
+    value: Int,
+)
 
 @JsFun("(arr) => globalThis.crypto.subtle.digest('SHA-256', arr)")
 private external fun subtleDigest(data: Uint8Array): kotlin.js.Promise<JsAny?>

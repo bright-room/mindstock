@@ -13,14 +13,15 @@ class AuthBootstrap(
     suspend fun start(now: Instant = Clock.System.now()): AuthState {
         var tokens = TokenStore.load() ?: return AuthState.LoggedOut
         if (tokens.willExpireWithin(refreshLeewaySeconds, now)) {
-            tokens = try {
-                authClient.refresh(tokens.refreshToken, now).also { TokenStore.save(it) }
-            } catch (_: Throwable) {
-                // OidcException (invalid_grant 等) も、ネットワーク失敗 / JSON パース失敗も
-                // refresh が成立しない以上は再ログインを促す。state を細分化しても UX が増えない。
-                TokenStore.clear()
-                return AuthState.LoggedOut
-            }
+            tokens =
+                try {
+                    authClient.refresh(tokens.refreshToken, now).also { TokenStore.save(it) }
+                } catch (_: Throwable) {
+                    // OidcException (invalid_grant 等) も、ネットワーク失敗 / JSON パース失敗も
+                    // refresh が成立しない以上は再ログインを促す。state を細分化しても UX が増えない。
+                    TokenStore.clear()
+                    return AuthState.LoggedOut
+                }
         }
         return when (ping(tokens)) {
             PingResult.Success -> AuthState.Ready(tokens)

@@ -18,29 +18,37 @@ class RpcClientFactory(
     private val baseUrl: String,
 ) {
     /** Pre-configured client with Krpc + WebSockets installed; reused across opens. */
-    private val rpcHttp: HttpClient = http.config {
-        installKrpc { serialization { json(KrpcJson) } }
-        install(WebSockets)
-    }
+    private val rpcHttp: HttpClient =
+        http.config {
+            installKrpc { serialization { json(KrpcJson) } }
+            install(WebSockets)
+        }
     private val rawHttp: HttpClient = http
 
     private val opened = mutableListOf<KtorRpcClient>()
 
     /** 認証済み Krpc クライアントを開く。 */
-    fun open(path: String, accessToken: String): KtorRpcClient {
+    fun open(
+        path: String,
+        accessToken: String,
+    ): KtorRpcClient {
         val b64 = encodeTokenBase64Url(accessToken)
-        val rpc = rpcHttp.rpc("$baseUrl/api/v1/$path") {
-            // Browser WebSocket は subprotocols を別エントリで受け取る必要がある。
-            // 1 つの値にカンマ区切りで詰めると「空白入り subprotocol 名」と扱われ拒否される。
-            headers.append(HttpHeaders.SecWebSocketProtocol, "mindstock.v1")
-            headers.append(HttpHeaders.SecWebSocketProtocol, "mindstock.bearer.$b64")
-        }
+        val rpc =
+            rpcHttp.rpc("$baseUrl/api/v1/$path") {
+                // Browser WebSocket は subprotocols を別エントリで受け取る必要がある。
+                // 1 つの値にカンマ区切りで詰めると「空白入り subprotocol 名」と扱われ拒否される。
+                headers.append(HttpHeaders.SecWebSocketProtocol, "mindstock.v1")
+                headers.append(HttpHeaders.SecWebSocketProtocol, "mindstock.bearer.$b64")
+            }
         opened += rpc
         return rpc
     }
 
     /** Test helper: send one HTTP GET with the same headers so MockEngine can inspect them. */
-    internal suspend fun openRaw(path: String, accessToken: String) {
+    internal suspend fun openRaw(
+        path: String,
+        accessToken: String,
+    ) {
         val b64 = encodeTokenBase64Url(accessToken)
         rawHttp.get("$baseUrl/api/v1/$path") {
             headers.append(HttpHeaders.SecWebSocketProtocol, "mindstock.v1")
@@ -53,6 +61,5 @@ class RpcClientFactory(
         opened.clear()
     }
 
-    private fun encodeTokenBase64Url(token: String): String =
-        Base64.UrlSafe.encode(token.encodeToByteArray()).trimEnd('=')
+    private fun encodeTokenBase64Url(token: String): String = Base64.UrlSafe.encode(token.encodeToByteArray()).trimEnd('=')
 }

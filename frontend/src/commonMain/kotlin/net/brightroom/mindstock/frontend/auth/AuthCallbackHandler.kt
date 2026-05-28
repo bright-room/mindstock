@@ -8,7 +8,11 @@ class AuthCallbackHandler(
     private val savedState: String?,
     private val savedVerifier: String?,
 ) {
-    suspend fun handle(receivedState: String, code: String, now: Instant = Clock.System.now()): Tokens {
+    suspend fun handle(
+        receivedState: String,
+        code: String,
+        now: Instant = Clock.System.now(),
+    ): Tokens {
         if (savedState == null || savedVerifier == null) {
             throw OidcException("state_missing", "no PKCE state saved for this callback")
         }

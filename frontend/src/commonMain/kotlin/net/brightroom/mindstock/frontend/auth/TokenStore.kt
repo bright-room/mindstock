@@ -10,9 +10,12 @@ internal object TokenStore {
         SessionStorage.set(KEY, json.encodeToString(Tokens.serializer(), tokens))
     }
 
-    fun load(): Tokens? = SessionStorage.get(KEY)?.let {
-        runCatching { json.decodeFromString(Tokens.serializer(), it) }.getOrNull()
-    }
+    fun load(): Tokens? =
+        SessionStorage.get(KEY)?.let {
+            runCatching { json.decodeFromString(Tokens.serializer(), it) }.getOrNull()
+        }
 
-    fun clear() { SessionStorage.remove(KEY) }
+    fun clear() {
+        SessionStorage.remove(KEY)
+    }
 }

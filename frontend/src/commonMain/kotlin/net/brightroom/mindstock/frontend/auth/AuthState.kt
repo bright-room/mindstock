@@ -7,7 +7,11 @@ sealed interface AuthState {
 
     data object NeedRegister : AuthState
 
-    data class Ready(val tokens: Tokens) : AuthState
+    data class Ready(
+        val tokens: Tokens,
+    ) : AuthState
 
-    data class Error(val message: String) : AuthState
+    data class Error(
+        val message: String,
+    ) : AuthState
 }

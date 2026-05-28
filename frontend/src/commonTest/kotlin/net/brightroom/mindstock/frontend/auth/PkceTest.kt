@@ -15,9 +15,10 @@ class PkceTest {
     }
 
     @Test
-    fun challenge_is_base64url_sha256_of_verifier() = runTest {
-        val v = "dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk" // RFC 7636 Appendix B
-        val c = Pkce.challenge(v)
-        assertEquals("E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM", c)
-    }
+    fun challenge_is_base64url_sha256_of_verifier() =
+        runTest {
+            val v = "dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk" // RFC 7636 Appendix B
+            val c = Pkce.challenge(v)
+            assertEquals("E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM", c)
+        }
 }

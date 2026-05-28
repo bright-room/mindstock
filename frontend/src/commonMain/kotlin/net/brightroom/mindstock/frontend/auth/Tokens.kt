@@ -12,8 +12,10 @@ data class Tokens(
     val idToken: String,
     val expiresAt: Instant,
 ) {
-    fun willExpireWithin(seconds: Long, now: Instant = Clock.System.now()): Boolean =
-        expiresAt <= now + seconds.seconds
+    fun willExpireWithin(
+        seconds: Long,
+        now: Instant = Clock.System.now(),
+    ): Boolean = expiresAt <= now + seconds.seconds
 
     companion object {
         fun fromTokenResponse(

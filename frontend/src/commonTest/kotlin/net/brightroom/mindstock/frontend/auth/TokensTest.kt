@@ -24,9 +24,14 @@ class TokensTest {
     @Test
     fun fromTokenResponse_computes_expiresAt() {
         val now = Instant.fromEpochSeconds(1_000_000)
-        val t = Tokens.fromTokenResponse(
-            accessToken = "a", refreshToken = "r", idToken = "i", expiresInSeconds = 3600, now = now,
-        )
+        val t =
+            Tokens.fromTokenResponse(
+                accessToken = "a",
+                refreshToken = "r",
+                idToken = "i",
+                expiresInSeconds = 3600,
+                now = now,
+            )
         assertEquals(Instant.fromEpochSeconds(1_003_600), t.expiresAt)
     }
 }

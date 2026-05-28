@@ -15,39 +15,48 @@ import kotlin.test.assertFailsWith
 
 class AuthCallbackHandlerTest {
     private fun mockClient(json: String): HttpClient =
-        HttpClient(MockEngine {
-            respond(json, HttpStatusCode.OK, headersOf(HttpHeaders.ContentType, ContentType.Application.Json.toString()))
-        })
-
-    @Test
-    fun mismatched_state_rejected() = runTest {
-        val ac = AuthClient(mockClient("{}"), "https://idp.example", "c1", "x")
-        val h = AuthCallbackHandler(ac, savedState = "expected-S", savedVerifier = "V")
-        assertFailsWith<OidcException> { h.handle(receivedState = "wrong-S", code = "C", now = Instant.fromEpochSeconds(0)) }
-    }
-
-    @Test
-    fun missing_saved_state_rejected() = runTest {
-        val ac = AuthClient(mockClient("{}"), "https://idp.example", "c1", "x")
-        val h = AuthCallbackHandler(ac, savedState = null, savedVerifier = "V")
-        assertFailsWith<OidcException> { h.handle(receivedState = "S", code = "C", now = Instant.fromEpochSeconds(0)) }
-    }
-
-    @Test
-    fun missing_saved_verifier_rejected() = runTest {
-        val ac = AuthClient(mockClient("{}"), "https://idp.example", "c1", "x")
-        val h = AuthCallbackHandler(ac, savedState = "S", savedVerifier = null)
-        assertFailsWith<OidcException> { h.handle(receivedState = "S", code = "C", now = Instant.fromEpochSeconds(0)) }
-    }
-
-    @Test
-    fun matched_state_exchanges_code_and_returns_tokens() = runTest {
-        val ac = AuthClient(
-            mockClient("""{"access_token":"AT","refresh_token":"RT","id_token":"IT","expires_in":3600}"""),
-            "https://idp.example", "c1", "x",
+        HttpClient(
+            MockEngine {
+                respond(json, HttpStatusCode.OK, headersOf(HttpHeaders.ContentType, ContentType.Application.Json.toString()))
+            },
         )
-        val h = AuthCallbackHandler(ac, savedState = "S", savedVerifier = "V")
-        val tokens = h.handle(receivedState = "S", code = "C", now = Instant.fromEpochSeconds(100))
-        assertEquals("AT", tokens.accessToken)
-    }
+
+    @Test
+    fun mismatched_state_rejected() =
+        runTest {
+            val ac = AuthClient(mockClient("{}"), "https://idp.example", "c1", "x")
+            val h = AuthCallbackHandler(ac, savedState = "expected-S", savedVerifier = "V")
+            assertFailsWith<OidcException> { h.handle(receivedState = "wrong-S", code = "C", now = Instant.fromEpochSeconds(0)) }
+        }
+
+    @Test
+    fun missing_saved_state_rejected() =
+        runTest {
+            val ac = AuthClient(mockClient("{}"), "https://idp.example", "c1", "x")
+            val h = AuthCallbackHandler(ac, savedState = null, savedVerifier = "V")
+            assertFailsWith<OidcException> { h.handle(receivedState = "S", code = "C", now = Instant.fromEpochSeconds(0)) }
+        }
+
+    @Test
+    fun missing_saved_verifier_rejected() =
+        runTest {
+            val ac = AuthClient(mockClient("{}"), "https://idp.example", "c1", "x")
+            val h = AuthCallbackHandler(ac, savedState = "S", savedVerifier = null)
+            assertFailsWith<OidcException> { h.handle(receivedState = "S", code = "C", now = Instant.fromEpochSeconds(0)) }
+        }
+
+    @Test
+    fun matched_state_exchanges_code_and_returns_tokens() =
+        runTest {
+            val ac =
+                AuthClient(
+                    mockClient("""{"access_token":"AT","refresh_token":"RT","id_token":"IT","expires_in":3600}"""),
+                    "https://idp.example",
+                    "c1",
+                    "x",
+                )
+            val h = AuthCallbackHandler(ac, savedState = "S", savedVerifier = "V")
+            val tokens = h.handle(receivedState = "S", code = "C", now = Instant.fromEpochSeconds(100))
+            assertEquals("AT", tokens.accessToken)
+        }
 }

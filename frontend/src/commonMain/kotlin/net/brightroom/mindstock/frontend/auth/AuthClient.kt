@@ -33,29 +33,41 @@ class AuthClient(
         @SerialName("error_description") val errorDescription: String? = null,
     )
 
-    suspend fun exchangeCode(code: String, codeVerifier: String, now: Instant = Clock.System.now()): Tokens =
+    suspend fun exchangeCode(
+        code: String,
+        codeVerifier: String,
+        now: Instant = Clock.System.now(),
+    ): Tokens =
         postToken(
-            params = Parameters.build {
-                append("grant_type", "authorization_code")
-                append("code", code)
-                append("client_id", clientId)
-                append("redirect_uri", redirectUri)
-                append("code_verifier", codeVerifier)
-            },
+            params =
+                Parameters.build {
+                    append("grant_type", "authorization_code")
+                    append("code", code)
+                    append("client_id", clientId)
+                    append("redirect_uri", redirectUri)
+                    append("code_verifier", codeVerifier)
+                },
             now = now,
         )
 
-    suspend fun refresh(refreshToken: String, now: Instant = Clock.System.now()): Tokens =
+    suspend fun refresh(
+        refreshToken: String,
+        now: Instant = Clock.System.now(),
+    ): Tokens =
         postToken(
-            params = Parameters.build {
-                append("grant_type", "refresh_token")
-                append("refresh_token", refreshToken)
-                append("client_id", clientId)
-            },
+            params =
+                Parameters.build {
+                    append("grant_type", "refresh_token")
+                    append("refresh_token", refreshToken)
+                    append("client_id", clientId)
+                },
             now = now,
         )
 
-    private suspend fun postToken(params: Parameters, now: Instant): Tokens {
+    private suspend fun postToken(
+        params: Parameters,
+        now: Instant,
+    ): Tokens {
         val resp: HttpResponse = http.submitForm(url = "$issuer/oauth/v2/token", formParameters = params)
         if (!resp.status.isSuccess()) {
             val text = resp.bodyAsText()
@@ -66,14 +78,15 @@ class AuthClient(
             throw OidcException(errorCode, desc, reauthRequired = reauth)
         }
         val text = resp.bodyAsText()
-        val tr = runCatching { JSON.decodeFromString(TokenResponse.serializer(), text) }
-            .getOrElse {
-                throw OidcException(
-                    errorCode = "parse_error",
-                    errorDescription = it.message?.take(200),
-                    reauthRequired = false,
-                )
-            }
+        val tr =
+            runCatching { JSON.decodeFromString(TokenResponse.serializer(), text) }
+                .getOrElse {
+                    throw OidcException(
+                        errorCode = "parse_error",
+                        errorDescription = it.message?.take(200),
+                        reauthRequired = false,
+                    )
+                }
         return Tokens.fromTokenResponse(tr.accessToken, tr.refreshToken, tr.idToken, tr.expiresIn, now)
     }
 
@@ -89,23 +102,29 @@ class AuthClient(
             codeChallenge: String,
         ): String {
             val base = "$issuer/oauth/v2/authorize"
-            val q = listOf(
-                "response_type" to "code",
-                "client_id" to clientId,
-                "redirect_uri" to redirectUri,
-                "scope" to scope,
-                "state" to state,
-                "code_challenge" to codeChallenge,
-                "code_challenge_method" to "S256",
-            ).joinToString("&") { (k, v) -> "$k=${v.encodeURLParameter()}" }
+            val q =
+                listOf(
+                    "response_type" to "code",
+                    "client_id" to clientId,
+                    "redirect_uri" to redirectUri,
+                    "scope" to scope,
+                    "state" to state,
+                    "code_challenge" to codeChallenge,
+                    "code_challenge_method" to "S256",
+                ).joinToString("&") { (k, v) -> "$k=${v.encodeURLParameter()}" }
             return "$base?$q"
         }
 
-        fun endSessionUrl(issuer: String, idToken: String, postLogoutRedirectUri: String): String {
-            val q = listOf(
-                "id_token_hint" to idToken,
-                "post_logout_redirect_uri" to postLogoutRedirectUri,
-            ).joinToString("&") { (k, v) -> "$k=${v.encodeURLParameter()}" }
+        fun endSessionUrl(
+            issuer: String,
+            idToken: String,
+            postLogoutRedirectUri: String,
+        ): String {
+            val q =
+                listOf(
+                    "id_token_hint" to idToken,
+                    "post_logout_redirect_uri" to postLogoutRedirectUri,
+                ).joinToString("&") { (k, v) -> "$k=${v.encodeURLParameter()}" }
             return "$issuer/oidc/v1/end_session?$q"
         }
     }

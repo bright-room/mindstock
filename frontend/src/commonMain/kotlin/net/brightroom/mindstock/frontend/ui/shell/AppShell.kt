@@ -15,7 +15,10 @@ import androidx.compose.ui.unit.dp
 
 @OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 @Composable
-fun AppShell(displayName: String, onLogout: () -> Unit) {
+fun AppShell(
+    displayName: String,
+    onLogout: () -> Unit,
+) {
     Column(modifier = Modifier.fillMaxSize().padding(24.dp)) {
         TopAppBar(
             title = { Text("mindstock") },
