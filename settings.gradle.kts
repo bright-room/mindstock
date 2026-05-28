@@ -51,6 +51,7 @@ include(
 include(":domain")
 
 include(
+    ":backend:core",
     ":backend:application:api",
     ":backend:infrastructure:schemas",
 )
