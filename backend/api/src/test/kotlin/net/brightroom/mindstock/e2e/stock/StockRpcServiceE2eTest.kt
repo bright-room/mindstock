@@ -67,7 +67,10 @@ class StockRpcServiceE2eTest :
 
                 val history = rpc.movementHistory(product.id, limit = 1)
                 history.shouldBeInstanceOf<RpcResult.Ok<StockMovements>>()
-                val movement = history.value.list.single().shouldBeInstanceOf<Replenishment>()
+                val movement =
+                    history.value.list
+                        .single()
+                        .shouldBeInstanceOf<Replenishment>()
                 movement.quantity shouldBe Quantity(5)
                 movement.actor.userId shouldBe owner.userId
                 movement.actor.displayName shouldBe owner.displayName
