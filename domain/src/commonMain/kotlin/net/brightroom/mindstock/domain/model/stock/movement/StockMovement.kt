@@ -19,5 +19,4 @@ sealed interface StockMovement {
     val occurredAt: OccurredAt
     val actor: Profile
     val note: Note
-    val type: StockMovementType
 }

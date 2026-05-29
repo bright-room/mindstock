@@ -1,7 +1,6 @@
 package net.brightroom.mindstock.domain.model.stock.movement
 
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.Transient
 import net.brightroom.mindstock.domain.model.product.Product
 import net.brightroom.mindstock.domain.model.stock.Note
 import net.brightroom.mindstock.domain.model.stock.OccurredAt
@@ -15,7 +14,4 @@ data class Replenishment(
     override val occurredAt: OccurredAt,
     override val actor: Profile,
     override val note: Note,
-) : StockMovement {
-    @Transient
-    override val type: StockMovementType = StockMovementType.REPLENISHMENT
-}
+) : StockMovement

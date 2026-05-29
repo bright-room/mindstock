@@ -2,7 +2,6 @@
 
 package net.brightroom.mindstock.infrastructure.datasource.stock
 
-import net.brightroom.mindstock.domain.model.stock.movement.StockMovementType
 import net.brightroom.mindstock.infrastructure.datasource.HistoryTable
 import net.brightroom.mindstock.infrastructure.datasource.product.ProductsTable
 import net.brightroom.mindstock.infrastructure.datasource.user.UsersTable
