@@ -33,7 +33,7 @@ class StockDataSourceIntegrationTest :
                 val register = StockRegisterDataSource()
                 val reader = StockDataSource(ProductDataSource())
 
-                val t0 = Clock.System.now()
+                val t0 = Clock.System.now().minus(10.seconds)
                 tx { register.replenish(product, Quantity(1), OccurredAt(t0), user.userId, Note("a")) }
                 tx { register.replenish(product, Quantity(2), OccurredAt(t0.plus(1.seconds)), user.userId, Note("b")) }
                 tx { register.replenish(product, Quantity(3), OccurredAt(t0.plus(2.seconds)), user.userId, Note("c")) }

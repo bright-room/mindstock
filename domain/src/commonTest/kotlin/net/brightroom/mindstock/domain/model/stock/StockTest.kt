@@ -23,7 +23,6 @@ import net.brightroom.mindstock.domain.model.user.UserId
 import net.brightroom.mindstock.domain.model.user.profile.DisplayName
 import net.brightroom.mindstock.domain.model.user.profile.Profile
 import kotlin.test.Test
-import kotlin.time.Instant
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
@@ -48,13 +47,7 @@ class StockTest {
             archived = false,
         )
 
-    private val now = Instant.parse("2026-05-24T10:00:00Z")
-
-    private fun occurred() =
-        OccurredAt(
-            LocalDateTime(2026, 5, 1, 10, 0).toInstant(TimeZone.UTC),
-            now,
-        )
+    private fun occurred() = OccurredAt(LocalDateTime(2026, 5, 1, 10, 0).toInstant(TimeZone.UTC))
 
     private fun replenish(
         product: Product,

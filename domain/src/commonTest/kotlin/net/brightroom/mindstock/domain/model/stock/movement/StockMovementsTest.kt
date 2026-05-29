@@ -11,24 +11,18 @@ import net.brightroom.mindstock.domain.model.user.UserId
 import net.brightroom.mindstock.domain.model.user.profile.DisplayName
 import net.brightroom.mindstock.domain.model.user.profile.Profile
 import kotlin.test.Test
-import kotlin.time.Instant
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
 @OptIn(ExperimentalUuidApi::class)
 class StockMovementsTest {
-    private val now = Instant.parse("2026-05-24T10:00:00Z")
     private val profile =
         Profile(
             userId = UserId(Uuid.generateV7()),
             displayName = DisplayName("alice"),
         )
 
-    private fun occurred() =
-        OccurredAt(
-            LocalDateTime(2026, 5, 1, 10, 0).toInstant(TimeZone.UTC),
-            now,
-        )
+    private fun occurred() = OccurredAt(LocalDateTime(2026, 5, 1, 10, 0).toInstant(TimeZone.UTC))
 
     private fun replenish(qty: Int) = Replenishment(Quantity(qty), occurred(), profile, Note(""))
 

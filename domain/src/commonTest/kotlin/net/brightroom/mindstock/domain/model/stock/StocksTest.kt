@@ -51,7 +51,7 @@ class StocksTest {
                 listOf(
                     Replenishment(
                         quantity = Quantity(currentReplenished),
-                        occurredAt = OccurredAt(Instant.parse("2026-05-23T10:00:00Z"), now),
+                        occurredAt = OccurredAt(Instant.parse("2026-05-23T10:00:00Z")),
                         actor = profile,
                         note = Note(""),
                     ),
