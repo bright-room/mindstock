@@ -1,7 +1,7 @@
 package net.brightroom.mindstock.infrastructure.datasource.repository
 
-import net.brightroom.mindstock.infrastructure.datasource.testcontainers.TestContainersPostgres
-import net.brightroom.mindstock.infrastructure.datasource.testcontainers.testHikariDataSource
+import net.brightroom.mindstock.test.TestDataSource
+import net.brightroom.mindstock.test.testHikariDataSource
 import org.flywaydb.core.Flyway
 import org.jetbrains.exposed.v1.jdbc.Database
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
@@ -13,12 +13,12 @@ import org.jetbrains.exposed.v1.jdbc.transactions.transaction
  * block 内は `tx { ... }` で囲んで Repository を呼ぶこと(Exposed のクエリは transaction 内でのみ動作する)。
  */
 fun withRepositoryTestContext(block: RepositoryTestContext.() -> Unit) {
-    TestContainersPostgres.withFreshSchema { jdbcUrl, _ ->
+    TestDataSource.withFreshSchema { jdbcUrl, _ ->
         val dataSource =
             testHikariDataSource(
                 jdbcUrl,
-                TestContainersPostgres.username,
-                TestContainersPostgres.password,
+                TestDataSource.user,
+                TestDataSource.password,
             )
         try {
             Flyway

@@ -24,8 +24,8 @@ import net.brightroom.mindstock.domain.model.user.User
 import net.brightroom.mindstock.e2e.auth.TestJwks
 import net.brightroom.mindstock.e2e.auth.TestJwtIssuer
 import net.brightroom.mindstock.extensions.kotlinx.serialization.KrpcJson
-import net.brightroom.mindstock.infrastructure.datasource.testcontainers.TestContainersPostgres
-import net.brightroom.mindstock.infrastructure.datasource.testcontainers.testHikariDataSource
+import net.brightroom.mindstock.test.TestDataSource
+import net.brightroom.mindstock.test.testHikariDataSource
 import org.flywaydb.core.Flyway
 import org.jetbrains.exposed.v1.jdbc.Database
 import java.util.Base64
@@ -70,12 +70,12 @@ private object SharedJwksServer {
 }
 
 fun e2eTest(block: suspend E2eContext.() -> Unit) {
-    TestContainersPostgres.withFreshSchema { jdbcUrl, _ ->
+    TestDataSource.withFreshSchema { jdbcUrl, _ ->
         val dataSource =
             testHikariDataSource(
                 jdbcUrl,
-                TestContainersPostgres.username,
-                TestContainersPostgres.password,
+                TestDataSource.user,
+                TestDataSource.password,
             )
         try {
             Flyway
@@ -91,8 +91,8 @@ fun e2eTest(block: suspend E2eContext.() -> Unit) {
                         ApplicationConfig("application.yaml").mergeWith(
                             MapApplicationConfig(
                                 "external.datasource.database.jdbc-url" to jdbcUrl,
-                                "external.datasource.database.username" to TestContainersPostgres.username,
-                                "external.datasource.database.password" to TestContainersPostgres.password,
+                                "external.datasource.database.username" to TestDataSource.user,
+                                "external.datasource.database.password" to TestDataSource.password,
                                 "external.auth.issuer" to TestJwtIssuer.DEFAULT_ISSUER,
                                 "external.auth.audience" to TestJwtIssuer.DEFAULT_AUDIENCE,
                                 "external.auth.jwks-url" to SharedJwksServer.jwksUrl,
