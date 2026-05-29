@@ -15,7 +15,7 @@ interface ProductRpcService {
     suspend fun find(
         householdId: HouseholdId,
         catalogItemId: CatalogItemId,
-    ): RpcResult<Product?, RpcError>
+    ): RpcResult<Product, RpcError>
 
     suspend fun adopt(
         householdId: HouseholdId,
