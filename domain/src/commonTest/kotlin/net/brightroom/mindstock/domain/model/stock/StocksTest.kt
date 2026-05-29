@@ -8,6 +8,9 @@ import net.brightroom.mindstock.domain.model.catalog.CatalogItemUnit
 import net.brightroom.mindstock.domain.model.product.MinimumStock
 import net.brightroom.mindstock.domain.model.product.Product
 import net.brightroom.mindstock.domain.model.product.ProductId
+import net.brightroom.mindstock.domain.model.stock.movement.Note
+import net.brightroom.mindstock.domain.model.stock.movement.OccurredAt
+import net.brightroom.mindstock.domain.model.stock.movement.Quantity
 import net.brightroom.mindstock.domain.model.stock.movement.Replenishment
 import net.brightroom.mindstock.domain.model.stock.movement.StockMovements
 import net.brightroom.mindstock.domain.model.user.UserId
@@ -57,26 +60,6 @@ class StocksTest {
                 emptyList()
             }
         return Stock(product = product, movements = StockMovements(movements))
-    }
-
-    @Test
-    fun `needsReplenishment returns stocks below minimum only`() {
-        val low = stockOf(min = 5, currentReplenished = 2)
-        val ok = stockOf(min = 5, currentReplenished = 10)
-        val stocks = Stocks(listOf(low, ok))
-
-        val result = stocks.needsReplenishment()
-        result.size shouldBe 1
-        result[0] shouldBe low
-    }
-
-    @Test
-    fun `needsReplenishment returns empty when all are sufficient`() {
-        val ok1 = stockOf(min = 3, currentReplenished = 5)
-        val ok2 = stockOf(min = 3, currentReplenished = 10)
-        val stocks = Stocks(listOf(ok1, ok2))
-
-        stocks.needsReplenishment() shouldBe emptyList()
     }
 
     @Test

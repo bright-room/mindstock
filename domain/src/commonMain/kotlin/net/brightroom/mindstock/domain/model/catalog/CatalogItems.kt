@@ -8,8 +8,4 @@ import kotlinx.serialization.Serializable
 @Serializable
 data class CatalogItems(
     val list: List<CatalogItem>,
-) {
-    fun asList(): List<CatalogItem> = list.toList()
-
-    val size: Int get() = list.size
-}
+)

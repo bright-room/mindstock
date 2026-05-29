@@ -1,4 +1,4 @@
-package net.brightroom.mindstock.domain.model.shopping
+package net.brightroom.mindstock.domain.model.stock.shopping
 
 import net.brightroom.mindstock.domain.model.stock.Stocks
 
@@ -11,7 +11,7 @@ class ShoppingList(
     private val stocks: Stocks,
 ) {
     fun itemsToBuy(): List<ShoppingListItem> =
-        stocks
-            .needsReplenishment()
+        stocks.list
+            .filter { it.needsReplenishment() }
             .map { ShoppingListItem(it, shortage = it.shortage()) }
 }

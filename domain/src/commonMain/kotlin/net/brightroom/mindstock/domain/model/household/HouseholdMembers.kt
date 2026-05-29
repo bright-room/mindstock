@@ -21,6 +21,4 @@ data class HouseholdMembers(
 
     /** 指定したユーザーがアクティブメンバーに含まれるか。 */
     fun contains(userId: UserId): Boolean = list.any { it.profile.userId == userId }
-
-    fun asList(): List<HouseholdMember> = list.toList()
 }

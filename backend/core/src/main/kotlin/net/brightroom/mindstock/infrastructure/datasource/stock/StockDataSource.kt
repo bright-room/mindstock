@@ -32,7 +32,7 @@ class StockDataSource(
     }
 
     override fun stocksOf(household: Household): Stocks {
-        val products = productRepository.listOf(household).asList()
+        val products = productRepository.listOf(household).list
         if (products.isEmpty()) return Stocks(emptyList())
         val byProductId = loadMovementsFor(products)
         return Stocks(

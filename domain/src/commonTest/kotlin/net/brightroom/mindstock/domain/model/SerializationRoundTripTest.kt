@@ -14,11 +14,11 @@ import net.brightroom.mindstock.domain.model.household.HouseholdMembers
 import net.brightroom.mindstock.domain.model.product.MinimumStock
 import net.brightroom.mindstock.domain.model.product.Product
 import net.brightroom.mindstock.domain.model.product.ProductId
-import net.brightroom.mindstock.domain.model.stock.Note
-import net.brightroom.mindstock.domain.model.stock.OccurredAt
-import net.brightroom.mindstock.domain.model.stock.Quantity
 import net.brightroom.mindstock.domain.model.stock.Stock
 import net.brightroom.mindstock.domain.model.stock.movement.Consumption
+import net.brightroom.mindstock.domain.model.stock.movement.Note
+import net.brightroom.mindstock.domain.model.stock.movement.OccurredAt
+import net.brightroom.mindstock.domain.model.stock.movement.Quantity
 import net.brightroom.mindstock.domain.model.stock.movement.Replenishment
 import net.brightroom.mindstock.domain.model.stock.movement.StockMovement
 import net.brightroom.mindstock.domain.model.stock.movement.StockMovements

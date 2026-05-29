@@ -32,9 +32,9 @@ class HouseholdRegisterDataSourceIntegrationTest :
 
                 val household = tx { householdRepo.create(owner.userId) }
 
-                household.members.asList() shouldHaveSize 1
+                household.members.list shouldHaveSize 1
                 household.members
-                    .asList()
+                    .list
                     .first()
                     .role shouldBe HouseholdMemberRole.OWNER
             }
@@ -52,7 +52,7 @@ class HouseholdRegisterDataSourceIntegrationTest :
                 tx { householdRepo.invite(household, invitee.userId, HouseholdMemberRole.MEMBER) }
 
                 val refetched = tx { householdReader.findOf(invitee.userId) }
-                refetched!!.members.asList().map { it.profile.displayName } shouldContain DisplayName("Invitee")
+                refetched!!.members.list.map { it.profile.displayName } shouldContain DisplayName("Invitee")
             }
         }
 

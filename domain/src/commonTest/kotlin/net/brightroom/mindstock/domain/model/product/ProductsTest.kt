@@ -33,13 +33,13 @@ class ProductsTest {
         val active = product("a", archived = false)
         val archived = product("b", archived = true)
         val products = Products(listOf(active, archived))
-        products.activeOnly().asList() shouldBe listOf(active)
+        products.activeOnly().list shouldBe listOf(active)
     }
 
     @Test
     fun `activeOnly returns empty when all archived`() {
         val a = product("a", archived = true)
         val products = Products(listOf(a))
-        products.activeOnly().size shouldBe 0
+        products.activeOnly().list.size shouldBe 0
     }
 }

@@ -47,7 +47,7 @@ class HouseholdDataSourceIntegrationTest :
 
                 found.shouldNotBeNull()
                 found.id shouldBe created.id
-                found.members.asList() shouldBe emptyList()
+                found.members.list shouldBe emptyList()
             }
         }
 
@@ -74,7 +74,7 @@ class HouseholdDataSourceIntegrationTest :
                 val found = tx { householdReader.findOf(owner.userId) }
                 found
                     ?.members
-                    ?.asList()
+                    ?.list
                     ?.single()
                     ?.role shouldBe HouseholdMemberRole.OWNER
             }
