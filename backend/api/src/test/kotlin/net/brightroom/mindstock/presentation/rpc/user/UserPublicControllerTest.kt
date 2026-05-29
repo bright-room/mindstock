@@ -10,12 +10,12 @@ import io.mockk.unmockkAll
 import kotlinx.datetime.Instant
 import net.brightroom.mindstock.application.service.user.UserRegisterService
 import net.brightroom.mindstock.configuration.auth.MindstockSession
-import net.brightroom.mindstock.domain.model.user.DisplayName
-import net.brightroom.mindstock.domain.model.user.User
 import net.brightroom.mindstock.domain.model.user.UserId
 import net.brightroom.mindstock.domain.model.user.auth.AuthIdentity
 import net.brightroom.mindstock.domain.model.user.auth.AuthProvider
 import net.brightroom.mindstock.domain.model.user.auth.AuthSubject
+import net.brightroom.mindstock.domain.model.user.profile.DisplayName
+import net.brightroom.mindstock.domain.model.user.profile.Profile
 import net.brightroom.mindstock.rpc.RpcError
 import net.brightroom.mindstock.rpc.RpcResult
 import org.jetbrains.exposed.v1.jdbc.Database
@@ -33,9 +33,8 @@ class UserPublicControllerTest :
             val displayName = DisplayName("Alice")
             val authIdentity = AuthIdentity(AuthProvider.ZITADEL, AuthSubject("sub-1"))
             val expected =
-                User(
-                    id = UserId(Uuid.parse("00000000-0000-0000-0000-000000000001")),
-                    authIdentity = authIdentity,
+                Profile(
+                    userId = UserId(Uuid.parse("00000000-0000-0000-0000-000000000001")),
                     displayName = displayName,
                 )
             val session =
@@ -51,9 +50,9 @@ class UserPublicControllerTest :
             mockkStatic("net.brightroom.mindstock.configuration.transaction.TransactionKt")
             coEvery {
                 net.brightroom.mindstock.configuration.transaction
-                    .tx<User>(any(), any(), any())
+                    .tx<Profile>(any(), any(), any())
             } coAnswers {
-                val block = arg<suspend () -> RpcResult<User, RpcError>>(2)
+                val block = arg<suspend () -> RpcResult<Profile, RpcError>>(2)
                 block()
             }
 

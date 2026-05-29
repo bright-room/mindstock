@@ -34,9 +34,9 @@ class StockDataSourceIntegrationTest :
                 val reader = StockDataSource(ProductDataSource())
 
                 val t0 = Clock.System.now()
-                tx { register.replenish(product, Quantity(1), OccurredAt(t0), user, Note("a")) }
-                tx { register.replenish(product, Quantity(2), OccurredAt(t0.plus(1.seconds)), user, Note("b")) }
-                tx { register.replenish(product, Quantity(3), OccurredAt(t0.plus(2.seconds)), user, Note("c")) }
+                tx { register.replenish(product, Quantity(1), OccurredAt(t0), user.userId, Note("a")) }
+                tx { register.replenish(product, Quantity(2), OccurredAt(t0.plus(1.seconds)), user.userId, Note("b")) }
+                tx { register.replenish(product, Quantity(3), OccurredAt(t0.plus(2.seconds)), user.userId, Note("c")) }
 
                 val history = tx { reader.movementHistory(product, limit = 2) }
                 val rows = history.asList()

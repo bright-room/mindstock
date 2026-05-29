@@ -4,7 +4,7 @@ import net.brightroom.mindstock.application.repository.catalog.CatalogItemRegist
 import net.brightroom.mindstock.domain.model.catalog.CatalogItem
 import net.brightroom.mindstock.domain.model.catalog.CatalogItemName
 import net.brightroom.mindstock.domain.model.catalog.CatalogItemUnit
-import net.brightroom.mindstock.domain.model.user.User
+import net.brightroom.mindstock.domain.model.user.UserId
 
 class CatalogItemRegisterService(
     private val catalogItemRegisterRepository: CatalogItemRegisterRepository,
@@ -12,14 +12,14 @@ class CatalogItemRegisterService(
     fun register(
         name: CatalogItemName,
         unit: CatalogItemUnit,
-        createdBy: User,
+        createdBy: UserId,
     ): CatalogItem = catalogItemRegisterRepository.register(name, unit, createdBy)
 
     fun revise(
         catalogItem: CatalogItem,
         newName: CatalogItemName,
         newUnit: CatalogItemUnit,
-        editedBy: User,
+        editedBy: UserId,
     ) {
         catalogItemRegisterRepository.revise(catalogItem, newName, newUnit, editedBy)
     }

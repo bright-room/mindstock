@@ -20,14 +20,18 @@ import kotlinx.rpc.krpc.ktor.client.KtorRpcClient
 import kotlinx.rpc.krpc.ktor.client.installKrpc
 import kotlinx.rpc.krpc.ktor.client.rpc
 import kotlinx.rpc.krpc.serialization.json.json
-import net.brightroom.mindstock.domain.model.user.User
+import net.brightroom.mindstock.domain.model.user.profile.Profile
 import net.brightroom.mindstock.e2e.auth.TestJwks
 import net.brightroom.mindstock.e2e.auth.TestJwtIssuer
 import net.brightroom.mindstock.extensions.kotlinx.serialization.KrpcJson
+import net.brightroom.mindstock.infrastructure.datasource.user.UsersTable
 import net.brightroom.mindstock.test.TestDataSource
 import net.brightroom.mindstock.test.testHikariDataSource
 import org.flywaydb.core.Flyway
+import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.jdbc.Database
+import org.jetbrains.exposed.v1.jdbc.selectAll
+import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import java.util.Base64
 import javax.sql.DataSource
 
@@ -122,6 +126,7 @@ fun e2eTest(block: suspend E2eContext.() -> Unit) {
     }
 }
 
+@OptIn(kotlin.uuid.ExperimentalUuidApi::class)
 class E2eContext(
     val httpClient: HttpClient,
     val database: Database,
@@ -133,13 +138,32 @@ class E2eContext(
     fun publicRpcClient(path: String): RpcClient = httpClient.rpc("/api/v1/$path").also { opened += it }
 
     /**
-     * Opens an authenticated Krpc connection for [asUser]. JWT は sub=user.authIdentity.subject() で発行。
+     * Opens an authenticated Krpc connection for [asUser].
+     *
+     * [asUser] は `authIdentity` を持たないため、JWT の sub は `UsersTable.zitadel_sub`
+     * を `asUser.userId` で引いて取得する(DB に該当行が無ければ失敗)。
      */
     fun authenticatedRpcClient(
-        asUser: User,
+        asUser: Profile,
         path: String,
     ): RpcClient {
-        val token = TestJwtIssuer.issue(subject = asUser.authIdentity.subject())
+        val subject =
+            transaction(database) {
+                UsersTable
+                    .selectAll()
+                    .where { UsersTable.id eq asUser.userId() }
+                    .single()[UsersTable.zitadel_sub]
+            }
+        val token = TestJwtIssuer.issue(subject = subject)
+        return authenticatedRpcClientWithToken(token = token, path = path)
+    }
+
+    /** 任意の sub で JWT を発行して接続(DB に存在しないユーザーをシミュレートするため)。 */
+    fun authenticatedRpcClientWithSubject(
+        subject: String,
+        path: String,
+    ): RpcClient {
+        val token = TestJwtIssuer.issue(subject = subject)
         return authenticatedRpcClientWithToken(token = token, path = path)
     }
 

@@ -95,9 +95,8 @@ fun Application.dependenciesConfigure(
         }
         provide<UserControllerFactory> {
             val urs = resolve<UserRegisterService>()
-            val ur = resolve<UserRepository>()
             val db = resolve<Database>()
-            UserControllerFactory { session -> UserController(urs, ur, session, db) }
+            UserControllerFactory { session -> UserController(urs, session, db) }
         }
         provide<HouseholdControllerFactory> {
             val hs = resolve<HouseholdService>()
@@ -111,9 +110,8 @@ fun Application.dependenciesConfigure(
             val cs = resolve<CatalogItemService>()
             val crs = resolve<CatalogItemRegisterService>()
             val cr = resolve<CatalogItemRepository>()
-            val ur = resolve<UserRepository>()
             val db = resolve<Database>()
-            CatalogControllerFactory { session -> CatalogController(cs, crs, cr, ur, session, db) }
+            CatalogControllerFactory { session -> CatalogController(cs, crs, cr, session, db) }
         }
         provide<ProductControllerFactory> {
             val ps = resolve<ProductService>()
@@ -121,18 +119,16 @@ fun Application.dependenciesConfigure(
             val hr = resolve<HouseholdRepository>()
             val cr = resolve<CatalogItemRepository>()
             val pr = resolve<ProductRepository>()
-            val ur = resolve<UserRepository>()
             val db = resolve<Database>()
-            ProductControllerFactory { session -> ProductController(ps, prs, hr, cr, pr, ur, session, db) }
+            ProductControllerFactory { session -> ProductController(ps, prs, hr, cr, pr, session, db) }
         }
         provide<StockControllerFactory> {
             val ss = resolve<StockService>()
             val srs = resolve<StockRegisterService>()
             val pr = resolve<ProductRepository>()
             val hr = resolve<HouseholdRepository>()
-            val ur = resolve<UserRepository>()
             val db = resolve<Database>()
-            StockControllerFactory { session -> StockController(ss, srs, pr, hr, ur, session, db) }
+            StockControllerFactory { session -> StockController(ss, srs, pr, hr, session, db) }
         }
     }
 }

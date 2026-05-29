@@ -4,58 +4,54 @@ import io.kotest.matchers.booleans.shouldBeFalse
 import io.kotest.matchers.booleans.shouldBeTrue
 import io.kotest.matchers.nulls.shouldBeNull
 import io.kotest.matchers.shouldBe
-import net.brightroom.mindstock.domain.model.user.DisplayName
-import net.brightroom.mindstock.domain.model.user.User
 import net.brightroom.mindstock.domain.model.user.UserId
-import net.brightroom.mindstock.domain.model.user.auth.AuthIdentity
-import net.brightroom.mindstock.domain.model.user.auth.AuthProvider
-import net.brightroom.mindstock.domain.model.user.auth.AuthSubject
+import net.brightroom.mindstock.domain.model.user.profile.DisplayName
+import net.brightroom.mindstock.domain.model.user.profile.Profile
 import kotlin.test.Test
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
 @OptIn(ExperimentalUuidApi::class)
 class HouseholdMembersTest {
-    private fun user(name: String) =
-        User(
-            id = UserId(Uuid.generateV7()),
-            authIdentity = AuthIdentity(AuthProvider.ZITADEL, AuthSubject("sub-$name")),
+    private fun profile(name: String) =
+        Profile(
+            userId = UserId(Uuid.generateV7()),
             displayName = DisplayName(name),
         )
 
     @Test
-    fun `owner returns the OWNER user`() {
-        val ownerUser = user("alice")
-        val memberUser = user("bob")
+    fun `owner returns the OWNER profile`() {
+        val ownerProfile = profile("alice")
+        val memberProfile = profile("bob")
         val members =
             HouseholdMembers(
                 listOf(
-                    HouseholdMember(ownerUser, HouseholdMemberRole.OWNER),
-                    HouseholdMember(memberUser, HouseholdMemberRole.MEMBER),
+                    HouseholdMember(ownerProfile, HouseholdMemberRole.OWNER),
+                    HouseholdMember(memberProfile, HouseholdMemberRole.MEMBER),
                 ),
             )
-        members.owner() shouldBe ownerUser
+        members.owner() shouldBe ownerProfile
     }
 
     @Test
     fun `owner returns null when no OWNER exists`() {
-        val u = user("bob")
-        val members = HouseholdMembers(listOf(HouseholdMember(u, HouseholdMemberRole.MEMBER)))
+        val p = profile("bob")
+        val members = HouseholdMembers(listOf(HouseholdMember(p, HouseholdMemberRole.MEMBER)))
         members.owner().shouldBeNull()
     }
 
     @Test
     fun `contains returns true when user is a member`() {
-        val u = user("alice")
-        val members = HouseholdMembers(listOf(HouseholdMember(u, HouseholdMemberRole.OWNER)))
-        members.contains(u).shouldBeTrue()
+        val p = profile("alice")
+        val members = HouseholdMembers(listOf(HouseholdMember(p, HouseholdMemberRole.OWNER)))
+        members.contains(p.userId).shouldBeTrue()
     }
 
     @Test
     fun `contains returns false when user is not a member`() {
-        val u1 = user("alice")
-        val u2 = user("bob")
-        val members = HouseholdMembers(listOf(HouseholdMember(u1, HouseholdMemberRole.OWNER)))
-        members.contains(u2).shouldBeFalse()
+        val p1 = profile("alice")
+        val p2 = profile("bob")
+        val members = HouseholdMembers(listOf(HouseholdMember(p1, HouseholdMemberRole.OWNER)))
+        members.contains(p2.userId).shouldBeFalse()
     }
 }

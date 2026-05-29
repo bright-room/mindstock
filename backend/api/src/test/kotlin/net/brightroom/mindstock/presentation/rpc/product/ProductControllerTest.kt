@@ -11,7 +11,6 @@ import kotlinx.datetime.Instant
 import net.brightroom.mindstock.application.repository.catalog.CatalogItemRepository
 import net.brightroom.mindstock.application.repository.household.HouseholdRepository
 import net.brightroom.mindstock.application.repository.product.ProductRepository
-import net.brightroom.mindstock.application.repository.user.UserRepository
 import net.brightroom.mindstock.application.service.product.ProductRegisterService
 import net.brightroom.mindstock.application.service.product.ProductService
 import net.brightroom.mindstock.configuration.auth.MindstockSession
@@ -24,8 +23,6 @@ import net.brightroom.mindstock.domain.model.household.HouseholdId
 import net.brightroom.mindstock.domain.model.household.HouseholdMembers
 import net.brightroom.mindstock.domain.model.product.Product
 import net.brightroom.mindstock.domain.model.product.ProductId
-import net.brightroom.mindstock.domain.model.user.DisplayName
-import net.brightroom.mindstock.domain.model.user.User
 import net.brightroom.mindstock.domain.model.user.UserId
 import net.brightroom.mindstock.domain.model.user.auth.AuthIdentity
 import net.brightroom.mindstock.domain.model.user.auth.AuthProvider
@@ -47,15 +44,9 @@ class ProductControllerTest :
             val householdRepository = mockk<HouseholdRepository>()
             val catalogItemRepository = mockk<CatalogItemRepository>()
             val productRepository = mockk<ProductRepository>()
-            val userRepository = mockk<UserRepository>()
             val database = mockk<Database>()
 
-            val user =
-                User(
-                    id = UserId(Uuid.parse("00000000-0000-0000-0000-000000000001")),
-                    authIdentity = AuthIdentity(AuthProvider.ZITADEL, AuthSubject("sub-1")),
-                    displayName = DisplayName("Alice"),
-                )
+            val userId = UserId(Uuid.parse("00000000-0000-0000-0000-000000000001"))
             val householdId = HouseholdId(Uuid.parse("00000000-0000-0000-0000-000000000002"))
             val household = Household(id = householdId, members = HouseholdMembers(emptyList()))
             val catalogItemId = CatalogItemId(Uuid.parse("00000000-0000-0000-0000-000000000003"))
@@ -74,8 +65,8 @@ class ProductControllerTest :
                 )
             val session =
                 MindstockSession(
-                    identity = user.authIdentity,
-                    userId = user.id,
+                    identity = AuthIdentity(AuthProvider.ZITADEL, AuthSubject("sub-alice")),
+                    userId = userId,
                     exp = Instant.fromEpochMilliseconds(Long.MAX_VALUE),
                     callId = Uuid.random(),
                 )
@@ -100,7 +91,6 @@ class ProductControllerTest :
                     householdRepository = householdRepository,
                     catalogItemRepository = catalogItemRepository,
                     productRepository = productRepository,
-                    userRepository = userRepository,
                     session = session,
                     database = database,
                 )

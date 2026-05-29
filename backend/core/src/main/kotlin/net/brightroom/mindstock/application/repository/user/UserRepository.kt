@@ -1,11 +1,11 @@
 package net.brightroom.mindstock.application.repository.user
 
-import net.brightroom.mindstock.domain.model.user.User
 import net.brightroom.mindstock.domain.model.user.UserId
 import net.brightroom.mindstock.domain.model.user.auth.AuthIdentity
+import net.brightroom.mindstock.domain.model.user.profile.Profile
 
 interface UserRepository {
-    fun findByAuthIdentity(identity: AuthIdentity): User?
+    fun findProfileByAuthIdentity(identity: AuthIdentity): Profile?
 
-    fun findById(id: UserId): User?
+    fun findProfileById(id: UserId): Profile?
 }

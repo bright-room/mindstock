@@ -16,8 +16,6 @@ import net.brightroom.mindstock.configuration.auth.MindstockSession
 import net.brightroom.mindstock.domain.model.household.Household
 import net.brightroom.mindstock.domain.model.household.HouseholdId
 import net.brightroom.mindstock.domain.model.household.HouseholdMembers
-import net.brightroom.mindstock.domain.model.user.DisplayName
-import net.brightroom.mindstock.domain.model.user.User
 import net.brightroom.mindstock.domain.model.user.UserId
 import net.brightroom.mindstock.domain.model.user.auth.AuthIdentity
 import net.brightroom.mindstock.domain.model.user.auth.AuthProvider
@@ -39,12 +37,7 @@ class HouseholdControllerTest :
             val householdRepository = mockk<HouseholdRepository>()
             val userRepository = mockk<UserRepository>()
             val database = mockk<Database>()
-            val user =
-                User(
-                    id = UserId(Uuid.parse("00000000-0000-0000-0000-000000000001")),
-                    authIdentity = AuthIdentity(AuthProvider.ZITADEL, AuthSubject("sub-1")),
-                    displayName = DisplayName("Alice"),
-                )
+            val userId = UserId(Uuid.parse("00000000-0000-0000-0000-000000000001"))
             val household =
                 Household(
                     id = HouseholdId(Uuid.parse("00000000-0000-0000-0000-000000000002")),
@@ -52,14 +45,13 @@ class HouseholdControllerTest :
                 )
             val session =
                 MindstockSession(
-                    identity = user.authIdentity,
-                    userId = user.id,
+                    identity = AuthIdentity(AuthProvider.ZITADEL, AuthSubject("sub-alice")),
+                    userId = userId,
                     exp = Instant.fromEpochMilliseconds(Long.MAX_VALUE),
                     callId = Uuid.random(),
                 )
 
-            every { userRepository.findById(user.id) } returns user
-            every { householdService.findOf(user) } returns household
+            every { householdService.findOf(userId) } returns household
 
             mockkStatic("net.brightroom.mindstock.configuration.transaction.TransactionKt")
             coEvery {

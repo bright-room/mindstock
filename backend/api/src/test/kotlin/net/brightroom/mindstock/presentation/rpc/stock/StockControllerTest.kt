@@ -10,7 +10,6 @@ import io.mockk.unmockkAll
 import kotlinx.datetime.Instant
 import net.brightroom.mindstock.application.repository.household.HouseholdRepository
 import net.brightroom.mindstock.application.repository.product.ProductRepository
-import net.brightroom.mindstock.application.repository.user.UserRepository
 import net.brightroom.mindstock.application.service.stock.StockRegisterService
 import net.brightroom.mindstock.application.service.stock.StockService
 import net.brightroom.mindstock.configuration.auth.MindstockSession
@@ -22,8 +21,6 @@ import net.brightroom.mindstock.domain.model.product.Product
 import net.brightroom.mindstock.domain.model.product.ProductId
 import net.brightroom.mindstock.domain.model.stock.Stock
 import net.brightroom.mindstock.domain.model.stock.movement.StockMovements
-import net.brightroom.mindstock.domain.model.user.DisplayName
-import net.brightroom.mindstock.domain.model.user.User
 import net.brightroom.mindstock.domain.model.user.UserId
 import net.brightroom.mindstock.domain.model.user.auth.AuthIdentity
 import net.brightroom.mindstock.domain.model.user.auth.AuthProvider
@@ -44,15 +41,9 @@ class StockControllerTest :
             val stockRegisterService = mockk<StockRegisterService>()
             val productRepository = mockk<ProductRepository>()
             val householdRepository = mockk<HouseholdRepository>()
-            val userRepository = mockk<UserRepository>()
             val database = mockk<Database>()
 
-            val user =
-                User(
-                    id = UserId(Uuid.parse("00000000-0000-0000-0000-000000000001")),
-                    authIdentity = AuthIdentity(AuthProvider.ZITADEL, AuthSubject("sub-1")),
-                    displayName = DisplayName("Alice"),
-                )
+            val userId = UserId(Uuid.parse("00000000-0000-0000-0000-000000000001"))
             val productId = ProductId(Uuid.parse("00000000-0000-0000-0000-000000000004"))
             val catalogItem =
                 CatalogItem(
@@ -70,8 +61,8 @@ class StockControllerTest :
             val stock = Stock(product = product, movements = StockMovements(emptyList()))
             val session =
                 MindstockSession(
-                    identity = user.authIdentity,
-                    userId = user.id,
+                    identity = AuthIdentity(AuthProvider.ZITADEL, AuthSubject("sub-alice")),
+                    userId = userId,
                     exp = Instant.fromEpochMilliseconds(Long.MAX_VALUE),
                     callId = Uuid.random(),
                 )
@@ -94,7 +85,6 @@ class StockControllerTest :
                     stockRegisterService = stockRegisterService,
                     productRepository = productRepository,
                     householdRepository = householdRepository,
-                    userRepository = userRepository,
                     session = session,
                     database = database,
                 )

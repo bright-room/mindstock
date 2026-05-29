@@ -74,7 +74,9 @@ class HouseholdRpcServiceE2eTest :
                 household.members.list.shouldNotBeNull()
                 household.members.list.size shouldBe 1
                 household.members.list[0]
-                    .user.id shouldBe owner.id
+                    .profile.userId shouldBe owner.userId
+                household.members.list[0]
+                    .profile.displayName shouldBe owner.displayName
                 household.members.list[0].role shouldBe HouseholdMemberRole.OWNER
             }
         }
@@ -88,7 +90,7 @@ class HouseholdRpcServiceE2eTest :
                     authenticatedRpcClient(asUser = owner, path = "household")
                         .withService<HouseholdRpcService>()
 
-                val invite = ownerRpc.invite(household.id, invitee.id, HouseholdMemberRole.MEMBER)
+                val invite = ownerRpc.invite(household.id, invitee.userId, HouseholdMemberRole.MEMBER)
                 invite.shouldBeInstanceOf<RpcResult.Ok<Unit>>()
 
                 val inviteeRpc =
@@ -112,7 +114,7 @@ class HouseholdRpcServiceE2eTest :
                 val r =
                     rpc.invite(
                         householdId = HouseholdId(Uuid.random()),
-                        invitee = invitee.id,
+                        invitee = invitee.userId,
                         role = HouseholdMemberRole.MEMBER,
                     )
                 r.shouldBeInstanceOf<RpcResult.Err<RpcError>>()
@@ -129,10 +131,10 @@ class HouseholdRpcServiceE2eTest :
                     authenticatedRpcClient(asUser = owner, path = "household")
                         .withService<HouseholdRpcService>()
                 ownerRpc
-                    .invite(household.id, member.id, HouseholdMemberRole.MEMBER)
+                    .invite(household.id, member.userId, HouseholdMemberRole.MEMBER)
                     .shouldBeInstanceOf<RpcResult.Ok<Unit>>()
 
-                val revoked = ownerRpc.revoke(household.id, member.id)
+                val revoked = ownerRpc.revoke(household.id, member.userId)
                 revoked.shouldBeInstanceOf<RpcResult.Ok<Unit>>()
 
                 val memberRpc =

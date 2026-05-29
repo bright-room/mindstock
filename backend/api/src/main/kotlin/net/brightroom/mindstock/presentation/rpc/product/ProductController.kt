@@ -3,7 +3,6 @@ package net.brightroom.mindstock.presentation.rpc.product
 import net.brightroom.mindstock.application.repository.catalog.CatalogItemRepository
 import net.brightroom.mindstock.application.repository.household.HouseholdRepository
 import net.brightroom.mindstock.application.repository.product.ProductRepository
-import net.brightroom.mindstock.application.repository.user.UserRepository
 import net.brightroom.mindstock.application.service.product.ProductRegisterService
 import net.brightroom.mindstock.application.service.product.ProductService
 import net.brightroom.mindstock.configuration.auth.MindstockSession
@@ -14,7 +13,6 @@ import net.brightroom.mindstock.domain.model.product.MinimumStock
 import net.brightroom.mindstock.domain.model.product.Product
 import net.brightroom.mindstock.domain.model.product.ProductId
 import net.brightroom.mindstock.domain.model.product.Products
-import net.brightroom.mindstock.domain.model.user.User
 import net.brightroom.mindstock.rpc.ProductRpcService
 import net.brightroom.mindstock.rpc.RpcError
 import net.brightroom.mindstock.rpc.RpcResult
@@ -26,14 +24,9 @@ class ProductController(
     private val householdRepository: HouseholdRepository,
     private val catalogItemRepository: CatalogItemRepository,
     private val productRepository: ProductRepository,
-    private val userRepository: UserRepository,
     private val session: MindstockSession,
     private val database: Database,
 ) : ProductRpcService {
-    private suspend fun resolveActor(): User =
-        userRepository.findById(requireNotNull(session.userId))
-            ?: error("session.userId points to non-existent User")
-
     override suspend fun listOfHousehold(householdId: HouseholdId): RpcResult<Products, RpcError> =
         tx(database, session) {
             val household =
@@ -78,7 +71,7 @@ class ProductController(
             val product =
                 productRepository.findById(id)
                     ?: return@tx RpcResult.Err(RpcError.NotFound(resource = "product", id = "$id"))
-            productRegisterService.setMinimumStock(product, minimumStock, resolveActor())
+            productRegisterService.setMinimumStock(product, minimumStock, requireNotNull(session.userId))
             RpcResult.Ok(Unit)
         }
 
@@ -87,7 +80,7 @@ class ProductController(
             val product =
                 productRepository.findById(id)
                     ?: return@tx RpcResult.Err(RpcError.NotFound(resource = "product", id = "$id"))
-            productRegisterService.archive(product, resolveActor())
+            productRegisterService.archive(product, requireNotNull(session.userId))
             RpcResult.Ok(Unit)
         }
 }

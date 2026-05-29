@@ -5,10 +5,10 @@ import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
 import net.brightroom.mindstock.domain.model.catalog.CatalogItemName
 import net.brightroom.mindstock.domain.model.catalog.CatalogItemUnit
-import net.brightroom.mindstock.domain.model.user.DisplayName
 import net.brightroom.mindstock.domain.model.user.auth.AuthIdentity
 import net.brightroom.mindstock.domain.model.user.auth.AuthProvider
 import net.brightroom.mindstock.domain.model.user.auth.AuthSubject
+import net.brightroom.mindstock.domain.model.user.profile.DisplayName
 import net.brightroom.mindstock.infrastructure.datasource.repository.withRepositoryTestContext
 import net.brightroom.mindstock.infrastructure.datasource.user.UserRegisterDataSource
 
@@ -22,7 +22,7 @@ class CatalogItemRegisterDataSourceIntegrationTest :
                 val catalogRepo = CatalogItemRegisterDataSource()
                 val creator = tx { userRepo.register(AuthIdentity(AuthProvider.ZITADEL, AuthSubject("creator")), DisplayName("Creator")) }
 
-                val item = tx { catalogRepo.register(CatalogItemName("Milk"), CatalogItemUnit("L"), creator) }
+                val item = tx { catalogRepo.register(CatalogItemName("Milk"), CatalogItemUnit("L"), creator.userId) }
 
                 item.name shouldBe CatalogItemName("Milk")
                 item.unit shouldBe CatalogItemUnit("L")
@@ -36,8 +36,8 @@ class CatalogItemRegisterDataSourceIntegrationTest :
                 val catalogReader = CatalogItemDataSource()
                 val editor = tx { userRepo.register(AuthIdentity(AuthProvider.ZITADEL, AuthSubject("editor")), DisplayName("Editor")) }
 
-                val item = tx { catalogRegister.register(CatalogItemName("Milk"), CatalogItemUnit("L"), editor) }
-                tx { catalogRegister.revise(item, CatalogItemName("Whole Milk"), CatalogItemUnit("L"), editor) }
+                val item = tx { catalogRegister.register(CatalogItemName("Milk"), CatalogItemUnit("L"), editor.userId) }
+                tx { catalogRegister.revise(item, CatalogItemName("Whole Milk"), CatalogItemUnit("L"), editor.userId) }
 
                 val refetched = tx { catalogReader.findById(item.id) }
                 refetched?.name shouldBe CatalogItemName("Whole Milk")

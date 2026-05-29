@@ -62,6 +62,8 @@ class StockRpcServiceE2eTest :
                     )
                 r.shouldBeInstanceOf<RpcResult.Ok<Replenishment>>()
                 r.value.quantity shouldBe Quantity(5)
+                r.value.actor.userId shouldBe owner.userId
+                r.value.actor.displayName shouldBe owner.displayName
 
                 val got = rpc.get(product.id)
                 got.shouldBeInstanceOf<RpcResult.Ok<Stock>>()
@@ -180,6 +182,11 @@ class StockRpcServiceE2eTest :
                         OccurredAt(Instant.parse("2026-05-26T09:00:00Z")),
                         OccurredAt(Instant.parse("2026-05-26T08:00:00Z")),
                     )
+                // Verify actor hydration via JOIN to UserDisplayNamesTable.
+                history.list.forEach { movement ->
+                    movement.actor.userId shouldBe owner.userId
+                    movement.actor.displayName shouldBe owner.displayName
+                }
             }
         }
 

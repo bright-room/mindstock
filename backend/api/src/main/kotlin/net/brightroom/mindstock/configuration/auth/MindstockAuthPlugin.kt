@@ -77,7 +77,7 @@ val MindstockAuthPlugin =
             val identity = AuthIdentity(AuthProvider.ZITADEL, AuthSubject(sub))
             val userId =
                 newSuspendedTransaction(db = database) {
-                    userRepository.findByAuthIdentity(identity)?.id
+                    userRepository.findProfileByAuthIdentity(identity)?.userId
                 }
             val expDate =
                 decoded.expiresAt

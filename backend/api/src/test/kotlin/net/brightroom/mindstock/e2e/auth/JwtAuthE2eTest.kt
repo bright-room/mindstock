@@ -6,8 +6,8 @@ import io.kotest.core.annotation.Tags
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.types.shouldBeInstanceOf
 import kotlinx.rpc.withService
-import net.brightroom.mindstock.domain.model.user.DisplayName
-import net.brightroom.mindstock.domain.model.user.User
+import net.brightroom.mindstock.domain.model.user.profile.DisplayName
+import net.brightroom.mindstock.domain.model.user.profile.Profile
 import net.brightroom.mindstock.e2e.e2eTest
 import net.brightroom.mindstock.e2e.seedUser
 import net.brightroom.mindstock.rpc.RpcResult
@@ -23,10 +23,11 @@ class JwtAuthE2eTest :
     FunSpec({
         test("expired JWT → 401 (rpc call throws)") {
             e2eTest {
-                val user = seedUser(displayName = "Alice")
+                val sub = "alice-sub"
+                seedUser(displayName = "Alice", subject = sub)
                 val expired =
                     TestJwtIssuer.issue(
-                        subject = user.authIdentity.subject(),
+                        subject = sub,
                         issuedAt = Instant.now().minusSeconds(7200),
                         expiresAt = Instant.now().minusSeconds(3600),
                     )
@@ -37,10 +38,11 @@ class JwtAuthE2eTest :
 
         test("wrong issuer → 401") {
             e2eTest {
-                val user = seedUser(displayName = "Alice")
+                val sub = "alice-sub"
+                seedUser(displayName = "Alice", subject = sub)
                 val badIssuer =
                     TestJwtIssuer.issue(
-                        subject = user.authIdentity.subject(),
+                        subject = sub,
                         issuer = "wrong-issuer",
                     )
                 val rpc = authenticatedRpcClientWithToken(token = badIssuer, path = "user").withService<UserRpcService>()
@@ -50,10 +52,11 @@ class JwtAuthE2eTest :
 
         test("wrong audience → 401") {
             e2eTest {
-                val user = seedUser(displayName = "Alice")
+                val sub = "alice-sub"
+                seedUser(displayName = "Alice", subject = sub)
                 val badAud =
                     TestJwtIssuer.issue(
-                        subject = user.authIdentity.subject(),
+                        subject = sub,
                         audience = "wrong-aud",
                     )
                 val rpc = authenticatedRpcClientWithToken(token = badAud, path = "user").withService<UserRpcService>()
@@ -63,13 +66,14 @@ class JwtAuthE2eTest :
 
         test("signed by an unknown key → 401") {
             e2eTest {
-                val user = seedUser(displayName = "Alice")
+                val sub = "alice-sub"
+                seedUser(displayName = "Alice", subject = sub)
                 val foreign = KeyPairGenerator.getInstance("RSA").apply { initialize(2048) }.generateKeyPair()
                 val foreignAlg =
                     Algorithm.RSA256(foreign.public as RSAPublicKey, foreign.private as RSAPrivateKey)
                 val token =
                     TestJwtIssuer.issue(
-                        subject = user.authIdentity.subject(),
+                        subject = sub,
                         signWith = foreignAlg,
                         kid = "unknown-kid",
                     )
@@ -80,8 +84,9 @@ class JwtAuthE2eTest :
 
         test("token via Sec-WebSocket-Protocol succeeds") {
             e2eTest {
-                val user = seedUser(displayName = "Alice")
-                val token = TestJwtIssuer.issue(subject = user.authIdentity.subject())
+                val sub = "alice-sub"
+                seedUser(displayName = "Alice", subject = sub)
+                val token = TestJwtIssuer.issue(subject = sub)
                 val rpc =
                     authenticatedRpcClientViaWsProtocol(token = token, path = "user").withService<UserRpcService>()
                 rpc.rename(DisplayName("Renamed"))
@@ -98,7 +103,7 @@ class JwtAuthE2eTest :
                         path = "user/public",
                     ).withService<UserPublicRpcService>()
                 val created = rpc.register(DisplayName("Newbie"))
-                created.shouldBeInstanceOf<RpcResult.Ok<User>>()
+                created.shouldBeInstanceOf<RpcResult.Ok<Profile>>()
             }
         }
 

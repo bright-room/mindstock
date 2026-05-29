@@ -9,7 +9,6 @@ import net.brightroom.mindstock.configuration.transaction.tx
 import net.brightroom.mindstock.domain.model.household.Household
 import net.brightroom.mindstock.domain.model.household.HouseholdId
 import net.brightroom.mindstock.domain.model.household.HouseholdMemberRole
-import net.brightroom.mindstock.domain.model.user.User
 import net.brightroom.mindstock.domain.model.user.UserId
 import net.brightroom.mindstock.rpc.HouseholdRpcService
 import net.brightroom.mindstock.rpc.RpcError
@@ -24,15 +23,11 @@ class HouseholdController(
     private val session: MindstockSession,
     private val database: Database,
 ) : HouseholdRpcService {
-    private suspend fun resolveActor(): User =
-        userRepository.findById(requireNotNull(session.userId))
-            ?: error("session.userId points to non-existent User")
-
     override suspend fun findOf(): RpcResult<Household?, RpcError> =
-        tx(database, session) { RpcResult.Ok(householdService.findOf(resolveActor())) }
+        tx(database, session) { RpcResult.Ok(householdService.findOf(requireNotNull(session.userId))) }
 
     override suspend fun create(): RpcResult<Household, RpcError> =
-        tx(database, session) { RpcResult.Ok(householdRegisterService.create(resolveActor())) }
+        tx(database, session) { RpcResult.Ok(householdRegisterService.create(requireNotNull(session.userId))) }
 
     override suspend fun invite(
         householdId: HouseholdId,
@@ -43,10 +38,10 @@ class HouseholdController(
             val household =
                 householdRepository.findById(householdId)
                     ?: return@tx RpcResult.Err(RpcError.NotFound(resource = "household", id = "$householdId"))
-            val user =
-                userRepository.findById(invitee)
+            val inviteeProfile =
+                userRepository.findProfileById(invitee)
                     ?: return@tx RpcResult.Err(RpcError.NotFound(resource = "user", id = "$invitee"))
-            householdRegisterService.invite(household, user, role)
+            householdRegisterService.invite(household, inviteeProfile.userId, role)
             RpcResult.Ok(Unit)
         }
 
@@ -58,10 +53,10 @@ class HouseholdController(
             val household =
                 householdRepository.findById(householdId)
                     ?: return@tx RpcResult.Err(RpcError.NotFound(resource = "household", id = "$householdId"))
-            val user =
-                userRepository.findById(target)
+            val targetProfile =
+                userRepository.findProfileById(target)
                     ?: return@tx RpcResult.Err(RpcError.NotFound(resource = "user", id = "$target"))
-            householdRegisterService.revoke(household, user)
+            householdRegisterService.revoke(household, targetProfile.userId)
             RpcResult.Ok(Unit)
         }
 }

@@ -1,9 +1,9 @@
 package net.brightroom.mindstock.infrastructure.datasource.user
 
 import net.brightroom.mindstock.application.repository.user.UserRepository
-import net.brightroom.mindstock.domain.model.user.User
 import net.brightroom.mindstock.domain.model.user.UserId
 import net.brightroom.mindstock.domain.model.user.auth.AuthIdentity
+import net.brightroom.mindstock.domain.model.user.profile.Profile
 import net.brightroom.mindstock.infrastructure.datasource.user.UserDisplayNamesTable
 import net.brightroom.mindstock.infrastructure.datasource.user.UsersTable
 import org.jetbrains.exposed.v1.core.JoinType
@@ -18,11 +18,11 @@ import kotlin.uuid.ExperimentalUuidApi
 
 @OptIn(ExperimentalUuidApi::class)
 class UserDataSource : UserRepository {
-    override fun findByAuthIdentity(identity: AuthIdentity): User? = queryLatest { UsersTable.zitadel_sub eq identity.subject() }
+    override fun findProfileByAuthIdentity(identity: AuthIdentity): Profile? = queryLatest { UsersTable.zitadel_sub eq identity.subject() }
 
-    override fun findById(id: UserId): User? = queryLatest { UsersTable.id eq id() }
+    override fun findProfileById(id: UserId): Profile? = queryLatest { UsersTable.id eq id() }
 
-    private fun queryLatest(where: () -> Op<Boolean>): User? {
+    private fun queryLatest(where: () -> Op<Boolean>): Profile? {
         // Alias the max() expression so QueryAlias.get() can resolve it correctly.
         val maxIdAlias = UserDisplayNamesTable.id.max().alias("max_name_id")
         val latestNames =
@@ -42,6 +42,6 @@ class UserDataSource : UserRepository {
             }.selectAll()
             .where { where() }
             .singleOrNull()
-            ?.toUser()
+            ?.toProfile()
     }
 }
