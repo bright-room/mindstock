@@ -2,9 +2,9 @@ package net.brightroom.mindstock.infrastructure.datasource.stock
 
 import net.brightroom.mindstock.application.repository.stock.StockRegisterRepository
 import net.brightroom.mindstock.domain.model.product.Product
-import net.brightroom.mindstock.domain.model.stock.Note
-import net.brightroom.mindstock.domain.model.stock.OccurredAt
-import net.brightroom.mindstock.domain.model.stock.Quantity
+import net.brightroom.mindstock.domain.model.stock.movement.Note
+import net.brightroom.mindstock.domain.model.stock.movement.OccurredAt
+import net.brightroom.mindstock.domain.model.stock.movement.Quantity
 import net.brightroom.mindstock.domain.model.user.UserId
 import org.jetbrains.exposed.v1.jdbc.insert
 import java.time.ZoneOffset
