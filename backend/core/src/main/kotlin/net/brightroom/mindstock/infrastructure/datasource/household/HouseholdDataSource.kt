@@ -8,6 +8,7 @@ import net.brightroom.mindstock.domain.model.household.HouseholdMemberRole
 import net.brightroom.mindstock.domain.model.user.UserId
 import net.brightroom.mindstock.infrastructure.datasource.user.UserDisplayNamesTable
 import net.brightroom.mindstock.infrastructure.datasource.user.UsersTable
+import net.brightroom.mindstock.infrastructure.datasource.user.latestDisplayNames
 import net.brightroom.mindstock.infrastructure.datasource.user.toProfile
 import org.jetbrains.exposed.v1.core.JoinType
 import org.jetbrains.exposed.v1.core.SortOrder
@@ -23,15 +24,7 @@ import kotlin.uuid.ExperimentalUuidApi
 @OptIn(ExperimentalUuidApi::class)
 class HouseholdDataSource : HouseholdRepository {
     override fun findOf(userId: UserId): Household? {
-        // --- latest display name per user ---
-        val maxNameIdAlias = UserDisplayNamesTable.id.max().alias("max_name_id")
-        val latestNames =
-            UserDisplayNamesTable
-                .select(UserDisplayNamesTable.user_id, maxNameIdAlias)
-                .groupBy(UserDisplayNamesTable.user_id)
-                .alias("latest_names")
-        val latestNameUserId = latestNames[UserDisplayNamesTable.user_id]
-        val latestNameMaxId = latestNames[maxNameIdAlias]
+        val latest = latestDisplayNames()
 
         // --- target household: most recent active membership's household for this user ---
         val maxMembershipIdAlias = HouseholdMembershipsTable.id.max().alias("max_membership_id")
@@ -65,10 +58,10 @@ class HouseholdDataSource : HouseholdRepository {
                     },
                 ).join(targetHousehold, JoinType.INNER, onColumn = HouseholdMembershipsTable.household_id, otherColumn = targetHouseholdId)
                 .join(UsersTable, JoinType.INNER, onColumn = HouseholdMembershipsTable.user_id, otherColumn = UsersTable.id)
-                .join(latestNames, JoinType.INNER, onColumn = UsersTable.id, otherColumn = latestNameUserId)
+                .join(latest.alias, JoinType.INNER, onColumn = UsersTable.id, otherColumn = latest.userId)
                 .join(UserDisplayNamesTable, JoinType.INNER) {
-                    (UserDisplayNamesTable.user_id eq latestNameUserId) and
-                        (UserDisplayNamesTable.id eq latestNameMaxId)
+                    (UserDisplayNamesTable.user_id eq latest.userId) and
+                        (UserDisplayNamesTable.id eq latest.maxId)
                 }.selectAll()
                 .where { HouseholdMembershipRevocationsTable.id.isNull() }
                 .orderBy(HouseholdMembershipsTable.id, SortOrder.ASC)
@@ -97,15 +90,7 @@ class HouseholdDataSource : HouseholdRepository {
                 .firstOrNull() != null
         if (!householdExists) return null
 
-        // --- latest display name per user ---
-        val maxNameIdAlias = UserDisplayNamesTable.id.max().alias("max_name_id")
-        val latestNames =
-            UserDisplayNamesTable
-                .select(UserDisplayNamesTable.user_id, maxNameIdAlias)
-                .groupBy(UserDisplayNamesTable.user_id)
-                .alias("latest_names")
-        val latestNameUserId = latestNames[UserDisplayNamesTable.user_id]
-        val latestNameMaxId = latestNames[maxNameIdAlias]
+        val latest = latestDisplayNames()
 
         // --- full member list of that household (active memberships only) ---
         val rows =
@@ -117,10 +102,10 @@ class HouseholdDataSource : HouseholdRepository {
                         HouseholdMembershipRevocationsTable.membership_id eq HouseholdMembershipsTable.id
                     },
                 ).join(UsersTable, JoinType.INNER, onColumn = HouseholdMembershipsTable.user_id, otherColumn = UsersTable.id)
-                .join(latestNames, JoinType.INNER, onColumn = UsersTable.id, otherColumn = latestNameUserId)
+                .join(latest.alias, JoinType.INNER, onColumn = UsersTable.id, otherColumn = latest.userId)
                 .join(UserDisplayNamesTable, JoinType.INNER) {
-                    (UserDisplayNamesTable.user_id eq latestNameUserId) and
-                        (UserDisplayNamesTable.id eq latestNameMaxId)
+                    (UserDisplayNamesTable.user_id eq latest.userId) and
+                        (UserDisplayNamesTable.id eq latest.maxId)
                 }.selectAll()
                 .where {
                     (HouseholdMembershipsTable.household_id eq id()) and

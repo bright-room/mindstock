@@ -8,11 +8,8 @@ import net.brightroom.mindstock.infrastructure.datasource.user.UserDisplayNamesT
 import net.brightroom.mindstock.infrastructure.datasource.user.UsersTable
 import org.jetbrains.exposed.v1.core.JoinType
 import org.jetbrains.exposed.v1.core.Op
-import org.jetbrains.exposed.v1.core.alias
 import org.jetbrains.exposed.v1.core.and
 import org.jetbrains.exposed.v1.core.eq
-import org.jetbrains.exposed.v1.core.max
-import org.jetbrains.exposed.v1.jdbc.select
 import org.jetbrains.exposed.v1.jdbc.selectAll
 import kotlin.uuid.ExperimentalUuidApi
 
@@ -23,22 +20,13 @@ class UserDataSource : UserRepository {
     override fun findProfileById(id: UserId): Profile? = queryLatest { UsersTable.id eq id() }
 
     private fun queryLatest(where: () -> Op<Boolean>): Profile? {
-        // Alias the max() expression so QueryAlias.get() can resolve it correctly.
-        val maxIdAlias = UserDisplayNamesTable.id.max().alias("max_name_id")
-        val latestNames =
-            UserDisplayNamesTable
-                .select(UserDisplayNamesTable.user_id, maxIdAlias)
-                .groupBy(UserDisplayNamesTable.user_id)
-                .alias("latest_names")
-
-        val latestUserId = latestNames[UserDisplayNamesTable.user_id]
-        val latestMaxId = latestNames[maxIdAlias]
+        val latest = latestDisplayNames()
 
         return UsersTable
-            .join(latestNames, JoinType.INNER, onColumn = UsersTable.id, otherColumn = latestUserId)
+            .join(latest.alias, JoinType.INNER, onColumn = UsersTable.id, otherColumn = latest.userId)
             .join(UserDisplayNamesTable, JoinType.INNER) {
-                (UserDisplayNamesTable.user_id eq latestUserId) and
-                    (UserDisplayNamesTable.id eq latestMaxId)
+                (UserDisplayNamesTable.user_id eq latest.userId) and
+                    (UserDisplayNamesTable.id eq latest.maxId)
             }.selectAll()
             .where { where() }
             .singleOrNull()
