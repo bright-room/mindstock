@@ -1,7 +1,6 @@
 package net.brightroom.mindstock.domain.model.user.profile
 
 import kotlinx.serialization.Serializable
-import net.brightroom.mindstock.domain.exception.DomainException
 import kotlin.jvm.JvmInline
 
 /**
@@ -13,8 +12,8 @@ value class DisplayName(
     private val value: String,
 ) {
     init {
-        if (value.isBlank()) throw DomainException.DisplayNameBlank()
-        if (value.length > 100) throw DomainException.DisplayNameTooLong(value.length)
+        require(value.isNotBlank()) { "display name must not be blank" }
+        require(value.length <= 100) { "display name length ${value.length} > 100" }
     }
 
     override fun toString(): String = value

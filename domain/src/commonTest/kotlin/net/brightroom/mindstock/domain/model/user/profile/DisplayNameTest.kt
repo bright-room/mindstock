@@ -2,7 +2,6 @@ package net.brightroom.mindstock.domain.model.user.profile
 
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.matchers.shouldBe
-import net.brightroom.mindstock.domain.exception.DomainException
 import kotlin.test.Test
 
 class DisplayNameTest {
@@ -14,12 +13,12 @@ class DisplayNameTest {
 
     @Test
     fun `rejects blank`() {
-        shouldThrow<DomainException.DisplayNameBlank> { DisplayName("") }
-        shouldThrow<DomainException.DisplayNameBlank> { DisplayName("   ") }
+        shouldThrow<IllegalArgumentException> { DisplayName("") }
+        shouldThrow<IllegalArgumentException> { DisplayName("   ") }
     }
 
     @Test
     fun `rejects over 100 chars`() {
-        shouldThrow<DomainException.DisplayNameTooLong> { DisplayName("x".repeat(101)) }
+        shouldThrow<IllegalArgumentException> { DisplayName("x".repeat(101)) }
     }
 }
