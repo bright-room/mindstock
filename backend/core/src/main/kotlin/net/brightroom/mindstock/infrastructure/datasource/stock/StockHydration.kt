@@ -7,7 +7,6 @@ import net.brightroom.mindstock.domain.model.stock.Quantity
 import net.brightroom.mindstock.domain.model.stock.movement.Consumption
 import net.brightroom.mindstock.domain.model.stock.movement.Replenishment
 import net.brightroom.mindstock.domain.model.stock.movement.StockMovement
-import net.brightroom.mindstock.domain.model.stock.movement.StockMovementType
 import net.brightroom.mindstock.domain.model.user.profile.Profile
 import kotlin.time.Instant
 

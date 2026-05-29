@@ -1,93 +1,152 @@
-# Plan B: Stock/Movement 整合性 Implementation Plan
+# Plan B: Stock/Movement Integrity Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Stock 集約周辺の型整合性を 4 つの独立変更で改善する: (1) `StockMovement.product` 二重保持を解消、(2) `Stocks` 集合体を新設、(3) `StockMovementType` enum と `type` フィールドを削除、(4) `MinimumStock` を sealed ポリモフィック化。
+**Goal:** Stock 集約周辺の型整合性を 5 つの独立 PR で改善する: (B-1) `StockMovementType` enum と `type` フィールドを domain から削除、(B-2) `StockMovement.product` 二重保持を解消し `replenish/consume` 戻り値を `Unit` 化、(B-3) `MinimumStock` を sealed polymorphic 化、(B-4) `Stocks` 集合体を新設して `ShoppingList` を委譲化、(B-5) Plan A follow-up として `latestNames` aliased subquery を 6 callsite で共通化。
 
-**Architecture:** 各変更は独立 PR として merge 可能。順序は影響範囲の小さい順（Phase 1 → 4）。Phase 4 だけは事前検証（`@JvmInline value class` の `sealed interface` 実装可否、polymorphic serialization の wire 動作）が必要。
+**Architecture:** 5 PR は B-1 → B-2 → B-3 → B-4 → B-5 の順で独立 merge 可能。各 PR で wire 形式の破壊を許容（domain = wire-format 前提、spec §3.1）。B-3 だけは `@JvmInline value class` の `sealed interface` 実装可否を最初の Step で事前検証する。
 
-**Tech Stack:** Kotlin Multiplatform / Exposed v1 / kotlinx-rpc 0.10.2 / kotlinx-serialization / Kotest
+**Tech Stack:** Kotlin 2.x Multiplatform / Exposed v1 / kotlinx-rpc 0.10.2 / kotlinx-serialization / Kotest
 
-**Spec:** `docs/superpowers/specs/2026-05-29-domain-cohesion-coupling-design.md`（所見 2.1 / 2.2 / 4.5 / 4.6 / 4.7）
+**Spec:** `docs/superpowers/specs/2026-05-29-domain-cohesion-coupling-design.md`（§6 Plan B 実装スコープ）
 
-**前提:** Plan A が完了済（`User` → `Profile` への切り替えが反映されたコードを前提とする）。本 Plan は internal refactor なので wire 形式互換性の維持は不要。
+**前提:** Plan A（PR #65）が merge 済。`Profile` が `User` を置換、`DomainException` が削除されたコードを起点とする。本 Plan は internal refactor のため wire 互換性の維持は不要。
 
 ---
 
 ## File Plan
 
-### Phase 1: `MinimumStock` ポリモフィック化（所見 4.6 + 4.7）
+### B-1: StockMovementType 削除（所見 4.5）
 
-**新規/変更:**
-- Modify: `domain/.../model/product/MinimumStock.kt` — `sealed interface` 化、`Set` / `NotSet`
-- Modify: `domain/.../model/product/Product.kt` — `minimumStock: MinimumStock?` → `minimumStock: MinimumStock`（non-null）
-- Modify: `domain/.../model/stock/Stock.kt` — `needsReplenishment()` / `shortage()` のロジックを `MinimumStock` に委譲
-- Modify: `domain/src/commonTest/.../model/product/MinimumStockTest.kt` — `NotSet` / `Set` のテスト
-- Modify: `domain/src/commonTest/.../model/stock/StockTest.kt` — 構築箇所を `MinimumStock.Set(n)` / `MinimumStock.NotSet` に
-- Modify: `domain/src/commonTest/.../model/product/ProductsTest.kt` — 同上
-- Modify: `domain/src/commonTest/.../model/shopping/ShoppingListTest.kt` — 同上
-- Modify: `domain/src/commonTest/.../model/SerializationRoundTripTest.kt` — sealed polymorphic serialization テスト
-- Modify: `backend/core/.../infrastructure/datasource/product/ProductHydration.kt` — `minimumStock?.let { MinimumStock(it) }` → `if (minimumStock != null) MinimumStock.Set(minimumStock) else MinimumStock.NotSet`
-- Modify: `backend/core/.../application/repository/product/ProductRegisterRepository.kt` — `setMinimumStock(... value: MinimumStock)` の型は変わらないが、コール元が `MinimumStock.Set(n)` を渡すように
-- Modify: `backend/core/.../application/service/product/ProductRegisterService.kt` — 同上
-- Modify: `backend/core/.../infrastructure/datasource/product/ProductRegisterDataSource.kt` — `value()` の取り出しを `(value as MinimumStock.Set)()` に変更（書き込みは `Set` のみ受ける契約）
-- Modify: `rpc/.../ProductRpcService.kt` — `setMinimumStock` の引数型確認
-- Modify: `backend/api/.../presentation/rpc/product/ProductController.kt` — 同上
-- Modify: 各 integration test — `MinimumStock(2)` → `MinimumStock.Set(2)` への置換
+- Delete: `domain/src/commonMain/kotlin/net/brightroom/mindstock/domain/model/stock/movement/StockMovementType.kt`
+- Modify: `domain/src/commonMain/kotlin/net/brightroom/mindstock/domain/model/stock/movement/StockMovement.kt` — `val type` 削除
+- Modify: `domain/src/commonMain/kotlin/net/brightroom/mindstock/domain/model/stock/movement/Replenishment.kt` — `@Transient override val type` 削除
+- Modify: `domain/src/commonMain/kotlin/net/brightroom/mindstock/domain/model/stock/movement/Consumption.kt` — 同上
+- Create: `backend/core/src/main/kotlin/net/brightroom/mindstock/infrastructure/datasource/stock/StockMovementType.kt` — infrastructure 内部 enum
+- Modify: `backend/core/src/main/kotlin/net/brightroom/mindstock/infrastructure/datasource/stock/StockMovementsTable.kt` — import 差し替え
+- Modify: `backend/core/src/main/kotlin/net/brightroom/mindstock/infrastructure/datasource/stock/StockHydration.kt` — import 差し替え（シグネチャ不変）
+- Modify: `backend/core/src/main/kotlin/net/brightroom/mindstock/infrastructure/datasource/stock/StockRegisterDataSource.kt` — import 差し替え
+- Modify: `domain/src/commonTest/.../model/SerializationRoundTripTest.kt` — `type` フィールド消滅に追従するアサーションがあれば修正
+- Modify（必要なら）: `domain/src/commonTest/.../model/stock/movement/StockMovementsTest.kt` — `.type` 参照あれば `is Replenishment` 等で書き換え
 
-### Phase 2: `StockMovementType` 廃止（所見 4.5）
+### B-2: StockMovement.product 削除 + replenish/consume を Unit 戻り値に（所見 2.1）
 
-**変更:**
-- Delete: `domain/.../model/stock/movement/StockMovementType.kt`
-- Modify: `domain/.../model/stock/movement/StockMovement.kt` — `val type: StockMovementType` 削除
-- Modify: `domain/.../model/stock/movement/Replenishment.kt` — `@Transient val type` 削除
-- Modify: `domain/.../model/stock/movement/Consumption.kt` — 同上
-- Create: `backend/core/.../infrastructure/datasource/stock/StockMovementType.kt` — infrastructure 層の DB 列 enum として移設（同一名で OK）
-- Modify: `backend/core/.../infrastructure/datasource/stock/StockMovementsTable.kt` — `import` を新位置に
-- Modify: `backend/core/.../infrastructure/datasource/stock/StockDataSource.kt` — `toStockMovement` 内で sealed pattern match に切り替え（既に `when (type) { REPLENISHMENT -> ... ; CONSUMPTION -> ... }` だが、type を Kotlin enum で受けて DB から取り出すコードのみ infrastructure 層に保つ）
-- Modify: `backend/core/.../infrastructure/datasource/stock/StockHydration.kt` — `toStockMovement` のシグネチャ更新
-- Modify: `backend/core/.../infrastructure/datasource/stock/StockRegisterDataSource.kt` — infrastructure の `StockMovementType` を使うように
-- Modify: `domain/src/commonTest/.../model/stock/movement/StockMovementsTest.kt` — `m.type` への参照があれば `m is Replenishment` 等に
-- Modify: `domain/src/commonTest/.../model/SerializationRoundTripTest.kt` — `type` フィールドが消えるので wire 形式期待値を更新
-
-### Phase 3: `StockMovement.product` 削除（所見 2.1）
-
-**変更:**
 - Modify: `domain/.../model/stock/movement/StockMovement.kt` — `val product: Product` 削除
-- Modify: `domain/.../model/stock/movement/Replenishment.kt` — `product` 削除
-- Modify: `domain/.../model/stock/movement/Consumption.kt` — `product` 削除
-- Modify: `backend/core/.../infrastructure/datasource/stock/StockHydration.kt` — `toStockMovement(product, actor, ...)` から `product` 引数を残しつつ、戻り値の `Replenishment/Consumption` 構築で product を渡さない
-- Modify: `backend/core/.../infrastructure/datasource/stock/StockRegisterDataSource.kt` — `Replenishment(product, ...)` → `Replenishment(quantity, occurredAt, by, note)` などコンストラクタ呼び出しを更新
-- Modify: domain test 群: `Replenishment(...)` 構築箇所の引数から `product` を外す
+- Modify: `domain/.../model/stock/movement/Replenishment.kt` — `override val product` 削除
+- Modify: `domain/.../model/stock/movement/Consumption.kt` — `override val product` 削除
+- Modify: `backend/core/.../infrastructure/datasource/stock/StockHydration.kt` — `toStockMovement` の `product` 引数削除、戻り値の構築から product 除去
+- Modify: `backend/core/.../infrastructure/datasource/stock/StockDataSource.kt` — `toStockMovement` 呼び出しを引数変更に追従
+- Modify: `backend/core/.../infrastructure/datasource/stock/StockRegisterDataSource.kt` — `replenish/consume` の戻り値を `Unit` に、`loadProfile` 削除
+- Modify: `backend/core/.../application/repository/stock/StockRegisterRepository.kt` — `replenish/consume` 戻り値 `Unit`
+- Modify: `backend/core/.../application/service/stock/StockRegisterService.kt` — `replenish/consume` 戻り値 `Unit`
+- Modify: `rpc/src/commonMain/kotlin/net/brightroom/mindstock/rpc/StockRpcService.kt` — `replenish/consume` 戻り値 `Unit`
+- Modify: `backend/api/.../presentation/rpc/stock/StockController.kt` — 同上
+- Modify: domain test 群（`product` パラメータ削除、`m.product` 参照削除）
   - `StockMovementsTest.kt`
-  - `ShoppingListTest.kt`
-  - `StockTest.kt`
   - `SerializationRoundTripTest.kt`
-- Modify: `backend/api/.../e2e/stock/StockRpcServiceE2eTest.kt` — 同上
-- Modify: `backend/api/.../infrastructure/datasource/repository/stock/StockDataSourceIntegrationTest.kt` — 同上
-- Modify: `rpc/.../StockRpcService.kt` — `replenish/consume` の戻り値 wire 形式から `product` フィールドが消える（クライアント側の対応も必要）
-- Modify: frontend — `Replenishment` / `Consumption` から `product` を取得している箇所があれば、`Stock.product` 経由に変更
+  - `StockTest.kt`
+  - `ShoppingListTest.kt`
+- Modify: backend/api integration / e2e
+  - `StockDataSourceIntegrationTest.kt`
+  - `StockRegisterDataSourceIntegrationTest.kt`
+  - `StockRpcServiceE2eTest.kt`
+  - `StockControllerTest.kt`
 
-### Phase 4: `Stocks` 集合体新設（所見 2.2）
+### B-3: MinimumStock polymorphic 化（所見 4.6 + 4.7）
 
-**新規/変更:**
-- Create: `domain/.../model/stock/Stocks.kt`
-- Modify: `domain/.../model/shopping/ShoppingList.kt` — `stocks: List<Stock>` → `stocks: Stocks`
-- Modify: `domain/.../model/shopping/ShoppingListItem.kt` — 変更なし
-- Modify: `backend/core/.../application/repository/stock/StockRepository.kt` — `stocksOf(household): List<Stock>` → `stocksOf(household): Stocks`
-- Modify: `backend/core/.../application/service/stock/StockService.kt` — `list(household): List<Stock>` → `list(household): Stocks`
+- Modify: `domain/.../model/product/MinimumStock.kt` — `sealed interface` + `Set` / `NotSet`
+- Modify: `domain/.../model/product/Product.kt` — `minimumStock: MinimumStock?` → `MinimumStock`（non-null）
+- Modify: `domain/.../model/stock/Stock.kt` — `needsReplenishment/shortage` を `minimumStock.isBelow/shortage` に委譲
+- Modify: `backend/core/.../infrastructure/datasource/product/ProductHydration.kt` — null → `NotSet`, non-null → `Set` 分岐
+- Modify: `backend/core/.../application/repository/product/ProductRegisterRepository.kt` — `setMinimumStock(value: MinimumStock.Set)`
+- Modify: `backend/core/.../application/service/product/ProductRegisterService.kt` — 同上
+- Modify: `backend/core/.../infrastructure/datasource/product/ProductRegisterDataSource.kt` — 同上
+- Modify: `rpc/.../ProductRpcService.kt` — `setMinimumStock(value: MinimumStock.Set)`
+- Modify: `backend/api/.../presentation/rpc/product/ProductController.kt` — 同上
+- Modify: domain test 群
+  - `MinimumStockTest.kt`: `Set` / `NotSet` のテストに書き換え
+  - `StockTest.kt`: `MinimumStock.Set(n)` / `MinimumStock.NotSet` 構築
+  - `ShoppingListTest.kt`: 同上
+  - `SerializationRoundTripTest.kt`: polymorphic round-trip テスト
+- Modify: integration / e2e
+  - `ProductRegisterDataSourceIntegrationTest.kt`
+  - `ProductRpcServiceE2eTest.kt`
+
+### B-4: Stocks 集合体新設 + ShoppingList 委譲（所見 2.2）
+
+- Create: `domain/src/commonMain/kotlin/net/brightroom/mindstock/domain/model/stock/Stocks.kt`
+- Modify: `domain/.../model/shopping/ShoppingList.kt` — 引数を `Stocks` に変更、`stocks.needsReplenishment()` に委譲
+- Modify: `backend/core/.../application/repository/stock/StockRepository.kt` — `stocksOf(household): Stocks`
+- Modify: `backend/core/.../application/service/stock/StockService.kt` — `list(household): Stocks`
 - Modify: `backend/core/.../infrastructure/datasource/stock/StockDataSource.kt` — `stocksOf` 戻り値型
-- Modify: `rpc/.../StockRpcService.kt` — `list(householdId): List<Stock>` → `list(householdId): Stocks`
-- Modify: `backend/api/.../presentation/rpc/stock/StockController.kt` — 戻り値型
-- Modify: `domain/src/commonTest/.../model/shopping/ShoppingListTest.kt` — `ShoppingList(stocks: Stocks)` で構築
-- Modify: 各テストで `stocksOf` の戻り値型を扱う箇所
-- Modify: frontend — `Stocks` を受けて `.list` でアクセス
+- Modify: `rpc/.../StockRpcService.kt` — `list(householdId): Stocks`
+- Modify: `backend/api/.../presentation/rpc/stock/StockController.kt` — 同上
+- Modify: domain test
+  - `ShoppingListTest.kt`: `Stocks` 構築
+  - 新規 `domain/src/commonTest/.../model/stock/StocksTest.kt`: `needsReplenishment` のテスト
+- Modify: backend/api integration / e2e
+  - `StockDataSourceIntegrationTest.kt`
+  - `StockRpcServiceE2eTest.kt`
+  - `StockControllerTest.kt`
+
+### B-5: latestNames aliased subquery 共通化（Plan A follow-up #1）
+
+- Create: `backend/core/src/main/kotlin/net/brightroom/mindstock/infrastructure/datasource/user/LatestDisplayNames.kt` — 共通サブクエリヘルパ
+- Modify: `backend/core/.../infrastructure/datasource/user/UserDataSource.kt` — `queryLatest` を共通ヘルパで置換
+- Modify: `backend/core/.../infrastructure/datasource/household/HouseholdDataSource.kt` — `findOf`, `findById` の重複削除
+- Modify: `backend/core/.../infrastructure/datasource/household/HouseholdRegisterDataSource.kt` — `create` の重複削除
+- Modify: `backend/core/.../infrastructure/datasource/stock/StockDataSource.kt` — `movementHistory`, `loadMovementsFor` の重複削除
+
+注: `StockRegisterDataSource.loadProfile` は B-2 で関数ごと削除されるため、B-5 の対象外。
 
 ---
 
-## 新規型の正準シグネチャ
+## 新規/最終型の正準シグネチャ
 
-### `MinimumStock` (Phase 1)
+### `StockMovement`（B-1 / B-2 完了後）
+
+```kotlin
+// domain/.../model/stock/movement/StockMovement.kt
+package net.brightroom.mindstock.domain.model.stock.movement
+
+import kotlinx.serialization.Serializable
+import net.brightroom.mindstock.domain.model.stock.Note
+import net.brightroom.mindstock.domain.model.stock.OccurredAt
+import net.brightroom.mindstock.domain.model.stock.Quantity
+import net.brightroom.mindstock.domain.model.user.profile.Profile
+
+@Serializable
+sealed interface StockMovement {
+    val quantity: Quantity
+    val occurredAt: OccurredAt
+    val actor: Profile
+    val note: Note
+}
+```
+
+```kotlin
+// domain/.../model/stock/movement/Replenishment.kt
+@Serializable
+data class Replenishment(
+    override val quantity: Quantity,
+    override val occurredAt: OccurredAt,
+    override val actor: Profile,
+    override val note: Note,
+) : StockMovement
+```
+
+```kotlin
+// domain/.../model/stock/movement/Consumption.kt
+@Serializable
+data class Consumption(
+    override val quantity: Quantity,
+    override val occurredAt: OccurredAt,
+    override val actor: Profile,
+    override val note: Note,
+) : StockMovement
+```
+
+### `MinimumStock`（B-3 完了後）
 
 ```kotlin
 // domain/.../model/product/MinimumStock.kt
@@ -103,8 +162,8 @@ sealed interface MinimumStock {
 
     @Serializable
     data object NotSet : MinimumStock {
-        override fun isBelow(quantity: Int) = false
-        override fun shortage(quantity: Int) = 0
+        override fun isBelow(quantity: Int): Boolean = false
+        override fun shortage(quantity: Int): Int = 0
     }
 
     @Serializable
@@ -116,27 +175,27 @@ sealed interface MinimumStock {
             require(value >= 0) { "minimum_stock must be >= 0, got $value" }
         }
 
-        override fun isBelow(quantity: Int) = quantity < value
-        override fun shortage(quantity: Int) = (value - quantity).coerceAtLeast(0)
+        override fun isBelow(quantity: Int): Boolean = quantity < value
+        override fun shortage(quantity: Int): Int = (value - quantity).coerceAtLeast(0)
 
         operator fun invoke(): Int = value
     }
 }
 ```
 
-### `Product` (Phase 1 変更後)
+### `Product`（B-3 完了後）
 
 ```kotlin
 @Serializable
 data class Product(
     val id: ProductId,
     val catalogItem: CatalogItem,
-    val minimumStock: MinimumStock,  // ← non-null
+    val minimumStock: MinimumStock,  // non-null
     val archived: Boolean,
 )
 ```
 
-### `Stock` (Phase 1 変更後)
+### `Stock`（B-3 完了後）
 
 ```kotlin
 @Serializable
@@ -152,10 +211,337 @@ data class Stock(
 }
 ```
 
-### `StockMovement` (Phase 2 + Phase 3 変更後)
+### `Stocks`（B-4 新設）
 
 ```kotlin
-// domain/.../model/stock/movement/StockMovement.kt
+// domain/src/commonMain/kotlin/net/brightroom/mindstock/domain/model/stock/Stocks.kt
+package net.brightroom.mindstock.domain.model.stock
+
+import kotlinx.serialization.Serializable
+
+@Serializable
+data class Stocks(
+    val list: List<Stock>,
+) {
+    fun needsReplenishment(): List<Stock> = list.filter { it.needsReplenishment() }
+}
+```
+
+### `ShoppingList`（B-4 完了後）
+
+```kotlin
+package net.brightroom.mindstock.domain.model.shopping
+
+import net.brightroom.mindstock.domain.model.stock.Stocks
+
+class ShoppingList(
+    private val stocks: Stocks,
+) {
+    fun itemsToBuy(): List<ShoppingListItem> =
+        stocks.needsReplenishment().map { ShoppingListItem(it, shortage = it.shortage()) }
+}
+```
+
+### `LatestDisplayNames`（B-5 新設）
+
+```kotlin
+// backend/core/src/main/kotlin/net/brightroom/mindstock/infrastructure/datasource/user/LatestDisplayNames.kt
+package net.brightroom.mindstock.infrastructure.datasource.user
+
+import org.jetbrains.exposed.v1.core.Column
+import org.jetbrains.exposed.v1.core.QueryAlias
+import org.jetbrains.exposed.v1.core.alias
+import org.jetbrains.exposed.v1.core.max
+import org.jetbrains.exposed.v1.jdbc.select
+import kotlin.uuid.ExperimentalUuidApi
+import kotlin.uuid.Uuid
+
+/**
+ * user_id ごとの最新 display name 行を選ぶための aliased subquery。
+ *
+ * 使い方:
+ * ```
+ * val latest = latestDisplayNames()
+ * UsersTable
+ *   .join(latest.alias, JoinType.INNER, onColumn = UsersTable.id, otherColumn = latest.userId)
+ *   .join(UserDisplayNamesTable, JoinType.INNER) {
+ *       (UserDisplayNamesTable.user_id eq latest.userId) and
+ *           (UserDisplayNamesTable.id eq latest.maxId)
+ *   }
+ * ```
+ */
+@OptIn(ExperimentalUuidApi::class)
+internal class LatestDisplayNames(
+    val alias: QueryAlias,
+    val userId: Column<Uuid>,
+    val maxId: Column<Long>,
+)
+
+@OptIn(ExperimentalUuidApi::class)
+internal fun latestDisplayNames(): LatestDisplayNames {
+    val maxIdAlias = UserDisplayNamesTable.id.max().alias("max_name_id")
+    val alias =
+        UserDisplayNamesTable
+            .select(UserDisplayNamesTable.user_id, maxIdAlias)
+            .groupBy(UserDisplayNamesTable.user_id)
+            .alias("latest_names")
+    @Suppress("UNCHECKED_CAST")
+    return LatestDisplayNames(
+        alias = alias,
+        userId = alias[UserDisplayNamesTable.user_id] as Column<Uuid>,
+        maxId = alias[maxIdAlias] as Column<Long>,
+    )
+}
+```
+
+注: 上記の `Column<T>` キャストは Exposed の `QueryAlias.get()` が `Expression<*>` を返すため必要。実装時に正確な型は Exposed v1 のドキュメントと既存コードの型注釈を見て確定する。代替案として `LatestDisplayNames` を関数ではなく `internal fun Query.joinLatestDisplayNames(...)` 形式の拡張で書く方法もあるが、共有したいのは「subquery + JOIN 条件」なので構造体化が素直。
+
+---
+
+## B-1: StockMovementType 廃止
+
+**目的:** sealed `StockMovement` で網羅判別が可能なため `enum StockMovementType` と `type` フィールドは domain で冗長。infrastructure 層には DB の `enumerationByName` のために enum が必要なので、同名で infrastructure に移設する。
+
+### Steps
+
+- [ ] **Step B-1.1: infrastructure 層に `StockMovementType.kt` を新規作成**
+
+`backend/core/src/main/kotlin/net/brightroom/mindstock/infrastructure/datasource/stock/StockMovementType.kt` を作成:
+
+```kotlin
+package net.brightroom.mindstock.infrastructure.datasource.stock
+
+internal enum class StockMovementType {
+    REPLENISHMENT,
+    CONSUMPTION,
+}
+```
+
+- [ ] **Step B-1.2: domain 側 `StockMovementType.kt` を削除**
+
+```bash
+git rm domain/src/commonMain/kotlin/net/brightroom/mindstock/domain/model/stock/movement/StockMovementType.kt
+```
+
+- [ ] **Step B-1.3: domain `StockMovement.kt` から `val type` 削除**
+
+`domain/src/commonMain/kotlin/net/brightroom/mindstock/domain/model/stock/movement/StockMovement.kt`:
+
+```kotlin
+package net.brightroom.mindstock.domain.model.stock.movement
+
+import kotlinx.serialization.Serializable
+import net.brightroom.mindstock.domain.model.product.Product
+import net.brightroom.mindstock.domain.model.stock.Note
+import net.brightroom.mindstock.domain.model.stock.OccurredAt
+import net.brightroom.mindstock.domain.model.stock.Quantity
+import net.brightroom.mindstock.domain.model.user.profile.Profile
+
+@Serializable
+sealed interface StockMovement {
+    val product: Product
+    val quantity: Quantity
+    val occurredAt: OccurredAt
+    val actor: Profile
+    val note: Note
+}
+```
+
+注: `product` は B-2 で削除する。B-1 ではまだ残す。
+
+- [ ] **Step B-1.4: `Replenishment.kt` から `@Transient override val type` 行と `Transient` import 削除**
+
+```kotlin
+package net.brightroom.mindstock.domain.model.stock.movement
+
+import kotlinx.serialization.Serializable
+import net.brightroom.mindstock.domain.model.product.Product
+import net.brightroom.mindstock.domain.model.stock.Note
+import net.brightroom.mindstock.domain.model.stock.OccurredAt
+import net.brightroom.mindstock.domain.model.stock.Quantity
+import net.brightroom.mindstock.domain.model.user.profile.Profile
+
+@Serializable
+data class Replenishment(
+    override val product: Product,
+    override val quantity: Quantity,
+    override val occurredAt: OccurredAt,
+    override val actor: Profile,
+    override val note: Note,
+) : StockMovement
+```
+
+- [ ] **Step B-1.5: `Consumption.kt` も同様に修正**
+
+```kotlin
+package net.brightroom.mindstock.domain.model.stock.movement
+
+import kotlinx.serialization.Serializable
+import net.brightroom.mindstock.domain.model.product.Product
+import net.brightroom.mindstock.domain.model.stock.Note
+import net.brightroom.mindstock.domain.model.stock.OccurredAt
+import net.brightroom.mindstock.domain.model.stock.Quantity
+import net.brightroom.mindstock.domain.model.user.profile.Profile
+
+@Serializable
+data class Consumption(
+    override val product: Product,
+    override val quantity: Quantity,
+    override val occurredAt: OccurredAt,
+    override val actor: Profile,
+    override val note: Note,
+) : StockMovement
+```
+
+- [ ] **Step B-1.6: `StockMovementsTable.kt` の import を新位置に差し替え**
+
+`backend/core/src/main/kotlin/net/brightroom/mindstock/infrastructure/datasource/stock/StockMovementsTable.kt` の冒頭:
+
+```kotlin
+@file:OptIn(kotlin.uuid.ExperimentalUuidApi::class)
+
+package net.brightroom.mindstock.infrastructure.datasource.stock
+
+// 削除: import net.brightroom.mindstock.domain.model.stock.movement.StockMovementType
+// （同じ package の internal enum を使うので import 不要）
+import net.brightroom.mindstock.infrastructure.datasource.HistoryTable
+import net.brightroom.mindstock.infrastructure.datasource.product.ProductsTable
+import net.brightroom.mindstock.infrastructure.datasource.user.UsersTable
+// ... 以下既存通り
+```
+
+`enumerationByName<StockMovementType>("type", 20)` の参照先が同 package の internal enum に変わるが、コードは変更不要。
+
+- [ ] **Step B-1.7: `StockHydration.kt` の import を差し替え**
+
+`backend/core/src/main/kotlin/net/brightroom/mindstock/infrastructure/datasource/stock/StockHydration.kt`:
+
+```kotlin
+package net.brightroom.mindstock.infrastructure.datasource.stock
+
+import net.brightroom.mindstock.domain.model.product.Product
+import net.brightroom.mindstock.domain.model.stock.Note
+import net.brightroom.mindstock.domain.model.stock.OccurredAt
+import net.brightroom.mindstock.domain.model.stock.Quantity
+import net.brightroom.mindstock.domain.model.stock.movement.Consumption
+import net.brightroom.mindstock.domain.model.stock.movement.Replenishment
+import net.brightroom.mindstock.domain.model.stock.movement.StockMovement
+// 削除: import net.brightroom.mindstock.domain.model.stock.movement.StockMovementType
+import net.brightroom.mindstock.domain.model.user.profile.Profile
+import kotlin.time.Instant
+
+internal fun toStockMovement(
+    product: Product,
+    actor: Profile,
+    type: StockMovementType,   // ← infrastructure 層の internal enum
+    quantity: Int,
+    occurredAt: Instant,
+    note: String,
+): StockMovement {
+    val q = Quantity(quantity)
+    val occurred = OccurredAt(occurredAt)
+    val n = Note(note)
+    return when (type) {
+        StockMovementType.REPLENISHMENT -> Replenishment(product, q, occurred, actor, n)
+        StockMovementType.CONSUMPTION -> Consumption(product, q, occurred, actor, n)
+    }
+}
+```
+
+- [ ] **Step B-1.8: `StockRegisterDataSource.kt` の import を差し替え**
+
+```kotlin
+// 削除: import net.brightroom.mindstock.domain.model.stock.movement.StockMovementType
+```
+
+`StockMovementType.REPLENISHMENT` / `CONSUMPTION` の参照は同 package 内の internal enum を解決するので変更不要。
+
+- [ ] **Step B-1.9: domain test の `.type` 参照を確認**
+
+```bash
+grep -rn "\.type\b" domain/src/commonTest --include="*.kt" | grep -iE "movement|replenishment|consumption"
+grep -rn "StockMovementType" --include="*.kt" .
+```
+
+結果に応じて:
+- domain test に `.type` 参照や `StockMovementType.X` 参照があれば `is Replenishment` / `is Consumption` に書き換え（現状の grep では出ない想定）
+
+- [ ] **Step B-1.10: `SerializationRoundTripTest.kt` の wire 期待値の確認**
+
+現在のテストは `roundTrip(value, Stock.serializer()) shouldBe value` 形式で deep equality を見ているだけなので、`type` フィールドが消えても deserialize → re-encode → re-decode の往復が成立すれば通る。**変更不要の想定**。
+
+ただし sealed StockMovement の polymorphic discriminator がデフォルトの `type` キーを使うことを念のため確認する。`kotlinx.serialization` 1.x のデフォルト discriminator key は `"type"`、value はクラス FQN。`val type` フィールド消滅後は名前衝突がないので OK。
+
+`Json { encodeDefaults = true }` の挙動も変わらない（消えたフィールドは encode されない）。
+
+- [ ] **Step B-1.11: ビルドと全テスト**
+
+```bash
+./gradlew clean build
+```
+
+期待: BUILD SUCCESSFUL、全テスト pass。
+
+- [ ] **Step B-1.12: 動作確認の手動テストはスキップ**
+
+wire 形式は変わるが frontend に stock 画面が無いため、動作影響は backend/api e2e の通過のみ。
+
+- [ ] **Step B-1.13: コミット**
+
+```bash
+git add -A
+git commit -m "$(cat <<'EOF'
+refactor(domain): remove redundant StockMovementType from domain
+
+sealed StockMovement で網羅判別が可能なため、StockMovementType enum
+と StockMovement.type フィールドを domain から削除。infrastructure 層
+の DB 列マッピングには引き続き enum が必要なので、同名の internal enum
+を infrastructure/datasource/stock に移設。
+
+Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>
+EOF
+)"
+```
+
+- [ ] **Step B-1.14: PR 作成**
+
+```bash
+git push -u origin HEAD
+gh pr create --title "refactor(domain): remove redundant StockMovementType" --body "$(cat <<'EOF'
+## Summary
+- sealed StockMovement で網羅判別が可能なため、enum StockMovementType と val type フィールドを domain から削除
+- infrastructure 層の DB 列マッピング用に同名 internal enum を infrastructure/datasource/stock に移設
+- wire 形式から `type` フィールドが消える（許容変更、spec §3.1）
+
+## Test plan
+- [x] `./gradlew clean build` 成功
+- [x] domain test 全 pass
+- [x] backend/api e2e 全 pass
+
+Spec: docs/superpowers/specs/2026-05-29-domain-cohesion-coupling-design.md (§4.5 / §6)
+EOF
+)"
+```
+
+---
+
+## B-2: StockMovement.product 削除 + replenish/consume を Unit 戻り値に
+
+**目的:** `Stock.product` と `StockMovement.product` の二重保持を解消。集約ルートに product を一元化することで「全 movement の product が一致」という不変条件を型で表現する。あわせて `replenish/consume` の戻り値を `Unit` 化し、書き込み後の actor Profile lookup（`loadProfile`、過剰 GROUP BY）を自然消滅させる。
+
+### Steps
+
+- [ ] **Step B-2.1: domain `StockMovement.kt` から `val product` 削除**
+
+```kotlin
+package net.brightroom.mindstock.domain.model.stock.movement
+
+import kotlinx.serialization.Serializable
+import net.brightroom.mindstock.domain.model.stock.Note
+import net.brightroom.mindstock.domain.model.stock.OccurredAt
+import net.brightroom.mindstock.domain.model.stock.Quantity
+import net.brightroom.mindstock.domain.model.user.profile.Profile
+
 @Serializable
 sealed interface StockMovement {
     val quantity: Quantity
@@ -163,6 +549,20 @@ sealed interface StockMovement {
     val actor: Profile
     val note: Note
 }
+```
+
+`Product` import を削除。
+
+- [ ] **Step B-2.2: `Replenishment.kt` から `product` 削除**
+
+```kotlin
+package net.brightroom.mindstock.domain.model.stock.movement
+
+import kotlinx.serialization.Serializable
+import net.brightroom.mindstock.domain.model.stock.Note
+import net.brightroom.mindstock.domain.model.stock.OccurredAt
+import net.brightroom.mindstock.domain.model.stock.Quantity
+import net.brightroom.mindstock.domain.model.user.profile.Profile
 
 @Serializable
 data class Replenishment(
@@ -171,6 +571,18 @@ data class Replenishment(
     override val actor: Profile,
     override val note: Note,
 ) : StockMovement
+```
+
+- [ ] **Step B-2.3: `Consumption.kt` も同様**
+
+```kotlin
+package net.brightroom.mindstock.domain.model.stock.movement
+
+import kotlinx.serialization.Serializable
+import net.brightroom.mindstock.domain.model.stock.Note
+import net.brightroom.mindstock.domain.model.stock.OccurredAt
+import net.brightroom.mindstock.domain.model.stock.Quantity
+import net.brightroom.mindstock.domain.model.user.profile.Profile
 
 @Serializable
 data class Consumption(
@@ -181,313 +593,21 @@ data class Consumption(
 ) : StockMovement
 ```
 
-### `Stocks` (Phase 4 新規)
+- [ ] **Step B-2.4: `StockHydration.kt` の `toStockMovement` シグネチャから `product` 削除**
 
 ```kotlin
-// domain/.../model/stock/Stocks.kt
-package net.brightroom.mindstock.domain.model.stock
-
-import kotlinx.serialization.Serializable
-
-@Serializable
-data class Stocks(
-    val list: List<Stock>,
-) {
-    fun asList(): List<Stock> = list.toList()
-    val size: Int get() = list.size
-}
-```
-
-注: `asList()` / `size` の去就は Plan C で扱う（4.1）。本 Plan では他の集合型と同じ形を踏襲する。
-
----
-
-## Phase 1: `MinimumStock` ポリモフィック化
-
-**事前検証:**
-
-1. `@JvmInline value class` が `sealed interface` を実装できるか
-2. `@Serializable` polymorphic serialization の wire 形式（type discriminator）が `rpc` / `frontend` 経由で正しく動作するか
-
-### Steps
-
-- [ ] **Step 1.1: 検証用に最小例で `@JvmInline value class` の sealed 実装を試す**
-
-ローカルで `domain/src/commonMain/kotlin/.../Sandbox.kt`（一時ファイル）に書いてビルドし、エラーが出なければ削除:
-
-```kotlin
-@kotlinx.serialization.Serializable
-sealed interface Foo {
-    @kotlinx.serialization.Serializable
-    data object Bar : Foo
-    @kotlinx.serialization.Serializable
-    @kotlin.jvm.JvmInline
-    value class Baz(val v: Int) : Foo
-}
-```
-
-```bash
-./gradlew :domain:build
-```
-
-期待: BUILD SUCCESSFUL。失敗したら本 Plan の Phase 1 は中断、所見 4.6 を見直し（`data class Set(val value: Int)` で代替 = non-value-class）。
-
-ファイル削除:
-```bash
-rm domain/src/commonMain/kotlin/net/brightroom/mindstock/domain/Sandbox.kt
-```
-
-- [ ] **Step 1.2: `MinimumStock.kt` を sealed interface に書き換え**
-
-「新規型の正準シグネチャ」セクションの `MinimumStock` をそのまま書き出す。
-
-- [ ] **Step 1.3: `Product.kt` の `minimumStock` を non-null に**
-
-```kotlin
-@Serializable
-data class Product(
-    val id: ProductId,
-    val catalogItem: CatalogItem,
-    val minimumStock: MinimumStock,
-    val archived: Boolean,
-)
-```
-
-- [ ] **Step 1.4: `Stock.kt` の `needsReplenishment` / `shortage` を委譲形に**
-
-「新規型の正準シグネチャ」セクションの `Stock` の通り書き換える。
-
-- [ ] **Step 1.5: `ProductHydration.kt` を `Set` / `NotSet` に分岐**
-
-```kotlin
-@OptIn(ExperimentalUuidApi::class)
-internal fun hydrateProduct(
-    id: Uuid,
-    catalogItem: CatalogItem,
-    minimumStock: Int?,
-    archived: Boolean,
-): Product =
-    Product(
-        id = ProductId(id),
-        catalogItem = catalogItem,
-        minimumStock = minimumStock?.let { MinimumStock.Set(it) } ?: MinimumStock.NotSet,
-        archived = archived,
-    )
-```
-
-- [ ] **Step 1.6: `ProductRegisterDataSource.kt` の `setMinimumStock` を更新**
-
-書き込み側は `Set` のみ受け取る契約とする（`NotSet` を書き込む意味はない、別 API で「unset」を表現する場合は別途）:
-
-```kotlin
-override fun setMinimumStock(
-    product: Product,
-    value: MinimumStock.Set,   // ← Set のみ受け取る
-    editedBy: UserId,
-) {
-    ProductMinimumStocksTable.insert {
-        it[product_id] = product.id()
-        it[minimum_stock] = value()
-        it[edited_by] = editedBy()
-    }
-}
-```
-
-`ProductRegisterRepository.kt` のインタフェースも `value: MinimumStock.Set` に変更。`ProductRegisterService.kt` も追従。
-
-注: 「unset」を表現する API が必要なら別 Plan で追加。本 Plan の範囲外。
-
-- [ ] **Step 1.7: 各テストの `MinimumStock(n)` 構築を `MinimumStock.Set(n)` に置換**
-
-確認コマンド:
-```bash
-grep -rn "MinimumStock(" --include="*.kt" .
-```
-
-対象:
-- `MinimumStockTest.kt`: テストを `MinimumStock.Set(0)` / `MinimumStock.Set(-1)` 等に書き換え、`NotSet` のテストも追加（`isBelow(any)=false`, `shortage(any)=0`）
-- `StockTest.kt`: `Product(..., minimumStock = MinimumStock.Set(3), ...)` または `MinimumStock.NotSet`
-- `ProductsTest.kt`: 同上
-- `ShoppingListTest.kt`: 同上
-- `SerializationRoundTripTest.kt`: `MinimumStock.Set(3)` / `MinimumStock.NotSet` のラウンドトリップを両方確認
-- `ProductRegisterDataSourceIntegrationTest.kt`: `MinimumStock(2)` → `MinimumStock.Set(2)`
-- `ProductDataSourceIntegrationTest.kt`: 必要なら同上
-- `ProductRpcServiceE2eTest.kt`: 同上
-
-- [ ] **Step 1.8: ビルドと全テスト**
-
-```bash
-./gradlew clean build
-```
-
-期待: BUILD SUCCESSFUL、全テスト pass。
-
-- [ ] **Step 1.9: 動作確認（任意・推奨）**
-
-ローカル backend を起動し、frontend で最低在庫が未設定の Product を表示・最低在庫を設定する操作を試す。polymorphic JSON が正しく往復することを目視確認。
-
-- [ ] **Step 1.10: コミット**
-
-```bash
-git add -A
-git commit -m "$(cat <<'EOF'
-refactor(domain): make MinimumStock polymorphic (Set/NotSet)
-
-MinimumStock を sealed interface に変え、null で「未設定」を表現するの
-ではなくドメイン型で表現する。Stock 側のロジックを MinimumStock 側に
-委譲し、needsReplenishment / shortage の重複ロジックを解消。
-
-書き込み API は MinimumStock.Set のみ受け取る契約に。
-
-Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>
-EOF
-)"
-```
-
----
-
-## Phase 2: `StockMovementType` 廃止
-
-**目的:** sealed の網羅判別で型情報が取れる以上、`StockMovementType` enum と `StockMovement.type` フィールドは冗長。infrastructure 層は DB の `enumerationByName` に依然として Kotlin enum が必要なので、enum 自体は **infrastructure 層に移設** する。
-
-### Steps
-
-- [ ] **Step 2.1: infrastructure 層に `StockMovementType.kt` を新規作成**
-
-```kotlin
-// backend/core/src/main/kotlin/net/brightroom/mindstock/infrastructure/datasource/stock/StockMovementType.kt
 package net.brightroom.mindstock.infrastructure.datasource.stock
 
-internal enum class StockMovementType {
-    REPLENISHMENT,
-    CONSUMPTION,
-}
-```
+import net.brightroom.mindstock.domain.model.stock.Note
+import net.brightroom.mindstock.domain.model.stock.OccurredAt
+import net.brightroom.mindstock.domain.model.stock.Quantity
+import net.brightroom.mindstock.domain.model.stock.movement.Consumption
+import net.brightroom.mindstock.domain.model.stock.movement.Replenishment
+import net.brightroom.mindstock.domain.model.stock.movement.StockMovement
+import net.brightroom.mindstock.domain.model.user.profile.Profile
+import kotlin.time.Instant
 
-注: `@Serializable` 不要（infrastructure 内でのみ使う）。
-
-- [ ] **Step 2.2: domain の `StockMovementType.kt` を削除**
-
-```bash
-git rm domain/src/commonMain/kotlin/net/brightroom/mindstock/domain/model/stock/movement/StockMovementType.kt
-```
-
-- [ ] **Step 2.3: domain の `StockMovement.kt` から `type` 削除**
-
-```kotlin
-@Serializable
-sealed interface StockMovement {
-    val product: Product        // ← Phase 3 で削除
-    val quantity: Quantity
-    val occurredAt: OccurredAt
-    val actor: Profile
-    val note: Note
-    // type 削除
-}
-```
-
-`Replenishment.kt` / `Consumption.kt` も `@Transient override val type` 行を削除。`import kotlinx.serialization.Transient` も不要なら削除。
-
-- [ ] **Step 2.4: `StockMovementsTable.kt` の import を新位置に**
-
-```kotlin
-import net.brightroom.mindstock.infrastructure.datasource.stock.StockMovementType
-```
-
-- [ ] **Step 2.5: `StockHydration.kt` の `toStockMovement` シグネチャを infrastructure enum で受ける**
-
-```kotlin
 internal fun toStockMovement(
-    product: Product,
-    actor: Profile,
-    type: StockMovementType,   // ← infrastructure 層の enum
-    quantity: Int,
-    occurredAt: Instant,
-    note: String,
-): StockMovement { ... }
-```
-
-`when (type)` の各 branch は変わらない。
-
-- [ ] **Step 2.6: `StockDataSource.kt` の呼び出し側を確認**
-
-`row[StockMovementsTable.type]` は infrastructure 層の enum を返すので変更不要。
-
-- [ ] **Step 2.7: `StockRegisterDataSource.kt` の `insertMovement` も infrastructure 層 enum を使用**
-
-`import net.brightroom.mindstock.infrastructure.datasource.stock.StockMovementType` に変更。
-
-- [ ] **Step 2.8: テストで `m.type` への参照を除去**
-
-```bash
-grep -rn "\.type" domain/src/commonTest --include="*.kt" | grep -i movement
-```
-
-`StockMovementsTest.kt` 等で `m.type == StockMovementType.REPLENISHMENT` のような比較があれば `m is Replenishment` に。
-
-- [ ] **Step 2.9: `SerializationRoundTripTest.kt` の wire 形式期待値を更新**
-
-`type` フィールドが消えるので、JSON 形式チェック箇所があれば修正。`@Serializable sealed` の discriminator (`type` という JSON field 名がデフォルト) と衝突しないことも確認（StockMovement が sealed の discriminator として `type` を使うが、`@JsonClassDiscriminator` を指定しない限りクラス名が入る）。詳細は kotlinx-serialization 仕様に依存。
-
-- [ ] **Step 2.10: ビルドと全テスト**
-
-```bash
-./gradlew clean build
-```
-
-- [ ] **Step 2.11: コミット**
-
-```bash
-git add -A
-git commit -m "$(cat <<'EOF'
-refactor(domain): remove redundant StockMovementType from domain
-
-sealed StockMovement で網羅判別が可能なため、enum StockMovementType と
-val type フィールドを domain から削除。infrastructure 層の DB 列マッピング
-には引き続き必要なので、infrastructure パッケージに同名 enum を移設。
-
-Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>
-EOF
-)"
-```
-
----
-
-## Phase 3: `StockMovement.product` 削除
-
-**目的:** `Stock.product` と `StockMovement.product` の二重保持を解消。Stock 集約ルートに product を一元化することで「全 movement の product が一致」という不変条件を構造で表現する。
-
-### Steps
-
-- [ ] **Step 3.1: domain の `StockMovement.kt` から `product` 削除**
-
-```kotlin
-@Serializable
-sealed interface StockMovement {
-    val quantity: Quantity
-    val occurredAt: OccurredAt
-    val actor: Profile
-    val note: Note
-}
-```
-
-- [ ] **Step 3.2: `Replenishment.kt` と `Consumption.kt` から `product` 削除**
-
-```kotlin
-@Serializable
-data class Replenishment(
-    override val quantity: Quantity,
-    override val occurredAt: OccurredAt,
-    override val actor: Profile,
-    override val note: Note,
-) : StockMovement
-```
-
-- [ ] **Step 3.3: `StockHydration.kt` の構築箇所から `product` を除く**
-
-```kotlin
-internal fun toStockMovement(
-    product: Product,   // ← この引数自体は呼び出し側のコンテキストとして残しても良いが、戻り値からは消える
     actor: Profile,
     type: StockMovementType,
     quantity: Int,
@@ -504,145 +624,890 @@ internal fun toStockMovement(
 }
 ```
 
-注: `product` 引数を完全に削除しても良いが、呼び出し側のコード読解性のため残す選択肢もある。**削除する方を推奨**（不要引数）:
+`Product` import を削除。
+
+- [ ] **Step B-2.5: `StockDataSource.kt` の `toStockMovement` 呼び出しを更新**
+
+`movementHistory` 内:
 
 ```kotlin
-internal fun toStockMovement(
-    actor: Profile,
-    type: StockMovementType,
-    quantity: Int,
-    occurredAt: Instant,
-    note: String,
-): StockMovement { ... }
+toStockMovement(
+    actor = row.toProfile(),
+    type = row[StockMovementsTable.type],
+    quantity = row[StockMovementsTable.quantity],
+    occurredAt = row[StockMovementsTable.occurred_at].toInstant().toKotlinInstant(),
+    note = row[StockMovementsTable.note],
+)
 ```
 
-呼び出し側 `StockDataSource.kt` も追従:
+`loadMovementsFor` 内（productByUuid のままで OK、戻り値 `Pair<Uuid, StockMovement>` のキー側で product を結びつける）:
 
 ```kotlin
-toStockMovement(actor = ..., type = ..., quantity = ..., occurredAt = ..., note = ...)
-```
-
-- [ ] **Step 3.4: `StockRegisterDataSource.kt` の構築を更新**
-
-```kotlin
-override fun replenish(
-    product: Product,
-    quantity: Quantity,
-    occurredAt: OccurredAt,
-    by: UserId,
-    note: Note,
-): Replenishment {
-    insertMovement(product, quantity, occurredAt, by, note, StockMovementType.REPLENISHMENT)
-    // product は INSERT 用、Replenishment 自体には不要
-    val byProfile = TODO_LOAD_PROFILE   // ← Plan A 完了後は actor: UserId なので、戻り値の actor を Profile で組むには別途 lookup が必要
-    return Replenishment(quantity, occurredAt, byProfile, note)
+.map { row ->
+    val productUuid = row[StockMovementsTable.product_id]
+    // productByUuid は呼び出し側で stock 構築用に保持しているが、movement 構築には不要
+    productUuid to
+        toStockMovement(
+            actor = row.toProfile(),
+            type = row[StockMovementsTable.type],
+            quantity = row[StockMovementsTable.quantity],
+            occurredAt = row[StockMovementsTable.occurred_at].toInstant().toKotlinInstant(),
+            note = row[StockMovementsTable.note],
+        )
 }
 ```
 
-**重要な追加判断**: `StockRegisterRepository.replenish/consume` の戻り値は `Replenishment` / `Consumption` だが、Plan A で `actor: Profile` に変更されている。書き込み API は `UserId` を受けるので、戻り値の Replenishment に Profile を埋めるには追加クエリが必要。
+`productByUuid` の参照箇所は `loadMovementsFor` のみで、戻り値の Map<Uuid, List<StockMovement>> に product を埋め込む必要はなくなったので `productByUuid` 変数は削除可能。
 
-解決オプション:
-
-- **(a) 戻り値を `Unit` または `StockMovementId` に変更**（書き込み後のフル movement 取得は読み込み API に任せる）
-- **(b) 戻り値の actor を `Profile` で組むため、書き込み直後に `findProfileById(by)` を呼ぶ**
-- **(c) Plan A の決定を見直し、書き込み API も `Profile` を受ける**
-
-**推奨: (a)**。書き込み戻り値で全部詰めて返す必要は薄い。Controller 層で「成功 → クライアントに何を返すか」の判断をする。
-
-実装:
+- [ ] **Step B-2.6: `StockRegisterDataSource.kt` の `replenish/consume` を Unit 戻り値に、`loadProfile` を削除**
 
 ```kotlin
-override fun replenish(
-    product: Product,
-    quantity: Quantity,
-    occurredAt: OccurredAt,
-    by: UserId,
-    note: Note,
+package net.brightroom.mindstock.infrastructure.datasource.stock
+
+import net.brightroom.mindstock.application.repository.stock.StockRegisterRepository
+import net.brightroom.mindstock.domain.model.product.Product
+import net.brightroom.mindstock.domain.model.stock.Note
+import net.brightroom.mindstock.domain.model.stock.OccurredAt
+import net.brightroom.mindstock.domain.model.stock.Quantity
+import net.brightroom.mindstock.domain.model.user.UserId
+import org.jetbrains.exposed.v1.jdbc.insert
+import java.time.ZoneOffset
+import kotlin.time.toJavaInstant
+import kotlin.uuid.ExperimentalUuidApi
+
+@OptIn(ExperimentalUuidApi::class)
+class StockRegisterDataSource : StockRegisterRepository {
+    override fun replenish(
+        product: Product,
+        quantity: Quantity,
+        occurredAt: OccurredAt,
+        by: UserId,
+        note: Note,
+    ) {
+        insertMovement(product, quantity, occurredAt, by, note, StockMovementType.REPLENISHMENT)
+    }
+
+    override fun consume(
+        product: Product,
+        quantity: Quantity,
+        occurredAt: OccurredAt,
+        by: UserId,
+        note: Note,
+    ) {
+        insertMovement(product, quantity, occurredAt, by, note, StockMovementType.CONSUMPTION)
+    }
+
+    private fun insertMovement(
+        product: Product,
+        quantity: Quantity,
+        occurredAt: OccurredAt,
+        actor: UserId,
+        note: Note,
+        type: StockMovementType,
+    ) {
+        StockMovementsTable.insert {
+            it[product_id] = product.id()
+            it[StockMovementsTable.type] = type
+            it[StockMovementsTable.quantity] = quantity()
+            it[occurred_at] = occurredAt().toJavaInstant().atOffset(ZoneOffset.UTC)
+            it[acted_by] = actor()
+            it[StockMovementsTable.note] = note()
+        }
+    }
+}
+```
+
+Removed: `loadProfile`, `Replenishment` / `Consumption` / `Profile` / `latestNames` 関連 import。
+
+- [ ] **Step B-2.7: `StockRegisterRepository.kt` の戻り値を `Unit` に**
+
+```kotlin
+package net.brightroom.mindstock.application.repository.stock
+
+import net.brightroom.mindstock.domain.model.product.Product
+import net.brightroom.mindstock.domain.model.stock.Note
+import net.brightroom.mindstock.domain.model.stock.OccurredAt
+import net.brightroom.mindstock.domain.model.stock.Quantity
+import net.brightroom.mindstock.domain.model.user.UserId
+
+interface StockRegisterRepository {
+    fun replenish(
+        product: Product,
+        quantity: Quantity,
+        occurredAt: OccurredAt,
+        by: UserId,
+        note: Note,
+    )
+
+    fun consume(
+        product: Product,
+        quantity: Quantity,
+        occurredAt: OccurredAt,
+        by: UserId,
+        note: Note,
+    )
+}
+```
+
+import から `Replenishment` / `Consumption` を削除。
+
+- [ ] **Step B-2.8: `StockRegisterService.kt` も戻り値を `Unit` に**
+
+```kotlin
+class StockRegisterService(
+    private val stockRegisterRepository: StockRegisterRepository,
 ) {
-    insertMovement(product, quantity, occurredAt, by, note, StockMovementType.REPLENISHMENT)
+    fun replenish(
+        product: Product,
+        quantity: Quantity,
+        occurredAt: OccurredAt,
+        by: UserId,
+        note: Note,
+    ) {
+        stockRegisterRepository.replenish(product, quantity, occurredAt, by, note)
+    }
+
+    fun consume(
+        product: Product,
+        quantity: Quantity,
+        occurredAt: OccurredAt,
+        by: UserId,
+        note: Note,
+    ) {
+        stockRegisterRepository.consume(product, quantity, occurredAt, by, note)
+    }
 }
 ```
 
-`StockRegisterRepository.kt` インタフェースも `Unit` 戻り値に。`StockRegisterService.kt`, `StockController.kt`, `StockRpcService.kt` も追従。RPC レイヤは `Unit` を返すか、新規 movement の id を返すか。**シンプルに `Unit`** で進め、クライアント側は次の `movementHistory` でリフレッシュする方針。
+実装ファイルの現状確認: `backend/core/src/main/kotlin/net/brightroom/mindstock/application/service/stock/StockRegisterService.kt` を読んで、上記の通りに更新（`Replenishment` / `Consumption` import 削除）。
 
-注: この変更は所見 2.1 から外れるが、Phase 3 の整合性確保上必要。spec の Section 5 に追加する形でカバー。
-
-- [ ] **Step 3.5: domain test の `Replenishment(product, ...)` 構築箇所を全て更新**
-
-確認コマンド:
-```bash
-grep -rn "Replenishment(" --include="*.kt" .
-grep -rn "Consumption(" --include="*.kt" .
-```
-
-各箇所で `product = ...,` 行を削除。
-
-- [ ] **Step 3.6: backend/api E2E test 更新**
-
-`StockRpcServiceE2eTest.kt`, `StockDataSourceIntegrationTest.kt` で:
-- `Replenishment(product = ..., ...)` から `product` 削除
-- `replenish` の戻り値が `Unit` になることに合わせて検証ロジック変更（`movementHistory` で取得して assert する形）
-
-- [ ] **Step 3.7: frontend で `Replenishment.product` / `Consumption.product` 参照箇所を更新**
-
-確認コマンド:
-```bash
-grep -rn "\.product" frontend/src --include="*.kt" | grep -iE "replenishment|consumption|movement"
-```
-
-該当箇所は `Stock.product`（外側コンテキスト）から取得する形に変更。
-
-- [ ] **Step 3.8: rpc `StockRpcService.kt` の戻り値型を Unit に**
+- [ ] **Step B-2.9: `StockRpcService.kt` の戻り値を `Unit` に**
 
 ```kotlin
+package net.brightroom.mindstock.rpc
+
+import kotlinx.rpc.annotations.Rpc
+import net.brightroom.mindstock.domain.model.household.HouseholdId
+import net.brightroom.mindstock.domain.model.product.ProductId
+import net.brightroom.mindstock.domain.model.stock.Note
+import net.brightroom.mindstock.domain.model.stock.OccurredAt
+import net.brightroom.mindstock.domain.model.stock.Quantity
+import net.brightroom.mindstock.domain.model.stock.Stock
+import net.brightroom.mindstock.domain.model.stock.movement.StockMovements
+
 @Rpc
 interface StockRpcService {
     suspend fun get(productId: ProductId): Stock
-    suspend fun list(householdId: HouseholdId): List<Stock>   // ← Phase 4 で Stocks に
-    suspend fun movementHistory(productId: ProductId, limit: Int): StockMovements
-    suspend fun replenish(productId: ProductId, qty: Quantity, occurredAt: OccurredAt, note: Note)
-    suspend fun consume(productId: ProductId, qty: Quantity, occurredAt: OccurredAt, note: Note)
+
+    suspend fun list(householdId: HouseholdId): List<Stock>
+
+    suspend fun movementHistory(
+        productId: ProductId,
+        limit: Int,
+    ): StockMovements
+
+    suspend fun replenish(
+        productId: ProductId,
+        qty: Quantity,
+        occurredAt: OccurredAt,
+        note: Note,
+    )
+
+    suspend fun consume(
+        productId: ProductId,
+        qty: Quantity,
+        occurredAt: OccurredAt,
+        note: Note,
+    )
 }
 ```
 
-- [ ] **Step 3.9: ビルドと全テスト**
+import から `Replenishment` / `Consumption` を削除。`list` の `List<Stock>` は B-4 で `Stocks` に変える。
+
+- [ ] **Step B-2.10: `StockController.kt` の戻り値を `Unit` に**
+
+`replenish` / `consume` のメソッドシグネチャから戻り値型を削除し、body の `return` 形を消す:
+
+```kotlin
+override suspend fun replenish(
+    productId: ProductId,
+    qty: Quantity,
+    occurredAt: OccurredAt,
+    note: Note,
+) {
+    tx(database) {
+        // TODO(authz): verify actor can modify product $productId (member of its household)
+        val product =
+            productRepository.findById(productId)
+                ?: throw NotFoundException("product not found: $productId")
+        stockRegisterService.replenish(product, qty, occurredAt, actor.userId, note)
+    }
+}
+
+override suspend fun consume(
+    productId: ProductId,
+    qty: Quantity,
+    occurredAt: OccurredAt,
+    note: Note,
+) {
+    tx(database) {
+        // TODO(authz): verify actor can modify product $productId (member of its household)
+        val product =
+            productRepository.findById(productId)
+                ?: throw NotFoundException("product not found: $productId")
+        stockRegisterService.consume(product, qty, occurredAt, actor.userId, note)
+    }
+}
+```
+
+import から `Replenishment` / `Consumption` を削除。
+
+- [ ] **Step B-2.11: domain test 群を更新**
+
+確認コマンド:
+
+```bash
+grep -rn "Replenishment(\|Consumption(" --include="*.kt" .
+grep -rn "\.product\b" --include="*.kt" domain backend/api/src/test backend/core/src/main | grep -iE "movement|replenishment|consumption"
+```
+
+更新対象 domain test:
+
+`domain/src/commonTest/.../model/stock/movement/StockMovementsTest.kt`:
+
+```kotlin
+private fun replenish(qty: Int) = Replenishment(Quantity(qty), occurred(), profile, Note(""))
+private fun consume(qty: Int) = Consumption(Quantity(qty), occurred(), profile, Note(""))
+```
+
+import `Product` などが不要になれば削除。`product` フィールド削除に追従。
+
+`domain/src/commonTest/.../model/stock/StockTest.kt`:
+
+```kotlin
+private fun replenish(
+    product: Product,
+    qty: Int,
+) = Replenishment(Quantity(qty), occurred(), profile, Note(""))
+
+private fun consume(
+    product: Product,
+    qty: Int,
+) = Consumption(Quantity(qty), occurred(), profile, Note(""))
+```
+
+注: ヘルパ引数の `product` は Stock を構築するために残す（Stock の側で product を持つ）。Replenishment 側からは消す。
+
+`domain/src/commonTest/.../model/shopping/ShoppingListTest.kt`:
+
+```kotlin
+val movements =
+    if (currentReplenished > 0) {
+        listOf(
+            Replenishment(
+                quantity = Quantity(currentReplenished),
+                occurredAt = OccurredAt(Instant.parse("2026-05-23T10:00:00Z"), now),
+                actor = profile,
+                note = Note(""),
+            ),
+        )
+    } else {
+        emptyList()
+    }
+```
+
+`product = product,` 行を削除。
+
+`domain/src/commonTest/.../model/SerializationRoundTripTest.kt`:
+
+```kotlin
+private val replenishment: StockMovement =
+    Replenishment(
+        quantity = Quantity(5),
+        occurredAt = OccurredAt(Instant.parse("2026-05-25T10:00:00Z")),
+        actor = profile,
+        note = Note(""),
+    )
+
+private val consumption: StockMovement =
+    Consumption(
+        quantity = Quantity(1),
+        occurredAt = OccurredAt(Instant.parse("2026-05-25T11:00:00Z")),
+        actor = profile,
+        note = Note("breakfast"),
+    )
+```
+
+`product = product,` 行を削除。
+
+- [ ] **Step B-2.12: backend/api integration / e2e test を更新**
+
+```bash
+grep -rn "Replenishment(\|Consumption(" backend/api/src/test --include="*.kt"
+```
+
+`StockDataSourceIntegrationTest.kt`, `StockRegisterDataSourceIntegrationTest.kt`, `StockRpcServiceE2eTest.kt`, `StockControllerTest.kt` で:
+
+1. `Replenishment(product, ...)` / `Consumption(product, ...)` の `product` 引数を削除
+2. `replenish(...)` / `consume(...)` の戻り値を期待しているテストは、書き込み後 `movementHistory(...)` で再取得して assert するように変更（または `stockOf(product)` で current quantity を見る）
+
+例: `StockRegisterDataSourceIntegrationTest.kt` で「補充後の Replenishment 戻り値を assert」している箇所:
+
+```kotlin
+// Before
+val result = stockRegister.replenish(product, Quantity(3), occurredAt, user.userId, Note(""))
+result.quantity() shouldBe 3
+
+// After
+stockRegister.replenish(product, Quantity(3), occurredAt, user.userId, Note(""))
+val history = stockData.movementHistory(product, limit = 1)
+history.list.size shouldBe 1
+val movement = history.list.single()
+movement.shouldBeInstanceOf<Replenishment>()
+movement.quantity() shouldBe 3
+```
+
+`StockControllerTest.kt` でも同様の方針。
+
+- [ ] **Step B-2.13: ビルドと全テスト**
 
 ```bash
 ./gradlew clean build
 ```
 
-- [ ] **Step 3.10: コミット**
+期待: BUILD SUCCESSFUL、全テスト pass。
+
+- [ ] **Step B-2.14: コミット**
 
 ```bash
 git add -A
 git commit -m "$(cat <<'EOF'
-refactor(domain): remove redundant product field from StockMovement
+refactor(domain): remove redundant product from StockMovement
 
 Stock.product と StockMovement.product の二重保持を解消。集約ルートに
 product を一元化することで「全 movement の product が Stock.product と
 一致」という不変条件を型で表現する。
 
-副次変更: StockRegisterRepository の replenish/consume の戻り値を Unit
-に。書き込み後の movement 詳細はクライアントが movementHistory で再取得
-する方針。
+副次変更: StockRegisterRepository.replenish/consume の戻り値を Unit に。
+書き込み直後の actor Profile lookup (loadProfile の過剰 GROUP BY) を
+自然消滅させ、必要なクライアントは movementHistory を再取得する方針。
 
 Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>
 EOF
 )"
 ```
 
+- [ ] **Step B-2.15: PR 作成**
+
+```bash
+git push -u origin HEAD
+gh pr create --title "refactor(domain): remove product field from StockMovement" --body "$(cat <<'EOF'
+## Summary
+- Stock.product と StockMovement.product の二重保持を解消（集約ルートに一元化）
+- replenish/consume の戻り値を Unit に（loadProfile の過剰 GROUP BY が自然消滅）
+- wire 形式から `product` フィールドが消える、戻り値も消える（許容変更、spec §3.1）
+
+## Test plan
+- [x] `./gradlew clean build` 成功
+- [x] domain test 全 pass
+- [x] backend/api integration/e2e 全 pass
+
+Spec: docs/superpowers/specs/2026-05-29-domain-cohesion-coupling-design.md (§2.1 / §6)
+EOF
+)"
+```
+
 ---
 
-## Phase 4: `Stocks` 集合体新設
+## B-3: MinimumStock polymorphic 化
 
-**目的:** `Products / CatalogItems / HouseholdMembers / StockMovements` と並ぶ集合体として `Stocks` を導入。`ShoppingList` の引数も `Stocks` に統一。
+**目的:** `Product.minimumStock` が null で「未設定」を表現しているのを sealed `MinimumStock { NotSet, Set }` に変える。Stock 側の `minimumStock?.let { ... }` 二重ロジックを `minimumStock.isBelow/shortage` に委譲。
 
 ### Steps
 
-- [ ] **Step 4.1: `Stocks.kt` を新規作成**
+- [ ] **Step B-3.1: 事前検証 — `@JvmInline value class` が `sealed interface` を実装できるか**
+
+`domain/src/commonMain/kotlin/net/brightroom/mindstock/domain/Sandbox.kt` を一時的に作成:
 
 ```kotlin
-// domain/src/commonMain/kotlin/net/brightroom/mindstock/domain/model/stock/Stocks.kt
+package net.brightroom.mindstock.domain
+
+import kotlinx.serialization.Serializable
+import kotlin.jvm.JvmInline
+
+@Serializable
+internal sealed interface SandboxFoo {
+    @Serializable
+    data object Bar : SandboxFoo
+
+    @Serializable
+    @JvmInline
+    value class Baz(val v: Int) : SandboxFoo
+}
+```
+
+ビルドして検証:
+
+```bash
+./gradlew :domain:compileKotlinJvm :domain:compileKotlinJs
+```
+
+期待: BUILD SUCCESSFUL。失敗した場合は本 Plan の Phase B-3 を中断し、代替案（`data class Set(val value: Int) : MinimumStock` で `@JvmInline` を諦め）に切り替える。
+
+検証完了後ファイル削除:
+
+```bash
+rm domain/src/commonMain/kotlin/net/brightroom/mindstock/domain/Sandbox.kt
+```
+
+- [ ] **Step B-3.2: TDD — `MinimumStockTest.kt` を書き換える（先にテストを更新して赤に）**
+
+`domain/src/commonTest/kotlin/net/brightroom/mindstock/domain/model/product/MinimumStockTest.kt`:
+
+```kotlin
+package net.brightroom.mindstock.domain.model.product
+
+import io.kotest.assertions.throwables.shouldThrow
+import io.kotest.matchers.booleans.shouldBeFalse
+import io.kotest.matchers.booleans.shouldBeTrue
+import io.kotest.matchers.shouldBe
+import kotlin.test.Test
+
+class MinimumStockTest {
+    @Test
+    fun `Set accepts zero`() {
+        MinimumStock.Set(0)()
+            .shouldBe(0)
+    }
+
+    @Test
+    fun `Set accepts positive`() {
+        MinimumStock.Set(10)()
+            .shouldBe(10)
+    }
+
+    @Test
+    fun `Set rejects negative`() {
+        shouldThrow<IllegalArgumentException> { MinimumStock.Set(-1) }
+    }
+
+    @Test
+    fun `Set isBelow is true when quantity is strictly less than value`() {
+        MinimumStock.Set(5).isBelow(4).shouldBeTrue()
+        MinimumStock.Set(5).isBelow(5).shouldBeFalse()
+        MinimumStock.Set(5).isBelow(6).shouldBeFalse()
+    }
+
+    @Test
+    fun `Set shortage is value minus quantity coerced at zero`() {
+        MinimumStock.Set(5).shortage(2) shouldBe 3
+        MinimumStock.Set(5).shortage(5) shouldBe 0
+        MinimumStock.Set(5).shortage(10) shouldBe 0
+    }
+
+    @Test
+    fun `NotSet isBelow is always false`() {
+        MinimumStock.NotSet.isBelow(0).shouldBeFalse()
+        MinimumStock.NotSet.isBelow(100).shouldBeFalse()
+    }
+
+    @Test
+    fun `NotSet shortage is always zero`() {
+        MinimumStock.NotSet.shortage(0) shouldBe 0
+        MinimumStock.NotSet.shortage(100) shouldBe 0
+    }
+}
+```
+
+- [ ] **Step B-3.3: 期待通り compile エラーが出ることを確認**
+
+```bash
+./gradlew :domain:compileTestKotlinJvm 2>&1 | tail -20
+```
+
+期待: `MinimumStock.Set` などが未定義でコンパイルエラー。
+
+- [ ] **Step B-3.4: `MinimumStock.kt` を sealed interface に書き換え**
+
+「新規/最終型の正準シグネチャ」セクションの `MinimumStock` をそのまま書き出す。
+
+- [ ] **Step B-3.5: `MinimumStockTest.kt` のみで pass を確認**
+
+```bash
+./gradlew :domain:jvmTest --tests "net.brightroom.mindstock.domain.model.product.MinimumStockTest"
+```
+
+期待: 7 件すべて pass。
+
+- [ ] **Step B-3.6: `Product.kt` の `minimumStock` を non-null に**
+
+```kotlin
+@Serializable
+data class Product(
+    val id: ProductId,
+    val catalogItem: CatalogItem,
+    val minimumStock: MinimumStock,
+    val archived: Boolean,
+)
+```
+
+- [ ] **Step B-3.7: `Stock.kt` の `needsReplenishment` / `shortage` を委譲に書き換え**
+
+```kotlin
+@Serializable
+data class Stock(
+    val product: Product,
+    val movements: StockMovements,
+) {
+    fun currentQuantity(): Int = movements.netQuantity()
+
+    fun needsReplenishment(): Boolean = product.minimumStock.isBelow(currentQuantity())
+
+    fun shortage(): Int = product.minimumStock.shortage(currentQuantity())
+}
+```
+
+- [ ] **Step B-3.8: `ProductHydration.kt` を `Set` / `NotSet` 分岐に**
+
+```kotlin
+package net.brightroom.mindstock.infrastructure.datasource.product
+
+import net.brightroom.mindstock.domain.model.catalog.CatalogItem
+import net.brightroom.mindstock.domain.model.product.MinimumStock
+import net.brightroom.mindstock.domain.model.product.Product
+import net.brightroom.mindstock.domain.model.product.ProductId
+import kotlin.uuid.ExperimentalUuidApi
+import kotlin.uuid.Uuid
+
+@OptIn(ExperimentalUuidApi::class)
+internal fun hydrateProduct(
+    id: Uuid,
+    catalogItem: CatalogItem,
+    minimumStock: Int?,
+    archived: Boolean,
+): Product =
+    Product(
+        id = ProductId(id),
+        catalogItem = catalogItem,
+        minimumStock = if (minimumStock != null) MinimumStock.Set(minimumStock) else MinimumStock.NotSet,
+        archived = archived,
+    )
+```
+
+- [ ] **Step B-3.9: `ProductRegisterRepository.kt` の `setMinimumStock` 引数を `MinimumStock.Set` に**
+
+```kotlin
+fun setMinimumStock(
+    product: Product,
+    value: MinimumStock.Set,
+    editedBy: UserId,
+)
+```
+
+注: 「unset」操作の API は本 Plan のスコープ外。必要になったら別 API で追加。
+
+- [ ] **Step B-3.10: `ProductRegisterService.kt` も `MinimumStock.Set` に**
+
+```kotlin
+fun setMinimumStock(
+    product: Product,
+    value: MinimumStock.Set,
+    editedBy: UserId,
+) {
+    productRegisterRepository.setMinimumStock(product, value, editedBy)
+}
+```
+
+- [ ] **Step B-3.11: `ProductRegisterDataSource.kt` の実装を更新**
+
+```kotlin
+override fun setMinimumStock(
+    product: Product,
+    value: MinimumStock.Set,
+    editedBy: UserId,
+) {
+    ProductMinimumStocksTable.insert {
+        it[product_id] = product.id()
+        it[minimum_stock] = value()
+        it[edited_by] = editedBy()
+    }
+}
+```
+
+- [ ] **Step B-3.12: `ProductRpcService.kt` も `MinimumStock.Set` に**
+
+`rpc/src/commonMain/kotlin/net/brightroom/mindstock/rpc/ProductRpcService.kt` を読み、`setMinimumStock(productId: ProductId, value: MinimumStock)` シグネチャを `setMinimumStock(productId: ProductId, value: MinimumStock.Set)` に変更。
+
+- [ ] **Step B-3.13: `ProductController.kt` も `MinimumStock.Set` に**
+
+`backend/api/src/main/kotlin/net/brightroom/mindstock/presentation/rpc/product/ProductController.kt` を読み、`setMinimumStock` の引数型を追従。
+
+- [ ] **Step B-3.14: `SerializationRoundTripTest.kt` に polymorphic round-trip テスト追加**
+
+```kotlin
+import net.brightroom.mindstock.domain.model.product.MinimumStock
+
+// 既存 product 定義の minimumStock を MinimumStock.Set(2) に
+private val product =
+    Product(
+        id = ProductId(Uuid.parse("00000000-0000-0000-0000-000000000003")),
+        catalogItem = catalogItem,
+        minimumStock = MinimumStock.Set(2),
+        archived = false,
+    )
+
+@Test
+fun `MinimumStock Set round-trip`() {
+    val v: MinimumStock = MinimumStock.Set(7)
+    roundTrip(v, MinimumStock.serializer()) shouldBe v
+}
+
+@Test
+fun `MinimumStock NotSet round-trip`() {
+    val v: MinimumStock = MinimumStock.NotSet
+    roundTrip(v, MinimumStock.serializer()) shouldBe v
+}
+
+@Test
+fun `Product with NotSet minimumStock round-trip`() {
+    val productNotSet = product.copy(minimumStock = MinimumStock.NotSet)
+    roundTrip(productNotSet, Product.serializer()) shouldBe productNotSet
+}
+```
+
+- [ ] **Step B-3.15: その他のテストファイルで `MinimumStock(n)` を `MinimumStock.Set(n)` に置換**
+
+確認コマンド:
+
+```bash
+grep -rn "MinimumStock(" --include="*.kt" .
+```
+
+更新対象:
+
+`domain/src/commonTest/.../model/stock/StockTest.kt`:
+
+```kotlin
+private fun productWithMin(min: Int?) =
+    Product(
+        id = ProductId(Uuid.generateV7()),
+        catalogItem = ...,
+        minimumStock = if (min != null) MinimumStock.Set(min) else MinimumStock.NotSet,
+        archived = false,
+    )
+```
+
+`domain/src/commonTest/.../model/stock/movement/StockMovementsTest.kt`:
+
+```kotlin
+private val product =
+    Product(
+        id = ProductId(Uuid.generateV7()),
+        catalogItem = ...,
+        minimumStock = MinimumStock.NotSet,
+        archived = false,
+    )
+```
+
+`domain/src/commonTest/.../model/shopping/ShoppingListTest.kt`:
+
+```kotlin
+minimumStock = MinimumStock.Set(min),
+```
+
+`backend/api/.../infrastructure/datasource/repository/product/ProductRegisterDataSourceIntegrationTest.kt`:
+
+```kotlin
+tx { productRegister.setMinimumStock(product, MinimumStock.Set(2), user.userId) }
+tx { productRegister.setMinimumStock(product, MinimumStock.Set(5), user.userId) }
+// ...
+refetched?.minimumStock shouldBe MinimumStock.Set(5)
+```
+
+`backend/api/.../e2e/product/ProductRpcServiceE2eTest.kt`:
+
+```kotlin
+rpc.setMinimumStock(product.id, MinimumStock.Set(3))
+// ...
+updated.minimumStock shouldBe MinimumStock.Set(3)
+// ...
+rpc.setMinimumStock(ProductId(Uuid.random()), MinimumStock.Set(1))
+```
+
+`adopt` 直後の Product は `MinimumStock.NotSet` を持つようになる点に注意。テストで `adopt` 後の `minimumStock` を確認している箇所があれば `MinimumStock.NotSet` に追従。
+
+- [ ] **Step B-3.16: ビルドと全テスト**
+
+```bash
+./gradlew clean build
+```
+
+期待: BUILD SUCCESSFUL、全テスト pass。
+
+- [ ] **Step B-3.17: 動作確認**
+
+backend を起動し、frontend が無い stock 画面以外で product/minimumStock を扱う E2E ルートが通ることを確認。frontend 側で product setMinimumStock を扱う UI が存在するなら手動操作で確認、なければスキップ。
+
+```bash
+grep -rn "setMinimumStock" frontend/src --include="*.kt"
+```
+
+該当があれば dev server で動作確認、なければスキップ。
+
+- [ ] **Step B-3.18: コミット**
+
+```bash
+git add -A
+git commit -m "$(cat <<'EOF'
+refactor(domain): make MinimumStock polymorphic (Set / NotSet)
+
+MinimumStock を sealed interface に変え、null で「未設定」を表現する
+代わりにドメイン型 NotSet で表現。Stock 側の needsReplenishment /
+shortage は MinimumStock.isBelow / shortage に委譲。
+
+書き込み API (setMinimumStock) は MinimumStock.Set のみ受け取る契約に。
+NotSet を書き込む操作が必要になったら別 API で追加。
+
+Wire 形式: kotlinx.serialization 標準 polymorphic (type discriminator)
+を採用。Int? null=NotSet の旧 wire 形式から破壊変更。
+
+Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>
+EOF
+)"
+```
+
+- [ ] **Step B-3.19: PR 作成**
+
+```bash
+git push -u origin HEAD
+gh pr create --title "refactor(domain): make MinimumStock polymorphic" --body "$(cat <<'EOF'
+## Summary
+- MinimumStock を sealed interface に (NotSet / Set)
+- Product.minimumStock を non-null に
+- Stock の needsReplenishment / shortage を MinimumStock 側に委譲
+- setMinimumStock API は MinimumStock.Set のみ受け取る契約
+- Wire 形式は kotlinx.serialization 標準 polymorphic に (Int? からの破壊変更)
+
+## Test plan
+- [x] `@JvmInline value class : sealed interface` の事前検証 OK
+- [x] `./gradlew clean build` 成功
+- [x] domain test 全 pass (NotSet/Set 両方の round-trip テスト追加)
+- [x] backend/api integration/e2e 全 pass
+
+Spec: docs/superpowers/specs/2026-05-29-domain-cohesion-coupling-design.md (§4.6 / §6)
+EOF
+)"
+```
+
+---
+
+## B-4: Stocks 集合体新設 + ShoppingList 委譲
+
+**目的:** `Products / CatalogItems / HouseholdMembers / StockMovements` と並ぶ集合体として `Stocks` を導入。`needsReplenishment` filter ロジックを Stocks に集約し、`ShoppingList` は薄いラッパに。
+
+### Steps
+
+- [ ] **Step B-4.1: TDD — `StocksTest.kt` を新規作成（先にテストで赤に）**
+
+`domain/src/commonTest/kotlin/net/brightroom/mindstock/domain/model/stock/StocksTest.kt`:
+
+```kotlin
+package net.brightroom.mindstock.domain.model.stock
+
+import io.kotest.matchers.collections.shouldContainExactly
+import io.kotest.matchers.shouldBe
+import kotlinx.datetime.LocalDateTime
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toInstant
+import net.brightroom.mindstock.domain.model.catalog.CatalogItem
+import net.brightroom.mindstock.domain.model.catalog.CatalogItemId
+import net.brightroom.mindstock.domain.model.catalog.CatalogItemName
+import net.brightroom.mindstock.domain.model.catalog.CatalogItemUnit
+import net.brightroom.mindstock.domain.model.product.MinimumStock
+import net.brightroom.mindstock.domain.model.product.Product
+import net.brightroom.mindstock.domain.model.product.ProductId
+import net.brightroom.mindstock.domain.model.stock.movement.Replenishment
+import net.brightroom.mindstock.domain.model.stock.movement.StockMovements
+import net.brightroom.mindstock.domain.model.user.UserId
+import net.brightroom.mindstock.domain.model.user.profile.DisplayName
+import net.brightroom.mindstock.domain.model.user.profile.Profile
+import kotlin.test.Test
+import kotlin.time.Instant
+import kotlin.uuid.ExperimentalUuidApi
+import kotlin.uuid.Uuid
+
+@OptIn(ExperimentalUuidApi::class)
+class StocksTest {
+    private val profile =
+        Profile(UserId(Uuid.generateV7()), DisplayName("alice"))
+    private val now = Instant.parse("2026-05-24T10:00:00Z")
+
+    private fun occurred() =
+        OccurredAt(LocalDateTime(2026, 5, 1, 10, 0).toInstant(TimeZone.UTC), now)
+
+    private fun stockOf(min: Int, currentReplenished: Int): Stock {
+        val product =
+            Product(
+                id = ProductId(Uuid.generateV7()),
+                catalogItem =
+                    CatalogItem(
+                        id = CatalogItemId(Uuid.generateV7()),
+                        name = CatalogItemName("X"),
+                        unit = CatalogItemUnit("個"),
+                    ),
+                minimumStock = MinimumStock.Set(min),
+                archived = false,
+            )
+        val movements =
+            if (currentReplenished > 0) {
+                listOf(Replenishment(Quantity(currentReplenished), occurred(), profile, Note("")))
+            } else {
+                emptyList()
+            }
+        return Stock(product, StockMovements(movements))
+    }
+
+    @Test
+    fun `needsReplenishment returns stocks below minimum only`() {
+        val low = stockOf(min = 5, currentReplenished = 2)
+        val ok = stockOf(min = 5, currentReplenished = 10)
+        val stocks = Stocks(listOf(low, ok))
+
+        stocks.needsReplenishment() shouldContainExactly listOf(low)
+    }
+
+    @Test
+    fun `needsReplenishment returns empty when all are sufficient`() {
+        val a = stockOf(min = 5, currentReplenished = 10)
+        val b = stockOf(min = 5, currentReplenished = 6)
+        val stocks = Stocks(listOf(a, b))
+
+        stocks.needsReplenishment() shouldBe emptyList()
+    }
+
+    @Test
+    fun `list is exposed directly`() {
+        val s = stockOf(min = 5, currentReplenished = 2)
+        Stocks(listOf(s)).list shouldContainExactly listOf(s)
+    }
+}
+```
+
+注: ここで構築する `Replenishment` / `MinimumStock.Set` は B-2 / B-3 完了後の形式。
+
+- [ ] **Step B-4.2: 期待通り compile エラーが出ることを確認**
+
+```bash
+./gradlew :domain:compileTestKotlinJvm 2>&1 | tail -10
+```
+
+期待: `Stocks` が未定義。
+
+- [ ] **Step B-4.3: `Stocks.kt` を新規作成**
+
+`domain/src/commonMain/kotlin/net/brightroom/mindstock/domain/model/stock/Stocks.kt`:
+
+```kotlin
 package net.brightroom.mindstock.domain.model.stock
 
 import kotlinx.serialization.Serializable
@@ -651,15 +1516,23 @@ import kotlinx.serialization.Serializable
 data class Stocks(
     val list: List<Stock>,
 ) {
-    fun asList(): List<Stock> = list.toList()
-    val size: Int get() = list.size
+    fun needsReplenishment(): List<Stock> = list.filter { it.needsReplenishment() }
 }
 ```
 
-- [ ] **Step 4.2: `ShoppingList.kt` を `Stocks` 受け取りに変更**
+- [ ] **Step B-4.4: `StocksTest.kt` を pass させる**
+
+```bash
+./gradlew :domain:jvmTest --tests "net.brightroom.mindstock.domain.model.stock.StocksTest"
+```
+
+期待: 3 件すべて pass。
+
+- [ ] **Step B-4.5: `ShoppingList.kt` を Stocks 委譲に**
+
+`domain/src/commonMain/kotlin/net/brightroom/mindstock/domain/model/shopping/ShoppingList.kt`:
 
 ```kotlin
-// domain/.../model/shopping/ShoppingList.kt
 package net.brightroom.mindstock.domain.model.shopping
 
 import net.brightroom.mindstock.domain.model.stock.Stocks
@@ -668,24 +1541,67 @@ class ShoppingList(
     private val stocks: Stocks,
 ) {
     fun itemsToBuy(): List<ShoppingListItem> =
-        stocks
-            .asList()
-            .filter { it.needsReplenishment() }
-            .map { ShoppingListItem(it, shortage = it.shortage()) }
+        stocks.needsReplenishment().map { ShoppingListItem(it, shortage = it.shortage()) }
 }
 ```
 
-- [ ] **Step 4.3: `StockRepository.kt` の戻り値を `Stocks` に**
+- [ ] **Step B-4.6: `ShoppingListTest.kt` を Stocks 構築に更新**
+
+`domain/src/commonTest/.../model/shopping/ShoppingListTest.kt`:
 
 ```kotlin
-interface StockRepository {
-    fun stockOf(product: Product): Stock
-    fun stocksOf(household: Household): Stocks
-    fun movementHistory(product: Product, limit: Int = 50): StockMovements
+import net.brightroom.mindstock.domain.model.stock.Stocks
+// ...
+
+@Test
+fun `itemsToBuy returns only stocks below minimum`() {
+    val low = stockOf("a", min = 5, currentReplenished = 2)
+    val ok = stockOf("b", min = 5, currentReplenished = 10)
+    val list = ShoppingList(Stocks(listOf(low, ok)))
+
+    val result = list.itemsToBuy()
+    result.size shouldBe 1
+    result[0].stock shouldBe low
+    result[0].shortage shouldBe 3
 }
 ```
 
-- [ ] **Step 4.4: `StockDataSource.stocksOf` を `Stocks` 返却に**
+- [ ] **Step B-4.7: `StockRepository.kt` の戻り値を `Stocks` に**
+
+`backend/core/src/main/kotlin/net/brightroom/mindstock/application/repository/stock/StockRepository.kt`:
+
+```kotlin
+package net.brightroom.mindstock.application.repository.stock
+
+import net.brightroom.mindstock.domain.model.household.Household
+import net.brightroom.mindstock.domain.model.product.Product
+import net.brightroom.mindstock.domain.model.stock.Stock
+import net.brightroom.mindstock.domain.model.stock.Stocks
+import net.brightroom.mindstock.domain.model.stock.movement.StockMovements
+
+interface StockRepository {
+    fun stockOf(product: Product): Stock
+
+    fun stocksOf(household: Household): Stocks
+
+    fun movementHistory(
+        product: Product,
+        limit: Int = 50,
+    ): StockMovements
+}
+```
+
+- [ ] **Step B-4.8: `StockService.kt` の戻り値を `Stocks` に**
+
+`backend/core/src/main/kotlin/net/brightroom/mindstock/application/service/stock/StockService.kt` で `list` の型を更新:
+
+```kotlin
+fun list(household: Household): Stocks = stockRepository.stocksOf(household)
+```
+
+import に `Stocks` を追加、不要なら `List<Stock>` 由来の `kotlin.collections.List` import を整理。
+
+- [ ] **Step B-4.9: `StockDataSource.stocksOf` を `Stocks` 返却に**
 
 ```kotlin
 override fun stocksOf(household: Household): Stocks {
@@ -700,58 +1616,358 @@ override fun stocksOf(household: Household): Stocks {
 }
 ```
 
-- [ ] **Step 4.5: `StockService.list` を `Stocks` 返却に**
+import に `Stocks` を追加。
+
+- [ ] **Step B-4.10: `StockRpcService.list` を `Stocks` 返却に**
 
 ```kotlin
-fun list(household: Household): Stocks = stockRepository.stocksOf(household)
-```
-
-- [ ] **Step 4.6: `StockRpcService.list` を `Stocks` 返却に**
-
-```kotlin
+import net.brightroom.mindstock.domain.model.stock.Stocks
+// ...
 suspend fun list(householdId: HouseholdId): Stocks
 ```
 
-`StockController.kt` も追従。
-
-- [ ] **Step 4.7: domain test `ShoppingListTest.kt` を `Stocks` で構築するように更新**
+- [ ] **Step B-4.11: `StockController.list` の戻り値型を更新**
 
 ```kotlin
-val stocks = Stocks(listOf(stock1, stock2, stock3))
-val shoppingList = ShoppingList(stocks)
+override suspend fun list(householdId: HouseholdId): Stocks =
+    tx(database) {
+        actor
+        val household =
+            householdRepository.findById(householdId)
+                ?: throw NotFoundException("household not found: $householdId")
+        stockService.list(household)
+    }
 ```
 
-- [ ] **Step 4.8: backend/api E2E test 更新**
+import 追加。
 
-`StockRpcServiceE2eTest.kt` で `list(...)` 戻り値型を `Stocks` で受ける形に。`stocks.list` または `stocks.asList()` でアクセス。
+- [ ] **Step B-4.12: backend/api integration / e2e を更新**
 
-- [ ] **Step 4.9: frontend で `list` の戻り値を扱う箇所**
-
-確認コマンド:
 ```bash
-grep -rn "StockRpcService" frontend/src --include="*.kt"
+grep -rn "stocksOf\|StockRpcService.*list\|stockService.list\b" backend/api/src/test --include="*.kt"
 ```
 
-`List<Stock>` を受けていた箇所を `Stocks` に変更、`.list` でアクセス。
+`StockDataSourceIntegrationTest.kt`, `StockRpcServiceE2eTest.kt`, `StockControllerTest.kt` で:
 
-- [ ] **Step 4.10: ビルドと全テスト**
+- `val stocks: List<Stock> = ...` → `val stocks: Stocks = ...`
+- `stocks.size` / `stocks[0]` などの参照を `stocks.list.size` / `stocks.list[0]` に
+- `stocks shouldBe listOf(...)` → `stocks.list shouldBe listOf(...)` または `stocks shouldBe Stocks(listOf(...))`
+
+- [ ] **Step B-4.13: ビルドと全テスト**
 
 ```bash
 ./gradlew clean build
 ```
 
-- [ ] **Step 4.11: コミット**
+期待: BUILD SUCCESSFUL、全テスト pass。
+
+- [ ] **Step B-4.14: コミット**
 
 ```bash
 git add -A
 git commit -m "$(cat <<'EOF'
 refactor(domain): introduce Stocks aggregate collection
 
-Products/CatalogItems/HouseholdMembers/StockMovements と並ぶ集合型として
-Stocks を新設。ShoppingList の引数も Stocks に、StockRepository/Service/
-Rpc の戻り値も List<Stock> → Stocks に統一。
+Products / CatalogItems / HouseholdMembers / StockMovements と並ぶ
+集合体として Stocks を新設。needsReplenishment フィルタを Stocks 側に
+集約し、ShoppingList は Stocks への薄い委譲ラッパに。
+
+StockRepository / StockService / StockRpcService の list 系の戻り値も
+List<Stock> から Stocks に統一。
 
 Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>
+EOF
+)"
+```
+
+- [ ] **Step B-4.15: PR 作成**
+
+```bash
+git push -u origin HEAD
+gh pr create --title "refactor(domain): introduce Stocks aggregate collection" --body "$(cat <<'EOF'
+## Summary
+- Stocks 集合体新設 (val list + needsReplenishment() 集計メソッド)
+- ShoppingList を Stocks 委譲の薄いラッパに変更
+- StockRepository / StockService / StockRpcService の list 系戻り値を Stocks に統一
+- Wire 形式: list の戻り値が `List<Stock>` から `Stocks` に (object ラッパ) — frontend 未使用なので影響なし
+
+## Test plan
+- [x] domain StocksTest 新規 pass
+- [x] `./gradlew clean build` 成功
+- [x] backend/api integration/e2e 全 pass
+
+Spec: docs/superpowers/specs/2026-05-29-domain-cohesion-coupling-design.md (§2.2 / §6)
+EOF
+)"
+```
+
+---
+
+## B-5: latestNames aliased subquery 共通化
+
+**目的:** `groupBy(user_id) + max(id)` の latest display name サブクエリが 5 callsite（`StockRegisterDataSource.loadProfile` は B-2 で消滅済）に散在しているのを共通ヘルパに集約。
+
+callsite:
+- `UserDataSource.queryLatest`
+- `HouseholdDataSource.findOf`
+- `HouseholdDataSource.findById`
+- `HouseholdRegisterDataSource.create`
+- `StockDataSource.movementHistory`
+- `StockDataSource.loadMovementsFor`
+
+### Steps
+
+- [ ] **Step B-5.1: TDD — まず共通ヘルパが置換した結果を見るために 1 callsite を移行する形を試作する**
+
+ヘルパファイルを作る前に、既存の `UserDataSource.queryLatest` がどんな型操作をしているかを確認:
+
+```bash
+grep -n "alias\[" backend/core/src/main/kotlin/net/brightroom/mindstock/infrastructure/datasource/user/UserDataSource.kt
+```
+
+`alias[UserDisplayNamesTable.user_id]` などの `QueryAlias.get<T>(column: Column<T>): Expression<T>` の戻り値型を確認する（Exposed v1 のドキュメント / 既存実装で型推論結果を見る）。
+
+実装ノート: 既存コードでは `val latestUserId = latestNames[UserDisplayNamesTable.user_id]` のように型推論に任せて受けている。`Expression<Uuid>` か `ExpressionWithColumnType<Uuid>` を返すはず。共通ヘルパでは同じ呼び出し方ができるよう、`alias` をそのまま外に出して、利用側で `alias[UserDisplayNamesTable.user_id]` を呼ぶスタイルが最も型問題を避けやすい。
+
+- [ ] **Step B-5.2: `LatestDisplayNames.kt` を作成**
+
+```kotlin
+// backend/core/src/main/kotlin/net/brightroom/mindstock/infrastructure/datasource/user/LatestDisplayNames.kt
+package net.brightroom.mindstock.infrastructure.datasource.user
+
+import org.jetbrains.exposed.v1.core.Expression
+import org.jetbrains.exposed.v1.core.QueryAlias
+import org.jetbrains.exposed.v1.core.alias
+import org.jetbrains.exposed.v1.core.max
+import org.jetbrains.exposed.v1.jdbc.select
+import kotlin.uuid.ExperimentalUuidApi
+import kotlin.uuid.Uuid
+
+/**
+ * user_id ごとの最新 display name 行を選ぶ aliased subquery。
+ *
+ * 6 箇所で「`groupBy(user_id) + max(id)` で max display name id を引き、
+ * その id で UserDisplayNamesTable を JOIN する」idiom が散在していたため共通化。
+ *
+ * 使い方:
+ * ```
+ * val latest = latestDisplayNames()
+ * UsersTable
+ *   .join(latest.alias, JoinType.INNER, onColumn = UsersTable.id, otherColumn = latest.userId)
+ *   .join(UserDisplayNamesTable, JoinType.INNER) {
+ *       (UserDisplayNamesTable.user_id eq latest.userId) and
+ *           (UserDisplayNamesTable.id eq latest.maxId)
+ *   }
+ * ```
+ */
+@OptIn(ExperimentalUuidApi::class)
+internal class LatestDisplayNames(
+    val alias: QueryAlias,
+    val userId: Expression<Uuid>,
+    val maxId: Expression<Long>,
+)
+
+@OptIn(ExperimentalUuidApi::class)
+internal fun latestDisplayNames(): LatestDisplayNames {
+    val maxIdExpr = UserDisplayNamesTable.id.max().alias("max_name_id")
+    val alias =
+        UserDisplayNamesTable
+            .select(UserDisplayNamesTable.user_id, maxIdExpr)
+            .groupBy(UserDisplayNamesTable.user_id)
+            .alias("latest_names")
+    return LatestDisplayNames(
+        alias = alias,
+        userId = alias[UserDisplayNamesTable.user_id],
+        maxId = alias[maxIdExpr],
+    )
+}
+```
+
+実装ノート: `alias[col]` の戻り値が `Expression<T>` ではなく `ExpressionWithColumnType<T>` の場合は `Expression<T>` を上位型として受け取れる。コンパイルが通らなければ `Expression` を `ExpressionWithColumnType` に差し替える。
+
+- [ ] **Step B-5.3: `UserDataSource.queryLatest` を共通ヘルパに置換**
+
+```kotlin
+package net.brightroom.mindstock.infrastructure.datasource.user
+
+import net.brightroom.mindstock.application.repository.user.UserRepository
+import net.brightroom.mindstock.domain.model.user.UserId
+import net.brightroom.mindstock.domain.model.user.auth.AuthIdentity
+import net.brightroom.mindstock.domain.model.user.profile.Profile
+import org.jetbrains.exposed.v1.core.JoinType
+import org.jetbrains.exposed.v1.core.Op
+import org.jetbrains.exposed.v1.core.and
+import org.jetbrains.exposed.v1.core.eq
+import org.jetbrains.exposed.v1.jdbc.selectAll
+import kotlin.uuid.ExperimentalUuidApi
+
+@OptIn(ExperimentalUuidApi::class)
+class UserDataSource : UserRepository {
+    override fun findProfileByAuthIdentity(identity: AuthIdentity): Profile? = queryLatest { UsersTable.zitadel_sub eq identity.subject() }
+
+    override fun findProfileById(id: UserId): Profile? = queryLatest { UsersTable.id eq id() }
+
+    private fun queryLatest(where: () -> Op<Boolean>): Profile? {
+        val latest = latestDisplayNames()
+        return UsersTable
+            .join(latest.alias, JoinType.INNER, onColumn = UsersTable.id, otherColumn = latest.userId)
+            .join(UserDisplayNamesTable, JoinType.INNER) {
+                (UserDisplayNamesTable.user_id eq latest.userId) and
+                    (UserDisplayNamesTable.id eq latest.maxId)
+            }.selectAll()
+            .where { where() }
+            .singleOrNull()
+            ?.toProfile()
+    }
+}
+```
+
+不要な import (`alias`, `max`, `select`, `UserDisplayNamesTable.*` の一部) を削除。
+
+- [ ] **Step B-5.4: `UserDataSourceIntegrationTest.kt` で pass を確認**
+
+```bash
+./gradlew :backend:api:test --tests "*UserDataSourceIntegrationTest*"
+```
+
+期待: 既存 pass を維持。
+
+- [ ] **Step B-5.5: `HouseholdDataSource.findOf` を共通ヘルパに置換**
+
+`backend/core/src/main/kotlin/net/brightroom/mindstock/infrastructure/datasource/household/HouseholdDataSource.kt` の `findOf` 冒頭の `maxNameIdAlias` ブロック (line 27-34) を削除し、`val latest = latestDisplayNames()` で置換:
+
+```kotlin
+override fun findOf(userId: UserId): Household? {
+    val latest = latestDisplayNames()
+
+    // --- target household: most recent active membership's household for this user ---
+    val maxMembershipIdAlias = HouseholdMembershipsTable.id.max().alias("max_membership_id")
+    val targetHousehold = ... // 既存通り
+
+    val targetHouseholdId = targetHousehold[HouseholdMembershipsTable.household_id]
+
+    val rows =
+        HouseholdMembershipsTable
+            .join(..., HouseholdMembershipRevocationsTable, ...)
+            .join(targetHousehold, JoinType.INNER, onColumn = HouseholdMembershipsTable.household_id, otherColumn = targetHouseholdId)
+            .join(UsersTable, JoinType.INNER, onColumn = HouseholdMembershipsTable.user_id, otherColumn = UsersTable.id)
+            .join(latest.alias, JoinType.INNER, onColumn = UsersTable.id, otherColumn = latest.userId)
+            .join(UserDisplayNamesTable, JoinType.INNER) {
+                (UserDisplayNamesTable.user_id eq latest.userId) and
+                    (UserDisplayNamesTable.id eq latest.maxId)
+            }.selectAll()
+            ...
+}
+```
+
+import を整理。`latestDisplayNames` ヘルパは `infrastructure.datasource.user.latestDisplayNames` を import する。
+
+- [ ] **Step B-5.6: `HouseholdDataSource.findById` も同様に置換**
+
+同ファイルの `findById` メソッドの latest names ブロックを `latest = latestDisplayNames()` で置換。
+
+- [ ] **Step B-5.7: `HouseholdRegisterDataSource.create` を共通ヘルパに置換**
+
+```kotlin
+val ownerProfile = run {
+    val latest = latestDisplayNames()
+    UsersTable
+        .join(latest.alias, JoinType.INNER, onColumn = UsersTable.id, otherColumn = latest.userId)
+        .join(UserDisplayNamesTable, JoinType.INNER) {
+            (UserDisplayNamesTable.user_id eq latest.userId) and
+                (UserDisplayNamesTable.id eq latest.maxId)
+        }.selectAll()
+        .where { UsersTable.id eq ownerId() }
+        .single()
+        .toProfile()
+}
+```
+
+import 整理。
+
+- [ ] **Step B-5.8: `StockDataSource.movementHistory` と `loadMovementsFor` を置換**
+
+両関数の冒頭 `maxNameIdAlias` ブロックを `latest = latestDisplayNames()` で置換し、`latestNameUserId` / `latestNameMaxId` 変数を `latest.userId` / `latest.maxId` に書き換え:
+
+```kotlin
+override fun movementHistory(product: Product, limit: Int): StockMovements {
+    require(limit > 0) { "limit must be > 0" }
+    val latest = latestDisplayNames()
+
+    val rows =
+        StockMovementsTable
+            .join(UsersTable, JoinType.INNER, onColumn = StockMovementsTable.acted_by, otherColumn = UsersTable.id)
+            .join(latest.alias, JoinType.INNER, onColumn = UsersTable.id, otherColumn = latest.userId)
+            .join(UserDisplayNamesTable, JoinType.INNER) {
+                (UserDisplayNamesTable.user_id eq latest.userId) and
+                    (UserDisplayNamesTable.id eq latest.maxId)
+            }.selectAll()
+            ...
+}
+
+private fun loadMovementsFor(products: List<Product>): Map<Uuid, List<StockMovement>> {
+    if (products.isEmpty()) return emptyMap()
+    val productUuids = products.map { it.id() }
+    val latest = latestDisplayNames()
+    ...
+}
+```
+
+`alias`, `max`, `select` (Exposed) の import が不要になれば削除。
+
+- [ ] **Step B-5.9: ビルドと全テスト**
+
+```bash
+./gradlew clean build
+```
+
+期待: BUILD SUCCESSFUL、全 integration / e2e test pass。
+
+注: ヘルパ抽出は SQL クエリプランが完全に同じになることを意図しているため、既存テストが pass すれば動作は等価。
+
+- [ ] **Step B-5.10: コミット**
+
+```bash
+git add -A
+git commit -m "$(cat <<'EOF'
+refactor(infrastructure): extract latestDisplayNames helper
+
+groupBy(user_id) + max(id) で最新 display name 行を引く aliased
+subquery が 5 callsite に散在していたため、共通ヘルパ
+latestDisplayNames() を infrastructure/datasource/user に抽出。
+
+- UserDataSource.queryLatest
+- HouseholdDataSource.findOf, findById
+- HouseholdRegisterDataSource.create
+- StockDataSource.movementHistory, loadMovementsFor
+
+(StockRegisterDataSource.loadProfile は B-2 で関数ごと削除済み。)
+
+SQL クエリプランは不変。既存 integration test の通過で等価性を担保。
+
+Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>
+EOF
+)"
+```
+
+- [ ] **Step B-5.11: PR 作成**
+
+```bash
+git push -u origin HEAD
+gh pr create --title "refactor(infrastructure): extract latestDisplayNames helper" --body "$(cat <<'EOF'
+## Summary
+- groupBy(user_id) + max(id) idiom を共通ヘルパに抽出 (5 callsite)
+- 配置先: backend/core/.../infrastructure/datasource/user/LatestDisplayNames.kt
+- Plan A の post-merge follow-up
+
+## Test plan
+- [x] `./gradlew clean build` 成功
+- [x] UserDataSourceIntegrationTest pass
+- [x] HouseholdDataSourceIntegrationTest pass
+- [x] HouseholdRegisterDataSourceIntegrationTest pass
+- [x] StockDataSourceIntegrationTest pass
+
+Spec: docs/superpowers/specs/2026-05-29-domain-cohesion-coupling-design.md (§6.4)
 EOF
 )"
 ```
@@ -763,14 +1979,25 @@ EOF
 Plan B 完了の判定条件:
 
 - [ ] `domain/.../model/stock/movement/StockMovementType.kt` が存在しない
-- [ ] `domain/.../model/stock/Stocks.kt` が存在し、`@Serializable data class` である
-- [ ] `MinimumStock` が `sealed interface` で、`MinimumStock.Set` / `MinimumStock.NotSet` が存在
-- [ ] `grep "MinimumStock(\d" --include="*.kt" -r .` の結果が 0 件（`MinimumStock.Set(n)` への置換完了）
-- [ ] `grep "StockMovement.\?\.type\b" --include="*.kt" -r .` が 0 件
-- [ ] `grep "Replenishment(product\|Consumption(product" --include="*.kt" -r .` が 0 件
-- [ ] `Stock.needsReplenishment` / `Stock.shortage` の本体が `product.minimumStock.{isBelow,shortage}` への 1 行委譲になっている
+- [ ] `backend/core/.../infrastructure/datasource/stock/StockMovementType.kt` が internal enum として存在
+- [ ] `grep "StockMovement.\?\.type\b" --include="*.kt" -r domain` が 0 件
+- [ ] `domain/.../model/stock/movement/StockMovement.kt` に `val product` が無い
+- [ ] `grep "Replenishment(.*product\|Consumption(.*product" --include="*.kt" -r .` が 0 件
+- [ ] `StockRegisterRepository.replenish/consume` の戻り値が `Unit`
+- [ ] `StockRpcService.replenish/consume` の戻り値が `Unit`
+- [ ] `StockRegisterDataSource.loadProfile` が存在しない
+- [ ] `MinimumStock` が `sealed interface`、`MinimumStock.Set` / `MinimumStock.NotSet` が存在
+- [ ] `Product.minimumStock: MinimumStock`（non-null）
+- [ ] `grep "MinimumStock(\\d" --include="*.kt" -r .` が 0 件（`MinimumStock.Set(n)` への置換完了）
+- [ ] `Stock.needsReplenishment` / `Stock.shortage` の本体が `product.minimumStock.{isBelow,shortage}` 委譲の 1 行
+- [ ] `domain/.../model/stock/Stocks.kt` が `@Serializable data class` で存在
+- [ ] `ShoppingList(stocks: Stocks)` シグネチャ
+- [ ] `StockRpcService.list` の戻り値が `Stocks`
+- [ ] `backend/core/.../infrastructure/datasource/user/LatestDisplayNames.kt` が存在
+- [ ] `grep "UserDisplayNamesTable.id.max().alias(\"max_name_id\")" --include="*.kt" -r backend/core/src/main` が 1 件のみ（ヘルパ内部）
 - [ ] `./gradlew clean build` 成功
 - [ ] `./gradlew test` 全 pass
+- [ ] 5 PR がすべて main にマージ済（または review/merge 待ち）
 
 ---
 
@@ -778,7 +2005,9 @@ Plan B 完了の判定条件:
 
 | リスク | 対策 |
 |---|---|
-| Phase 1 で `@JvmInline value class` が `sealed interface` を実装できない | Step 1.1 の事前検証で早期検出。失敗したら `data class Set(val value: Int)` に切り替え |
-| polymorphic serialization の type discriminator が `StockMovement` と `MinimumStock` で衝突 | kotlinx-serialization のデフォルトは class FQN discriminator なので衝突なし。`@JsonClassDiscriminator` 指定があれば確認 |
-| Phase 3 の `replenish/consume` 戻り値を Unit にする変更がクライアントの期待を破る | 同一 deploy 単位で frontend も更新。クライアントの楽観更新ロジックがあれば `movementHistory` 再取得に切り替え |
-| `setMinimumStock` の引数を `MinimumStock.Set` に絞ったことで「unset」が表現できなくなる | 本 Plan の範囲外。必要になったら別 API（例: `clearMinimumStock(product, editedBy)`）を追加 |
+| B-3 で `@JvmInline value class : sealed interface` がコンパイルできない | Step B-3.1 の Sandbox 事前検証で早期検出。失敗したら `data class Set(val value: Int)` に切り替え（パフォーマンス影響は許容範囲、本 Plan の他 PR は無影響）|
+| B-1/B-2/B-3 の wire 形式破壊で frontend が壊れる | frontend には現状 Stock 系の UI が無く、`grep` で `Replenishment` / `Stocks` / `MinimumStock` 参照が無いことを確認済（exclude `build/`）。将来 stock UI を実装する Plan の前段としてむしろ最適なタイミング |
+| B-5 の `LatestDisplayNames` で Exposed の `Expression<T>` 型推論が `Column<T>` と一致せず compile しない | データクラスのフィールド型を `Expression<T>` → `Column<T>` → `ExpressionWithColumnType<T>` の順で試す。最後の手段として generics を `*` に逃がして `@Suppress("UNCHECKED_CAST")` で型を固定 |
+| polymorphic discriminator の名前衝突（`StockMovement` も `MinimumStock` も `type` キーを使う） | デフォルト discriminator はクラス FQN が値、キー名は `"type"`。両者は別の object graph に出現するため衝突しない（同一オブジェクト内に両方の sealed が直接フィールドで並ぶことはない）。念のため `SerializationRoundTripTest` で両者を round-trip 確認 |
+| B-2 で `replenish/consume` 戻り値を `Unit` に変えたとき、controller test が成功応答を assert しているなら壊れる | `StockControllerTest.kt` の該当 assertion を「例外が出ない」「DB 行が増える」「movementHistory が増える」のいずれかに書き換え |
+| `setMinimumStock` を `MinimumStock.Set` のみ受け取る契約にしたが、frontend が NotSet を送ろうとした場合 | frontend 未実装なので影響なし。将来「最低在庫の unset」が必要になったら別 API（`clearMinimumStock` 等）で対応する旨を spec §6.4 に明記済 |

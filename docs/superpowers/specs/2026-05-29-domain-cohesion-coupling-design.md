@@ -315,3 +315,94 @@ sealed interface MinimumStock {
 - **Plan C (P2)**: パッケージ整理 + API 統一（機械的変更が多い）
 
 P0 → P1 → P2 の順で進める。各 Plan は独立で merge 可能。
+
+---
+
+## 6. Plan B 実装スコープ（2026-05-29 合意）
+
+Plan A は PR #65 で merge 済（2026-05-29）。Plan B 着手時点での合意事項を本セクションに固定する。
+Plan A の作業中に新規発見された follow-up（次節 6.4）を Plan B のスコープに取り込む。
+
+### 6.1 PR 分割粒度
+
+5 つの独立 PR とする。各 PR は単独で merge 可能。
+
+| Phase | 所見 | wire 影響 |
+|---|---|---|
+| B-1 | 4.5 `StockMovementType` 廃止 | あり（`type` フィールド消滅） |
+| B-2 | 2.1 `StockMovement.product` 削除 | あり（`product` フィールド消滅 + `replenish/consume` 戻り値 `Unit` 化） |
+| B-3 | 4.6 + 4.7 `MinimumStock` polymorphic 化 | あり（`Int?` → kotlinx polymorphic discriminator） |
+| B-4 | 2.2 `Stocks` 集合体新設 + `ShoppingList` 連携変更 | あり（`list` API の戻り値型変更） |
+| B-5 | Plan A follow-up #1 `latestNames` aliased subquery 共通化 | なし（infrastructure 内部の重複排除） |
+
+### 6.2 Phase 順序
+
+**B-1 → B-2 → B-3 → B-4 → B-5**
+
+順序の根拠:
+- B-1（type 削除）は wire 変更が最も軽く、コミット粒度が最小。先に通すことで残りの変更の diff を読みやすくする。
+- B-2 で `StockMovement.product` 削除すると同時に `replenish/consume` 戻り値を `Unit` 化する（Plan A 由来の `actor: Profile` をどう埋めるかの問題が自然消滅）。
+- B-3 は事前検証（`@JvmInline value class` の `sealed interface` 実装可否）が必要なので中盤に置く。
+- B-4 は 4.6 完了後に Stocks 経由の `needsReplenishment` 集計を綺麗に定義できる。
+- B-5 は infrastructure のみ、他 4 件と完全独立だが、B-2 で StockDataSource を触った後の方が衝突が少ない。
+
+### 6.3 Stocks 集合体 API（所見 2.2 の具体化）
+
+`Stocks` は単なるラッパではなく、ドメイン操作を集約する:
+
+```kotlin
+@Serializable
+data class Stocks(val list: List<Stock>) {
+    fun needsReplenishment(): List<Stock> = list.filter { it.needsReplenishment() }
+}
+
+class ShoppingList(private val stocks: Stocks) {
+    fun itemsToBuy(): List<ShoppingListItem> =
+        stocks.needsReplenishment().map { ShoppingListItem(it, shortage = it.shortage()) }
+}
+```
+
+- `val list` を公開（所見 4.1 の方針に従う）。`asList()` / `size` は本 Plan では追加しない（Plan C で全集合型を一斉統一する都合上、ここで追加しても消すだけ）。
+- `needsReplenishment()` は Stocks 側に集約（filter ロジックを Stocks のドメイン語彙にする）。
+- `shortage(stock)` はインスタンスメソッド `Stock.shortage()` で十分なので Stocks には足さない。
+
+### 6.4 Plan A follow-up（Plan B B-5 で吸収）
+
+Plan A 最終レビュー + CodeRabbit が指摘した未消化項目のうち、B-5 で対応するもの:
+
+**latestNames aliased subquery（6 callsites）の共通化**
+
+`groupBy(user_id) + max(id)` で latest `display_name` を引く idiom が以下 6 箇所に散在:
+
+- `UserDataSource.queryLatest`
+- `HouseholdDataSource.findOf`, `findById`
+- `HouseholdRegisterDataSource.create`
+- `StockDataSource.movementHistory`, `loadMovementsFor`
+- `StockRegisterDataSource.loadProfile`
+
+`backend/core/.../infrastructure/datasource/user/` 配下に共通ヘルパとして抽出する。配置先・命名・シグネチャは実装時に確定（既存 `UserDataSource` 内に internal 関数を置く案を有力候補とする）。
+
+**`StockRegisterDataSource.loadProfile` の過剰 GROUP BY**
+
+単一 userId 用 lookup なのに全ユーザー対象 GROUP BY を実行している。B-2 で `replenish/consume` 戻り値を `Unit` 化したら関数ごと消える自然消滅項目。Plan B の B-5 では再対応不要。
+
+### 6.5 4.6 MinimumStock の wire 形
+
+kotlinx-serialization の標準 polymorphic（`type` discriminator + クラス FQN）をそのまま採用する。
+カスタム discriminator や互換 wire 形のための手書き KSerializer は導入しない。
+
+帰結:
+- `Product.minimumStock` の wire は `{"type": "...MinimumStock.NotSet"}` または `{"type": "...MinimumStock.Set", "value": 3}` 形式
+- 1 回だけ wire 破壊を許容（domain = wire-format 前提の合意済み範囲、Section 3.1）
+- frontend/rpc とも domain 直再利用なので serializer 側の追加設定は不要
+
+事前検証必須項目（B-3 着手時に Sandbox.kt で確認）:
+1. `@Serializable @JvmInline value class Set(...) : MinimumStock` が Kotlin 2.x でコンパイル可能か
+2. `StockMovement`（sealed）と `MinimumStock`（sealed）の polymorphic discriminator が衝突しないか — デフォルトはクラス FQN なので衝突しないはず
+
+検証で 1 が失敗した場合は `data class Set(val value: Int)` に切り替え（`@JvmInline` 諦め）。
+
+### 6.6 子 plan ドキュメント
+
+実装手順は `docs/superpowers/plans/2026-05-29-plan-b-stock-movement-integrity.md` を本セクションの方針で書き直す。
+既存 plan ファイル（Plan A merge 前に書かれたもの）はこの方針を反映していないため、writing-plans skill で再生成する。
