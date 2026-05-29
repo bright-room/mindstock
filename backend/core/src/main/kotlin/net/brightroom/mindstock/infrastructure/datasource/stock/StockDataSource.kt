@@ -5,6 +5,7 @@ import net.brightroom.mindstock.application.repository.stock.StockRepository
 import net.brightroom.mindstock.domain.model.household.Household
 import net.brightroom.mindstock.domain.model.product.Product
 import net.brightroom.mindstock.domain.model.stock.Stock
+import net.brightroom.mindstock.domain.model.stock.Stocks
 import net.brightroom.mindstock.domain.model.stock.movement.StockMovement
 import net.brightroom.mindstock.domain.model.stock.movement.StockMovements
 import net.brightroom.mindstock.infrastructure.datasource.user.UserDisplayNamesTable
@@ -32,13 +33,15 @@ class StockDataSource(
         return Stock(product, StockMovements(movements))
     }
 
-    override fun stocksOf(household: Household): List<Stock> {
+    override fun stocksOf(household: Household): Stocks {
         val products = productRepository.listOf(household).asList()
-        if (products.isEmpty()) return emptyList()
+        if (products.isEmpty()) return Stocks(emptyList())
         val byProductId = loadMovementsFor(products)
-        return products.map { p ->
-            Stock(p, StockMovements(byProductId[p.id()] ?: emptyList()))
-        }
+        return Stocks(
+            products.map { p ->
+                Stock(p, StockMovements(byProductId[p.id()] ?: emptyList()))
+            },
+        )
     }
 
     override fun movementHistory(

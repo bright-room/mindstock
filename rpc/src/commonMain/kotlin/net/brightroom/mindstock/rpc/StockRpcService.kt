@@ -7,13 +7,14 @@ import net.brightroom.mindstock.domain.model.stock.Note
 import net.brightroom.mindstock.domain.model.stock.OccurredAt
 import net.brightroom.mindstock.domain.model.stock.Quantity
 import net.brightroom.mindstock.domain.model.stock.Stock
+import net.brightroom.mindstock.domain.model.stock.Stocks
 import net.brightroom.mindstock.domain.model.stock.movement.StockMovements
 
 @Rpc
 interface StockRpcService {
     suspend fun get(productId: ProductId): RpcResult<Stock, RpcError>
 
-    suspend fun list(householdId: HouseholdId): RpcResult<List<Stock>, RpcError>
+    suspend fun list(householdId: HouseholdId): RpcResult<Stocks, RpcError>
 
     suspend fun movementHistory(
         productId: ProductId,
