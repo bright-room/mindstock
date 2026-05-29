@@ -11,6 +11,7 @@ import io.ktor.server.application.createRouteScopedPlugin
 import io.ktor.server.response.respond
 import kotlinx.datetime.Instant
 import net.brightroom.mindstock.application.repository.user.UserRepository
+import net.brightroom.mindstock.domain.exception.ResourceNotFoundException
 import net.brightroom.mindstock.domain.model.user.auth.AuthIdentity
 import net.brightroom.mindstock.domain.model.user.auth.AuthProvider
 import net.brightroom.mindstock.domain.model.user.auth.AuthSubject
@@ -75,11 +76,19 @@ val MindstockAuthPlugin =
                 return@onCall
             }
             val identity = AuthIdentity(AuthProvider.ZITADEL, AuthSubject(sub))
+            // userId が null になるのは「JWT 検証は通ったが対応する User が DB に未登録」のケース。
+            // `/api/v1/user/public/register` だけがこの状態の呼び出しを受理し、他の route は
+            // RequireRegisteredUserPlugin が userId == null を 401 で弾く。
+            //
+            // ResourceNotFoundException 以外(DB / Cancellation 等)はそのまま伝播させて
+            // 認証層が真の障害を握り込まないようにする。
             val userId =
                 newSuspendedTransaction(db = database) {
-                    // ResourceNotFoundException → 未登録 user (userId=null) として扱う。
-                    // 他の例外 (DB エラー等) も同様に null になる副作用は許容(spec §3.5)。
-                    runCatching { userRepository.findProfileByAuthIdentity(identity).userId }.getOrNull()
+                    try {
+                        userRepository.findProfileByAuthIdentity(identity).userId
+                    } catch (e: ResourceNotFoundException) {
+                        null
+                    }
                 }
             val expDate =
                 decoded.expiresAt
