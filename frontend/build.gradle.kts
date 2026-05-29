@@ -8,8 +8,8 @@ kotlin {
     sourceSets {
         commonMain.dependencies {
             implementation(projects.domain)
-            implementation(projects.shared.rpc)
-            implementation(projects.shared.extensions)
+            implementation(projects.rpc)
+            implementation(projects.shared)
 
             implementation(libs.compose.runtime)
             implementation(libs.compose.foundation)

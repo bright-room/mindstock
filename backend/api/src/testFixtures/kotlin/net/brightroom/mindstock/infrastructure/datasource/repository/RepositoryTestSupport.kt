@@ -1,0 +1,43 @@
+package net.brightroom.mindstock.infrastructure.datasource.repository
+
+import net.brightroom.mindstock.test.TestDataSource
+import net.brightroom.mindstock.test.testHikariDataSource
+import org.flywaydb.core.Flyway
+import org.jetbrains.exposed.v1.jdbc.Database
+import org.jetbrains.exposed.v1.jdbc.transactions.transaction
+
+/**
+ * Repository 結合テスト用のヘルパー。
+ *
+ * fresh schema を立て、Flyway migrate を流し、Exposed `Database` を渡して [block] を実行する。
+ * block 内は `tx { ... }` で囲んで Repository を呼ぶこと(Exposed のクエリは transaction 内でのみ動作する)。
+ */
+fun withRepositoryTestContext(block: RepositoryTestContext.() -> Unit) {
+    TestDataSource.withFreshSchema { jdbcUrl, _ ->
+        val dataSource =
+            testHikariDataSource(
+                jdbcUrl,
+                TestDataSource.user,
+                TestDataSource.password,
+            )
+        try {
+            Flyway
+                .configure()
+                .dataSource(dataSource)
+                .locations("classpath:db/migration")
+                .load()
+                .migrate()
+            val database = Database.connect(dataSource)
+            RepositoryTestContext(database).block()
+        } finally {
+            dataSource.close()
+        }
+    }
+}
+
+class RepositoryTestContext(
+    val database: Database,
+) {
+    /** Repository コードを transaction 境界内で実行するショートカット。 */
+    fun <T> tx(block: () -> T): T = transaction(database) { block() }
+}

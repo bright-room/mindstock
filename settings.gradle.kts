@@ -43,20 +43,15 @@ rootProject.name = "mindstock"
 // composite build for convention plugins
 includeBuild("build-logic")
 
-include(
-    ":shared:rpc",
-    ":shared:extensions",
-)
+include(":shared")
+include(":rpc")
 
 include(":domain")
 
 include(
-    ":backend:application:api",
-    ":backend:infrastructure:schemas",
-    ":backend:infrastructure:migration:annotation",
-    ":backend:infrastructure:migration:detector",
-    ":backend:infrastructure:migration:generator",
-    ":backend:infrastructure:migration:executor",
+    ":backend:core",
+    ":backend:api",
+    ":backend:schedules",
 )
 
 include(":frontend")
