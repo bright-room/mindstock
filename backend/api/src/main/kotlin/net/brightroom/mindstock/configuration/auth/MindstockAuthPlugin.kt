@@ -7,7 +7,7 @@ import com.auth0.jwt.JWT
 import com.auth0.jwt.algorithms.Algorithm
 import com.auth0.jwt.interfaces.JWTVerifier
 import io.ktor.http.HttpStatusCode
-import io.ktor.server.application.createApplicationPlugin
+import io.ktor.server.application.createRouteScopedPlugin
 import io.ktor.server.response.respond
 import kotlinx.datetime.Instant
 import net.brightroom.mindstock.application.repository.user.UserRepository
@@ -29,7 +29,7 @@ class MindstockAuthConfig {
 }
 
 /**
- * JWT 検証 + [MindstockSession] 組み立てを担う Ktor plugin。
+ * JWT 検証 + [MindstockSession] 組み立てを担う Route-scoped Ktor plugin。
  *
  * Security Invariants(spec §4.6):
  * 1. JWT 検証 crypto は自前で書かない → `com.auth0:java-jwt` の `JWT.require(...).build().verify()` 経由
@@ -42,7 +42,7 @@ class MindstockAuthConfig {
  */
 @OptIn(ExperimentalUuidApi::class)
 val MindstockAuthPlugin =
-    createApplicationPlugin(name = "MindstockAuth", createConfiguration = ::MindstockAuthConfig) {
+    createRouteScopedPlugin(name = "MindstockAuth", createConfiguration = ::MindstockAuthConfig) {
         val jwkProvider = requireNotNull(pluginConfig.jwkProvider) { "jwkProvider required" }
         val issuer = requireNotNull(pluginConfig.issuer) { "issuer required" }
         val audience = requireNotNull(pluginConfig.audience) { "audience required" }

@@ -54,18 +54,6 @@ fun Application.routingConfigure() {
     val userRepository: UserRepository by dependencies
     val database: Database by dependencies
 
-    install(MindstockAuthPlugin) {
-        jwkProvider =
-            JwkProviderBuilder(URL(jwksUrl))
-                .cached(10, 1, TimeUnit.HOURS)
-                .rateLimited(10, 1, TimeUnit.MINUTES)
-                .build()
-        issuer = authIssuer
-        audience = authAudience
-        this.userRepository = userRepository
-        this.database = database
-    }
-
     val userPublicFactory: UserPublicControllerFactory by dependencies
     val userFactory: UserControllerFactory by dependencies
     val householdFactory: HouseholdControllerFactory by dependencies
@@ -75,6 +63,17 @@ fun Application.routingConfigure() {
 
     routing {
         route("/api/v1") {
+            install(MindstockAuthPlugin) {
+                jwkProvider =
+                    JwkProviderBuilder(URL(jwksUrl))
+                        .cached(10, 1, TimeUnit.HOURS)
+                        .rateLimited(10, 1, TimeUnit.MINUTES)
+                        .build()
+                issuer = authIssuer
+                audience = authAudience
+                this.userRepository = userRepository
+                this.database = database
+            }
             // JWT 有効ならよい(未登録 OK)
             route("/user/public") {
                 rpc {
