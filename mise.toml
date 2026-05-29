@@ -4,6 +4,10 @@ java = "openjdk-25"
 [env]
 # backend dev port (frontend dev server takes 8080)
 PORT = "8090"
+# Test DB (postgres-test service on port 5433)
+TEST_DB_URL = "jdbc:postgresql://localhost:5433/mindstock_test"
+TEST_DB_USER = "mindstock"
+TEST_DB_PASSWORD = "mindstock"
 # Zitadel (local) — see README for setup. These are not secrets; PKCE public client.
 AUTH_ISSUER = "http://localhost:8081"
 AUTH_CLIENT_ID = "374810488246173699"
