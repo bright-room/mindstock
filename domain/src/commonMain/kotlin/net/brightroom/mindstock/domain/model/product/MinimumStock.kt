@@ -1,21 +1,32 @@
 package net.brightroom.mindstock.domain.model.product
 
 import kotlinx.serialization.Serializable
-import kotlin.jvm.JvmInline
 
-/**
- * 商品の最低在庫(これを下回ると買い物リストに載る)。非負整数。
- */
 @Serializable
-@JvmInline
-value class MinimumStock(
-    private val value: Int,
-) {
-    init {
-        require(value >= 0) { "minimum stock must be >= 0, got $value" }
+sealed interface MinimumStock {
+    fun isBelow(quantity: Int): Boolean
+
+    fun shortage(quantity: Int): Int
+
+    @Serializable
+    data object NotSet : MinimumStock {
+        override fun isBelow(quantity: Int): Boolean = false
+
+        override fun shortage(quantity: Int): Int = 0
     }
 
-    override fun toString(): String = value.toString()
+    @Serializable
+    data class Set(
+        private val value: Int,
+    ) : MinimumStock {
+        init {
+            require(value >= 0) { "minimum_stock must be >= 0, got $value" }
+        }
 
-    operator fun invoke(): Int = value
+        override fun isBelow(quantity: Int): Boolean = quantity < value
+
+        override fun shortage(quantity: Int): Int = (value - quantity).coerceAtLeast(0)
+
+        operator fun invoke(): Int = value
+    }
 }

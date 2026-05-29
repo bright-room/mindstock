@@ -21,6 +21,7 @@ import net.brightroom.mindstock.domain.model.catalog.CatalogItemUnit
 import net.brightroom.mindstock.domain.model.household.Household
 import net.brightroom.mindstock.domain.model.household.HouseholdId
 import net.brightroom.mindstock.domain.model.household.HouseholdMembers
+import net.brightroom.mindstock.domain.model.product.MinimumStock
 import net.brightroom.mindstock.domain.model.product.Product
 import net.brightroom.mindstock.domain.model.product.ProductId
 import net.brightroom.mindstock.domain.model.user.UserId
@@ -60,7 +61,7 @@ class ProductControllerTest :
                 Product(
                     id = ProductId(Uuid.parse("00000000-0000-0000-0000-000000000004")),
                     catalogItem = catalogItem,
-                    minimumStock = null,
+                    minimumStock = MinimumStock.NotSet,
                     archived = false,
                 )
             val session =

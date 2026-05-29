@@ -65,7 +65,7 @@ class ProductController(
 
     override suspend fun setMinimumStock(
         id: ProductId,
-        minimumStock: MinimumStock,
+        minimumStock: MinimumStock.Set,
     ): RpcResult<Unit, RpcError> =
         tx(database, session) {
             val product =

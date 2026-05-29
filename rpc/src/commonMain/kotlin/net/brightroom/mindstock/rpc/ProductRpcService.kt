@@ -24,7 +24,7 @@ interface ProductRpcService {
 
     suspend fun setMinimumStock(
         id: ProductId,
-        minimumStock: MinimumStock,
+        minimumStock: MinimumStock.Set,
     ): RpcResult<Unit, RpcError>
 
     suspend fun archive(id: ProductId): RpcResult<Unit, RpcError>

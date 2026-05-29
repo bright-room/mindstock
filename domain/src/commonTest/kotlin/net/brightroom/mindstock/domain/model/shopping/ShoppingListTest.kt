@@ -45,7 +45,7 @@ class ShoppingListTest {
                         name = CatalogItemName(name),
                         unit = CatalogItemUnit("個"),
                     ),
-                minimumStock = MinimumStock(min),
+                minimumStock = MinimumStock.Set(min),
                 archived = false,
             )
         val movements =

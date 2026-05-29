@@ -17,6 +17,7 @@ import net.brightroom.mindstock.domain.model.catalog.CatalogItem
 import net.brightroom.mindstock.domain.model.catalog.CatalogItemId
 import net.brightroom.mindstock.domain.model.catalog.CatalogItemName
 import net.brightroom.mindstock.domain.model.catalog.CatalogItemUnit
+import net.brightroom.mindstock.domain.model.product.MinimumStock
 import net.brightroom.mindstock.domain.model.product.Product
 import net.brightroom.mindstock.domain.model.product.ProductId
 import net.brightroom.mindstock.domain.model.stock.Stock
@@ -55,7 +56,7 @@ class StockControllerTest :
                 Product(
                     id = productId,
                     catalogItem = catalogItem,
-                    minimumStock = null,
+                    minimumStock = MinimumStock.NotSet,
                     archived = false,
                 )
             val stock = Stock(product = product, movements = StockMovements(emptyList()))

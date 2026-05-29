@@ -24,7 +24,7 @@ class ProductRegisterService(
 
     fun setMinimumStock(
         product: Product,
-        value: MinimumStock,
+        value: MinimumStock.Set,
         editedBy: UserId,
     ) {
         productRegisterRepository.setMinimumStock(product, value, editedBy)
