@@ -12,6 +12,7 @@ import net.brightroom.mindstock.domain.model.stock.Note
 import net.brightroom.mindstock.domain.model.stock.OccurredAt
 import net.brightroom.mindstock.domain.model.stock.Quantity
 import net.brightroom.mindstock.domain.model.stock.Stock
+import net.brightroom.mindstock.domain.model.stock.Stocks
 import net.brightroom.mindstock.domain.model.stock.movement.StockMovements
 import net.brightroom.mindstock.rpc.RpcError
 import net.brightroom.mindstock.rpc.RpcResult
@@ -34,7 +35,7 @@ class StockController(
             RpcResult.Ok(stockService.get(product))
         }
 
-    override suspend fun list(householdId: HouseholdId): RpcResult<List<Stock>, RpcError> =
+    override suspend fun list(householdId: HouseholdId): RpcResult<Stocks, RpcError> =
         tx(database, session) {
             val household =
                 householdRepository.findById(householdId)

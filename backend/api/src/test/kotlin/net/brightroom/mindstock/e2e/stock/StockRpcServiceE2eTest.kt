@@ -11,6 +11,7 @@ import net.brightroom.mindstock.domain.model.stock.Note
 import net.brightroom.mindstock.domain.model.stock.OccurredAt
 import net.brightroom.mindstock.domain.model.stock.Quantity
 import net.brightroom.mindstock.domain.model.stock.Stock
+import net.brightroom.mindstock.domain.model.stock.Stocks
 import net.brightroom.mindstock.domain.model.stock.movement.Consumption
 import net.brightroom.mindstock.domain.model.stock.movement.Replenishment
 import net.brightroom.mindstock.domain.model.stock.movement.StockMovements
@@ -137,8 +138,8 @@ class StockRpcServiceE2eTest :
                         .withService<StockRpcService>()
 
                 val r = rpc.list(hh.id)
-                r.shouldBeInstanceOf<RpcResult.Ok<List<Stock>>>()
-                r.value shouldHaveSize 2
+                r.shouldBeInstanceOf<RpcResult.Ok<Stocks>>()
+                r.value.list shouldHaveSize 2
             }
         }
 

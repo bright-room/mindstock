@@ -1,6 +1,6 @@
 package net.brightroom.mindstock.domain.model.shopping
 
-import net.brightroom.mindstock.domain.model.stock.Stock
+import net.brightroom.mindstock.domain.model.stock.Stocks
 
 /**
  * 買い物リストというドメイン概念。
@@ -8,10 +8,10 @@ import net.brightroom.mindstock.domain.model.stock.Stock
  * Stock のリストから「閾値以下の商品」を抽出する。
  */
 class ShoppingList(
-    private val stocks: List<Stock>,
+    private val stocks: Stocks,
 ) {
     fun itemsToBuy(): List<ShoppingListItem> =
         stocks
-            .filter { it.needsReplenishment() }
+            .needsReplenishment()
             .map { ShoppingListItem(it, shortage = it.shortage()) }
 }

@@ -1,4 +1,4 @@
-package net.brightroom.mindstock.domain.model.shopping
+package net.brightroom.mindstock.domain.model.stock
 
 import io.kotest.matchers.shouldBe
 import net.brightroom.mindstock.domain.model.catalog.CatalogItem
@@ -8,11 +8,6 @@ import net.brightroom.mindstock.domain.model.catalog.CatalogItemUnit
 import net.brightroom.mindstock.domain.model.product.MinimumStock
 import net.brightroom.mindstock.domain.model.product.Product
 import net.brightroom.mindstock.domain.model.product.ProductId
-import net.brightroom.mindstock.domain.model.stock.Note
-import net.brightroom.mindstock.domain.model.stock.OccurredAt
-import net.brightroom.mindstock.domain.model.stock.Quantity
-import net.brightroom.mindstock.domain.model.stock.Stock
-import net.brightroom.mindstock.domain.model.stock.Stocks
 import net.brightroom.mindstock.domain.model.stock.movement.Replenishment
 import net.brightroom.mindstock.domain.model.stock.movement.StockMovements
 import net.brightroom.mindstock.domain.model.user.UserId
@@ -24,16 +19,15 @@ import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
 @OptIn(ExperimentalUuidApi::class)
-class ShoppingListTest {
+class StocksTest {
     private val profile =
         Profile(
-            UserId(Uuid.generateV7()),
-            DisplayName("alice"),
+            userId = UserId(Uuid.generateV7()),
+            displayName = DisplayName("alice"),
         )
     private val now = Instant.parse("2026-05-24T10:00:00Z")
 
     private fun stockOf(
-        name: String,
         min: Int,
         currentReplenished: Int,
     ): Stock {
@@ -43,7 +37,7 @@ class ShoppingListTest {
                 catalogItem =
                     CatalogItem(
                         id = CatalogItemId(Uuid.generateV7()),
-                        name = CatalogItemName(name),
+                        name = CatalogItemName("item"),
                         unit = CatalogItemUnit("個"),
                     ),
                 minimumStock = MinimumStock.Set(min),
@@ -62,21 +56,35 @@ class ShoppingListTest {
             } else {
                 emptyList()
             }
-        return Stock(
-            product = product,
-            movements = StockMovements(movements),
-        )
+        return Stock(product = product, movements = StockMovements(movements))
     }
 
     @Test
-    fun `itemsToBuy returns only stocks below minimum`() {
-        val low = stockOf("a", min = 5, currentReplenished = 2)
-        val ok = stockOf("b", min = 5, currentReplenished = 10)
-        val list = ShoppingList(Stocks(listOf(low, ok)))
+    fun `needsReplenishment returns stocks below minimum only`() {
+        val low = stockOf(min = 5, currentReplenished = 2)
+        val ok = stockOf(min = 5, currentReplenished = 10)
+        val stocks = Stocks(listOf(low, ok))
 
-        val result = list.itemsToBuy()
+        val result = stocks.needsReplenishment()
         result.size shouldBe 1
-        result[0].stock shouldBe low
-        result[0].shortage shouldBe 3
+        result[0] shouldBe low
+    }
+
+    @Test
+    fun `needsReplenishment returns empty when all are sufficient`() {
+        val ok1 = stockOf(min = 3, currentReplenished = 5)
+        val ok2 = stockOf(min = 3, currentReplenished = 10)
+        val stocks = Stocks(listOf(ok1, ok2))
+
+        stocks.needsReplenishment() shouldBe emptyList()
+    }
+
+    @Test
+    fun `list is exposed directly`() {
+        val s1 = stockOf(min = 1, currentReplenished = 0)
+        val s2 = stockOf(min = 1, currentReplenished = 5)
+        val stocks = Stocks(listOf(s1, s2))
+
+        stocks.list shouldBe listOf(s1, s2)
     }
 }
