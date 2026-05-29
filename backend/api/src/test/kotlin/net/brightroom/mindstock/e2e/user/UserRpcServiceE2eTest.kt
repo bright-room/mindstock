@@ -5,6 +5,7 @@ import io.kotest.core.annotation.Tags
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.nulls.shouldNotBeNull
 import io.kotest.matchers.shouldBe
+import io.kotest.matchers.types.shouldBeInstanceOf
 import kotlinx.rpc.withService
 import net.brightroom.mindstock.application.repository.user.UserRepository
 import net.brightroom.mindstock.domain.model.user.DisplayName
@@ -16,6 +17,8 @@ import net.brightroom.mindstock.domain.model.user.auth.AuthSubject
 import net.brightroom.mindstock.e2e.e2eTest
 import net.brightroom.mindstock.e2e.seedUser
 import net.brightroom.mindstock.infrastructure.datasource.user.UserDataSource
+import net.brightroom.mindstock.rpc.RpcError
+import net.brightroom.mindstock.rpc.RpcResult
 import net.brightroom.mindstock.rpc.UserRpcService
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import kotlin.uuid.ExperimentalUuidApi
@@ -27,11 +30,10 @@ import kotlin.uuid.Uuid
  *
  * The three tests pin down:
  *  1. Happy path — Bearer header is honoured, handler resolves the actor, mutation persists.
- *  2. No `Authorization` header — Ktor `authenticate("user")` rejects before reaching the handler.
- *  3. Bearer with an unknown UserId — `ActorResolver.actor()` throws `UnauthorizedException`.
- *
- * Server-side errors propagate to the awaiting client suspend call thanks to the
- * `supervisorScope` wrapper in `tx` (see [UserPublicRpcServiceE2eTest] for the regression guard).
+ *  2. No `Authorization` header — Ktor `authenticate("user")` rejects before reaching the handler
+ *     (WS upgrade itself fails → `shouldThrowAny` on the client).
+ *  3. Bearer with an unknown UserId — the `"user"` JWT realm's `validate` checks the user
+ *     exists in DB; an unknown sub returns `null` → 401 → WS upgrade itself fails on the client.
  */
 @Tags("integration")
 @OptIn(ExperimentalUuidApi::class)
@@ -42,7 +44,8 @@ class UserRpcServiceE2eTest :
                 val user = seedUser(displayName = "Old Name")
                 val rpc = authenticatedRpcClient(asUser = user, path = "user").withService<UserRpcService>()
 
-                rpc.rename(DisplayName("New Name"))
+                val r = rpc.rename(DisplayName("New Name"))
+                r.shouldBeInstanceOf<RpcResult.Ok<Unit>>()
 
                 val persisted =
                     transaction(database) {
@@ -53,7 +56,7 @@ class UserRpcServiceE2eTest :
             }
         }
 
-        test("rename without Authorization header is rejected") {
+        test("rename without Authorization header is rejected at WS upgrade") {
             e2eTest {
                 val rpc = publicRpcClient("user").withService<UserRpcService>()
                 shouldThrowAny {
@@ -62,7 +65,7 @@ class UserRpcServiceE2eTest :
             }
         }
 
-        test("rename with unknown UserId Bearer is rejected") {
+        test("rename with unknown UserId Bearer is rejected at WS upgrade") {
             e2eTest {
                 val ghost =
                     User(

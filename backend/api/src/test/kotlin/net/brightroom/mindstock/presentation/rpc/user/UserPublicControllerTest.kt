@@ -1,8 +1,8 @@
 package net.brightroom.mindstock.presentation.rpc.user
 
-import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
+import io.kotest.matchers.types.shouldBeInstanceOf
 import io.ktor.server.application.ApplicationCall
 import io.ktor.server.auth.principal
 import io.mockk.coEvery
@@ -12,13 +12,14 @@ import io.mockk.mockkStatic
 import io.mockk.unmockkAll
 import net.brightroom.mindstock.application.service.user.UserRegisterService
 import net.brightroom.mindstock.configuration.auth.MindstockPrincipal
-import net.brightroom.mindstock.configuration.error.UnauthorizedException
 import net.brightroom.mindstock.domain.model.user.DisplayName
 import net.brightroom.mindstock.domain.model.user.User
 import net.brightroom.mindstock.domain.model.user.UserId
 import net.brightroom.mindstock.domain.model.user.auth.AuthIdentity
 import net.brightroom.mindstock.domain.model.user.auth.AuthProvider
 import net.brightroom.mindstock.domain.model.user.auth.AuthSubject
+import net.brightroom.mindstock.rpc.RpcError
+import net.brightroom.mindstock.rpc.RpcResult
 import org.jetbrains.exposed.v1.jdbc.Database
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
@@ -48,18 +49,17 @@ class UserPublicControllerTest :
             mockkStatic("net.brightroom.mindstock.configuration.transaction.TransactionKt")
             coEvery {
                 net.brightroom.mindstock.configuration.transaction
-                    .tx<Any?>(any(), any())
+                    .tx<User>(any(), any())
             } coAnswers {
-                @Suppress("UNCHECKED_CAST")
-                val block = arg<suspend () -> Any?>(1)
+                val block = arg<suspend () -> RpcResult<User, RpcError>>(1)
                 block()
             }
 
             val impl = UserPublicController(userRegisterService, call, database)
-            impl.register(displayName) shouldBe expected
+            impl.register(displayName) shouldBe RpcResult.Ok(expected)
         }
 
-        test("register throws UnauthorizedException when Principal is missing") {
+        test("register returns Err(Unauthorized) when Principal is missing") {
             val userRegisterService = mockk<UserRegisterService>()
             val database = mockk<Database>()
             val call = mockk<ApplicationCall>()
@@ -67,9 +67,18 @@ class UserPublicControllerTest :
             mockkStatic("io.ktor.server.auth.AuthenticationKt")
             every { call.principal<MindstockPrincipal>() } returns null
 
-            val impl = UserPublicController(userRegisterService, call, database)
-            shouldThrow<UnauthorizedException> {
-                impl.register(DisplayName("Anyone"))
+            mockkStatic("net.brightroom.mindstock.configuration.transaction.TransactionKt")
+            coEvery {
+                net.brightroom.mindstock.configuration.transaction
+                    .tx<User>(any(), any())
+            } coAnswers {
+                val block = arg<suspend () -> RpcResult<User, RpcError>>(1)
+                block()
             }
+
+            val impl = UserPublicController(userRegisterService, call, database)
+            val result = impl.register(DisplayName("Anyone"))
+            result.shouldBeInstanceOf<RpcResult.Err<RpcError>>()
+            result.error.shouldBeInstanceOf<RpcError.Unauthorized>()
         }
     })

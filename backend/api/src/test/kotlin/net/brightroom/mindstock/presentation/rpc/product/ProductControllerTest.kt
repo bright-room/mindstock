@@ -30,6 +30,8 @@ import net.brightroom.mindstock.domain.model.user.UserId
 import net.brightroom.mindstock.domain.model.user.auth.AuthIdentity
 import net.brightroom.mindstock.domain.model.user.auth.AuthProvider
 import net.brightroom.mindstock.domain.model.user.auth.AuthSubject
+import net.brightroom.mindstock.rpc.RpcError
+import net.brightroom.mindstock.rpc.RpcResult
 import org.jetbrains.exposed.v1.jdbc.Database
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
@@ -81,9 +83,9 @@ class ProductControllerTest :
             mockkStatic("net.brightroom.mindstock.configuration.transaction.TransactionKt")
             coEvery {
                 net.brightroom.mindstock.configuration.transaction
-                    .tx<Any?>(any(), any())
+                    .tx<Product?>(any(), any())
             } coAnswers {
-                val block = arg<suspend () -> Any?>(1)
+                val block = arg<suspend () -> RpcResult<Product?, RpcError>>(1)
                 block()
             }
 
@@ -98,6 +100,6 @@ class ProductControllerTest :
                     call = call,
                     database = database,
                 )
-            impl.find(householdId, catalogItemId) shouldBe product
+            impl.find(householdId, catalogItemId) shouldBe RpcResult.Ok(product)
         }
     })

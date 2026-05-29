@@ -1,19 +1,22 @@
 package net.brightroom.mindstock.e2e.user
 
-import io.kotest.assertions.throwables.shouldThrowAny
 import io.kotest.core.annotation.Tags
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.nulls.shouldNotBeNull
 import io.kotest.matchers.shouldBe
+import io.kotest.matchers.types.shouldBeInstanceOf
 import kotlinx.rpc.withService
 import net.brightroom.mindstock.application.repository.user.UserRepository
 import net.brightroom.mindstock.domain.model.user.DisplayName
+import net.brightroom.mindstock.domain.model.user.User
 import net.brightroom.mindstock.domain.model.user.auth.AuthIdentity
 import net.brightroom.mindstock.domain.model.user.auth.AuthProvider
 import net.brightroom.mindstock.domain.model.user.auth.AuthSubject
 import net.brightroom.mindstock.e2e.auth.TestJwtIssuer
 import net.brightroom.mindstock.e2e.e2eTest
 import net.brightroom.mindstock.infrastructure.datasource.user.UserDataSource
+import net.brightroom.mindstock.rpc.RpcError
+import net.brightroom.mindstock.rpc.RpcResult
 import net.brightroom.mindstock.rpc.UserPublicRpcService
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 
@@ -36,7 +39,9 @@ class UserPublicRpcServiceE2eTest :
                     authenticatedRpcClientWithToken(token = token, path = "user/public")
                         .withService<UserPublicRpcService>()
 
-                val user = rpc.register(DisplayName("Alice"))
+                val result = rpc.register(DisplayName("Alice"))
+                result.shouldBeInstanceOf<RpcResult.Ok<User>>()
+                val user = result.value
 
                 val expectedIdentity = AuthIdentity(AuthProvider.ZITADEL, AuthSubject(sub))
                 user.displayName shouldBe DisplayName("Alice")
@@ -52,11 +57,10 @@ class UserPublicRpcServiceE2eTest :
             }
         }
 
-        // Pinning test for the server→client exception propagation contract.
-        // Regression guard for the `tx` helper's `supervisorScope` wrapper: if that wrapper
-        // is removed, the server-side ExposedSQLException's cancellation leaks past kRPC
-        // and brings down the testApplication scope, failing the test *after* the catch.
-        test("register propagates server exception (duplicate sub) to client") {
+        // Pinning test for the server→client error propagation contract.
+        // 重複 sub による DB UNIQUE 制約違反は tx() の catch で RpcError.Internal に変換される。
+        // 将来 UserRegisterService で重複検出を入れ Conflict を明示返却するのは TODO。
+        test("register returns Err(Internal) on duplicate sub and pipeline stays usable") {
             e2eTest {
                 val dupeSub = "dupe-subject"
                 val dupeToken = TestJwtIssuer.issue(subject = dupeSub)
@@ -65,9 +69,9 @@ class UserPublicRpcServiceE2eTest :
                         .withService<UserPublicRpcService>()
                 rpc.register(DisplayName("First"))
 
-                shouldThrowAny {
-                    rpc.register(DisplayName("Second"))
-                }
+                val dup = rpc.register(DisplayName("Second"))
+                dup.shouldBeInstanceOf<RpcResult.Err<RpcError>>()
+                dup.error.shouldBeInstanceOf<RpcError.Internal>()
 
                 // The pipeline must still be usable for a *different* sub after the failure
                 // — proves the exception did not also leak via the server's connection scope.
@@ -76,7 +80,8 @@ class UserPublicRpcServiceE2eTest :
                     authenticatedRpcClientWithToken(token = freshToken, path = "user/public")
                         .withService<UserPublicRpcService>()
                 val third = freshRpc.register(DisplayName("Third"))
-                third.displayName shouldBe DisplayName("Third")
+                third.shouldBeInstanceOf<RpcResult.Ok<User>>()
+                third.value.displayName shouldBe DisplayName("Third")
             }
         }
     })

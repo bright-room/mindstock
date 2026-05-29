@@ -1,6 +1,7 @@
 package net.brightroom.mindstock.presentation.rpc.user
 
 import io.kotest.core.spec.style.FunSpec
+import io.kotest.matchers.shouldBe
 import io.ktor.server.application.ApplicationCall
 import io.mockk.coEvery
 import io.mockk.every
@@ -17,6 +18,8 @@ import net.brightroom.mindstock.domain.model.user.UserId
 import net.brightroom.mindstock.domain.model.user.auth.AuthIdentity
 import net.brightroom.mindstock.domain.model.user.auth.AuthProvider
 import net.brightroom.mindstock.domain.model.user.auth.AuthSubject
+import net.brightroom.mindstock.rpc.RpcError
+import net.brightroom.mindstock.rpc.RpcResult
 import org.jetbrains.exposed.v1.jdbc.Database
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
@@ -44,15 +47,15 @@ class UserControllerTest :
             mockkStatic("net.brightroom.mindstock.configuration.transaction.TransactionKt")
             coEvery {
                 net.brightroom.mindstock.configuration.transaction
-                    .tx<Any?>(any(), any())
+                    .tx<Unit>(any(), any())
             } coAnswers {
-                val block = arg<suspend () -> Any?>(1)
+                val block = arg<suspend () -> RpcResult<Unit, RpcError>>(1)
                 block()
             }
 
             val impl = UserController(userRegisterService, userRepository, call, database)
             val newName = DisplayName("Bob")
-            impl.rename(newName)
+            impl.rename(newName) shouldBe RpcResult.Ok(Unit)
 
             verify { userRegisterService.rename(user, newName) }
         }

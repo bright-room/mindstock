@@ -8,7 +8,6 @@ import net.brightroom.mindstock.application.repository.user.UserRepository
 import net.brightroom.mindstock.application.service.product.ProductRegisterService
 import net.brightroom.mindstock.application.service.product.ProductService
 import net.brightroom.mindstock.configuration.auth.actor
-import net.brightroom.mindstock.configuration.error.NotFoundException
 import net.brightroom.mindstock.configuration.transaction.tx
 import net.brightroom.mindstock.domain.model.catalog.CatalogItemId
 import net.brightroom.mindstock.domain.model.household.HouseholdId
@@ -18,6 +17,8 @@ import net.brightroom.mindstock.domain.model.product.ProductId
 import net.brightroom.mindstock.domain.model.product.Products
 import net.brightroom.mindstock.domain.model.user.User
 import net.brightroom.mindstock.rpc.ProductRpcService
+import net.brightroom.mindstock.rpc.RpcError
+import net.brightroom.mindstock.rpc.RpcResult
 import org.jetbrains.exposed.v1.jdbc.Database
 
 class ProductController(
@@ -30,69 +31,65 @@ class ProductController(
     private val call: ApplicationCall,
     private val database: Database,
 ) : ProductRpcService {
-    // Memoized for the lifetime of this per-connection Service Impl.
-    // NOTE: a rename within the same connection won't refresh this cache until reconnect.
     private val actor: User by lazy { call.actor(userRepository) }
 
-    override suspend fun listOfHousehold(householdId: HouseholdId): Products =
+    override suspend fun listOfHousehold(householdId: HouseholdId): RpcResult<Products, RpcError> =
         tx(database) {
-            // TODO(authz): verify actor is a member of household $householdId
             actor
             val household =
                 householdRepository.findById(householdId)
-                    ?: throw NotFoundException("household not found: $householdId")
-            productService.listOf(household)
+                    ?: return@tx RpcResult.Err(RpcError.NotFound(resource = "household", id = "$householdId"))
+            RpcResult.Ok(productService.listOf(household))
         }
 
     override suspend fun find(
         householdId: HouseholdId,
         catalogItemId: CatalogItemId,
-    ): Product? =
+    ): RpcResult<Product?, RpcError> =
         tx(database) {
-            // TODO(authz): verify actor is a member of household $householdId
             actor
             val household =
                 householdRepository.findById(householdId)
-                    ?: throw NotFoundException("household not found: $householdId")
+                    ?: return@tx RpcResult.Err(RpcError.NotFound(resource = "household", id = "$householdId"))
             val catalogItem =
                 catalogItemRepository.findById(catalogItemId)
-                    ?: throw NotFoundException("catalog item not found: $catalogItemId")
-            productService.find(household, catalogItem)
+                    ?: return@tx RpcResult.Err(RpcError.NotFound(resource = "catalog item", id = "$catalogItemId"))
+            RpcResult.Ok(productService.find(household, catalogItem))
         }
 
     override suspend fun adopt(
         householdId: HouseholdId,
         catalogItemId: CatalogItemId,
-    ): Product =
+    ): RpcResult<Product, RpcError> =
         tx(database) {
-            // TODO(authz): verify actor is a member of household $householdId
             actor
             val household =
                 householdRepository.findById(householdId)
-                    ?: throw NotFoundException("household not found: $householdId")
+                    ?: return@tx RpcResult.Err(RpcError.NotFound(resource = "household", id = "$householdId"))
             val catalogItem =
                 catalogItemRepository.findById(catalogItemId)
-                    ?: throw NotFoundException("catalog item not found: $catalogItemId")
-            productRegisterService.adopt(household, catalogItem)
+                    ?: return@tx RpcResult.Err(RpcError.NotFound(resource = "catalog item", id = "$catalogItemId"))
+            RpcResult.Ok(productRegisterService.adopt(household, catalogItem))
         }
 
     override suspend fun setMinimumStock(
         id: ProductId,
         minimumStock: MinimumStock,
-    ) = tx(database) {
-        // TODO(authz): verify actor can modify product $id (member of its household)
-        val product =
-            productRepository.findById(id)
-                ?: throw NotFoundException("product not found: $id")
-        productRegisterService.setMinimumStock(product, minimumStock, actor)
-    }
-
-    override suspend fun archive(id: ProductId) =
+    ): RpcResult<Unit, RpcError> =
         tx(database) {
-            // TODO(authz): verify actor can modify product $id (member of its household)
             val product =
                 productRepository.findById(id)
-                    ?: throw NotFoundException("product not found: $id")
+                    ?: return@tx RpcResult.Err(RpcError.NotFound(resource = "product", id = "$id"))
+            productRegisterService.setMinimumStock(product, minimumStock, actor)
+            RpcResult.Ok(Unit)
+        }
+
+    override suspend fun archive(id: ProductId): RpcResult<Unit, RpcError> =
+        tx(database) {
+            val product =
+                productRepository.findById(id)
+                    ?: return@tx RpcResult.Err(RpcError.NotFound(resource = "product", id = "$id"))
             productRegisterService.archive(product, actor)
+            RpcResult.Ok(Unit)
         }
 }

@@ -1,18 +1,21 @@
 package net.brightroom.mindstock.e2e.household
 
-import io.kotest.assertions.throwables.shouldThrowAny
 import io.kotest.core.annotation.Tags
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.nulls.shouldBeNull
 import io.kotest.matchers.nulls.shouldNotBeNull
 import io.kotest.matchers.shouldBe
+import io.kotest.matchers.types.shouldBeInstanceOf
 import kotlinx.rpc.withService
+import net.brightroom.mindstock.domain.model.household.Household
 import net.brightroom.mindstock.domain.model.household.HouseholdId
 import net.brightroom.mindstock.domain.model.household.HouseholdMemberRole
 import net.brightroom.mindstock.e2e.e2eTest
 import net.brightroom.mindstock.e2e.seedHousehold
 import net.brightroom.mindstock.e2e.seedUser
 import net.brightroom.mindstock.rpc.HouseholdRpcService
+import net.brightroom.mindstock.rpc.RpcError
+import net.brightroom.mindstock.rpc.RpcResult
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
@@ -21,7 +24,7 @@ import kotlin.uuid.Uuid
  * 1. findOf returns the household the actor owns (and null if none).
  * 2. create makes a new household with the caller as the sole OWNER.
  * 3. invite + revoke alter membership, observable via findOf as the affected user.
- * 4. invite to a non-existent householdId raises a NotFound-class error end-to-end.
+ * 4. invite to a non-existent householdId raises a NotFound error end-to-end.
  */
 @Tags("integration")
 @OptIn(ExperimentalUuidApi::class)
@@ -36,7 +39,9 @@ class HouseholdRpcServiceE2eTest :
                     authenticatedRpcClient(asUser = owner, path = "household")
                         .withService<HouseholdRpcService>()
 
-                val found = rpc.findOf()
+                val r = rpc.findOf()
+                r.shouldBeInstanceOf<RpcResult.Ok<Household?>>()
+                val found = r.value
                 found.shouldNotBeNull()
                 found.id shouldBe expected.id
             }
@@ -49,7 +54,9 @@ class HouseholdRpcServiceE2eTest :
                     authenticatedRpcClient(asUser = orphan, path = "household")
                         .withService<HouseholdRpcService>()
 
-                rpc.findOf().shouldBeNull()
+                val r = rpc.findOf()
+                r.shouldBeInstanceOf<RpcResult.Ok<Household?>>()
+                r.value.shouldBeNull()
             }
         }
 
@@ -60,7 +67,9 @@ class HouseholdRpcServiceE2eTest :
                     authenticatedRpcClient(asUser = owner, path = "household")
                         .withService<HouseholdRpcService>()
 
-                val household = rpc.create()
+                val r = rpc.create()
+                r.shouldBeInstanceOf<RpcResult.Ok<Household>>()
+                val household = r.value
 
                 household.members.list.shouldNotBeNull()
                 household.members.list.size shouldBe 1
@@ -79,18 +88,20 @@ class HouseholdRpcServiceE2eTest :
                     authenticatedRpcClient(asUser = owner, path = "household")
                         .withService<HouseholdRpcService>()
 
-                ownerRpc.invite(household.id, invitee.id, HouseholdMemberRole.MEMBER)
+                val invite = ownerRpc.invite(household.id, invitee.id, HouseholdMemberRole.MEMBER)
+                invite.shouldBeInstanceOf<RpcResult.Ok<Unit>>()
 
                 val inviteeRpc =
                     authenticatedRpcClient(asUser = invitee, path = "household")
                         .withService<HouseholdRpcService>()
                 val seen = inviteeRpc.findOf()
-                seen.shouldNotBeNull()
-                seen.id shouldBe household.id
+                seen.shouldBeInstanceOf<RpcResult.Ok<Household?>>()
+                seen.value.shouldNotBeNull()
+                seen.value!!.id shouldBe household.id
             }
         }
 
-        test("invite to an unknown householdId is rejected") {
+        test("invite to an unknown householdId returns Err(NotFound)") {
             e2eTest {
                 val owner = seedUser()
                 val invitee = seedUser()
@@ -98,13 +109,14 @@ class HouseholdRpcServiceE2eTest :
                     authenticatedRpcClient(asUser = owner, path = "household")
                         .withService<HouseholdRpcService>()
 
-                shouldThrowAny {
+                val r =
                     rpc.invite(
                         householdId = HouseholdId(Uuid.random()),
                         invitee = invitee.id,
                         role = HouseholdMemberRole.MEMBER,
                     )
-                }
+                r.shouldBeInstanceOf<RpcResult.Err<RpcError>>()
+                r.error.shouldBeInstanceOf<RpcError.NotFound>()
             }
         }
 
@@ -116,14 +128,19 @@ class HouseholdRpcServiceE2eTest :
                 val ownerRpc =
                     authenticatedRpcClient(asUser = owner, path = "household")
                         .withService<HouseholdRpcService>()
-                ownerRpc.invite(household.id, member.id, HouseholdMemberRole.MEMBER)
+                ownerRpc
+                    .invite(household.id, member.id, HouseholdMemberRole.MEMBER)
+                    .shouldBeInstanceOf<RpcResult.Ok<Unit>>()
 
-                ownerRpc.revoke(household.id, member.id)
+                val revoked = ownerRpc.revoke(household.id, member.id)
+                revoked.shouldBeInstanceOf<RpcResult.Ok<Unit>>()
 
                 val memberRpc =
                     authenticatedRpcClient(asUser = member, path = "household")
                         .withService<HouseholdRpcService>()
-                memberRpc.findOf().shouldBeNull()
+                val seen = memberRpc.findOf()
+                seen.shouldBeInstanceOf<RpcResult.Ok<Household?>>()
+                seen.value.shouldBeNull()
             }
         }
     })

@@ -24,7 +24,6 @@ dependencies {
     implementation(ktorLib.server.auth.jwt)
     implementation(ktorLib.server.contentNegotiation)
     implementation(ktorLib.serialization.kotlinx.json)
-    implementation(ktorLib.server.statusPages)
     implementation(libs.kotlinx.rpc.server)
     implementation(libs.kotlinx.rpc.server.ktor)
     implementation(libs.kotlinx.rpc.serialization.json)

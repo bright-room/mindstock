@@ -8,7 +8,6 @@ ktor:
       - "net.brightroom.mindstock.configuration.migration.MigrationConfigurationKt.migrationConfigure"
       - "net.brightroom.mindstock.configuration.external.exposed.ExposedConfigurationKt.exposedConfigure"
       - "net.brightroom.mindstock.configuration.auth.AuthConfigurationKt.authConfigure"
-      - "net.brightroom.mindstock.configuration.error.ErrorConfigurationKt.errorConfigure"
       - "net.brightroom.mindstock.configuration.routing.RoutingConfigurationKt.routingConfigure"
 
 external:

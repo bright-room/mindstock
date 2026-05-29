@@ -10,22 +10,22 @@ import net.brightroom.mindstock.domain.model.product.Products
 
 @Rpc
 interface ProductRpcService {
-    suspend fun listOfHousehold(householdId: HouseholdId): Products
+    suspend fun listOfHousehold(householdId: HouseholdId): RpcResult<Products, RpcError>
 
     suspend fun find(
         householdId: HouseholdId,
         catalogItemId: CatalogItemId,
-    ): Product?
+    ): RpcResult<Product?, RpcError>
 
     suspend fun adopt(
         householdId: HouseholdId,
         catalogItemId: CatalogItemId,
-    ): Product
+    ): RpcResult<Product, RpcError>
 
     suspend fun setMinimumStock(
         id: ProductId,
         minimumStock: MinimumStock,
-    )
+    ): RpcResult<Unit, RpcError>
 
-    suspend fun archive(id: ProductId)
+    suspend fun archive(id: ProductId): RpcResult<Unit, RpcError>
 }
