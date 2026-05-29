@@ -1,4 +1,4 @@
-package net.brightroom.mindstock.domain.model.shopping
+package net.brightroom.mindstock.domain.model.stock.shopping
 
 import io.kotest.matchers.shouldBe
 import net.brightroom.mindstock.domain.model.catalog.CatalogItem
