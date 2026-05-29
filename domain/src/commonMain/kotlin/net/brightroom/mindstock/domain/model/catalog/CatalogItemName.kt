@@ -1,7 +1,6 @@
 package net.brightroom.mindstock.domain.model.catalog
 
 import kotlinx.serialization.Serializable
-import net.brightroom.mindstock.domain.exception.DomainException
 import kotlin.jvm.JvmInline
 
 /**
@@ -13,8 +12,8 @@ value class CatalogItemName(
     private val value: String,
 ) {
     init {
-        if (value.isBlank()) throw DomainException.CatalogItemNameBlank()
-        if (value.length > 200) throw DomainException.CatalogItemNameTooLong(value.length)
+        require(value.isNotBlank()) { "catalog item name must not be blank" }
+        require(value.length <= 200) { "catalog item name length ${value.length} > 200" }
     }
 
     override fun toString(): String = value
