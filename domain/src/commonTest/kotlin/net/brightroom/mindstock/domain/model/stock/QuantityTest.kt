@@ -3,7 +3,6 @@ package net.brightroom.mindstock.domain.model.stock
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.matchers.shouldBe
 import kotlinx.serialization.json.Json
-import net.brightroom.mindstock.domain.exception.DomainException
 import kotlin.test.Test
 
 class QuantityTest {
@@ -15,12 +14,12 @@ class QuantityTest {
 
     @Test
     fun `rejects zero`() {
-        shouldThrow<DomainException.InvalidQuantity> { Quantity(0) }
+        shouldThrow<IllegalArgumentException> { Quantity(0) }
     }
 
     @Test
     fun `rejects negative`() {
-        shouldThrow<DomainException.InvalidQuantity> { Quantity(-1) }
+        shouldThrow<IllegalArgumentException> { Quantity(-1) }
     }
 
     @Test
