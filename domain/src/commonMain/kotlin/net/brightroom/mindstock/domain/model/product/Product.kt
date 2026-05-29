@@ -13,6 +13,6 @@ import net.brightroom.mindstock.domain.model.catalog.CatalogItem
 data class Product(
     val id: ProductId,
     val catalogItem: CatalogItem,
-    val minimumStock: MinimumStock?,
+    val minimumStock: MinimumStock,
     val archived: Boolean,
 )

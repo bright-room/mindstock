@@ -56,7 +56,7 @@ class SerializationRoundTripTest {
         Product(
             id = ProductId(Uuid.parse("00000000-0000-0000-0000-000000000003")),
             catalogItem = catalogItem,
-            minimumStock = MinimumStock(2),
+            minimumStock = MinimumStock.Set(2),
             archived = false,
         )
 
@@ -112,6 +112,30 @@ class SerializationRoundTripTest {
         restored.product shouldBe product
         restored.movements.list shouldBe listOf(replenishment, consumption)
         restored.currentQuantity() shouldBe 4
+    }
+
+    @Test
+    fun `MinimumStock Set round-trip`() {
+        val set = MinimumStock.Set(3)
+        roundTrip(set, MinimumStock.Set.serializer()) shouldBe set
+    }
+
+    @Test
+    fun `MinimumStock NotSet round-trip`() {
+        val notSet = MinimumStock.NotSet
+        roundTrip(notSet, MinimumStock.NotSet.serializer()) shouldBe notSet
+    }
+
+    @Test
+    fun `Product with NotSet minimumStock round-trip`() {
+        val p =
+            Product(
+                id = ProductId(Uuid.parse("00000000-0000-0000-0000-000000000005")),
+                catalogItem = catalogItem,
+                minimumStock = MinimumStock.NotSet,
+                archived = false,
+            )
+        roundTrip(p, Product.serializer()) shouldBe p
     }
 
     @Test

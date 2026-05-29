@@ -41,7 +41,7 @@ class StockTest {
                     name = CatalogItemName("ハンドソープ"),
                     unit = CatalogItemUnit("本"),
                 ),
-            minimumStock = min?.let { MinimumStock(it) },
+            minimumStock = if (min != null) MinimumStock.Set(min) else MinimumStock.NotSet,
             archived = false,
         )
 
@@ -89,7 +89,7 @@ class StockTest {
     }
 
     @Test
-    fun `needsReplenishment is false when minimumStock is null`() {
+    fun `needsReplenishment is false when minimumStock is NotSet`() {
         val p = productWithMin(null)
         val stock = Stock(p, StockMovements(emptyList()))
         stock.needsReplenishment().shouldBeFalse()

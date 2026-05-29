@@ -32,7 +32,7 @@ class ProductRegisterDataSourceIntegrationTest :
 
                 val product = tx { productRepo.adopt(household, item) }
 
-                product.minimumStock shouldBe null
+                product.minimumStock shouldBe MinimumStock.NotSet
                 product.archived shouldBe false
                 product.catalogItem shouldBe item
             }
@@ -51,11 +51,11 @@ class ProductRegisterDataSourceIntegrationTest :
                 val item = tx { catalogRepo.register(CatalogItemName("Milk"), CatalogItemUnit("L"), user.userId) }
                 val product = tx { productRegister.adopt(household, item) }
 
-                tx { productRegister.setMinimumStock(product, MinimumStock(2), user.userId) }
-                tx { productRegister.setMinimumStock(product, MinimumStock(5), user.userId) }
+                tx { productRegister.setMinimumStock(product, MinimumStock.Set(2), user.userId) }
+                tx { productRegister.setMinimumStock(product, MinimumStock.Set(5), user.userId) }
 
                 val refetched = tx { productReader.find(household, item) }
-                refetched?.minimumStock shouldBe MinimumStock(5)
+                refetched?.minimumStock shouldBe MinimumStock.Set(5)
             }
         }
 

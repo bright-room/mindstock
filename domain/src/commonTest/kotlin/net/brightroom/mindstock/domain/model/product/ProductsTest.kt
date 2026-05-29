@@ -24,7 +24,7 @@ class ProductsTest {
     ) = Product(
         id = ProductId(Uuid.generateV7()),
         catalogItem = catalogItem(name),
-        minimumStock = null,
+        minimumStock = MinimumStock.NotSet,
         archived = archived,
     )
 

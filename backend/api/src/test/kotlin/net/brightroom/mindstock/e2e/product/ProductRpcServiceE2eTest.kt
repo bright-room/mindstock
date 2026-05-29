@@ -104,14 +104,14 @@ class ProductRpcServiceE2eTest :
                         .withService<ProductRpcService>()
 
                 rpc
-                    .setMinimumStock(product.id, MinimumStock(3))
+                    .setMinimumStock(product.id, MinimumStock.Set(3))
                     .shouldBeInstanceOf<RpcResult.Ok<Unit>>()
 
                 val read = rpc.find(hh.id, item.id)
                 read.shouldBeInstanceOf<RpcResult.Ok<Product?>>()
                 val updated = read.value
                 updated.shouldNotBeNull()
-                updated.minimumStock shouldBe MinimumStock(3)
+                updated.minimumStock shouldBe MinimumStock.Set(3)
             }
         }
 
@@ -146,7 +146,7 @@ class ProductRpcServiceE2eTest :
                 val rpc =
                     authenticatedRpcClient(asUser = owner, path = "product")
                         .withService<ProductRpcService>()
-                val r = rpc.setMinimumStock(ProductId(Uuid.random()), MinimumStock(1))
+                val r = rpc.setMinimumStock(ProductId(Uuid.random()), MinimumStock.Set(1))
                 r.shouldBeInstanceOf<RpcResult.Err<RpcError>>()
                 r.error.shouldBeInstanceOf<RpcError.NotFound>()
             }

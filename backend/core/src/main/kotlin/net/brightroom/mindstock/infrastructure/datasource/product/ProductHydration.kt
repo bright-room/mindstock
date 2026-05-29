@@ -17,6 +17,6 @@ internal fun hydrateProduct(
     Product(
         id = ProductId(id),
         catalogItem = catalogItem,
-        minimumStock = minimumStock?.let { MinimumStock(it) },
+        minimumStock = if (minimumStock != null) MinimumStock.Set(minimumStock) else MinimumStock.NotSet,
         archived = archived,
     )

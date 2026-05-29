@@ -31,7 +31,7 @@ class ProductRegisterDataSource : ProductRegisterRepository {
 
     override fun setMinimumStock(
         product: Product,
-        value: MinimumStock,
+        value: MinimumStock.Set,
         editedBy: UserId,
     ) {
         ProductMinimumStocksTable.insert {

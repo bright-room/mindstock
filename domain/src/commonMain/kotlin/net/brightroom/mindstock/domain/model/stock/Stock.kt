@@ -17,13 +17,7 @@ data class Stock(
 ) {
     fun currentQuantity(): Int = movements.netQuantity()
 
-    fun needsReplenishment(): Boolean {
-        val minimum = product.minimumStock?.let { it() } ?: return false
-        return currentQuantity() < minimum
-    }
+    fun needsReplenishment(): Boolean = product.minimumStock.isBelow(currentQuantity())
 
-    fun shortage(): Int {
-        val minimum = product.minimumStock?.let { it() } ?: 0
-        return (minimum - currentQuantity()).coerceAtLeast(0)
-    }
+    fun shortage(): Int = product.minimumStock.shortage(currentQuantity())
 }

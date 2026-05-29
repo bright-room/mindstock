@@ -16,7 +16,7 @@ interface ProductRegisterRepository {
     /** product_minimum_stocks に行を INSERT。 */
     fun setMinimumStock(
         product: Product,
-        value: MinimumStock,
+        value: MinimumStock.Set,
         editedBy: UserId,
     )
 
