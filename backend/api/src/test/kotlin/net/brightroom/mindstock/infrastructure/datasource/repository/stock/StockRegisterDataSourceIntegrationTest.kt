@@ -7,9 +7,9 @@ import net.brightroom.mindstock.domain.model.catalog.CatalogItemName
 import net.brightroom.mindstock.domain.model.catalog.CatalogItemUnit
 import net.brightroom.mindstock.domain.model.household.Household
 import net.brightroom.mindstock.domain.model.product.Product
-import net.brightroom.mindstock.domain.model.stock.Note
-import net.brightroom.mindstock.domain.model.stock.OccurredAt
-import net.brightroom.mindstock.domain.model.stock.Quantity
+import net.brightroom.mindstock.domain.model.stock.movement.Note
+import net.brightroom.mindstock.domain.model.stock.movement.OccurredAt
+import net.brightroom.mindstock.domain.model.stock.movement.Quantity
 import net.brightroom.mindstock.domain.model.user.auth.AuthIdentity
 import net.brightroom.mindstock.domain.model.user.auth.AuthProvider
 import net.brightroom.mindstock.domain.model.user.auth.AuthSubject

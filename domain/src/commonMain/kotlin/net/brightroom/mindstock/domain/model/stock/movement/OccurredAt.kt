@@ -1,4 +1,4 @@
-package net.brightroom.mindstock.domain.model.stock
+package net.brightroom.mindstock.domain.model.stock.movement
 
 import kotlinx.serialization.Serializable
 import kotlin.time.Instant
