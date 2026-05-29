@@ -15,6 +15,7 @@ class CatalogItemUnitTest {
     @Test
     fun `rejects blank`() {
         shouldThrow<IllegalArgumentException> { CatalogItemUnit("") }
+        shouldThrow<IllegalArgumentException> { CatalogItemUnit("   ") }
     }
 
     @Test

@@ -12,7 +12,7 @@ value class MinimumStock(
     private val value: Int,
 ) {
     init {
-        require(value >= 0) { "minimum_stock must be >= 0, got $value" }
+        require(value >= 0) { "minimum stock must be >= 0, got $value" }
     }
 
     override fun toString(): String = value.toString()
