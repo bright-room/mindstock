@@ -4,8 +4,6 @@ import net.brightroom.mindstock.domain.model.product.Product
 import net.brightroom.mindstock.domain.model.stock.Note
 import net.brightroom.mindstock.domain.model.stock.OccurredAt
 import net.brightroom.mindstock.domain.model.stock.Quantity
-import net.brightroom.mindstock.domain.model.stock.movement.Consumption
-import net.brightroom.mindstock.domain.model.stock.movement.Replenishment
 import net.brightroom.mindstock.domain.model.user.UserId
 
 interface StockRegisterRepository {
@@ -15,7 +13,7 @@ interface StockRegisterRepository {
         occurredAt: OccurredAt,
         by: UserId,
         note: Note,
-    ): Replenishment
+    )
 
     fun consume(
         product: Product,
@@ -23,5 +21,5 @@ interface StockRegisterRepository {
         occurredAt: OccurredAt,
         by: UserId,
         note: Note,
-    ): Consumption
+    )
 }

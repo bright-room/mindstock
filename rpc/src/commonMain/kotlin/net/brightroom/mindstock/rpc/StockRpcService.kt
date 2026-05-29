@@ -7,8 +7,6 @@ import net.brightroom.mindstock.domain.model.stock.Note
 import net.brightroom.mindstock.domain.model.stock.OccurredAt
 import net.brightroom.mindstock.domain.model.stock.Quantity
 import net.brightroom.mindstock.domain.model.stock.Stock
-import net.brightroom.mindstock.domain.model.stock.movement.Consumption
-import net.brightroom.mindstock.domain.model.stock.movement.Replenishment
 import net.brightroom.mindstock.domain.model.stock.movement.StockMovements
 
 @Rpc
@@ -27,12 +25,12 @@ interface StockRpcService {
         qty: Quantity,
         occurredAt: OccurredAt,
         note: Note,
-    ): RpcResult<Replenishment, RpcError>
+    ): RpcResult<Unit, RpcError>
 
     suspend fun consume(
         productId: ProductId,
         qty: Quantity,
         occurredAt: OccurredAt,
         note: Note,
-    ): RpcResult<Consumption, RpcError>
+    ): RpcResult<Unit, RpcError>
 }

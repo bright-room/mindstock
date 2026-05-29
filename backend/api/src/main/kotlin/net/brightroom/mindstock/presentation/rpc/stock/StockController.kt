@@ -12,8 +12,6 @@ import net.brightroom.mindstock.domain.model.stock.Note
 import net.brightroom.mindstock.domain.model.stock.OccurredAt
 import net.brightroom.mindstock.domain.model.stock.Quantity
 import net.brightroom.mindstock.domain.model.stock.Stock
-import net.brightroom.mindstock.domain.model.stock.movement.Consumption
-import net.brightroom.mindstock.domain.model.stock.movement.Replenishment
 import net.brightroom.mindstock.domain.model.stock.movement.StockMovements
 import net.brightroom.mindstock.rpc.RpcError
 import net.brightroom.mindstock.rpc.RpcResult
@@ -60,12 +58,13 @@ class StockController(
         qty: Quantity,
         occurredAt: OccurredAt,
         note: Note,
-    ): RpcResult<Replenishment, RpcError> =
+    ): RpcResult<Unit, RpcError> =
         tx(database, session) {
             val product =
                 productRepository.findById(productId)
                     ?: return@tx RpcResult.Err(RpcError.NotFound(resource = "product", id = "$productId"))
-            RpcResult.Ok(stockRegisterService.replenish(product, qty, occurredAt, requireNotNull(session.userId), note))
+            stockRegisterService.replenish(product, qty, occurredAt, requireNotNull(session.userId), note)
+            RpcResult.Ok(Unit)
         }
 
     override suspend fun consume(
@@ -73,11 +72,12 @@ class StockController(
         qty: Quantity,
         occurredAt: OccurredAt,
         note: Note,
-    ): RpcResult<Consumption, RpcError> =
+    ): RpcResult<Unit, RpcError> =
         tx(database, session) {
             val product =
                 productRepository.findById(productId)
                     ?: return@tx RpcResult.Err(RpcError.NotFound(resource = "product", id = "$productId"))
-            RpcResult.Ok(stockRegisterService.consume(product, qty, occurredAt, requireNotNull(session.userId), note))
+            stockRegisterService.consume(product, qty, occurredAt, requireNotNull(session.userId), note)
+            RpcResult.Ok(Unit)
         }
 }

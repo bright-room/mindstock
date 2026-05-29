@@ -28,7 +28,7 @@ import kotlin.uuid.Uuid
 
 /**
  * Pinned behaviors:
- * 1. replenish creates a Replenishment and increases current quantity.
+ * 1. replenish persists a Replenishment and increases current quantity.
  * 2. consume reduces current quantity.
  * 3. get returns a Stock with zero quantity for an untouched product.
  * 4. list returns all stocks for the household.
@@ -43,7 +43,7 @@ import kotlin.uuid.Uuid
 class StockRpcServiceE2eTest :
     FunSpec({
 
-        test("replenish creates a Replenishment and increases current quantity") {
+        test("replenish persists a Replenishment and increases current quantity") {
             e2eTest {
                 val owner = seedUser()
                 val hh = seedHousehold(owner)
@@ -53,21 +53,27 @@ class StockRpcServiceE2eTest :
                     authenticatedRpcClient(asUser = owner, path = "stock")
                         .withService<StockRpcService>()
 
-                val r =
-                    rpc.replenish(
+                rpc
+                    .replenish(
                         product.id,
                         Quantity(5),
                         OccurredAt(Instant.parse("2026-05-26T10:00:00Z")),
                         Note(""),
-                    )
-                r.shouldBeInstanceOf<RpcResult.Ok<Replenishment>>()
-                r.value.quantity shouldBe Quantity(5)
-                r.value.actor.userId shouldBe owner.userId
-                r.value.actor.displayName shouldBe owner.displayName
+                    ).shouldBeInstanceOf<RpcResult.Ok<Unit>>()
 
                 val got = rpc.get(product.id)
                 got.shouldBeInstanceOf<RpcResult.Ok<Stock>>()
                 got.value.currentQuantity() shouldBe 5
+
+                val history = rpc.movementHistory(product.id, limit = 1)
+                history.shouldBeInstanceOf<RpcResult.Ok<StockMovements>>()
+                val movement =
+                    history.value.list
+                        .single()
+                        .shouldBeInstanceOf<Replenishment>()
+                movement.quantity shouldBe Quantity(5)
+                movement.actor.userId shouldBe owner.userId
+                movement.actor.displayName shouldBe owner.displayName
             }
         }
 
@@ -86,7 +92,7 @@ class StockRpcServiceE2eTest :
                         Quantity(5),
                         OccurredAt(Instant.parse("2026-05-26T10:00:00Z")),
                         Note(""),
-                    ).shouldBeInstanceOf<RpcResult.Ok<Replenishment>>()
+                    ).shouldBeInstanceOf<RpcResult.Ok<Unit>>()
 
                 rpc
                     .consume(
@@ -94,7 +100,7 @@ class StockRpcServiceE2eTest :
                         Quantity(2),
                         OccurredAt(Instant.parse("2026-05-26T11:00:00Z")),
                         Note("breakfast"),
-                    ).shouldBeInstanceOf<RpcResult.Ok<Consumption>>()
+                    ).shouldBeInstanceOf<RpcResult.Ok<Unit>>()
 
                 val got = rpc.get(product.id)
                 got.shouldBeInstanceOf<RpcResult.Ok<Stock>>()
@@ -152,21 +158,21 @@ class StockRpcServiceE2eTest :
                         Quantity(10),
                         OccurredAt(Instant.parse("2026-05-26T08:00:00Z")),
                         Note(""),
-                    ).shouldBeInstanceOf<RpcResult.Ok<Replenishment>>()
+                    ).shouldBeInstanceOf<RpcResult.Ok<Unit>>()
                 rpc
                     .consume(
                         product.id,
                         Quantity(3),
                         OccurredAt(Instant.parse("2026-05-26T09:00:00Z")),
                         Note(""),
-                    ).shouldBeInstanceOf<RpcResult.Ok<Consumption>>()
+                    ).shouldBeInstanceOf<RpcResult.Ok<Unit>>()
                 rpc
                     .replenish(
                         product.id,
                         Quantity(2),
                         OccurredAt(Instant.parse("2026-05-26T10:00:00Z")),
                         Note(""),
-                    ).shouldBeInstanceOf<RpcResult.Ok<Replenishment>>()
+                    ).shouldBeInstanceOf<RpcResult.Ok<Unit>>()
 
                 val r = rpc.movementHistory(product.id, limit = 10)
                 r.shouldBeInstanceOf<RpcResult.Ok<StockMovements>>()
@@ -237,7 +243,7 @@ class StockRpcServiceE2eTest :
                             Quantity(1),
                             OccurredAt(Instant.parse("2026-05-26T$hour:00:00Z")),
                             Note(""),
-                        ).shouldBeInstanceOf<RpcResult.Ok<Replenishment>>()
+                        ).shouldBeInstanceOf<RpcResult.Ok<Unit>>()
                 }
 
                 val r = rpc.movementHistory(product.id, limit = 3)
