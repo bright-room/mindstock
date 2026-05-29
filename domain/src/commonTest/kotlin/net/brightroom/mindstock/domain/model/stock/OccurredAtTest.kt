@@ -2,7 +2,6 @@ package net.brightroom.mindstock.domain.model.stock
 
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.matchers.shouldBe
-import net.brightroom.mindstock.domain.exception.DomainException
 import kotlin.test.Test
 import kotlin.time.Instant
 
@@ -23,7 +22,7 @@ class OccurredAtTest {
     @Test
     fun `rejects future`() {
         val future = Instant.parse("2026-05-24T10:00:00Z")
-        shouldThrow<DomainException.OccurredAtInFuture> { OccurredAt(future, now) }
+        shouldThrow<IllegalArgumentException> { OccurredAt(future, now) }
     }
 
     @Test
