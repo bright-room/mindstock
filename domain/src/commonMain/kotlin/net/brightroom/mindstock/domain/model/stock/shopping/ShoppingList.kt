@@ -11,7 +11,7 @@ class ShoppingList(
     private val stocks: Stocks,
 ) {
     fun itemsToBuy(): List<ShoppingListItem> =
-        stocks
-            .needsReplenishment()
+        stocks.list
+            .filter { it.needsReplenishment() }
             .map { ShoppingListItem(it, shortage = it.shortage()) }
 }

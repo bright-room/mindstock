@@ -11,8 +11,4 @@ data class Products(
 ) {
     /** archived = false の商品のみのコレクションを返す。 */
     fun activeOnly(): Products = Products(list.filter { !it.archived })
-
-    fun asList(): List<Product> = list.toList()
-
-    val size: Int get() = list.size
 }
