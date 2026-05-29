@@ -10,15 +10,13 @@ import net.brightroom.mindstock.domain.model.stock.movement.StockMovement
 import net.brightroom.mindstock.domain.model.stock.movement.StockMovements
 import net.brightroom.mindstock.infrastructure.datasource.user.UserDisplayNamesTable
 import net.brightroom.mindstock.infrastructure.datasource.user.UsersTable
+import net.brightroom.mindstock.infrastructure.datasource.user.latestDisplayNames
 import net.brightroom.mindstock.infrastructure.datasource.user.toProfile
 import org.jetbrains.exposed.v1.core.JoinType
 import org.jetbrains.exposed.v1.core.SortOrder
-import org.jetbrains.exposed.v1.core.alias
 import org.jetbrains.exposed.v1.core.and
 import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.core.inList
-import org.jetbrains.exposed.v1.core.max
-import org.jetbrains.exposed.v1.jdbc.select
 import org.jetbrains.exposed.v1.jdbc.selectAll
 import kotlin.time.toKotlinInstant
 import kotlin.uuid.ExperimentalUuidApi
@@ -49,22 +47,15 @@ class StockDataSource(
         limit: Int,
     ): StockMovements {
         require(limit > 0) { "limit must be > 0" }
-        val maxNameIdAlias = UserDisplayNamesTable.id.max().alias("max_name_id")
-        val latestNames =
-            UserDisplayNamesTable
-                .select(UserDisplayNamesTable.user_id, maxNameIdAlias)
-                .groupBy(UserDisplayNamesTable.user_id)
-                .alias("latest_names")
-        val latestNameUserId = latestNames[UserDisplayNamesTable.user_id]
-        val latestNameMaxId = latestNames[maxNameIdAlias]
+        val latest = latestDisplayNames()
 
         val rows =
             StockMovementsTable
                 .join(UsersTable, JoinType.INNER, onColumn = StockMovementsTable.acted_by, otherColumn = UsersTable.id)
-                .join(latestNames, JoinType.INNER, onColumn = UsersTable.id, otherColumn = latestNameUserId)
+                .join(latest.alias, JoinType.INNER, onColumn = UsersTable.id, otherColumn = latest.userId)
                 .join(UserDisplayNamesTable, JoinType.INNER) {
-                    (UserDisplayNamesTable.user_id eq latestNameUserId) and
-                        (UserDisplayNamesTable.id eq latestNameMaxId)
+                    (UserDisplayNamesTable.user_id eq latest.userId) and
+                        (UserDisplayNamesTable.id eq latest.maxId)
                 }.selectAll()
                 .where { StockMovementsTable.product_id eq product.id() }
                 .orderBy(
@@ -88,22 +79,15 @@ class StockDataSource(
         if (products.isEmpty()) return emptyMap()
         val productUuids = products.map { it.id() }
 
-        val maxNameIdAlias = UserDisplayNamesTable.id.max().alias("max_name_id")
-        val latestNames =
-            UserDisplayNamesTable
-                .select(UserDisplayNamesTable.user_id, maxNameIdAlias)
-                .groupBy(UserDisplayNamesTable.user_id)
-                .alias("latest_names")
-        val latestNameUserId = latestNames[UserDisplayNamesTable.user_id]
-        val latestNameMaxId = latestNames[maxNameIdAlias]
+        val latest = latestDisplayNames()
 
         val pairs =
             StockMovementsTable
                 .join(UsersTable, JoinType.INNER, onColumn = StockMovementsTable.acted_by, otherColumn = UsersTable.id)
-                .join(latestNames, JoinType.INNER, onColumn = UsersTable.id, otherColumn = latestNameUserId)
+                .join(latest.alias, JoinType.INNER, onColumn = UsersTable.id, otherColumn = latest.userId)
                 .join(UserDisplayNamesTable, JoinType.INNER) {
-                    (UserDisplayNamesTable.user_id eq latestNameUserId) and
-                        (UserDisplayNamesTable.id eq latestNameMaxId)
+                    (UserDisplayNamesTable.user_id eq latest.userId) and
+                        (UserDisplayNamesTable.id eq latest.maxId)
                 }.selectAll()
                 .where { StockMovementsTable.product_id inList productUuids }
                 .orderBy(
