@@ -26,14 +26,16 @@ import kotlin.uuid.Uuid
 
 /**
  * E2E for [UserRpcService]: authenticated RPC path covering Bearer token wiring
- * and [net.brightroom.mindstock.configuration.auth.ActorResolver] behaviour.
+ * and [net.brightroom.mindstock.configuration.auth.MindstockAuthPlugin] /
+ * [net.brightroom.mindstock.configuration.auth.RequireRegisteredUserPlugin] behaviour.
  *
  * The three tests pin down:
- *  1. Happy path — Bearer header is honoured, handler resolves the actor, mutation persists.
- *  2. No `Authorization` header — Ktor `authenticate("user")` rejects before reaching the handler
- *     (WS upgrade itself fails → `shouldThrowAny` on the client).
- *  3. Bearer with an unknown UserId — the `"user"` JWT realm's `validate` checks the user
- *     exists in DB; an unknown sub returns `null` → 401 → WS upgrade itself fails on the client.
+ *  1. Happy path — Bearer header is honoured, MindstockAuthPlugin builds the session,
+ *     RequireRegisteredUserPlugin admits the request, mutation persists.
+ *  2. No `Authorization` header — MindstockAuthPlugin rejects with 401 before the WS upgrade
+ *     completes (WS upgrade itself fails → `shouldThrowAny` on the client).
+ *  3. Bearer with an unknown UserId — RequireRegisteredUserPlugin's DB check fails for the
+ *     unknown sub → 401 → WS upgrade itself fails on the client.
  */
 @Tags("integration")
 @OptIn(ExperimentalUuidApi::class)
