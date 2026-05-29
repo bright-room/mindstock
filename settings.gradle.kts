@@ -52,8 +52,6 @@ include(
     ":backend:core",
     ":backend:api",
     ":backend:schedules",
-    ":backend:application:api",
-    ":backend:infrastructure:schemas",
 )
 
 include(":frontend")
