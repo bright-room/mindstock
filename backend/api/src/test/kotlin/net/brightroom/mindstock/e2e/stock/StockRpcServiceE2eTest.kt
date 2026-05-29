@@ -1,6 +1,7 @@
 package net.brightroom.mindstock.e2e.stock
 
 import io.kotest.assertions.throwables.shouldThrowAny
+import io.kotest.core.annotation.Tags
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.collections.shouldHaveSize
 import io.kotest.matchers.shouldBe
@@ -21,7 +22,6 @@ import net.brightroom.mindstock.rpc.StockRpcService
 import kotlin.time.Instant
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
-import io.kotest.core.annotation.Tags
 
 /**
  * Pinned behaviors:

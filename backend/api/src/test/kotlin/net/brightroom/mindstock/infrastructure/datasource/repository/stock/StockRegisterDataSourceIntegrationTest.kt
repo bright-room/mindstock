@@ -1,5 +1,6 @@
 package net.brightroom.mindstock.infrastructure.datasource.stock
 
+import io.kotest.core.annotation.Tags
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
 import net.brightroom.mindstock.domain.model.catalog.CatalogItemName
@@ -22,7 +23,6 @@ import net.brightroom.mindstock.infrastructure.datasource.repository.RepositoryT
 import net.brightroom.mindstock.infrastructure.datasource.repository.withRepositoryTestContext
 import net.brightroom.mindstock.infrastructure.datasource.user.UserRegisterDataSource
 import kotlin.time.Clock
-import io.kotest.core.annotation.Tags
 
 internal fun RepositoryTestContext.setupUserHouseholdProduct(): Triple<User, Household, Product> =
     tx {

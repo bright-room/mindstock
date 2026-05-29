@@ -2,6 +2,7 @@ package net.brightroom.mindstock.e2e.auth
 
 import com.auth0.jwt.algorithms.Algorithm
 import io.kotest.assertions.throwables.shouldThrowAny
+import io.kotest.core.annotation.Tags
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldNotBe
 import kotlinx.rpc.withService
@@ -14,7 +15,6 @@ import java.security.KeyPairGenerator
 import java.security.interfaces.RSAPrivateKey
 import java.security.interfaces.RSAPublicKey
 import java.time.Instant
-import io.kotest.core.annotation.Tags
 
 @Tags("integration")
 class JwtAuthE2eTest :

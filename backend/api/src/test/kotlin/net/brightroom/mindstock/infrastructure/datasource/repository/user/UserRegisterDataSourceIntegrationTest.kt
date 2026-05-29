@@ -1,5 +1,6 @@
 package net.brightroom.mindstock.infrastructure.datasource.user
 
+import io.kotest.core.annotation.Tags
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
 import net.brightroom.mindstock.domain.model.user.DisplayName
@@ -7,7 +8,6 @@ import net.brightroom.mindstock.domain.model.user.auth.AuthIdentity
 import net.brightroom.mindstock.domain.model.user.auth.AuthProvider
 import net.brightroom.mindstock.domain.model.user.auth.AuthSubject
 import net.brightroom.mindstock.infrastructure.datasource.repository.withRepositoryTestContext
-import io.kotest.core.annotation.Tags
 
 @Tags("integration")
 class UserRegisterDataSourceIntegrationTest :

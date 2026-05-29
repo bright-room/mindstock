@@ -1,5 +1,6 @@
 package net.brightroom.mindstock.infrastructure.datasource.stock
 
+import io.kotest.core.annotation.Tags
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.collections.shouldHaveSize
 import io.kotest.matchers.shouldBe
@@ -10,7 +11,6 @@ import net.brightroom.mindstock.infrastructure.datasource.product.ProductDataSou
 import net.brightroom.mindstock.infrastructure.datasource.repository.withRepositoryTestContext
 import kotlin.time.Clock
 import kotlin.time.Duration.Companion.seconds
-import io.kotest.core.annotation.Tags
 
 @Tags("integration")
 class StockDataSourceIntegrationTest :

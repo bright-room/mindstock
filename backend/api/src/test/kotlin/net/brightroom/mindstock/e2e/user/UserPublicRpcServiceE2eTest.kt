@@ -1,6 +1,7 @@
 package net.brightroom.mindstock.e2e.user
 
 import io.kotest.assertions.throwables.shouldThrowAny
+import io.kotest.core.annotation.Tags
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.nulls.shouldNotBeNull
 import io.kotest.matchers.shouldBe
@@ -15,7 +16,6 @@ import net.brightroom.mindstock.e2e.e2eTest
 import net.brightroom.mindstock.infrastructure.datasource.user.UserDataSource
 import net.brightroom.mindstock.rpc.UserPublicRpcService
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
-import io.kotest.core.annotation.Tags
 
 /**
  * E2E for [UserPublicRpcService]: WebSocket → JWT(`user-public` realm) → kRPC → Handler → Repository → Postgres.

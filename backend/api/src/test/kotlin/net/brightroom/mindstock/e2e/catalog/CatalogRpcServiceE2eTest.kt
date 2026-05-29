@@ -1,6 +1,7 @@
 package net.brightroom.mindstock.e2e.catalog
 
 import io.kotest.assertions.throwables.shouldThrowAny
+import io.kotest.core.annotation.Tags
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.collections.shouldContain
 import io.kotest.matchers.collections.shouldHaveAtLeastSize
@@ -18,7 +19,6 @@ import net.brightroom.mindstock.e2e.seedUser
 import net.brightroom.mindstock.rpc.CatalogRpcService
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
-import io.kotest.core.annotation.Tags
 
 /**
  * Pinned behaviors:

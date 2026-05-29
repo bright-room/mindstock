@@ -1,5 +1,6 @@
 package net.brightroom.mindstock.infrastructure.datasource.household
 
+import io.kotest.core.annotation.Tags
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.collections.shouldContain
 import io.kotest.matchers.collections.shouldHaveSize
@@ -12,7 +13,6 @@ import net.brightroom.mindstock.domain.model.user.auth.AuthProvider
 import net.brightroom.mindstock.domain.model.user.auth.AuthSubject
 import net.brightroom.mindstock.infrastructure.datasource.repository.withRepositoryTestContext
 import net.brightroom.mindstock.infrastructure.datasource.user.UserRegisterDataSource
-import io.kotest.core.annotation.Tags
 
 @Tags("integration")
 class HouseholdRegisterDataSourceIntegrationTest :

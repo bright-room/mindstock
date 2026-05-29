@@ -1,5 +1,6 @@
 package net.brightroom.mindstock.infrastructure.datasource.product
 
+import io.kotest.core.annotation.Tags
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.collections.shouldHaveSize
 import io.kotest.matchers.nulls.shouldBeNull
@@ -14,7 +15,6 @@ import net.brightroom.mindstock.infrastructure.datasource.catalog.CatalogItemReg
 import net.brightroom.mindstock.infrastructure.datasource.household.HouseholdRegisterDataSource
 import net.brightroom.mindstock.infrastructure.datasource.repository.withRepositoryTestContext
 import net.brightroom.mindstock.infrastructure.datasource.user.UserRegisterDataSource
-import io.kotest.core.annotation.Tags
 
 @Tags("integration")
 class ProductDataSourceIntegrationTest :

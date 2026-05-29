@@ -1,9 +1,9 @@
 package net.brightroom.mindstock.infrastructure.datasource.catalog
 
+import io.kotest.core.annotation.Tags
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.collections.shouldHaveSize
 import io.kotest.matchers.nulls.shouldBeNull
-import io.kotest.core.annotation.Tags
 import net.brightroom.mindstock.domain.model.catalog.CatalogItemId
 import net.brightroom.mindstock.domain.model.catalog.CatalogItemName
 import net.brightroom.mindstock.domain.model.catalog.CatalogItemUnit
