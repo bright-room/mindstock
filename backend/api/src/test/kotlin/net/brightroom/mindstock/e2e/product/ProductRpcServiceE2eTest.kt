@@ -14,7 +14,7 @@ import net.brightroom.mindstock.e2e.seedCatalogItem
 import net.brightroom.mindstock.e2e.seedHousehold
 import net.brightroom.mindstock.e2e.seedProduct
 import net.brightroom.mindstock.e2e.seedUser
-import net.brightroom.mindstock.presentation.rpc.ProductRpcService
+import net.brightroom.mindstock.rpc.ProductRpcService
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 

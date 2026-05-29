@@ -1,4 +1,4 @@
-package net.brightroom.mindstock.presentation.rpc
+package net.brightroom.mindstock.rpc
 
 import kotlinx.rpc.annotations.Rpc
 import net.brightroom.mindstock.domain.model.catalog.CatalogItem

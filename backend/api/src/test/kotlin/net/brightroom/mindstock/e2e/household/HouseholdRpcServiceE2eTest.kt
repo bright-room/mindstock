@@ -11,7 +11,7 @@ import net.brightroom.mindstock.domain.model.household.HouseholdMemberRole
 import net.brightroom.mindstock.e2e.e2eTest
 import net.brightroom.mindstock.e2e.seedHousehold
 import net.brightroom.mindstock.e2e.seedUser
-import net.brightroom.mindstock.presentation.rpc.HouseholdRpcService
+import net.brightroom.mindstock.rpc.HouseholdRpcService
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 

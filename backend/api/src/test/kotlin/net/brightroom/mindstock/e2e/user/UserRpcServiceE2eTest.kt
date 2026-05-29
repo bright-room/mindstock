@@ -15,7 +15,7 @@ import net.brightroom.mindstock.domain.model.user.auth.AuthSubject
 import net.brightroom.mindstock.e2e.e2eTest
 import net.brightroom.mindstock.e2e.seedUser
 import net.brightroom.mindstock.infrastructure.datasource.user.UserDataSource
-import net.brightroom.mindstock.presentation.rpc.UserRpcService
+import net.brightroom.mindstock.rpc.UserRpcService
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid

@@ -14,7 +14,7 @@ import net.brightroom.mindstock.domain.model.catalog.CatalogItemName
 import net.brightroom.mindstock.domain.model.catalog.CatalogItemUnit
 import net.brightroom.mindstock.domain.model.catalog.CatalogItems
 import net.brightroom.mindstock.domain.model.user.User
-import net.brightroom.mindstock.presentation.rpc.CatalogRpcService
+import net.brightroom.mindstock.rpc.CatalogRpcService
 import org.jetbrains.exposed.v1.jdbc.Database
 
 class CatalogController(

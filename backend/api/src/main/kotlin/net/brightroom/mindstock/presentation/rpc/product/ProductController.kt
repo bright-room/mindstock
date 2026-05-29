@@ -17,7 +17,7 @@ import net.brightroom.mindstock.domain.model.product.Product
 import net.brightroom.mindstock.domain.model.product.ProductId
 import net.brightroom.mindstock.domain.model.product.Products
 import net.brightroom.mindstock.domain.model.user.User
-import net.brightroom.mindstock.presentation.rpc.ProductRpcService
+import net.brightroom.mindstock.rpc.ProductRpcService
 import org.jetbrains.exposed.v1.jdbc.Database
 
 class ProductController(

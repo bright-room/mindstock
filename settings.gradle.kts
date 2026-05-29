@@ -44,7 +44,7 @@ rootProject.name = "mindstock"
 includeBuild("build-logic")
 
 include(":shared")
-include(":shared:rpc")
+include(":rpc")
 
 include(":domain")
 

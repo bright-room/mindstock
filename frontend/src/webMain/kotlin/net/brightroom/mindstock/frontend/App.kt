@@ -34,8 +34,8 @@ import net.brightroom.mindstock.frontend.ui.callback.AuthCallbackScreen
 import net.brightroom.mindstock.frontend.ui.login.LoginScreen
 import net.brightroom.mindstock.frontend.ui.register.RegisterDialog
 import net.brightroom.mindstock.frontend.ui.shell.AppShell
-import net.brightroom.mindstock.presentation.rpc.HouseholdRpcService
-import net.brightroom.mindstock.presentation.rpc.UserPublicRpcService
+import net.brightroom.mindstock.rpc.HouseholdRpcService
+import net.brightroom.mindstock.rpc.UserPublicRpcService
 
 private const val STATE_KEY = "mindstock.oauth.state.v1"
 private const val VERIFIER_KEY = "mindstock.oauth.verifier.v1"

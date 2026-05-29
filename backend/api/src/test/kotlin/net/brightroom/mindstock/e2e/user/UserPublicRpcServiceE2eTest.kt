@@ -13,7 +13,7 @@ import net.brightroom.mindstock.domain.model.user.auth.AuthSubject
 import net.brightroom.mindstock.e2e.auth.TestJwtIssuer
 import net.brightroom.mindstock.e2e.e2eTest
 import net.brightroom.mindstock.infrastructure.datasource.user.UserDataSource
-import net.brightroom.mindstock.presentation.rpc.UserPublicRpcService
+import net.brightroom.mindstock.rpc.UserPublicRpcService
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 
 /**

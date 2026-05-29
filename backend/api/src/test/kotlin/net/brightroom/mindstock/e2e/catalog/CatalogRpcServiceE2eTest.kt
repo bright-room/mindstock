@@ -15,7 +15,7 @@ import net.brightroom.mindstock.domain.model.catalog.CatalogItemUnit
 import net.brightroom.mindstock.e2e.e2eTest
 import net.brightroom.mindstock.e2e.seedCatalogItem
 import net.brightroom.mindstock.e2e.seedUser
-import net.brightroom.mindstock.presentation.rpc.CatalogRpcService
+import net.brightroom.mindstock.rpc.CatalogRpcService
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 

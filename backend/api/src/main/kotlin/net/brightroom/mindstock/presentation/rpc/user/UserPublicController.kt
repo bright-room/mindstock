@@ -8,7 +8,7 @@ import net.brightroom.mindstock.configuration.error.UnauthorizedException
 import net.brightroom.mindstock.configuration.transaction.tx
 import net.brightroom.mindstock.domain.model.user.DisplayName
 import net.brightroom.mindstock.domain.model.user.User
-import net.brightroom.mindstock.presentation.rpc.UserPublicRpcService
+import net.brightroom.mindstock.rpc.UserPublicRpcService
 import org.jetbrains.exposed.v1.jdbc.Database
 
 class UserPublicController(

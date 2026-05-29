@@ -31,18 +31,18 @@ import net.brightroom.mindstock.configuration.Environment
 import net.brightroom.mindstock.configuration.auth.applicationCall
 import net.brightroom.mindstock.extensions.kotlinx.serialization.CustomJson
 import net.brightroom.mindstock.extensions.kotlinx.serialization.KrpcJson
-import net.brightroom.mindstock.presentation.rpc.CatalogRpcService
-import net.brightroom.mindstock.presentation.rpc.HouseholdRpcService
-import net.brightroom.mindstock.presentation.rpc.ProductRpcService
-import net.brightroom.mindstock.presentation.rpc.StockRpcService
-import net.brightroom.mindstock.presentation.rpc.UserPublicRpcService
-import net.brightroom.mindstock.presentation.rpc.UserRpcService
 import net.brightroom.mindstock.presentation.rpc.catalog.CatalogController
 import net.brightroom.mindstock.presentation.rpc.household.HouseholdController
 import net.brightroom.mindstock.presentation.rpc.product.ProductController
 import net.brightroom.mindstock.presentation.rpc.stock.StockController
 import net.brightroom.mindstock.presentation.rpc.user.UserController
 import net.brightroom.mindstock.presentation.rpc.user.UserPublicController
+import net.brightroom.mindstock.rpc.CatalogRpcService
+import net.brightroom.mindstock.rpc.HouseholdRpcService
+import net.brightroom.mindstock.rpc.ProductRpcService
+import net.brightroom.mindstock.rpc.StockRpcService
+import net.brightroom.mindstock.rpc.UserPublicRpcService
+import net.brightroom.mindstock.rpc.UserRpcService
 import org.jetbrains.exposed.v1.jdbc.Database
 
 fun Application.routingConfigure(

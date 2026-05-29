@@ -8,8 +8,8 @@ import kotlinx.rpc.withService
 import net.brightroom.mindstock.domain.model.user.DisplayName
 import net.brightroom.mindstock.e2e.e2eTest
 import net.brightroom.mindstock.e2e.seedUser
-import net.brightroom.mindstock.presentation.rpc.UserPublicRpcService
-import net.brightroom.mindstock.presentation.rpc.UserRpcService
+import net.brightroom.mindstock.rpc.UserPublicRpcService
+import net.brightroom.mindstock.rpc.UserRpcService
 import java.security.KeyPairGenerator
 import java.security.interfaces.RSAPrivateKey
 import java.security.interfaces.RSAPublicKey

@@ -19,7 +19,7 @@ import net.brightroom.mindstock.domain.model.stock.movement.Consumption
 import net.brightroom.mindstock.domain.model.stock.movement.Replenishment
 import net.brightroom.mindstock.domain.model.stock.movement.StockMovements
 import net.brightroom.mindstock.domain.model.user.User
-import net.brightroom.mindstock.presentation.rpc.StockRpcService
+import net.brightroom.mindstock.rpc.StockRpcService
 import org.jetbrains.exposed.v1.jdbc.Database
 
 class StockController(
