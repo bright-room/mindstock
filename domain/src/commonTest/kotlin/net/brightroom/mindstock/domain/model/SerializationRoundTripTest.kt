@@ -127,6 +127,15 @@ class SerializationRoundTripTest {
     }
 
     @Test
+    fun `MinimumStock sealed round-trip via polymorphic discriminator`() {
+        val set: MinimumStock = MinimumStock.Set(7)
+        roundTrip(set, MinimumStock.serializer()) shouldBe set
+
+        val notSet: MinimumStock = MinimumStock.NotSet
+        roundTrip(notSet, MinimumStock.serializer()) shouldBe notSet
+    }
+
+    @Test
     fun `Product with NotSet minimumStock round-trip`() {
         val p =
             Product(
