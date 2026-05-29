@@ -12,18 +12,18 @@ interface CatalogRpcService {
     suspend fun search(
         query: String,
         limit: Int,
-    ): CatalogItems
+    ): RpcResult<CatalogItems, RpcError>
 
-    suspend fun findById(id: CatalogItemId): CatalogItem?
+    suspend fun findById(id: CatalogItemId): RpcResult<CatalogItem?, RpcError>
 
     suspend fun register(
         name: CatalogItemName,
         unit: CatalogItemUnit,
-    ): CatalogItem
+    ): RpcResult<CatalogItem, RpcError>
 
     suspend fun revise(
         id: CatalogItemId,
         newName: CatalogItemName,
         newUnit: CatalogItemUnit,
-    )
+    ): RpcResult<Unit, RpcError>
 }

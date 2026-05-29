@@ -10,5 +10,5 @@ import net.brightroom.mindstock.domain.model.user.profile.Profile
  */
 @Rpc
 interface UserPublicRpcService {
-    suspend fun register(displayName: DisplayName): Profile
+    suspend fun register(displayName: DisplayName): RpcResult<Profile, RpcError>
 }

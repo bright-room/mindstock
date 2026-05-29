@@ -5,5 +5,5 @@ import net.brightroom.mindstock.domain.model.user.profile.DisplayName
 
 @Rpc
 interface UserRpcService {
-    suspend fun rename(displayName: DisplayName)
+    suspend fun rename(displayName: DisplayName): RpcResult<Unit, RpcError>
 }

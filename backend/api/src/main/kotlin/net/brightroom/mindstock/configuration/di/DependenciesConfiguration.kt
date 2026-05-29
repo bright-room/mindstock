@@ -33,6 +33,19 @@ import net.brightroom.mindstock.infrastructure.datasource.stock.StockDataSource
 import net.brightroom.mindstock.infrastructure.datasource.stock.StockRegisterDataSource
 import net.brightroom.mindstock.infrastructure.datasource.user.UserDataSource
 import net.brightroom.mindstock.infrastructure.datasource.user.UserRegisterDataSource
+import net.brightroom.mindstock.presentation.rpc.catalog.CatalogController
+import net.brightroom.mindstock.presentation.rpc.catalog.CatalogControllerFactory
+import net.brightroom.mindstock.presentation.rpc.household.HouseholdController
+import net.brightroom.mindstock.presentation.rpc.household.HouseholdControllerFactory
+import net.brightroom.mindstock.presentation.rpc.product.ProductController
+import net.brightroom.mindstock.presentation.rpc.product.ProductControllerFactory
+import net.brightroom.mindstock.presentation.rpc.stock.StockController
+import net.brightroom.mindstock.presentation.rpc.stock.StockControllerFactory
+import net.brightroom.mindstock.presentation.rpc.user.UserController
+import net.brightroom.mindstock.presentation.rpc.user.UserControllerFactory
+import net.brightroom.mindstock.presentation.rpc.user.UserPublicController
+import net.brightroom.mindstock.presentation.rpc.user.UserPublicControllerFactory
+import org.jetbrains.exposed.v1.jdbc.Database
 
 fun Application.dependenciesConfigure(
     @Property("ktor.environment") environment: Environment,
@@ -73,5 +86,49 @@ fun Application.dependenciesConfigure(
         // Stock
         provide<StockService> { StockService(resolve()) }
         provide<StockRegisterService> { StockRegisterService(resolve()) }
+
+        // Controller Factory (30) — per-WS-connection 単位で Controller を組み立てる
+        provide<UserPublicControllerFactory> {
+            val urs = resolve<UserRegisterService>()
+            val db = resolve<Database>()
+            UserPublicControllerFactory { session -> UserPublicController(urs, session, db) }
+        }
+        provide<UserControllerFactory> {
+            val urs = resolve<UserRegisterService>()
+            val db = resolve<Database>()
+            UserControllerFactory { session -> UserController(urs, session, db) }
+        }
+        provide<HouseholdControllerFactory> {
+            val hs = resolve<HouseholdService>()
+            val hrs = resolve<HouseholdRegisterService>()
+            val hr = resolve<HouseholdRepository>()
+            val ur = resolve<UserRepository>()
+            val db = resolve<Database>()
+            HouseholdControllerFactory { session -> HouseholdController(hs, hrs, hr, ur, session, db) }
+        }
+        provide<CatalogControllerFactory> {
+            val cs = resolve<CatalogItemService>()
+            val crs = resolve<CatalogItemRegisterService>()
+            val cr = resolve<CatalogItemRepository>()
+            val db = resolve<Database>()
+            CatalogControllerFactory { session -> CatalogController(cs, crs, cr, session, db) }
+        }
+        provide<ProductControllerFactory> {
+            val ps = resolve<ProductService>()
+            val prs = resolve<ProductRegisterService>()
+            val hr = resolve<HouseholdRepository>()
+            val cr = resolve<CatalogItemRepository>()
+            val pr = resolve<ProductRepository>()
+            val db = resolve<Database>()
+            ProductControllerFactory { session -> ProductController(ps, prs, hr, cr, pr, session, db) }
+        }
+        provide<StockControllerFactory> {
+            val ss = resolve<StockService>()
+            val srs = resolve<StockRegisterService>()
+            val pr = resolve<ProductRepository>()
+            val hr = resolve<HouseholdRepository>()
+            val db = resolve<Database>()
+            StockControllerFactory { session -> StockController(ss, srs, pr, hr, session, db) }
+        }
     }
 }

@@ -13,26 +13,26 @@ import net.brightroom.mindstock.domain.model.stock.movement.StockMovements
 
 @Rpc
 interface StockRpcService {
-    suspend fun get(productId: ProductId): Stock
+    suspend fun get(productId: ProductId): RpcResult<Stock, RpcError>
 
-    suspend fun list(householdId: HouseholdId): List<Stock>
+    suspend fun list(householdId: HouseholdId): RpcResult<List<Stock>, RpcError>
 
     suspend fun movementHistory(
         productId: ProductId,
         limit: Int,
-    ): StockMovements
+    ): RpcResult<StockMovements, RpcError>
 
     suspend fun replenish(
         productId: ProductId,
         qty: Quantity,
         occurredAt: OccurredAt,
         note: Note,
-    ): Replenishment
+    ): RpcResult<Replenishment, RpcError>
 
     suspend fun consume(
         productId: ProductId,
         qty: Quantity,
         occurredAt: OccurredAt,
         note: Note,
-    ): Consumption
+    ): RpcResult<Consumption, RpcError>
 }

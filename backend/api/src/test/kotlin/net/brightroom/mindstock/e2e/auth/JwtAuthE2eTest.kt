@@ -4,11 +4,13 @@ import com.auth0.jwt.algorithms.Algorithm
 import io.kotest.assertions.throwables.shouldThrowAny
 import io.kotest.core.annotation.Tags
 import io.kotest.core.spec.style.FunSpec
-import io.kotest.matchers.shouldNotBe
+import io.kotest.matchers.types.shouldBeInstanceOf
 import kotlinx.rpc.withService
 import net.brightroom.mindstock.domain.model.user.profile.DisplayName
+import net.brightroom.mindstock.domain.model.user.profile.Profile
 import net.brightroom.mindstock.e2e.e2eTest
 import net.brightroom.mindstock.e2e.seedUser
+import net.brightroom.mindstock.rpc.RpcResult
 import net.brightroom.mindstock.rpc.UserPublicRpcService
 import net.brightroom.mindstock.rpc.UserRpcService
 import java.security.KeyPairGenerator
@@ -101,7 +103,20 @@ class JwtAuthE2eTest :
                         path = "user/public",
                     ).withService<UserPublicRpcService>()
                 val created = rpc.register(DisplayName("Newbie"))
-                created shouldNotBe null
+                created.shouldBeInstanceOf<RpcResult.Ok<Profile>>()
+            }
+        }
+
+        test("registered-user-only endpoint rejects valid JWT with unregistered sub (RequireRegisteredUserPlugin)") {
+            e2eTest {
+                // Issue a valid JWT for a sub that has no corresponding User in DB
+                val unknownSub = "unknown-sub-for-registered-only-route"
+                val token = TestJwtIssuer.issue(subject = unknownSub)
+                // Try to hit /api/v1/user (requires registered user)
+                val rpc = authenticatedRpcClientWithToken(token = token, path = "user").withService<UserRpcService>()
+                shouldThrowAny { rpc.rename(DisplayName("anyone")) }
+                // The WS upgrade itself fails with 401 because RequireRegisteredUserPlugin
+                // rejects sessions where userId is null
             }
         }
     })

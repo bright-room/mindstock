@@ -2,41 +2,31 @@
 
 package net.brightroom.mindstock.configuration.routing
 
+import com.auth0.jwk.JwkProviderBuilder
 import io.ktor.serialization.kotlinx.json.jsonIo
 import io.ktor.server.application.Application
 import io.ktor.server.application.install
-import io.ktor.server.auth.authenticate
 import io.ktor.server.plugins.contentnegotiation.ContentNegotiation
-import io.ktor.server.plugins.di.annotations.Property
 import io.ktor.server.plugins.di.dependencies
+import io.ktor.server.routing.route
 import io.ktor.server.routing.routing
 import kotlinx.rpc.krpc.ktor.server.Krpc
 import kotlinx.rpc.krpc.ktor.server.rpc
 import kotlinx.rpc.krpc.serialization.json.json
 import kotlinx.serialization.ExperimentalSerializationApi
-import net.brightroom.mindstock.application.repository.catalog.CatalogItemRepository
-import net.brightroom.mindstock.application.repository.household.HouseholdRepository
-import net.brightroom.mindstock.application.repository.product.ProductRepository
 import net.brightroom.mindstock.application.repository.user.UserRepository
-import net.brightroom.mindstock.application.service.catalog.CatalogItemRegisterService
-import net.brightroom.mindstock.application.service.catalog.CatalogItemService
-import net.brightroom.mindstock.application.service.household.HouseholdRegisterService
-import net.brightroom.mindstock.application.service.household.HouseholdService
-import net.brightroom.mindstock.application.service.product.ProductRegisterService
-import net.brightroom.mindstock.application.service.product.ProductService
-import net.brightroom.mindstock.application.service.stock.StockRegisterService
-import net.brightroom.mindstock.application.service.stock.StockService
-import net.brightroom.mindstock.application.service.user.UserRegisterService
-import net.brightroom.mindstock.configuration.Environment
-import net.brightroom.mindstock.configuration.auth.applicationCall
+import net.brightroom.mindstock.configuration.auth.MindstockAuthPlugin
+import net.brightroom.mindstock.configuration.auth.MindstockSessionKey
+import net.brightroom.mindstock.configuration.auth.RequireRegisteredUserPlugin
+import net.brightroom.mindstock.configuration.auth.WsSubprotocolEchoPlugin
 import net.brightroom.mindstock.extensions.kotlinx.serialization.CustomJson
 import net.brightroom.mindstock.extensions.kotlinx.serialization.KrpcJson
-import net.brightroom.mindstock.presentation.rpc.catalog.CatalogController
-import net.brightroom.mindstock.presentation.rpc.household.HouseholdController
-import net.brightroom.mindstock.presentation.rpc.product.ProductController
-import net.brightroom.mindstock.presentation.rpc.stock.StockController
-import net.brightroom.mindstock.presentation.rpc.user.UserController
-import net.brightroom.mindstock.presentation.rpc.user.UserPublicController
+import net.brightroom.mindstock.presentation.rpc.catalog.CatalogControllerFactory
+import net.brightroom.mindstock.presentation.rpc.household.HouseholdControllerFactory
+import net.brightroom.mindstock.presentation.rpc.product.ProductControllerFactory
+import net.brightroom.mindstock.presentation.rpc.stock.StockControllerFactory
+import net.brightroom.mindstock.presentation.rpc.user.UserControllerFactory
+import net.brightroom.mindstock.presentation.rpc.user.UserPublicControllerFactory
 import net.brightroom.mindstock.rpc.CatalogRpcService
 import net.brightroom.mindstock.rpc.HouseholdRpcService
 import net.brightroom.mindstock.rpc.ProductRpcService
@@ -44,120 +34,76 @@ import net.brightroom.mindstock.rpc.StockRpcService
 import net.brightroom.mindstock.rpc.UserPublicRpcService
 import net.brightroom.mindstock.rpc.UserRpcService
 import org.jetbrains.exposed.v1.jdbc.Database
+import java.net.URL
+import java.util.concurrent.TimeUnit
 
-fun Application.routingConfigure(
-    @Property("ktor.environment") environment: Environment,
-) {
+fun Application.routingConfigure() {
     install(ContentNegotiation) {
         jsonIo(CustomJson)
     }
     install(Krpc) {
         serialization { json(KrpcJson) }
     }
+    install(WsSubprotocolEchoPlugin)
 
-    // Pre-resolve Handlers and Repositories at module-init time.
-    // The factory passed to `registerService<T> { ... }` is non-suspend, so we
-    // cannot call the suspend `resolve<T>()` inside it. Capture references here
-    // and reuse them across per-connection Service Impl instantiations.
-    val userRegisterService: UserRegisterService by dependencies
-
-    val householdService: HouseholdService by dependencies
-    val householdRegisterService: HouseholdRegisterService by dependencies
-
-    val catalogItemService: CatalogItemService by dependencies
-    val catalogItemRegisterService: CatalogItemRegisterService by dependencies
-
-    val productService: ProductService by dependencies
-    val productRegisterService: ProductRegisterService by dependencies
-
-    val stockService: StockService by dependencies
-    val stockRegisterService: StockRegisterService by dependencies
+    val cfg = environment.config.config("external.auth")
+    val authIssuer = cfg.property("issuer").getString()
+    val authAudience = cfg.property("audience").getString()
+    val jwksUrl = cfg.property("jwks-url").getString()
 
     val userRepository: UserRepository by dependencies
-    val householdRepository: HouseholdRepository by dependencies
-    val catalogItemRepository: CatalogItemRepository by dependencies
-    val productRepository: ProductRepository by dependencies
-
     val database: Database by dependencies
 
-    install(net.brightroom.mindstock.configuration.auth.WsSubprotocolEchoPlugin)
+    val userPublicFactory: UserPublicControllerFactory by dependencies
+    val userFactory: UserControllerFactory by dependencies
+    val householdFactory: HouseholdControllerFactory by dependencies
+    val catalogFactory: CatalogControllerFactory by dependencies
+    val productFactory: ProductControllerFactory by dependencies
+    val stockFactory: StockControllerFactory by dependencies
 
     routing {
-        // JWT 検証は通すが User 未登録でも通る (register 専用)
-        authenticate("user-public") {
-            rpc("/api/v1/user/public") {
-                val call = this.applicationCall
-                registerService<UserPublicRpcService> {
-                    UserPublicController(userRegisterService, call, database)
+        route("/api/v1") {
+            install(MindstockAuthPlugin) {
+                jwkProvider =
+                    JwkProviderBuilder(URL(jwksUrl))
+                        .cached(10, 1, TimeUnit.HOURS)
+                        .rateLimited(10, 1, TimeUnit.MINUTES)
+                        .build()
+                issuer = authIssuer
+                audience = authAudience
+                this.userRepository = userRepository
+                this.database = database
+            }
+            // JWT 有効ならよい(未登録 OK)
+            route("/user/public") {
+                rpc {
+                    val session = call.attributes[MindstockSessionKey]
+                    registerService<UserPublicRpcService> { userPublicFactory.create(session) }
                 }
             }
-        }
-        // JWT 検証 + User 登録チェック
-        authenticate("user") {
-            rpc("/api/v1/user") {
-                val call = this.applicationCall
-                registerService<UserRpcService> {
-                    UserController(
-                        userRegisterService,
-                        userRepository,
-                        call,
-                        database,
-                    )
+            // 登録済み User 必須
+            route("/") {
+                install(RequireRegisteredUserPlugin)
+
+                rpc("/user") {
+                    val session = call.attributes[MindstockSessionKey]
+                    registerService<UserRpcService> { userFactory.create(session) }
                 }
-            }
-            rpc("/api/v1/household") {
-                val call = this.applicationCall
-                registerService<HouseholdRpcService> {
-                    HouseholdController(
-                        householdService,
-                        householdRegisterService,
-                        householdRepository,
-                        userRepository,
-                        call,
-                        database,
-                    )
+                rpc("/household") {
+                    val session = call.attributes[MindstockSessionKey]
+                    registerService<HouseholdRpcService> { householdFactory.create(session) }
                 }
-            }
-            rpc("/api/v1/catalog") {
-                val call = this.applicationCall
-                registerService<CatalogRpcService> {
-                    CatalogController(
-                        catalogItemService,
-                        catalogItemRegisterService,
-                        catalogItemRepository,
-                        userRepository,
-                        call,
-                        database,
-                    )
+                rpc("/catalog") {
+                    val session = call.attributes[MindstockSessionKey]
+                    registerService<CatalogRpcService> { catalogFactory.create(session) }
                 }
-            }
-            rpc("/api/v1/product") {
-                val call = this.applicationCall
-                registerService<ProductRpcService> {
-                    ProductController(
-                        productService,
-                        productRegisterService,
-                        householdRepository,
-                        catalogItemRepository,
-                        productRepository,
-                        userRepository,
-                        call,
-                        database,
-                    )
+                rpc("/product") {
+                    val session = call.attributes[MindstockSessionKey]
+                    registerService<ProductRpcService> { productFactory.create(session) }
                 }
-            }
-            rpc("/api/v1/stock") {
-                val call = this.applicationCall
-                registerService<StockRpcService> {
-                    StockController(
-                        stockService,
-                        stockRegisterService,
-                        productRepository,
-                        householdRepository,
-                        userRepository,
-                        call,
-                        database,
-                    )
+                rpc("/stock") {
+                    val session = call.attributes[MindstockSessionKey]
+                    registerService<StockRpcService> { stockFactory.create(session) }
                 }
             }
         }
