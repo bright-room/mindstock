@@ -1,7 +1,6 @@
 package net.brightroom.mindstock.domain.model.catalog
 
 import kotlinx.serialization.Serializable
-import net.brightroom.mindstock.domain.exception.DomainException
 import kotlin.jvm.JvmInline
 
 /**
@@ -13,8 +12,8 @@ value class CatalogItemUnit(
     private val value: String,
 ) {
     init {
-        if (value.isBlank()) throw DomainException.CatalogItemUnitBlank()
-        if (value.length > 10) throw DomainException.CatalogItemUnitTooLong(value.length)
+        require(value.isNotBlank()) { "catalog item unit must not be blank" }
+        require(value.length <= 10) { "catalog item unit length ${value.length} > 10" }
     }
 
     override fun toString(): String = value

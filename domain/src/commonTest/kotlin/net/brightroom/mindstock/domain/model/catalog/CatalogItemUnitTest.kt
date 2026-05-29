@@ -2,7 +2,6 @@ package net.brightroom.mindstock.domain.model.catalog
 
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.matchers.shouldBe
-import net.brightroom.mindstock.domain.exception.DomainException
 import kotlin.test.Test
 
 class CatalogItemUnitTest {
@@ -15,11 +14,11 @@ class CatalogItemUnitTest {
 
     @Test
     fun `rejects blank`() {
-        shouldThrow<DomainException.CatalogItemUnitBlank> { CatalogItemUnit("") }
+        shouldThrow<IllegalArgumentException> { CatalogItemUnit("") }
     }
 
     @Test
     fun `rejects over 10 chars`() {
-        shouldThrow<DomainException.CatalogItemUnitTooLong> { CatalogItemUnit("x".repeat(11)) }
+        shouldThrow<IllegalArgumentException> { CatalogItemUnit("x".repeat(11)) }
     }
 }
