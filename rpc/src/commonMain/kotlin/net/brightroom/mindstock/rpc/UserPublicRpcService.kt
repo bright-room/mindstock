@@ -1,8 +1,8 @@
 package net.brightroom.mindstock.rpc
 
 import kotlinx.rpc.annotations.Rpc
-import net.brightroom.mindstock.domain.model.user.User
 import net.brightroom.mindstock.domain.model.user.profile.DisplayName
+import net.brightroom.mindstock.domain.model.user.profile.Profile
 
 /**
  * JWT 検証は通すが User 未登録でも通る RPC。新規ユーザー登録のみ。
@@ -10,5 +10,5 @@ import net.brightroom.mindstock.domain.model.user.profile.DisplayName
  */
 @Rpc
 interface UserPublicRpcService {
-    suspend fun register(displayName: DisplayName): User
+    suspend fun register(displayName: DisplayName): Profile
 }

@@ -24,12 +24,9 @@ import net.brightroom.mindstock.domain.model.household.HouseholdId
 import net.brightroom.mindstock.domain.model.household.HouseholdMembers
 import net.brightroom.mindstock.domain.model.product.Product
 import net.brightroom.mindstock.domain.model.product.ProductId
-import net.brightroom.mindstock.domain.model.user.User
 import net.brightroom.mindstock.domain.model.user.UserId
-import net.brightroom.mindstock.domain.model.user.auth.AuthIdentity
-import net.brightroom.mindstock.domain.model.user.auth.AuthProvider
-import net.brightroom.mindstock.domain.model.user.auth.AuthSubject
 import net.brightroom.mindstock.domain.model.user.profile.DisplayName
+import net.brightroom.mindstock.domain.model.user.profile.Profile
 import org.jetbrains.exposed.v1.jdbc.Database
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
@@ -49,10 +46,9 @@ class ProductControllerTest :
             val call = mockk<ApplicationCall>()
             val database = mockk<Database>()
 
-            val user =
-                User(
-                    id = UserId(Uuid.parse("00000000-0000-0000-0000-000000000001")),
-                    authIdentity = AuthIdentity(AuthProvider.ZITADEL, AuthSubject("sub-1")),
+            val profile =
+                Profile(
+                    userId = UserId(Uuid.parse("00000000-0000-0000-0000-000000000001")),
                     displayName = DisplayName("Alice"),
                 )
             val householdId = HouseholdId(Uuid.parse("00000000-0000-0000-0000-000000000002"))
@@ -73,7 +69,7 @@ class ProductControllerTest :
                 )
 
             mockkStatic(ApplicationCall::actor)
-            every { call.actor(userRepository) } returns user
+            every { call.actor(userRepository) } returns profile
             every { householdRepository.findById(householdId) } returns household
             every { catalogItemRepository.findById(catalogItemId) } returns catalogItem
             every { productService.find(household, catalogItem) } returns product

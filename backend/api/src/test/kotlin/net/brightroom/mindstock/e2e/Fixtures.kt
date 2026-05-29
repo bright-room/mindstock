@@ -5,11 +5,11 @@ import net.brightroom.mindstock.domain.model.catalog.CatalogItemName
 import net.brightroom.mindstock.domain.model.catalog.CatalogItemUnit
 import net.brightroom.mindstock.domain.model.household.Household
 import net.brightroom.mindstock.domain.model.product.Product
-import net.brightroom.mindstock.domain.model.user.User
 import net.brightroom.mindstock.domain.model.user.auth.AuthIdentity
 import net.brightroom.mindstock.domain.model.user.auth.AuthProvider
 import net.brightroom.mindstock.domain.model.user.auth.AuthSubject
 import net.brightroom.mindstock.domain.model.user.profile.DisplayName
+import net.brightroom.mindstock.domain.model.user.profile.Profile
 import net.brightroom.mindstock.infrastructure.datasource.catalog.CatalogItemRegisterDataSource
 import net.brightroom.mindstock.infrastructure.datasource.household.HouseholdRegisterDataSource
 import net.brightroom.mindstock.infrastructure.datasource.product.ProductRegisterDataSource
@@ -40,7 +40,7 @@ fun E2eContext.seedUser(
     displayName: String = "User-${shortRandom()}",
     provider: AuthProvider = AuthProvider.ZITADEL,
     subject: String = "sub-${shortRandom()}",
-): User =
+): Profile =
     transaction(database) {
         UserRegisterDataSource().register(
             identity = AuthIdentity(provider, AuthSubject(subject)),
@@ -48,13 +48,13 @@ fun E2eContext.seedUser(
         )
     }
 
-fun E2eContext.seedHousehold(owner: User): Household =
+fun E2eContext.seedHousehold(owner: Profile): Household =
     transaction(database) {
-        HouseholdRegisterDataSource().create(owner)
+        HouseholdRegisterDataSource().create(owner.userId)
     }
 
 fun E2eContext.seedCatalogItem(
-    createdBy: User,
+    createdBy: Profile,
     name: String = "Item-${shortRandom()}",
     unit: String = "個",
 ): CatalogItem =
@@ -62,7 +62,7 @@ fun E2eContext.seedCatalogItem(
         CatalogItemRegisterDataSource().register(
             name = CatalogItemName(name),
             unit = CatalogItemUnit(unit),
-            createdBy = createdBy,
+            createdBy = createdBy.userId,
         )
     }
 

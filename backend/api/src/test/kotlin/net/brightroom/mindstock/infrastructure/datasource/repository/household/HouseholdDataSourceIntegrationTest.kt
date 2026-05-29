@@ -27,7 +27,7 @@ class HouseholdDataSourceIntegrationTest :
                 val householdReader = HouseholdDataSource()
                 val user = tx { userRepo.register(AuthIdentity(AuthProvider.ZITADEL, AuthSubject("lonely")), DisplayName("Lonely")) }
 
-                val result = tx { householdReader.findOf(user) }
+                val result = tx { householdReader.findOf(user.userId) }
 
                 result.shouldBeNull()
             }
@@ -40,8 +40,8 @@ class HouseholdDataSourceIntegrationTest :
                 val householdReader = HouseholdDataSource()
 
                 val owner = tx { userRepo.register(AuthIdentity(AuthProvider.ZITADEL, AuthSubject("rev-owner")), DisplayName("RevOwner")) }
-                val created = tx { householdRegister.create(owner) }
-                tx { householdRegister.revoke(created, owner) }
+                val created = tx { householdRegister.create(owner.userId) }
+                tx { householdRegister.revoke(created, owner.userId) }
 
                 val found = tx { householdReader.findById(created.id) }
 
@@ -69,9 +69,9 @@ class HouseholdDataSourceIntegrationTest :
                 val householdReader = HouseholdDataSource()
 
                 val owner = tx { userRepo.register(AuthIdentity(AuthProvider.ZITADEL, AuthSubject("owner")), DisplayName("Owner")) }
-                tx { householdRegister.create(owner) }
+                tx { householdRegister.create(owner.userId) }
 
-                val found = tx { householdReader.findOf(owner) }
+                val found = tx { householdReader.findOf(owner.userId) }
                 found
                     ?.members
                     ?.asList()

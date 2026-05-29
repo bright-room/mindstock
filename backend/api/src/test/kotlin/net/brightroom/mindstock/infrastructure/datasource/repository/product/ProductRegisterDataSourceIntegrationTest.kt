@@ -27,8 +27,8 @@ class ProductRegisterDataSourceIntegrationTest :
                 val productRepo = ProductRegisterDataSource()
 
                 val user = tx { userRepo.register(AuthIdentity(AuthProvider.ZITADEL, AuthSubject("u")), DisplayName("U")) }
-                val household = tx { householdRepo.create(user) }
-                val item = tx { catalogRepo.register(CatalogItemName("Milk"), CatalogItemUnit("L"), user) }
+                val household = tx { householdRepo.create(user.userId) }
+                val item = tx { catalogRepo.register(CatalogItemName("Milk"), CatalogItemUnit("L"), user.userId) }
 
                 val product = tx { productRepo.adopt(household, item) }
 
@@ -47,12 +47,12 @@ class ProductRegisterDataSourceIntegrationTest :
                 val productReader = ProductDataSource()
 
                 val user = tx { userRepo.register(AuthIdentity(AuthProvider.ZITADEL, AuthSubject("u")), DisplayName("U")) }
-                val household = tx { householdRepo.create(user) }
-                val item = tx { catalogRepo.register(CatalogItemName("Milk"), CatalogItemUnit("L"), user) }
+                val household = tx { householdRepo.create(user.userId) }
+                val item = tx { catalogRepo.register(CatalogItemName("Milk"), CatalogItemUnit("L"), user.userId) }
                 val product = tx { productRegister.adopt(household, item) }
 
-                tx { productRegister.setMinimumStock(product, MinimumStock(2), user) }
-                tx { productRegister.setMinimumStock(product, MinimumStock(5), user) }
+                tx { productRegister.setMinimumStock(product, MinimumStock(2), user.userId) }
+                tx { productRegister.setMinimumStock(product, MinimumStock(5), user.userId) }
 
                 val refetched = tx { productReader.find(household, item) }
                 refetched?.minimumStock shouldBe MinimumStock(5)
@@ -68,10 +68,10 @@ class ProductRegisterDataSourceIntegrationTest :
                 val productReader = ProductDataSource()
 
                 val user = tx { userRepo.register(AuthIdentity(AuthProvider.ZITADEL, AuthSubject("u")), DisplayName("U")) }
-                val household = tx { householdRepo.create(user) }
-                val item = tx { catalogRepo.register(CatalogItemName("Milk"), CatalogItemUnit("L"), user) }
+                val household = tx { householdRepo.create(user.userId) }
+                val item = tx { catalogRepo.register(CatalogItemName("Milk"), CatalogItemUnit("L"), user.userId) }
                 val product = tx { productRegister.adopt(household, item) }
-                tx { productRegister.archive(product, user) }
+                tx { productRegister.archive(product, user.userId) }
 
                 val refetched = tx { productReader.find(household, item) }
                 refetched?.archived shouldBe true

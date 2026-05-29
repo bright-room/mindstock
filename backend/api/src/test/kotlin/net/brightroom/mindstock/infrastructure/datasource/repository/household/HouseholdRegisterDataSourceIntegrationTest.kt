@@ -30,7 +30,7 @@ class HouseholdRegisterDataSourceIntegrationTest :
                         )
                     }
 
-                val household = tx { householdRepo.create(owner) }
+                val household = tx { householdRepo.create(owner.userId) }
 
                 household.members.asList() shouldHaveSize 1
                 household.members
@@ -48,11 +48,11 @@ class HouseholdRegisterDataSourceIntegrationTest :
 
                 val owner = tx { userRepo.register(AuthIdentity(AuthProvider.ZITADEL, AuthSubject("owner")), DisplayName("Owner")) }
                 val invitee = tx { userRepo.register(AuthIdentity(AuthProvider.ZITADEL, AuthSubject("invitee")), DisplayName("Invitee")) }
-                val household = tx { householdRepo.create(owner) }
-                tx { householdRepo.invite(household, invitee, HouseholdMemberRole.MEMBER) }
+                val household = tx { householdRepo.create(owner.userId) }
+                tx { householdRepo.invite(household, invitee.userId, HouseholdMemberRole.MEMBER) }
 
-                val refetched = tx { householdReader.findOf(invitee) }
-                refetched!!.members.asList().map { it.user.displayName } shouldContain DisplayName("Invitee")
+                val refetched = tx { householdReader.findOf(invitee.userId) }
+                refetched!!.members.asList().map { it.profile.displayName } shouldContain DisplayName("Invitee")
             }
         }
 
@@ -64,11 +64,11 @@ class HouseholdRegisterDataSourceIntegrationTest :
 
                 val owner = tx { userRepo.register(AuthIdentity(AuthProvider.ZITADEL, AuthSubject("owner")), DisplayName("Owner")) }
                 val invitee = tx { userRepo.register(AuthIdentity(AuthProvider.ZITADEL, AuthSubject("invitee")), DisplayName("Invitee")) }
-                val household = tx { householdRepo.create(owner) }
-                tx { householdRepo.invite(household, invitee, HouseholdMemberRole.MEMBER) }
-                tx { householdRepo.revoke(household, invitee) }
+                val household = tx { householdRepo.create(owner.userId) }
+                tx { householdRepo.invite(household, invitee.userId, HouseholdMemberRole.MEMBER) }
+                tx { householdRepo.revoke(household, invitee.userId) }
 
-                val refetched = tx { householdReader.findOf(invitee) }
+                val refetched = tx { householdReader.findOf(invitee.userId) }
                 refetched.shouldBeNull()
             }
         }

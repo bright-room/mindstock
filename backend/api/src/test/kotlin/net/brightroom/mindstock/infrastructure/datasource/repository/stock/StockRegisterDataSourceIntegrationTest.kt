@@ -10,11 +10,11 @@ import net.brightroom.mindstock.domain.model.product.Product
 import net.brightroom.mindstock.domain.model.stock.Note
 import net.brightroom.mindstock.domain.model.stock.OccurredAt
 import net.brightroom.mindstock.domain.model.stock.Quantity
-import net.brightroom.mindstock.domain.model.user.User
 import net.brightroom.mindstock.domain.model.user.auth.AuthIdentity
 import net.brightroom.mindstock.domain.model.user.auth.AuthProvider
 import net.brightroom.mindstock.domain.model.user.auth.AuthSubject
 import net.brightroom.mindstock.domain.model.user.profile.DisplayName
+import net.brightroom.mindstock.domain.model.user.profile.Profile
 import net.brightroom.mindstock.infrastructure.datasource.catalog.CatalogItemRegisterDataSource
 import net.brightroom.mindstock.infrastructure.datasource.household.HouseholdRegisterDataSource
 import net.brightroom.mindstock.infrastructure.datasource.product.ProductDataSource
@@ -24,15 +24,15 @@ import net.brightroom.mindstock.infrastructure.datasource.repository.withReposit
 import net.brightroom.mindstock.infrastructure.datasource.user.UserRegisterDataSource
 import kotlin.time.Clock
 
-internal fun RepositoryTestContext.setupUserHouseholdProduct(): Triple<User, Household, Product> =
+internal fun RepositoryTestContext.setupUserHouseholdProduct(): Triple<Profile, Household, Product> =
     tx {
         val user =
             UserRegisterDataSource().register(
                 AuthIdentity(AuthProvider.ZITADEL, AuthSubject("u")),
                 DisplayName("U"),
             )
-        val household = HouseholdRegisterDataSource().create(user)
-        val item = CatalogItemRegisterDataSource().register(CatalogItemName("Milk"), CatalogItemUnit("L"), user)
+        val household = HouseholdRegisterDataSource().create(user.userId)
+        val item = CatalogItemRegisterDataSource().register(CatalogItemName("Milk"), CatalogItemUnit("L"), user.userId)
         val product = ProductRegisterDataSource().adopt(household, item)
         Triple(user, household, product)
     }
@@ -48,7 +48,7 @@ class StockRegisterDataSourceIntegrationTest :
                 val stockReader = StockDataSource(ProductDataSource())
 
                 tx {
-                    stockRegister.replenish(product, Quantity(3), OccurredAt(Clock.System.now()), user, Note(""))
+                    stockRegister.replenish(product, Quantity(3), OccurredAt(Clock.System.now()), user.userId, Note(""))
                 }
                 val stock = tx { stockReader.stockOf(product) }
                 stock.currentQuantity() shouldBe 3
@@ -61,8 +61,8 @@ class StockRegisterDataSourceIntegrationTest :
                 val stockRegister = StockRegisterDataSource()
                 val stockReader = StockDataSource(ProductDataSource())
 
-                tx { stockRegister.replenish(product, Quantity(5), OccurredAt(Clock.System.now()), user, Note("")) }
-                tx { stockRegister.consume(product, Quantity(2), OccurredAt(Clock.System.now()), user, Note("")) }
+                tx { stockRegister.replenish(product, Quantity(5), OccurredAt(Clock.System.now()), user.userId, Note("")) }
+                tx { stockRegister.consume(product, Quantity(2), OccurredAt(Clock.System.now()), user.userId, Note("")) }
 
                 val stock = tx { stockReader.stockOf(product) }
                 stock.currentQuantity() shouldBe 3

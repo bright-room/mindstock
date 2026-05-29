@@ -13,16 +13,15 @@ import net.brightroom.mindstock.infrastructure.datasource.repository.withReposit
 class UserRegisterDataSourceIntegrationTest :
     FunSpec({
 
-        test("register inserts users + display_names and returns User with initial display name") {
+        test("register inserts users + display_names and returns Profile with initial display name") {
             withRepositoryTestContext {
                 val repo = UserRegisterDataSource()
                 val identity = AuthIdentity(AuthProvider.ZITADEL, AuthSubject("subject-1"))
                 val name = DisplayName("Alice")
 
-                val user = tx { repo.register(identity, name) }
+                val profile = tx { repo.register(identity, name) }
 
-                user.authIdentity shouldBe identity
-                user.displayName shouldBe name
+                profile.displayName shouldBe name
             }
         }
 
@@ -32,10 +31,10 @@ class UserRegisterDataSourceIntegrationTest :
                 val readerRepo = UserDataSource()
                 val identity = AuthIdentity(AuthProvider.ZITADEL, AuthSubject("subject-1"))
 
-                val user = tx { registerRepo.register(identity, DisplayName("Alice")) }
-                tx { registerRepo.rename(user, DisplayName("Alicia")) }
+                val profile = tx { registerRepo.register(identity, DisplayName("Alice")) }
+                tx { registerRepo.rename(profile.userId, DisplayName("Alicia")) }
 
-                val refetched = tx { readerRepo.findByAuthIdentity(identity) }
+                val refetched = tx { readerRepo.findProfileByAuthIdentity(identity) }
                 refetched?.displayName shouldBe DisplayName("Alicia")
             }
         }

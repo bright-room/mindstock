@@ -13,12 +13,12 @@ import io.mockk.unmockkAll
 import net.brightroom.mindstock.application.service.user.UserRegisterService
 import net.brightroom.mindstock.configuration.auth.MindstockPrincipal
 import net.brightroom.mindstock.configuration.error.UnauthorizedException
-import net.brightroom.mindstock.domain.model.user.User
 import net.brightroom.mindstock.domain.model.user.UserId
 import net.brightroom.mindstock.domain.model.user.auth.AuthIdentity
 import net.brightroom.mindstock.domain.model.user.auth.AuthProvider
 import net.brightroom.mindstock.domain.model.user.auth.AuthSubject
 import net.brightroom.mindstock.domain.model.user.profile.DisplayName
+import net.brightroom.mindstock.domain.model.user.profile.Profile
 import org.jetbrains.exposed.v1.jdbc.Database
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
@@ -35,9 +35,8 @@ class UserPublicControllerTest :
             val displayName = DisplayName("Alice")
             val authIdentity = AuthIdentity(AuthProvider.ZITADEL, AuthSubject("sub-1"))
             val expected =
-                User(
-                    id = UserId(Uuid.parse("00000000-0000-0000-0000-000000000001")),
-                    authIdentity = authIdentity,
+                Profile(
+                    userId = UserId(Uuid.parse("00000000-0000-0000-0000-000000000001")),
                     displayName = displayName,
                 )
 

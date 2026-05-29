@@ -65,7 +65,7 @@ class HouseholdRpcServiceE2eTest :
                 household.members.list.shouldNotBeNull()
                 household.members.list.size shouldBe 1
                 household.members.list[0]
-                    .user.id shouldBe owner.id
+                    .profile.userId shouldBe owner.userId
                 household.members.list[0].role shouldBe HouseholdMemberRole.OWNER
             }
         }
@@ -79,7 +79,7 @@ class HouseholdRpcServiceE2eTest :
                     authenticatedRpcClient(asUser = owner, path = "household")
                         .withService<HouseholdRpcService>()
 
-                ownerRpc.invite(household.id, invitee.id, HouseholdMemberRole.MEMBER)
+                ownerRpc.invite(household.id, invitee.userId, HouseholdMemberRole.MEMBER)
 
                 val inviteeRpc =
                     authenticatedRpcClient(asUser = invitee, path = "household")
@@ -101,7 +101,7 @@ class HouseholdRpcServiceE2eTest :
                 shouldThrowAny {
                     rpc.invite(
                         householdId = HouseholdId(Uuid.random()),
-                        invitee = invitee.id,
+                        invitee = invitee.userId,
                         role = HouseholdMemberRole.MEMBER,
                     )
                 }
@@ -116,9 +116,9 @@ class HouseholdRpcServiceE2eTest :
                 val ownerRpc =
                     authenticatedRpcClient(asUser = owner, path = "household")
                         .withService<HouseholdRpcService>()
-                ownerRpc.invite(household.id, member.id, HouseholdMemberRole.MEMBER)
+                ownerRpc.invite(household.id, member.userId, HouseholdMemberRole.MEMBER)
 
-                ownerRpc.revoke(household.id, member.id)
+                ownerRpc.revoke(household.id, member.userId)
 
                 val memberRpc =
                     authenticatedRpcClient(asUser = member, path = "household")

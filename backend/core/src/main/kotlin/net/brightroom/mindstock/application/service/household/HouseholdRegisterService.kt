@@ -3,25 +3,25 @@ package net.brightroom.mindstock.application.service.household
 import net.brightroom.mindstock.application.repository.household.HouseholdRegisterRepository
 import net.brightroom.mindstock.domain.model.household.Household
 import net.brightroom.mindstock.domain.model.household.HouseholdMemberRole
-import net.brightroom.mindstock.domain.model.user.User
+import net.brightroom.mindstock.domain.model.user.UserId
 
 class HouseholdRegisterService(
     private val householdRegisterRepository: HouseholdRegisterRepository,
 ) {
-    fun create(owner: User): Household = householdRegisterRepository.create(owner)
+    fun create(ownerId: UserId): Household = householdRegisterRepository.create(ownerId)
 
     fun invite(
         household: Household,
-        user: User,
+        userId: UserId,
         role: HouseholdMemberRole,
     ) {
-        householdRegisterRepository.invite(household, user, role)
+        householdRegisterRepository.invite(household, userId, role)
     }
 
     fun revoke(
         household: Household,
-        user: User,
+        userId: UserId,
     ) {
-        householdRegisterRepository.revoke(household, user)
+        householdRegisterRepository.revoke(household, userId)
     }
 }

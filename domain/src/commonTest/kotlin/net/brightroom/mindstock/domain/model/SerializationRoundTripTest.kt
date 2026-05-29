@@ -22,12 +22,9 @@ import net.brightroom.mindstock.domain.model.stock.movement.Consumption
 import net.brightroom.mindstock.domain.model.stock.movement.Replenishment
 import net.brightroom.mindstock.domain.model.stock.movement.StockMovement
 import net.brightroom.mindstock.domain.model.stock.movement.StockMovements
-import net.brightroom.mindstock.domain.model.user.User
 import net.brightroom.mindstock.domain.model.user.UserId
-import net.brightroom.mindstock.domain.model.user.auth.AuthIdentity
-import net.brightroom.mindstock.domain.model.user.auth.AuthProvider
-import net.brightroom.mindstock.domain.model.user.auth.AuthSubject
 import net.brightroom.mindstock.domain.model.user.profile.DisplayName
+import net.brightroom.mindstock.domain.model.user.profile.Profile
 import kotlin.test.Test
 import kotlin.time.Instant
 import kotlin.uuid.ExperimentalUuidApi
@@ -42,14 +39,9 @@ class SerializationRoundTripTest {
         serializer: kotlinx.serialization.KSerializer<T>,
     ): T = json.decodeFromString(serializer, json.encodeToString(serializer, value))
 
-    private val user =
-        User(
-            id = UserId(Uuid.parse("00000000-0000-0000-0000-000000000001")),
-            authIdentity =
-                AuthIdentity(
-                    provider = AuthProvider.ZITADEL,
-                    subject = AuthSubject("subject-1"),
-                ),
+    private val profile =
+        Profile(
+            userId = UserId(Uuid.parse("00000000-0000-0000-0000-000000000001")),
             displayName = DisplayName("Alice"),
         )
 
@@ -73,7 +65,7 @@ class SerializationRoundTripTest {
             product = product,
             quantity = Quantity(5),
             occurredAt = OccurredAt(Instant.parse("2026-05-25T10:00:00Z")),
-            actor = user,
+            actor = profile,
             note = Note(""),
         )
 
@@ -82,13 +74,13 @@ class SerializationRoundTripTest {
             product = product,
             quantity = Quantity(1),
             occurredAt = OccurredAt(Instant.parse("2026-05-25T11:00:00Z")),
-            actor = user,
+            actor = profile,
             note = Note("breakfast"),
         )
 
     @Test
-    fun `User round-trip`() {
-        roundTrip(user, User.serializer()) shouldBe user
+    fun `Profile round-trip`() {
+        roundTrip(profile, Profile.serializer()) shouldBe profile
     }
 
     @Test
@@ -131,7 +123,7 @@ class SerializationRoundTripTest {
                 id = HouseholdId(Uuid.parse("00000000-0000-0000-0000-000000000004")),
                 members =
                     HouseholdMembers(
-                        list = listOf(HouseholdMember(user, HouseholdMemberRole.OWNER)),
+                        list = listOf(HouseholdMember(profile, HouseholdMemberRole.OWNER)),
                     ),
             )
         roundTrip(household, Household.serializer()) shouldBe household

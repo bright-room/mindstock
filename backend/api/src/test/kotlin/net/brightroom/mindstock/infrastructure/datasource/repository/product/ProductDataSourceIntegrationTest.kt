@@ -28,8 +28,8 @@ class ProductDataSourceIntegrationTest :
                 val productReader = ProductDataSource()
 
                 val user = tx { userRepo.register(AuthIdentity(AuthProvider.ZITADEL, AuthSubject("u")), DisplayName("U")) }
-                val household = tx { householdRepo.create(user) }
-                val item = tx { catalogRepo.register(CatalogItemName("Milk"), CatalogItemUnit("L"), user) }
+                val household = tx { householdRepo.create(user.userId) }
+                val item = tx { catalogRepo.register(CatalogItemName("Milk"), CatalogItemUnit("L"), user.userId) }
 
                 val result = tx { productReader.find(household, item) }
                 result.shouldBeNull()
@@ -45,13 +45,13 @@ class ProductDataSourceIntegrationTest :
                 val productReader = ProductDataSource()
 
                 val user = tx { userRepo.register(AuthIdentity(AuthProvider.ZITADEL, AuthSubject("u")), DisplayName("U")) }
-                val household = tx { householdRepo.create(user) }
-                val milk = tx { catalogRepo.register(CatalogItemName("Milk"), CatalogItemUnit("L"), user) }
-                val bread = tx { catalogRepo.register(CatalogItemName("Bread"), CatalogItemUnit("loaf"), user) }
+                val household = tx { householdRepo.create(user.userId) }
+                val milk = tx { catalogRepo.register(CatalogItemName("Milk"), CatalogItemUnit("L"), user.userId) }
+                val bread = tx { catalogRepo.register(CatalogItemName("Bread"), CatalogItemUnit("loaf"), user.userId) }
 
                 val milkProduct = tx { productRegister.adopt(household, milk) }
                 tx { productRegister.adopt(household, bread) }
-                tx { productRegister.archive(milkProduct, user) }
+                tx { productRegister.archive(milkProduct, user.userId) }
 
                 val results = tx { productReader.listOf(household) }
                 results.asList() shouldHaveSize 2

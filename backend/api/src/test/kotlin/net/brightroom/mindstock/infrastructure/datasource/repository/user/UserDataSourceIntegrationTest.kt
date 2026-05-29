@@ -14,38 +14,37 @@ import net.brightroom.mindstock.infrastructure.datasource.repository.withReposit
 class UserDataSourceIntegrationTest :
     FunSpec({
 
-        test("findByAuthIdentity returns null when no user with that subject exists") {
+        test("findProfileByAuthIdentity returns null when no user with that subject exists") {
             withRepositoryTestContext {
                 val repo = UserDataSource()
-                val result = tx { repo.findByAuthIdentity(AuthIdentity(AuthProvider.ZITADEL, AuthSubject("unknown"))) }
+                val result = tx { repo.findProfileByAuthIdentity(AuthIdentity(AuthProvider.ZITADEL, AuthSubject("unknown"))) }
                 result.shouldBeNull()
             }
         }
 
-        test("findByAuthIdentity returns user with initial display name") {
+        test("findProfileByAuthIdentity returns profile with initial display name") {
             withRepositoryTestContext {
                 val registerRepo = UserRegisterDataSource()
                 val readerRepo = UserDataSource()
                 val identity = AuthIdentity(AuthProvider.ZITADEL, AuthSubject("subject-1"))
 
                 tx { registerRepo.register(identity, DisplayName("Alice")) }
-                val refetched = tx { readerRepo.findByAuthIdentity(identity) }
+                val refetched = tx { readerRepo.findProfileByAuthIdentity(identity) }
 
                 refetched?.displayName shouldBe DisplayName("Alice")
-                refetched?.authIdentity shouldBe identity
             }
         }
 
-        test("findByAuthIdentity returns LATEST display name after rename") {
+        test("findProfileByAuthIdentity returns LATEST display name after rename") {
             withRepositoryTestContext {
                 val registerRepo = UserRegisterDataSource()
                 val readerRepo = UserDataSource()
                 val identity = AuthIdentity(AuthProvider.ZITADEL, AuthSubject("subject-1"))
 
-                val user = tx { registerRepo.register(identity, DisplayName("Alice")) }
-                tx { registerRepo.rename(user, DisplayName("Alicia")) }
+                val profile = tx { registerRepo.register(identity, DisplayName("Alice")) }
+                tx { registerRepo.rename(profile.userId, DisplayName("Alicia")) }
 
-                val refetched = tx { readerRepo.findByAuthIdentity(identity) }
+                val refetched = tx { readerRepo.findProfileByAuthIdentity(identity) }
                 refetched?.displayName shouldBe DisplayName("Alicia")
             }
         }

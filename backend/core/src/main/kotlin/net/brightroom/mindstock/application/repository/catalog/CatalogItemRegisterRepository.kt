@@ -3,14 +3,14 @@ package net.brightroom.mindstock.application.repository.catalog
 import net.brightroom.mindstock.domain.model.catalog.CatalogItem
 import net.brightroom.mindstock.domain.model.catalog.CatalogItemName
 import net.brightroom.mindstock.domain.model.catalog.CatalogItemUnit
-import net.brightroom.mindstock.domain.model.user.User
+import net.brightroom.mindstock.domain.model.user.UserId
 
 interface CatalogItemRegisterRepository {
     /** catalog_items + 初回 catalog_item_revisions を 1 トランザクションで INSERT。 */
     fun register(
         name: CatalogItemName,
         unit: CatalogItemUnit,
-        createdBy: User,
+        createdBy: UserId,
     ): CatalogItem
 
     /** catalog_item_revisions に行を INSERT。name と unit 両方を渡す責任は呼び出し側。 */
@@ -18,6 +18,6 @@ interface CatalogItemRegisterRepository {
         catalogItem: CatalogItem,
         newName: CatalogItemName,
         newUnit: CatalogItemUnit,
-        editedBy: User,
+        editedBy: UserId,
     )
 }

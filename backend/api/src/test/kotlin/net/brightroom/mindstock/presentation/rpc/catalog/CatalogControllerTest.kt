@@ -14,12 +14,9 @@ import net.brightroom.mindstock.application.service.catalog.CatalogItemRegisterS
 import net.brightroom.mindstock.application.service.catalog.CatalogItemService
 import net.brightroom.mindstock.configuration.auth.actor
 import net.brightroom.mindstock.domain.model.catalog.CatalogItems
-import net.brightroom.mindstock.domain.model.user.User
 import net.brightroom.mindstock.domain.model.user.UserId
-import net.brightroom.mindstock.domain.model.user.auth.AuthIdentity
-import net.brightroom.mindstock.domain.model.user.auth.AuthProvider
-import net.brightroom.mindstock.domain.model.user.auth.AuthSubject
 import net.brightroom.mindstock.domain.model.user.profile.DisplayName
+import net.brightroom.mindstock.domain.model.user.profile.Profile
 import org.jetbrains.exposed.v1.jdbc.Database
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
@@ -36,10 +33,9 @@ class CatalogControllerTest :
             val userRepository = mockk<UserRepository>()
             val call = mockk<ApplicationCall>()
             val database = mockk<Database>()
-            val user =
-                User(
-                    id = UserId(Uuid.parse("00000000-0000-0000-0000-000000000001")),
-                    authIdentity = AuthIdentity(AuthProvider.ZITADEL, AuthSubject("sub-1")),
+            val profile =
+                Profile(
+                    userId = UserId(Uuid.parse("00000000-0000-0000-0000-000000000001")),
                     displayName = DisplayName("Alice"),
                 )
             val expected = CatalogItems(emptyList())
@@ -47,7 +43,7 @@ class CatalogControllerTest :
             val limit = 20
 
             mockkStatic(ApplicationCall::actor)
-            every { call.actor(userRepository) } returns user
+            every { call.actor(userRepository) } returns profile
             every { catalogItemService.search(query, limit) } returns expected
 
             mockkStatic("net.brightroom.mindstock.configuration.transaction.TransactionKt")

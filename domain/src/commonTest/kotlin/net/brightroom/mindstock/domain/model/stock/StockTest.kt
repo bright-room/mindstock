@@ -16,12 +16,9 @@ import net.brightroom.mindstock.domain.model.product.ProductId
 import net.brightroom.mindstock.domain.model.stock.movement.Consumption
 import net.brightroom.mindstock.domain.model.stock.movement.Replenishment
 import net.brightroom.mindstock.domain.model.stock.movement.StockMovements
-import net.brightroom.mindstock.domain.model.user.User
 import net.brightroom.mindstock.domain.model.user.UserId
-import net.brightroom.mindstock.domain.model.user.auth.AuthIdentity
-import net.brightroom.mindstock.domain.model.user.auth.AuthProvider
-import net.brightroom.mindstock.domain.model.user.auth.AuthSubject
 import net.brightroom.mindstock.domain.model.user.profile.DisplayName
+import net.brightroom.mindstock.domain.model.user.profile.Profile
 import kotlin.test.Test
 import kotlin.time.Instant
 import kotlin.uuid.ExperimentalUuidApi
@@ -29,10 +26,9 @@ import kotlin.uuid.Uuid
 
 @OptIn(ExperimentalUuidApi::class)
 class StockTest {
-    private val user =
-        User(
-            id = UserId(Uuid.generateV7()),
-            authIdentity = AuthIdentity(AuthProvider.ZITADEL, AuthSubject("sub-1")),
+    private val profile =
+        Profile(
+            userId = UserId(Uuid.generateV7()),
             displayName = DisplayName("alice"),
         )
 
@@ -60,12 +56,12 @@ class StockTest {
     private fun replenish(
         product: Product,
         qty: Int,
-    ) = Replenishment(product, Quantity(qty), occurred(), user, Note(""))
+    ) = Replenishment(product, Quantity(qty), occurred(), profile, Note(""))
 
     private fun consume(
         product: Product,
         qty: Int,
-    ) = Consumption(product, Quantity(qty), occurred(), user, Note(""))
+    ) = Consumption(product, Quantity(qty), occurred(), profile, Note(""))
 
     @Test
     fun `currentQuantity is sum of replenishments minus consumptions`() {

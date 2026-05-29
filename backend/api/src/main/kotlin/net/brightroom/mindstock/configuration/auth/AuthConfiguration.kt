@@ -40,7 +40,7 @@ fun Application.authConfigure() {
                 val identity = AuthIdentity(AuthProvider.ZITADEL, AuthSubject(sub))
                 val exists =
                     transaction(database) {
-                        userRepository.findByAuthIdentity(identity) != null
+                        userRepository.findProfileByAuthIdentity(identity) != null
                     }
                 if (!exists) return@validate null
                 MindstockPrincipal(identity)

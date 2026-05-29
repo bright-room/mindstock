@@ -11,12 +11,9 @@ import io.mockk.verify
 import net.brightroom.mindstock.application.repository.user.UserRepository
 import net.brightroom.mindstock.application.service.user.UserRegisterService
 import net.brightroom.mindstock.configuration.auth.actor
-import net.brightroom.mindstock.domain.model.user.User
 import net.brightroom.mindstock.domain.model.user.UserId
-import net.brightroom.mindstock.domain.model.user.auth.AuthIdentity
-import net.brightroom.mindstock.domain.model.user.auth.AuthProvider
-import net.brightroom.mindstock.domain.model.user.auth.AuthSubject
 import net.brightroom.mindstock.domain.model.user.profile.DisplayName
+import net.brightroom.mindstock.domain.model.user.profile.Profile
 import org.jetbrains.exposed.v1.jdbc.Database
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
@@ -31,15 +28,14 @@ class UserControllerTest :
             val userRepository = mockk<UserRepository>()
             val call = mockk<ApplicationCall>()
             val database = mockk<Database>()
-            val user =
-                User(
-                    id = UserId(Uuid.parse("00000000-0000-0000-0000-000000000001")),
-                    authIdentity = AuthIdentity(AuthProvider.ZITADEL, AuthSubject("sub-1")),
+            val profile =
+                Profile(
+                    userId = UserId(Uuid.parse("00000000-0000-0000-0000-000000000001")),
                     displayName = DisplayName("Alice"),
                 )
 
             mockkStatic(ApplicationCall::actor)
-            every { call.actor(userRepository) } returns user
+            every { call.actor(userRepository) } returns profile
 
             mockkStatic("net.brightroom.mindstock.configuration.transaction.TransactionKt")
             coEvery {
@@ -54,6 +50,6 @@ class UserControllerTest :
             val newName = DisplayName("Bob")
             impl.rename(newName)
 
-            verify { userRegisterService.rename(user, newName) }
+            verify { userRegisterService.rename(profile.userId, newName) }
         }
     })

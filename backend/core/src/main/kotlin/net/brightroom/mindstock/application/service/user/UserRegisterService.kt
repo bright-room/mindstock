@@ -1,9 +1,10 @@
 package net.brightroom.mindstock.application.service.user
 
 import net.brightroom.mindstock.application.repository.user.UserRegisterRepository
-import net.brightroom.mindstock.domain.model.user.User
+import net.brightroom.mindstock.domain.model.user.UserId
 import net.brightroom.mindstock.domain.model.user.auth.AuthIdentity
 import net.brightroom.mindstock.domain.model.user.profile.DisplayName
+import net.brightroom.mindstock.domain.model.user.profile.Profile
 
 class UserRegisterService(
     private val userRegisterRepository: UserRegisterRepository,
@@ -11,12 +12,12 @@ class UserRegisterService(
     fun register(
         identity: AuthIdentity,
         defaultDisplayName: DisplayName,
-    ): User = userRegisterRepository.register(identity, defaultDisplayName)
+    ): Profile = userRegisterRepository.register(identity, defaultDisplayName)
 
     fun rename(
-        user: User,
+        userId: UserId,
         newName: DisplayName,
     ) {
-        userRegisterRepository.rename(user, newName)
+        userRegisterRepository.rename(userId, newName)
     }
 }

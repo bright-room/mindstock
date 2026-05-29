@@ -13,12 +13,9 @@ import net.brightroom.mindstock.domain.model.product.ProductId
 import net.brightroom.mindstock.domain.model.stock.Note
 import net.brightroom.mindstock.domain.model.stock.OccurredAt
 import net.brightroom.mindstock.domain.model.stock.Quantity
-import net.brightroom.mindstock.domain.model.user.User
 import net.brightroom.mindstock.domain.model.user.UserId
-import net.brightroom.mindstock.domain.model.user.auth.AuthIdentity
-import net.brightroom.mindstock.domain.model.user.auth.AuthProvider
-import net.brightroom.mindstock.domain.model.user.auth.AuthSubject
 import net.brightroom.mindstock.domain.model.user.profile.DisplayName
+import net.brightroom.mindstock.domain.model.user.profile.Profile
 import kotlin.test.Test
 import kotlin.time.Instant
 import kotlin.uuid.ExperimentalUuidApi
@@ -27,10 +24,9 @@ import kotlin.uuid.Uuid
 @OptIn(ExperimentalUuidApi::class)
 class StockMovementsTest {
     private val now = Instant.parse("2026-05-24T10:00:00Z")
-    private val user =
-        User(
-            id = UserId(Uuid.generateV7()),
-            authIdentity = AuthIdentity(AuthProvider.ZITADEL, AuthSubject("sub-1")),
+    private val profile =
+        Profile(
+            userId = UserId(Uuid.generateV7()),
             displayName = DisplayName("alice"),
         )
     private val product =
@@ -52,9 +48,9 @@ class StockMovementsTest {
             now,
         )
 
-    private fun replenish(qty: Int) = Replenishment(product, Quantity(qty), occurred(), user, Note(""))
+    private fun replenish(qty: Int) = Replenishment(product, Quantity(qty), occurred(), profile, Note(""))
 
-    private fun consume(qty: Int) = Consumption(product, Quantity(qty), occurred(), user, Note(""))
+    private fun consume(qty: Int) = Consumption(product, Quantity(qty), occurred(), profile, Note(""))
 
     @Test
     fun `netQuantity is zero for empty movements`() {

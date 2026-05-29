@@ -16,7 +16,7 @@ import net.brightroom.mindstock.domain.model.product.MinimumStock
 import net.brightroom.mindstock.domain.model.product.Product
 import net.brightroom.mindstock.domain.model.product.ProductId
 import net.brightroom.mindstock.domain.model.product.Products
-import net.brightroom.mindstock.domain.model.user.User
+import net.brightroom.mindstock.domain.model.user.profile.Profile
 import net.brightroom.mindstock.rpc.ProductRpcService
 import org.jetbrains.exposed.v1.jdbc.Database
 
@@ -32,7 +32,7 @@ class ProductController(
 ) : ProductRpcService {
     // Memoized for the lifetime of this per-connection Service Impl.
     // NOTE: a rename within the same connection won't refresh this cache until reconnect.
-    private val actor: User by lazy { call.actor(userRepository) }
+    private val actor: Profile by lazy { call.actor(userRepository) }
 
     override suspend fun listOfHousehold(householdId: HouseholdId): Products =
         tx(database) {
@@ -84,7 +84,7 @@ class ProductController(
         val product =
             productRepository.findById(id)
                 ?: throw NotFoundException("product not found: $id")
-        productRegisterService.setMinimumStock(product, minimumStock, actor)
+        productRegisterService.setMinimumStock(product, minimumStock, actor.userId)
     }
 
     override suspend fun archive(id: ProductId) =
@@ -93,6 +93,6 @@ class ProductController(
             val product =
                 productRepository.findById(id)
                     ?: throw NotFoundException("product not found: $id")
-            productRegisterService.archive(product, actor)
+            productRegisterService.archive(product, actor.userId)
         }
 }

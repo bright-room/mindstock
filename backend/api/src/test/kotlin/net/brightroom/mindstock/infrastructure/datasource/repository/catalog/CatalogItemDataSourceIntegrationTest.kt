@@ -36,9 +36,9 @@ class CatalogItemDataSourceIntegrationTest :
                 val reader = CatalogItemDataSource()
                 val creator = tx { userRepo.register(AuthIdentity(AuthProvider.ZITADEL, AuthSubject("c")), DisplayName("C")) }
 
-                tx { register.register(CatalogItemName("Milk"), CatalogItemUnit("L"), creator) }
-                tx { register.register(CatalogItemName("Soy Milk"), CatalogItemUnit("L"), creator) }
-                tx { register.register(CatalogItemName("Bread"), CatalogItemUnit("loaf"), creator) }
+                tx { register.register(CatalogItemName("Milk"), CatalogItemUnit("L"), creator.userId) }
+                tx { register.register(CatalogItemName("Soy Milk"), CatalogItemUnit("L"), creator.userId) }
+                tx { register.register(CatalogItemName("Bread"), CatalogItemUnit("loaf"), creator.userId) }
 
                 val results = tx { reader.search("milk", limit = 10) }
                 results.asList() shouldHaveSize 2
