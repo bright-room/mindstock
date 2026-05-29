@@ -1,12 +1,12 @@
 package net.brightroom.mindstock.infrastructure.datasource.product
 
 import net.brightroom.mindstock.application.repository.product.ProductRepository
+import net.brightroom.mindstock.domain.exception.ResourceNotFoundException
 import net.brightroom.mindstock.domain.model.catalog.CatalogItem
 import net.brightroom.mindstock.domain.model.household.Household
 import net.brightroom.mindstock.domain.model.product.Product
 import net.brightroom.mindstock.domain.model.product.ProductId
 import net.brightroom.mindstock.domain.model.product.Products
-import net.brightroom.mindstock.domain.exception.ResourceNotFoundException
 import net.brightroom.mindstock.infrastructure.datasource.catalog.CatalogItemRevisionsTable
 import net.brightroom.mindstock.infrastructure.datasource.catalog.CatalogItemsTable
 import net.brightroom.mindstock.infrastructure.datasource.catalog.hydrateCatalogItem

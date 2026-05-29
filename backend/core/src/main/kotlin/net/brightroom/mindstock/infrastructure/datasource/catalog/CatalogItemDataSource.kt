@@ -1,10 +1,10 @@
 package net.brightroom.mindstock.infrastructure.datasource.catalog
 
 import net.brightroom.mindstock.application.repository.catalog.CatalogItemRepository
+import net.brightroom.mindstock.domain.exception.ResourceNotFoundException
 import net.brightroom.mindstock.domain.model.catalog.CatalogItem
 import net.brightroom.mindstock.domain.model.catalog.CatalogItemId
 import net.brightroom.mindstock.domain.model.catalog.CatalogItems
-import net.brightroom.mindstock.domain.exception.ResourceNotFoundException
 import net.brightroom.mindstock.infrastructure.datasource.catalog.CatalogItemRevisionsTable
 import net.brightroom.mindstock.infrastructure.datasource.catalog.CatalogItemsTable
 import org.jetbrains.exposed.v1.core.Column

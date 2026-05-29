@@ -22,6 +22,7 @@ import net.brightroom.mindstock.application.service.product.ProductService
 import net.brightroom.mindstock.application.service.stock.StockRegisterService
 import net.brightroom.mindstock.application.service.stock.StockService
 import net.brightroom.mindstock.application.service.user.UserRegisterService
+import net.brightroom.mindstock.application.service.user.UserService
 import net.brightroom.mindstock.configuration.Environment
 import net.brightroom.mindstock.infrastructure.datasource.catalog.CatalogItemDataSource
 import net.brightroom.mindstock.infrastructure.datasource.catalog.CatalogItemRegisterDataSource
@@ -69,6 +70,7 @@ fun Application.dependenciesConfigure(
 
         // Handler (20)
         // User
+        provide<UserService> { UserService(resolve()) }
         provide<UserRegisterService> { UserRegisterService(resolve()) }
 
         // Household

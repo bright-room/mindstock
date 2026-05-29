@@ -8,7 +8,7 @@ import net.brightroom.mindstock.domain.model.catalog.CatalogItems
 class CatalogItemService(
     private val catalogItemRepository: CatalogItemRepository,
 ) {
-    fun findById(id: CatalogItemId): CatalogItem? = catalogItemRepository.findById(id)
+    fun findById(id: CatalogItemId): CatalogItem = catalogItemRepository.findById(id)
 
     fun search(
         query: String,
