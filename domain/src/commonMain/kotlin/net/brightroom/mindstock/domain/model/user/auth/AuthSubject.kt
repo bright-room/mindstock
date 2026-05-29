@@ -1,7 +1,6 @@
 package net.brightroom.mindstock.domain.model.user.auth
 
 import kotlinx.serialization.Serializable
-import net.brightroom.mindstock.domain.exception.DomainException
 import kotlin.jvm.JvmInline
 
 /**
@@ -14,7 +13,7 @@ value class AuthSubject(
     private val value: String,
 ) {
     init {
-        if (value.isBlank()) throw DomainException.AuthSubjectBlank()
+        require(value.isNotBlank()) { "auth subject must not be blank" }
     }
 
     override fun toString(): String = value
