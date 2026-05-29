@@ -7,8 +7,8 @@ import io.mockk.every
 import io.mockk.mockk
 import io.mockk.mockkStatic
 import io.mockk.unmockkAll
+import kotlinx.coroutines.runBlocking
 import kotlinx.datetime.Instant
-import net.brightroom.mindstock.application.repository.catalog.CatalogItemRepository
 import net.brightroom.mindstock.application.service.catalog.CatalogItemRegisterService
 import net.brightroom.mindstock.application.service.catalog.CatalogItemService
 import net.brightroom.mindstock.configuration.auth.MindstockSession
@@ -31,7 +31,6 @@ class CatalogControllerTest :
         test("search delegates to CatalogItemService (no actor resolution required for read)") {
             val catalogItemService = mockk<CatalogItemService>()
             val catalogItemRegisterService = mockk<CatalogItemRegisterService>()
-            val catalogItemRepository = mockk<CatalogItemRepository>()
             val database = mockk<Database>()
             val userId = UserId(Uuid.parse("00000000-0000-0000-0000-000000000001"))
             val expected = CatalogItems(emptyList())
@@ -60,10 +59,9 @@ class CatalogControllerTest :
                 CatalogController(
                     catalogItemService = catalogItemService,
                     catalogItemRegisterService = catalogItemRegisterService,
-                    catalogItemRepository = catalogItemRepository,
                     session = session,
                     database = database,
                 )
-            impl.search(query, limit) shouldBe RpcResult.Ok(expected)
+            runBlocking { impl.search(query, limit) } shouldBe RpcResult.Ok(expected)
         }
     })

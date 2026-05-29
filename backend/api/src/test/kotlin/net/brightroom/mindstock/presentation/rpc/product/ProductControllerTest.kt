@@ -7,10 +7,10 @@ import io.mockk.every
 import io.mockk.mockk
 import io.mockk.mockkStatic
 import io.mockk.unmockkAll
+import kotlinx.coroutines.runBlocking
 import kotlinx.datetime.Instant
-import net.brightroom.mindstock.application.repository.catalog.CatalogItemRepository
-import net.brightroom.mindstock.application.repository.household.HouseholdRepository
-import net.brightroom.mindstock.application.repository.product.ProductRepository
+import net.brightroom.mindstock.application.service.catalog.CatalogItemService
+import net.brightroom.mindstock.application.service.household.HouseholdService
 import net.brightroom.mindstock.application.service.product.ProductRegisterService
 import net.brightroom.mindstock.application.service.product.ProductService
 import net.brightroom.mindstock.configuration.auth.MindstockSession
@@ -42,9 +42,8 @@ class ProductControllerTest :
         test("find resolves household, catalog item then delegates to ProductService") {
             val productService = mockk<ProductService>()
             val productRegisterService = mockk<ProductRegisterService>()
-            val householdRepository = mockk<HouseholdRepository>()
-            val catalogItemRepository = mockk<CatalogItemRepository>()
-            val productRepository = mockk<ProductRepository>()
+            val householdService = mockk<HouseholdService>()
+            val catalogItemService = mockk<CatalogItemService>()
             val database = mockk<Database>()
 
             val userId = UserId(Uuid.parse("00000000-0000-0000-0000-000000000001"))
@@ -72,16 +71,16 @@ class ProductControllerTest :
                     callId = Uuid.random(),
                 )
 
-            every { householdRepository.findById(householdId) } returns household
-            every { catalogItemRepository.findById(catalogItemId) } returns catalogItem
+            every { householdService.findById(householdId) } returns household
+            every { catalogItemService.findById(catalogItemId) } returns catalogItem
             every { productService.find(household, catalogItem) } returns product
 
             mockkStatic("net.brightroom.mindstock.configuration.transaction.TransactionKt")
             coEvery {
                 net.brightroom.mindstock.configuration.transaction
-                    .tx<Product?>(any(), any(), any())
+                    .tx<Product>(any(), any(), any())
             } coAnswers {
-                val block = arg<suspend () -> RpcResult<Product?, RpcError>>(2)
+                val block = arg<suspend () -> RpcResult<Product, RpcError>>(2)
                 block()
             }
 
@@ -89,12 +88,11 @@ class ProductControllerTest :
                 ProductController(
                     productService = productService,
                     productRegisterService = productRegisterService,
-                    householdRepository = householdRepository,
-                    catalogItemRepository = catalogItemRepository,
-                    productRepository = productRepository,
+                    householdService = householdService,
+                    catalogItemService = catalogItemService,
                     session = session,
                     database = database,
                 )
-            impl.find(householdId, catalogItemId) shouldBe RpcResult.Ok(product)
+            runBlocking { impl.find(householdId, catalogItemId) } shouldBe RpcResult.Ok(product)
         }
     })

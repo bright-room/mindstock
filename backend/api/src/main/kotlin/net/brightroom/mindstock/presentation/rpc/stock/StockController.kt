@@ -1,7 +1,7 @@
 package net.brightroom.mindstock.presentation.rpc.stock
 
-import net.brightroom.mindstock.application.repository.household.HouseholdRepository
-import net.brightroom.mindstock.application.repository.product.ProductRepository
+import net.brightroom.mindstock.application.service.household.HouseholdService
+import net.brightroom.mindstock.application.service.product.ProductService
 import net.brightroom.mindstock.application.service.stock.StockRegisterService
 import net.brightroom.mindstock.application.service.stock.StockService
 import net.brightroom.mindstock.configuration.auth.MindstockSession
@@ -22,24 +22,20 @@ import org.jetbrains.exposed.v1.jdbc.Database
 class StockController(
     private val stockService: StockService,
     private val stockRegisterService: StockRegisterService,
-    private val productRepository: ProductRepository,
-    private val householdRepository: HouseholdRepository,
+    private val productService: ProductService,
+    private val householdService: HouseholdService,
     private val session: MindstockSession,
     private val database: Database,
 ) : StockRpcService {
     override suspend fun get(productId: ProductId): RpcResult<Stock, RpcError> =
         tx(database, session) {
-            val product =
-                productRepository.findById(productId)
-                    ?: return@tx RpcResult.Err(RpcError.NotFound(resource = "product", id = "$productId"))
+            val product = productService.findById(productId)
             RpcResult.Ok(stockService.get(product))
         }
 
     override suspend fun list(householdId: HouseholdId): RpcResult<Stocks, RpcError> =
         tx(database, session) {
-            val household =
-                householdRepository.findById(householdId)
-                    ?: return@tx RpcResult.Err(RpcError.NotFound(resource = "household", id = "$householdId"))
+            val household = householdService.findById(householdId)
             RpcResult.Ok(stockService.list(household))
         }
 
@@ -48,9 +44,7 @@ class StockController(
         limit: Int,
     ): RpcResult<StockMovements, RpcError> =
         tx(database, session) {
-            val product =
-                productRepository.findById(productId)
-                    ?: return@tx RpcResult.Err(RpcError.NotFound(resource = "product", id = "$productId"))
+            val product = productService.findById(productId)
             RpcResult.Ok(stockService.getMovementHistory(product, limit))
         }
 
@@ -61,9 +55,7 @@ class StockController(
         note: Note,
     ): RpcResult<Unit, RpcError> =
         tx(database, session) {
-            val product =
-                productRepository.findById(productId)
-                    ?: return@tx RpcResult.Err(RpcError.NotFound(resource = "product", id = "$productId"))
+            val product = productService.findById(productId)
             stockRegisterService.replenish(product, qty, occurredAt, requireNotNull(session.userId), note)
             RpcResult.Ok(Unit)
         }
@@ -75,9 +67,7 @@ class StockController(
         note: Note,
     ): RpcResult<Unit, RpcError> =
         tx(database, session) {
-            val product =
-                productRepository.findById(productId)
-                    ?: return@tx RpcResult.Err(RpcError.NotFound(resource = "product", id = "$productId"))
+            val product = productService.findById(productId)
             stockRegisterService.consume(product, qty, occurredAt, requireNotNull(session.userId), note)
             RpcResult.Ok(Unit)
         }

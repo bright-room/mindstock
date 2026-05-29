@@ -7,9 +7,10 @@ import io.mockk.every
 import io.mockk.mockk
 import io.mockk.mockkStatic
 import io.mockk.unmockkAll
+import kotlinx.coroutines.runBlocking
 import kotlinx.datetime.Instant
-import net.brightroom.mindstock.application.repository.household.HouseholdRepository
-import net.brightroom.mindstock.application.repository.product.ProductRepository
+import net.brightroom.mindstock.application.service.household.HouseholdService
+import net.brightroom.mindstock.application.service.product.ProductService
 import net.brightroom.mindstock.application.service.stock.StockRegisterService
 import net.brightroom.mindstock.application.service.stock.StockService
 import net.brightroom.mindstock.configuration.auth.MindstockSession
@@ -40,8 +41,8 @@ class StockControllerTest :
         test("get resolves product then delegates to StockService") {
             val stockService = mockk<StockService>()
             val stockRegisterService = mockk<StockRegisterService>()
-            val productRepository = mockk<ProductRepository>()
-            val householdRepository = mockk<HouseholdRepository>()
+            val productService = mockk<ProductService>()
+            val householdService = mockk<HouseholdService>()
             val database = mockk<Database>()
 
             val userId = UserId(Uuid.parse("00000000-0000-0000-0000-000000000001"))
@@ -68,7 +69,7 @@ class StockControllerTest :
                     callId = Uuid.random(),
                 )
 
-            every { productRepository.findById(productId) } returns product
+            every { productService.findById(productId) } returns product
             every { stockService.get(product) } returns stock
 
             mockkStatic("net.brightroom.mindstock.configuration.transaction.TransactionKt")
@@ -84,11 +85,11 @@ class StockControllerTest :
                 StockController(
                     stockService = stockService,
                     stockRegisterService = stockRegisterService,
-                    productRepository = productRepository,
-                    householdRepository = householdRepository,
+                    productService = productService,
+                    householdService = householdService,
                     session = session,
                     database = database,
                 )
-            impl.get(productId) shouldBe RpcResult.Ok(stock)
+            runBlocking { impl.get(productId) } shouldBe RpcResult.Ok(stock)
         }
     })

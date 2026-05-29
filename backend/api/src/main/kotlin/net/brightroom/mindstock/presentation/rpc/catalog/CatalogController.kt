@@ -1,6 +1,5 @@
 package net.brightroom.mindstock.presentation.rpc.catalog
 
-import net.brightroom.mindstock.application.repository.catalog.CatalogItemRepository
 import net.brightroom.mindstock.application.service.catalog.CatalogItemRegisterService
 import net.brightroom.mindstock.application.service.catalog.CatalogItemService
 import net.brightroom.mindstock.configuration.auth.MindstockSession
@@ -18,7 +17,6 @@ import org.jetbrains.exposed.v1.jdbc.Database
 class CatalogController(
     private val catalogItemService: CatalogItemService,
     private val catalogItemRegisterService: CatalogItemRegisterService,
-    private val catalogItemRepository: CatalogItemRepository,
     private val session: MindstockSession,
     private val database: Database,
 ) : CatalogRpcService {
@@ -27,7 +25,7 @@ class CatalogController(
         limit: Int,
     ): RpcResult<CatalogItems, RpcError> = tx(database, session) { RpcResult.Ok(catalogItemService.search(query, limit)) }
 
-    override suspend fun findById(id: CatalogItemId): RpcResult<CatalogItem?, RpcError> =
+    override suspend fun findById(id: CatalogItemId): RpcResult<CatalogItem, RpcError> =
         tx(database, session) { RpcResult.Ok(catalogItemService.findById(id)) }
 
     override suspend fun register(
@@ -44,9 +42,7 @@ class CatalogController(
         newUnit: CatalogItemUnit,
     ): RpcResult<Unit, RpcError> =
         tx(database, session) {
-            val catalogItem =
-                catalogItemRepository.findById(id)
-                    ?: return@tx RpcResult.Err(RpcError.NotFound(resource = "catalog item", id = "$id"))
+            val catalogItem = catalogItemService.findById(id)
             catalogItemRegisterService.revise(catalogItem, newName, newUnit, requireNotNull(session.userId))
             RpcResult.Ok(Unit)
         }
