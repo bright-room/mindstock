@@ -6,12 +6,16 @@ import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.string.shouldContain
 import net.brightroom.mindstock.domain.exception.ResourceNotFoundException
+import net.brightroom.mindstock.domain.model.user.UserId
 import net.brightroom.mindstock.domain.model.user.auth.AuthIdentity
 import net.brightroom.mindstock.domain.model.user.auth.AuthProvider
 import net.brightroom.mindstock.domain.model.user.auth.AuthSubject
 import net.brightroom.mindstock.domain.model.user.profile.DisplayName
 import net.brightroom.mindstock.infrastructure.datasource.repository.withRepositoryTestContext
+import kotlin.uuid.ExperimentalUuidApi
+import kotlin.uuid.Uuid
 
+@OptIn(ExperimentalUuidApi::class)
 @Tags("integration")
 class UserDataSourceIntegrationTest :
     FunSpec({
@@ -21,6 +25,15 @@ class UserDataSourceIntegrationTest :
                 val repo = UserDataSource()
                 shouldThrow<ResourceNotFoundException> {
                     tx { repo.findProfileByAuthIdentity(AuthIdentity(AuthProvider.ZITADEL, AuthSubject("unknown"))) }
+                }.message shouldContain "user not found"
+            }
+        }
+
+        test("findProfileById throws ResourceNotFoundException when no user with that id exists") {
+            withRepositoryTestContext {
+                val repo = UserDataSource()
+                shouldThrow<ResourceNotFoundException> {
+                    tx { repo.findProfileById(UserId(Uuid.random())) }
                 }.message shouldContain "user not found"
             }
         }

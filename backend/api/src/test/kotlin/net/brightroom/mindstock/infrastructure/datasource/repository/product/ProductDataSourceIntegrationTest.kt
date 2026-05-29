@@ -9,6 +9,7 @@ import io.kotest.matchers.string.shouldContain
 import net.brightroom.mindstock.domain.exception.ResourceNotFoundException
 import net.brightroom.mindstock.domain.model.catalog.CatalogItemName
 import net.brightroom.mindstock.domain.model.catalog.CatalogItemUnit
+import net.brightroom.mindstock.domain.model.product.ProductId
 import net.brightroom.mindstock.domain.model.user.auth.AuthIdentity
 import net.brightroom.mindstock.domain.model.user.auth.AuthProvider
 import net.brightroom.mindstock.domain.model.user.auth.AuthSubject
@@ -17,7 +18,10 @@ import net.brightroom.mindstock.infrastructure.datasource.catalog.CatalogItemReg
 import net.brightroom.mindstock.infrastructure.datasource.household.HouseholdRegisterDataSource
 import net.brightroom.mindstock.infrastructure.datasource.repository.withRepositoryTestContext
 import net.brightroom.mindstock.infrastructure.datasource.user.UserRegisterDataSource
+import kotlin.uuid.ExperimentalUuidApi
+import kotlin.uuid.Uuid
 
+@OptIn(ExperimentalUuidApi::class)
 @Tags("integration")
 class ProductDataSourceIntegrationTest :
     FunSpec({
@@ -35,6 +39,15 @@ class ProductDataSourceIntegrationTest :
 
                 shouldThrow<ResourceNotFoundException> {
                     tx { productReader.find(household, item) }
+                }.message shouldContain "product not found"
+            }
+        }
+
+        test("findById throws ResourceNotFoundException when product does not exist") {
+            withRepositoryTestContext {
+                val productReader = ProductDataSource()
+                shouldThrow<ResourceNotFoundException> {
+                    tx { productReader.findById(ProductId(Uuid.random())) }
                 }.message shouldContain "product not found"
             }
         }

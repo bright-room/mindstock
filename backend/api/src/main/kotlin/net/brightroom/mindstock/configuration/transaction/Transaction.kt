@@ -24,7 +24,7 @@ private val callLogJson = Json { encodeDefaults = true }
 private data class TxLogEntry(
     val callId: String,
     val userId: String?,
-    val outcome: String, // "Ok" | "Err:<variant>" | "Throwable"
+    val outcome: String, // "Ok" | "Err:<variant>" | "Err:NotFound" | "Err:Unauthorized(expired)" | "Throwable:<class>"
     val elapsedMs: Long,
 )
 
