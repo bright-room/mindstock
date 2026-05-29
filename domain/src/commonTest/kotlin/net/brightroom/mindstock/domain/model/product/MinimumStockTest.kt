@@ -2,7 +2,6 @@ package net.brightroom.mindstock.domain.model.product
 
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.matchers.shouldBe
-import net.brightroom.mindstock.domain.exception.DomainException
 import kotlin.test.Test
 
 class MinimumStockTest {
@@ -18,6 +17,6 @@ class MinimumStockTest {
 
     @Test
     fun `rejects negative`() {
-        shouldThrow<DomainException.InvalidMinimumStock> { MinimumStock(-1) }
+        shouldThrow<IllegalArgumentException> { MinimumStock(-1) }
     }
 }

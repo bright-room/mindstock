@@ -1,7 +1,6 @@
 package net.brightroom.mindstock.domain.model.product
 
 import kotlinx.serialization.Serializable
-import net.brightroom.mindstock.domain.exception.DomainException
 import kotlin.jvm.JvmInline
 
 /**
@@ -13,7 +12,7 @@ value class MinimumStock(
     private val value: Int,
 ) {
     init {
-        if (value < 0) throw DomainException.InvalidMinimumStock(value)
+        require(value >= 0) { "minimum_stock must be >= 0, got $value" }
     }
 
     override fun toString(): String = value.toString()
