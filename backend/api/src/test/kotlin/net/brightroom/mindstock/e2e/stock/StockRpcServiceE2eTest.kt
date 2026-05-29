@@ -21,6 +21,7 @@ import net.brightroom.mindstock.rpc.StockRpcService
 import kotlin.time.Instant
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
+import io.kotest.core.annotation.Tags
 
 /**
  * Pinned behaviors:
@@ -39,6 +40,7 @@ import kotlin.uuid.Uuid
  * currently enforces non-negative stock. Over-consumption simply records a
  * negative net quantity. See task 9 plan notes.
  */
+@Tags("integration")
 @OptIn(ExperimentalUuidApi::class)
 class StockRpcServiceE2eTest :
     FunSpec({

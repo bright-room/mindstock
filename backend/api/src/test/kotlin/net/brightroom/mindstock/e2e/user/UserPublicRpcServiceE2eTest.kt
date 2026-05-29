@@ -15,6 +15,7 @@ import net.brightroom.mindstock.e2e.e2eTest
 import net.brightroom.mindstock.infrastructure.datasource.user.UserDataSource
 import net.brightroom.mindstock.rpc.UserPublicRpcService
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
+import io.kotest.core.annotation.Tags
 
 /**
  * E2E for [UserPublicRpcService]: WebSocket → JWT(`user-public` realm) → kRPC → Handler → Repository → Postgres.
@@ -24,6 +25,7 @@ import org.jetbrains.exposed.v1.jdbc.transactions.transaction
  * real JWTs through [TestJwtIssuer] / [SharedJwksServer] and assert the persisted identity
  * matches the token's subject.
  */
+@Tags("integration")
 class UserPublicRpcServiceE2eTest :
     FunSpec({
         test("register persists a new User keyed off the JWT sub and returns it with assigned id") {

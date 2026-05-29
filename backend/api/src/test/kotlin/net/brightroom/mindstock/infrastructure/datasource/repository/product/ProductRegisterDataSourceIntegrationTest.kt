@@ -13,7 +13,9 @@ import net.brightroom.mindstock.infrastructure.datasource.catalog.CatalogItemReg
 import net.brightroom.mindstock.infrastructure.datasource.household.HouseholdRegisterDataSource
 import net.brightroom.mindstock.infrastructure.datasource.repository.withRepositoryTestContext
 import net.brightroom.mindstock.infrastructure.datasource.user.UserRegisterDataSource
+import io.kotest.core.annotation.Tags
 
+@Tags("integration")
 class ProductRegisterDataSourceIntegrationTest :
     FunSpec({
 

@@ -18,6 +18,7 @@ import net.brightroom.mindstock.e2e.seedUser
 import net.brightroom.mindstock.rpc.CatalogRpcService
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
+import io.kotest.core.annotation.Tags
 
 /**
  * Pinned behaviors:
@@ -28,6 +29,7 @@ import kotlin.uuid.Uuid
  * 5. revise mutates name/unit; read-back via findById reflects the change.
  * 6. revise against an unknown id is rejected end-to-end (server-side NotFoundException).
  */
+@Tags("integration")
 @OptIn(ExperimentalUuidApi::class)
 class CatalogRpcServiceE2eTest :
     FunSpec({

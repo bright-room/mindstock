@@ -14,6 +14,7 @@ import net.brightroom.mindstock.e2e.seedUser
 import net.brightroom.mindstock.rpc.HouseholdRpcService
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
+import io.kotest.core.annotation.Tags
 
 /**
  * Pinned behaviors:
@@ -22,6 +23,7 @@ import kotlin.uuid.Uuid
  * 3. invite + revoke alter membership, observable via findOf as the affected user.
  * 4. invite to a non-existent householdId raises a NotFound-class error end-to-end.
  */
+@Tags("integration")
 @OptIn(ExperimentalUuidApi::class)
 class HouseholdRpcServiceE2eTest :
     FunSpec({

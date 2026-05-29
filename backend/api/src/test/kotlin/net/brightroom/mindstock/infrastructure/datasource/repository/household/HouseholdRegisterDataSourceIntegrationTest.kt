@@ -12,7 +12,9 @@ import net.brightroom.mindstock.domain.model.user.auth.AuthProvider
 import net.brightroom.mindstock.domain.model.user.auth.AuthSubject
 import net.brightroom.mindstock.infrastructure.datasource.repository.withRepositoryTestContext
 import net.brightroom.mindstock.infrastructure.datasource.user.UserRegisterDataSource
+import io.kotest.core.annotation.Tags
 
+@Tags("integration")
 class HouseholdRegisterDataSourceIntegrationTest :
     FunSpec({
 

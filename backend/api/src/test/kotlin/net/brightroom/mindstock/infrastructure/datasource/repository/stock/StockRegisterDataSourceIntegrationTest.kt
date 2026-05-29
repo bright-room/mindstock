@@ -22,6 +22,7 @@ import net.brightroom.mindstock.infrastructure.datasource.repository.RepositoryT
 import net.brightroom.mindstock.infrastructure.datasource.repository.withRepositoryTestContext
 import net.brightroom.mindstock.infrastructure.datasource.user.UserRegisterDataSource
 import kotlin.time.Clock
+import io.kotest.core.annotation.Tags
 
 internal fun RepositoryTestContext.setupUserHouseholdProduct(): Triple<User, Household, Product> =
     tx {
@@ -36,6 +37,7 @@ internal fun RepositoryTestContext.setupUserHouseholdProduct(): Triple<User, Hou
         Triple(user, household, product)
     }
 
+@Tags("integration")
 class StockRegisterDataSourceIntegrationTest :
     FunSpec({
 

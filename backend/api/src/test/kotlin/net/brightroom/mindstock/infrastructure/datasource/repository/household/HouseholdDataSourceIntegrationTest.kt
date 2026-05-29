@@ -14,7 +14,9 @@ import net.brightroom.mindstock.infrastructure.datasource.repository.withReposit
 import net.brightroom.mindstock.infrastructure.datasource.user.UserRegisterDataSource
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
+import io.kotest.core.annotation.Tags
 
+@Tags("integration")
 @OptIn(ExperimentalUuidApi::class)
 class HouseholdDataSourceIntegrationTest :
     FunSpec({

@@ -7,7 +7,9 @@ import net.brightroom.mindstock.domain.model.user.auth.AuthIdentity
 import net.brightroom.mindstock.domain.model.user.auth.AuthProvider
 import net.brightroom.mindstock.domain.model.user.auth.AuthSubject
 import net.brightroom.mindstock.infrastructure.datasource.repository.withRepositoryTestContext
+import io.kotest.core.annotation.Tags
 
+@Tags("integration")
 class UserRegisterDataSourceIntegrationTest :
     FunSpec({
 

@@ -14,7 +14,9 @@ import java.security.KeyPairGenerator
 import java.security.interfaces.RSAPrivateKey
 import java.security.interfaces.RSAPublicKey
 import java.time.Instant
+import io.kotest.core.annotation.Tags
 
+@Tags("integration")
 class JwtAuthE2eTest :
     FunSpec({
         test("expired JWT → 401 (rpc call throws)") {

@@ -19,6 +19,7 @@ import net.brightroom.mindstock.rpc.UserRpcService
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
+import io.kotest.core.annotation.Tags
 
 /**
  * E2E for [UserRpcService]: authenticated RPC path covering Bearer token wiring
@@ -32,6 +33,7 @@ import kotlin.uuid.Uuid
  * Server-side errors propagate to the awaiting client suspend call thanks to the
  * `supervisorScope` wrapper in `tx` (see [UserPublicRpcServiceE2eTest] for the regression guard).
  */
+@Tags("integration")
 @OptIn(ExperimentalUuidApi::class)
 class UserRpcServiceE2eTest :
     FunSpec({

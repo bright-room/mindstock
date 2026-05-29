@@ -17,6 +17,7 @@ import net.brightroom.mindstock.e2e.seedUser
 import net.brightroom.mindstock.rpc.ProductRpcService
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
+import io.kotest.core.annotation.Tags
 
 /**
  * Pinned behaviors:
@@ -29,6 +30,7 @@ import kotlin.uuid.Uuid
  * 7. archive against an unknown productId is rejected.
  * 8. A failing adopt does not leave partial DB writes (transaction rollback).
  */
+@Tags("integration")
 @OptIn(ExperimentalUuidApi::class)
 class ProductRpcServiceE2eTest :
     FunSpec({

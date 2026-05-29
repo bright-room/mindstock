@@ -1,25 +1,26 @@
 package net.brightroom.mindstock.infrastructure.datasource.testcontainers
 
-import org.testcontainers.containers.PostgreSQLContainer
+import net.brightroom.mindstock.test.TestDataSource
 
 /**
- * A lazily-initialised PostgreSQL 18 container shared across integration
- * tests. Each test should connect to a unique schema created via
- * [withFreshSchema] so they don't see each other's schemas.
+ * テスト用 Postgres ヘルパー。
+ *
+ * 以前は Testcontainers でコンテナを起動していたが、外部 Postgres に切り替えた。
+ * 接続先は [TestDataSource] が管理し、`TEST_DB_URL` 環境変数で上書き可能。
+ *
+ * [withFreshSchema] はスキーマ分離を維持する:
+ *   - テストごとに UUID ベースのスキーマを作成
+ *   - `currentSchema=<schema>` を JDBC URL に付与して分離を保証
+ *   - テスト終了後にスキーマを DROP
+ *
+ * Postgres は呼び出し側で起動済みであることが前提:
+ *   - local: `docker compose up -d postgres-test`
+ *   - CI: GHA `services:` の postgres
  */
 object TestContainersPostgres {
-    private val container: PostgreSQLContainer<*> by lazy {
-        PostgreSQLContainer("postgres:18.0-alpine").apply {
-            withDatabaseName("mindstock_test")
-            withUsername("mindstock")
-            withPassword("mindstock")
-            start()
-        }
-    }
-
-    val jdbcUrl: String get() = container.jdbcUrl
-    val username: String get() = container.username
-    val password: String get() = container.password
+    val jdbcUrl: String get() = TestDataSource.url
+    val username: String get() = TestDataSource.user
+    val password: String get() = TestDataSource.password
 
     /**
      * Runs [block] against a fresh schema. Creates a new schema with a
@@ -34,15 +35,30 @@ object TestContainersPostgres {
                     .toString()
                     .replace("-", "")
                     .take(16)
-        container.createConnection("").use { conn ->
-            conn.createStatement().use { it.execute("CREATE SCHEMA $schema") }
+
+        // Use root DS to create/drop the schema itself
+        val rootDs = TestDataSource.create()
+        rootDs.use { ds ->
+            ds.connection.use { conn ->
+                conn.autoCommit = true
+                conn.createStatement().use { it.execute("CREATE SCHEMA $schema") }
+            }
         }
         try {
-            val urlWithSchema = container.jdbcUrl + "&currentSchema=$schema"
+            val urlWithSchema =
+                buildString {
+                    append(TestDataSource.url)
+                    if ('?' in TestDataSource.url) append("&") else append("?")
+                    append("currentSchema=$schema")
+                }
             return block(urlWithSchema, schema)
         } finally {
-            container.createConnection("").use { conn ->
-                conn.createStatement().use { it.execute("DROP SCHEMA $schema CASCADE") }
+            val rootDs2 = TestDataSource.create()
+            rootDs2.use { ds ->
+                ds.connection.use { conn ->
+                    conn.autoCommit = true
+                    conn.createStatement().use { it.execute("DROP SCHEMA $schema CASCADE") }
+                }
             }
         }
     }

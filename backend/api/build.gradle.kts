@@ -1,6 +1,5 @@
 plugins {
     id("net.brightroom.mindstock.ktor-server")
-    id("net.brightroom.mindstock.kotlin-jvm-testcontainers")
     id("org.jetbrains.kotlin.plugin.serialization")
     id("org.jetbrains.kotlinx.rpc.plugin")
     `java-test-fixtures`
@@ -50,7 +49,6 @@ dependencies {
     testFixturesImplementation(libs.exposed.core)
     testFixturesImplementation(libs.exposed.jdbc)
     testFixturesImplementation(libs.hikari)
-    testFixturesImplementation(libs.testcontainers.postgres)
     testFixturesImplementation(libs.kotest.assertions.core)
 
     testImplementation(testFixtures(projects.backend.core))
@@ -59,8 +57,6 @@ dependencies {
     testImplementation(libs.kotest.assertions.core)
     testImplementation(libs.flyway.core)
     testImplementation(libs.flyway.database.postgresql)
-    testImplementation(libs.testcontainers.junit)
-    testImplementation(libs.testcontainers.postgres)
     testImplementation(ktorLib.server.testHost)
     testImplementation(libs.mockk)
     testImplementation(libs.kotlinx.rpc.client)
@@ -68,4 +64,32 @@ dependencies {
     testImplementation(ktorLib.client.cio)
     testImplementation(ktorLib.client.websockets)
     testImplementation(ktorLib.client.contentNegotiation)
+}
+
+tasks.test {
+    useJUnitPlatform()
+    // Exclude "integration" and "manual" tagged specs by default.
+    // Override on the command line with -Dkotest.tags.exclude= (empty string) to run all.
+    systemProperty("kotest.tags.exclude", "integration | manual")
+}
+
+val integrationTest by tasks.registering(Test::class) {
+    group = "verification"
+    description = "Runs @Tags(\"integration\") specs against TEST_DB_URL."
+    useJUnitPlatform()
+    testClassesDirs = sourceSets["test"].output.classesDirs
+    classpath = sourceSets["test"].runtimeClasspath
+    shouldRunAfter(tasks.test)
+    // Run only "integration" tagged specs.
+    systemProperty("kotest.tags.include", "integration")
+    // Exclude "manual" maintenance specs.
+    systemProperty("kotest.tags.exclude", "manual")
+    // Forward TEST_DB_* env vars to the test JVM
+    listOf("TEST_DB_URL", "TEST_DB_USER", "TEST_DB_PASSWORD").forEach { key ->
+        System.getenv(key)?.let { environment(key, it) }
+    }
+}
+
+tasks.check {
+    dependsOn(integrationTest)
 }

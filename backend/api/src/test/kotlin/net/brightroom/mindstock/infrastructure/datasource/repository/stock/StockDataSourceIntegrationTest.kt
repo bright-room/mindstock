@@ -10,7 +10,9 @@ import net.brightroom.mindstock.infrastructure.datasource.product.ProductDataSou
 import net.brightroom.mindstock.infrastructure.datasource.repository.withRepositoryTestContext
 import kotlin.time.Clock
 import kotlin.time.Duration.Companion.seconds
+import io.kotest.core.annotation.Tags
 
+@Tags("integration")
 class StockDataSourceIntegrationTest :
     FunSpec({
 
