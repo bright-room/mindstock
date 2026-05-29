@@ -1,7 +1,8 @@
 package net.brightroom.mindstock.domain.model.household
 
 import kotlinx.serialization.Serializable
-import net.brightroom.mindstock.domain.model.user.User
+import net.brightroom.mindstock.domain.model.user.UserId
+import net.brightroom.mindstock.domain.model.user.profile.Profile
 
 /**
  * 世帯のメンバー一覧。
@@ -13,13 +14,13 @@ data class HouseholdMembers(
     val list: List<HouseholdMember>,
 ) {
     /** OWNER ロールのメンバーを返す。存在しなければ null。 */
-    fun owner(): User? = list.firstOrNull { it.role == HouseholdMemberRole.OWNER }?.user
+    fun owner(): Profile? = list.firstOrNull { it.role == HouseholdMemberRole.OWNER }?.profile
 
-    /** すべてのアクティブメンバーの User オブジェクトを返す。 */
-    fun activeMembers(): List<User> = list.map { it.user }
+    /** すべてのアクティブメンバーの Profile を返す。 */
+    fun activeMembers(): List<Profile> = list.map { it.profile }
 
     /** 指定したユーザーがアクティブメンバーに含まれるか。 */
-    fun contains(user: User): Boolean = list.any { it.user == user }
+    fun contains(userId: UserId): Boolean = list.any { it.profile.userId == userId }
 
     fun asList(): List<HouseholdMember> = list.toList()
 }

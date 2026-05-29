@@ -2,7 +2,6 @@ package net.brightroom.mindstock.domain.model.user.auth
 
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.matchers.shouldBe
-import net.brightroom.mindstock.domain.exception.DomainException
 import kotlin.test.Test
 
 class AuthSubjectTest {
@@ -13,7 +12,7 @@ class AuthSubjectTest {
 
     @Test
     fun `rejects blank`() {
-        shouldThrow<DomainException.AuthSubjectBlank> { AuthSubject("") }
-        shouldThrow<DomainException.AuthSubjectBlank> { AuthSubject("   ") }
+        shouldThrow<IllegalArgumentException> { AuthSubject("") }
+        shouldThrow<IllegalArgumentException> { AuthSubject("   ") }
     }
 }

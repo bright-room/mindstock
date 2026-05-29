@@ -1,10 +1,10 @@
 package net.brightroom.mindstock.domain.model.household
 
 import kotlinx.serialization.Serializable
-import net.brightroom.mindstock.domain.model.user.User
+import net.brightroom.mindstock.domain.model.user.profile.Profile
 
 /**
- * 世帯のメンバー(ユーザー + 役割)。
+ * 世帯のメンバー(プロフィール + 役割)。
  *
  * Household 集約に含まれる Value Object。
  * 「revoked」状態は Repository が読み込み時にフィルタするため、
@@ -12,6 +12,6 @@ import net.brightroom.mindstock.domain.model.user.User
  */
 @Serializable
 data class HouseholdMember(
-    val user: User,
+    val profile: Profile,
     val role: HouseholdMemberRole,
 )

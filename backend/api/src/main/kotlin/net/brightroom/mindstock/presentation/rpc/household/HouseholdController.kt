@@ -11,8 +11,8 @@ import net.brightroom.mindstock.configuration.transaction.tx
 import net.brightroom.mindstock.domain.model.household.Household
 import net.brightroom.mindstock.domain.model.household.HouseholdId
 import net.brightroom.mindstock.domain.model.household.HouseholdMemberRole
-import net.brightroom.mindstock.domain.model.user.User
 import net.brightroom.mindstock.domain.model.user.UserId
+import net.brightroom.mindstock.domain.model.user.profile.Profile
 import net.brightroom.mindstock.rpc.HouseholdRpcService
 import org.jetbrains.exposed.v1.jdbc.Database
 
@@ -26,11 +26,11 @@ class HouseholdController(
 ) : HouseholdRpcService {
     // Memoized for the lifetime of this per-connection Service Impl.
     // NOTE: a rename within the same connection won't refresh this cache until reconnect.
-    private val actor: User by lazy { call.actor(userRepository) }
+    private val actor: Profile by lazy { call.actor(userRepository) }
 
-    override suspend fun findOf(): Household? = tx(database) { householdService.findOf(actor) }
+    override suspend fun findOf(): Household? = tx(database) { householdService.findOf(actor.userId) }
 
-    override suspend fun create(): Household = tx(database) { householdRegisterService.create(actor) }
+    override suspend fun create(): Household = tx(database) { householdRegisterService.create(actor.userId) }
 
     override suspend fun invite(
         householdId: HouseholdId,
@@ -42,10 +42,10 @@ class HouseholdController(
         val household =
             householdRepository.findById(householdId)
                 ?: throw NotFoundException("household not found: $householdId")
-        val user =
-            userRepository.findById(invitee)
+        val inviteeProfile =
+            userRepository.findProfileById(invitee)
                 ?: throw NotFoundException("user not found: $invitee")
-        householdRegisterService.invite(household, user, role)
+        householdRegisterService.invite(household, inviteeProfile.userId, role)
     }
 
     override suspend fun revoke(
@@ -57,9 +57,9 @@ class HouseholdController(
         val household =
             householdRepository.findById(householdId)
                 ?: throw NotFoundException("household not found: $householdId")
-        val user =
-            userRepository.findById(target)
+        val targetProfile =
+            userRepository.findProfileById(target)
                 ?: throw NotFoundException("user not found: $target")
-        householdRegisterService.revoke(household, user)
+        householdRegisterService.revoke(household, targetProfile.userId)
     }
 }

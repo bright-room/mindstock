@@ -1,11 +1,10 @@
 package net.brightroom.mindstock.infrastructure.datasource.user
 
 import net.brightroom.mindstock.application.repository.user.UserRegisterRepository
-import net.brightroom.mindstock.domain.model.user.DisplayName
-import net.brightroom.mindstock.domain.model.user.User
+import net.brightroom.mindstock.domain.model.user.UserId
 import net.brightroom.mindstock.domain.model.user.auth.AuthIdentity
-import net.brightroom.mindstock.infrastructure.datasource.user.UserDisplayNamesTable
-import net.brightroom.mindstock.infrastructure.datasource.user.UsersTable
+import net.brightroom.mindstock.domain.model.user.profile.DisplayName
+import net.brightroom.mindstock.domain.model.user.profile.Profile
 import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.jdbc.insert
 import org.jetbrains.exposed.v1.jdbc.selectAll
@@ -16,7 +15,7 @@ class UserRegisterDataSource : UserRegisterRepository {
     override fun register(
         identity: AuthIdentity,
         defaultDisplayName: DisplayName,
-    ): User {
+    ): Profile {
         val insertedUserId =
             UsersTable.insert {
                 it[zitadel_sub] = identity.subject()
@@ -31,15 +30,15 @@ class UserRegisterDataSource : UserRegisterRepository {
             .selectAll()
             .where { UsersTable.id eq insertedUserId }
             .single()
-            .toUser()
+            .toProfile()
     }
 
     override fun rename(
-        user: User,
+        userId: UserId,
         newName: DisplayName,
     ) {
         UserDisplayNamesTable.insert {
-            it[user_id] = user.id()
+            it[user_id] = userId()
             it[display_name] = newName()
         }
     }

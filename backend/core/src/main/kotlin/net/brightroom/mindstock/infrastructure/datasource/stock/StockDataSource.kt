@@ -7,10 +7,17 @@ import net.brightroom.mindstock.domain.model.product.Product
 import net.brightroom.mindstock.domain.model.stock.Stock
 import net.brightroom.mindstock.domain.model.stock.movement.StockMovement
 import net.brightroom.mindstock.domain.model.stock.movement.StockMovements
-import net.brightroom.mindstock.infrastructure.datasource.stock.StockMovementsTable
+import net.brightroom.mindstock.infrastructure.datasource.user.UserDisplayNamesTable
+import net.brightroom.mindstock.infrastructure.datasource.user.UsersTable
+import net.brightroom.mindstock.infrastructure.datasource.user.toProfile
+import org.jetbrains.exposed.v1.core.JoinType
 import org.jetbrains.exposed.v1.core.SortOrder
+import org.jetbrains.exposed.v1.core.alias
+import org.jetbrains.exposed.v1.core.and
 import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.core.inList
+import org.jetbrains.exposed.v1.core.max
+import org.jetbrains.exposed.v1.jdbc.select
 import org.jetbrains.exposed.v1.jdbc.selectAll
 import kotlin.time.toKotlinInstant
 import kotlin.uuid.ExperimentalUuidApi
@@ -39,9 +46,23 @@ class StockDataSource(
         limit: Int,
     ): StockMovements {
         require(limit > 0) { "limit must be > 0" }
+        val maxNameIdAlias = UserDisplayNamesTable.id.max().alias("max_name_id")
+        val latestNames =
+            UserDisplayNamesTable
+                .select(UserDisplayNamesTable.user_id, maxNameIdAlias)
+                .groupBy(UserDisplayNamesTable.user_id)
+                .alias("latest_names")
+        val latestNameUserId = latestNames[UserDisplayNamesTable.user_id]
+        val latestNameMaxId = latestNames[maxNameIdAlias]
+
         val rows =
             StockMovementsTable
-                .selectAll()
+                .join(UsersTable, JoinType.INNER, onColumn = StockMovementsTable.acted_by, otherColumn = UsersTable.id)
+                .join(latestNames, JoinType.INNER, onColumn = UsersTable.id, otherColumn = latestNameUserId)
+                .join(UserDisplayNamesTable, JoinType.INNER) {
+                    (UserDisplayNamesTable.user_id eq latestNameUserId) and
+                        (UserDisplayNamesTable.id eq latestNameMaxId)
+                }.selectAll()
                 .where { StockMovementsTable.product_id eq product.id() }
                 .orderBy(
                     StockMovementsTable.occurred_at to SortOrder.DESC,
@@ -50,7 +71,7 @@ class StockDataSource(
                 .map { row ->
                     toStockMovement(
                         product = product,
-                        actorId = row[StockMovementsTable.acted_by],
+                        actor = row.toProfile(),
                         type = row[StockMovementsTable.type],
                         quantity = row[StockMovementsTable.quantity],
                         occurredAt = row[StockMovementsTable.occurred_at].toInstant().toKotlinInstant(),
@@ -66,9 +87,23 @@ class StockDataSource(
         val productUuids = products.map { it.id() }
         val productByUuid = products.associateBy { it.id() }
 
+        val maxNameIdAlias = UserDisplayNamesTable.id.max().alias("max_name_id")
+        val latestNames =
+            UserDisplayNamesTable
+                .select(UserDisplayNamesTable.user_id, maxNameIdAlias)
+                .groupBy(UserDisplayNamesTable.user_id)
+                .alias("latest_names")
+        val latestNameUserId = latestNames[UserDisplayNamesTable.user_id]
+        val latestNameMaxId = latestNames[maxNameIdAlias]
+
         val pairs =
             StockMovementsTable
-                .selectAll()
+                .join(UsersTable, JoinType.INNER, onColumn = StockMovementsTable.acted_by, otherColumn = UsersTable.id)
+                .join(latestNames, JoinType.INNER, onColumn = UsersTable.id, otherColumn = latestNameUserId)
+                .join(UserDisplayNamesTable, JoinType.INNER) {
+                    (UserDisplayNamesTable.user_id eq latestNameUserId) and
+                        (UserDisplayNamesTable.id eq latestNameMaxId)
+                }.selectAll()
                 .where { StockMovementsTable.product_id inList productUuids }
                 .orderBy(
                     StockMovementsTable.occurred_at to SortOrder.ASC,
@@ -80,7 +115,7 @@ class StockDataSource(
                     productUuid to
                         toStockMovement(
                             product = product,
-                            actorId = row[StockMovementsTable.acted_by],
+                            actor = row.toProfile(),
                             type = row[StockMovementsTable.type],
                             quantity = row[StockMovementsTable.quantity],
                             occurredAt = row[StockMovementsTable.occurred_at].toInstant().toKotlinInstant(),

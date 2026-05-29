@@ -22,12 +22,9 @@ import net.brightroom.mindstock.domain.model.product.Product
 import net.brightroom.mindstock.domain.model.product.ProductId
 import net.brightroom.mindstock.domain.model.stock.Stock
 import net.brightroom.mindstock.domain.model.stock.movement.StockMovements
-import net.brightroom.mindstock.domain.model.user.DisplayName
-import net.brightroom.mindstock.domain.model.user.User
 import net.brightroom.mindstock.domain.model.user.UserId
-import net.brightroom.mindstock.domain.model.user.auth.AuthIdentity
-import net.brightroom.mindstock.domain.model.user.auth.AuthProvider
-import net.brightroom.mindstock.domain.model.user.auth.AuthSubject
+import net.brightroom.mindstock.domain.model.user.profile.DisplayName
+import net.brightroom.mindstock.domain.model.user.profile.Profile
 import org.jetbrains.exposed.v1.jdbc.Database
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
@@ -46,10 +43,9 @@ class StockControllerTest :
             val call = mockk<ApplicationCall>()
             val database = mockk<Database>()
 
-            val user =
-                User(
-                    id = UserId(Uuid.parse("00000000-0000-0000-0000-000000000001")),
-                    authIdentity = AuthIdentity(AuthProvider.ZITADEL, AuthSubject("sub-1")),
+            val profile =
+                Profile(
+                    userId = UserId(Uuid.parse("00000000-0000-0000-0000-000000000001")),
                     displayName = DisplayName("Alice"),
                 )
             val productId = ProductId(Uuid.parse("00000000-0000-0000-0000-000000000004"))
@@ -69,7 +65,7 @@ class StockControllerTest :
             val stock = Stock(product = product, movements = StockMovements(emptyList()))
 
             mockkStatic(ApplicationCall::actor)
-            every { call.actor(userRepository) } returns user
+            every { call.actor(userRepository) } returns profile
             every { productRepository.findById(productId) } returns product
             every { stockService.get(product) } returns stock
 

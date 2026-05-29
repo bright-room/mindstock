@@ -4,7 +4,7 @@ import net.brightroom.mindstock.domain.model.catalog.CatalogItem
 import net.brightroom.mindstock.domain.model.household.Household
 import net.brightroom.mindstock.domain.model.product.MinimumStock
 import net.brightroom.mindstock.domain.model.product.Product
-import net.brightroom.mindstock.domain.model.user.User
+import net.brightroom.mindstock.domain.model.user.UserId
 
 interface ProductRegisterRepository {
     /** products に行を INSERT。 */
@@ -17,12 +17,12 @@ interface ProductRegisterRepository {
     fun setMinimumStock(
         product: Product,
         value: MinimumStock,
-        editedBy: User,
+        editedBy: UserId,
     )
 
     /** product_archives に行を INSERT。 */
     fun archive(
         product: Product,
-        by: User,
+        by: UserId,
     )
 }

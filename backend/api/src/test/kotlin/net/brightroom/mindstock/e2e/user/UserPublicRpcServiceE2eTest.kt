@@ -7,15 +7,16 @@ import io.kotest.matchers.nulls.shouldNotBeNull
 import io.kotest.matchers.shouldBe
 import kotlinx.rpc.withService
 import net.brightroom.mindstock.application.repository.user.UserRepository
-import net.brightroom.mindstock.domain.model.user.DisplayName
-import net.brightroom.mindstock.domain.model.user.auth.AuthIdentity
-import net.brightroom.mindstock.domain.model.user.auth.AuthProvider
-import net.brightroom.mindstock.domain.model.user.auth.AuthSubject
+import net.brightroom.mindstock.domain.model.user.profile.DisplayName
 import net.brightroom.mindstock.e2e.auth.TestJwtIssuer
 import net.brightroom.mindstock.e2e.e2eTest
 import net.brightroom.mindstock.infrastructure.datasource.user.UserDataSource
+import net.brightroom.mindstock.infrastructure.datasource.user.UsersTable
 import net.brightroom.mindstock.rpc.UserPublicRpcService
+import org.jetbrains.exposed.v1.core.eq
+import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
+import kotlin.uuid.ExperimentalUuidApi
 
 /**
  * E2E for [UserPublicRpcService]: WebSocket → JWT(`user-public` realm) → kRPC → Handler → Repository → Postgres.
@@ -26,9 +27,10 @@ import org.jetbrains.exposed.v1.jdbc.transactions.transaction
  * matches the token's subject.
  */
 @Tags("integration")
+@OptIn(ExperimentalUuidApi::class)
 class UserPublicRpcServiceE2eTest :
     FunSpec({
-        test("register persists a new User keyed off the JWT sub and returns it with assigned id") {
+        test("register persists a new User keyed off the JWT sub and returns its Profile with assigned id") {
             e2eTest {
                 val sub = "new-user-sub"
                 val token = TestJwtIssuer.issue(subject = sub)
@@ -36,19 +38,26 @@ class UserPublicRpcServiceE2eTest :
                     authenticatedRpcClientWithToken(token = token, path = "user/public")
                         .withService<UserPublicRpcService>()
 
-                val user = rpc.register(DisplayName("Alice"))
+                val profile = rpc.register(DisplayName("Alice"))
 
-                val expectedIdentity = AuthIdentity(AuthProvider.ZITADEL, AuthSubject(sub))
-                user.displayName shouldBe DisplayName("Alice")
-                user.authIdentity shouldBe expectedIdentity
+                profile.displayName shouldBe DisplayName("Alice")
 
                 val persisted =
                     transaction(database) {
-                        (UserDataSource() as UserRepository).findById(user.id)
+                        (UserDataSource() as UserRepository).findProfileById(profile.userId)
                     }
                 persisted.shouldNotBeNull()
                 persisted.displayName shouldBe DisplayName("Alice")
-                persisted.authIdentity shouldBe expectedIdentity
+
+                // Verify the persisted row was keyed off the JWT sub.
+                val persistedSub =
+                    transaction(database) {
+                        UsersTable
+                            .selectAll()
+                            .where { UsersTable.id eq profile.userId() }
+                            .single()[UsersTable.zitadel_sub]
+                    }
+                persistedSub shouldBe sub
             }
         }
 

@@ -7,7 +7,7 @@ import net.brightroom.mindstock.domain.model.stock.OccurredAt
 import net.brightroom.mindstock.domain.model.stock.Quantity
 import net.brightroom.mindstock.domain.model.stock.movement.Consumption
 import net.brightroom.mindstock.domain.model.stock.movement.Replenishment
-import net.brightroom.mindstock.domain.model.user.User
+import net.brightroom.mindstock.domain.model.user.UserId
 
 class StockRegisterService(
     private val stockRegisterRepository: StockRegisterRepository,
@@ -16,7 +16,7 @@ class StockRegisterService(
         product: Product,
         quantity: Quantity,
         occurredAt: OccurredAt,
-        by: User,
+        by: UserId,
         note: Note,
     ): Replenishment = stockRegisterRepository.replenish(product, quantity, occurredAt, by, note)
 
@@ -24,7 +24,7 @@ class StockRegisterService(
         product: Product,
         quantity: Quantity,
         occurredAt: OccurredAt,
-        by: User,
+        by: UserId,
         note: Note,
     ): Consumption = stockRegisterRepository.consume(product, quantity, occurredAt, by, note)
 }

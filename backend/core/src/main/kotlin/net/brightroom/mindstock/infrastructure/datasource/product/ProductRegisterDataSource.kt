@@ -5,10 +5,7 @@ import net.brightroom.mindstock.domain.model.catalog.CatalogItem
 import net.brightroom.mindstock.domain.model.household.Household
 import net.brightroom.mindstock.domain.model.product.MinimumStock
 import net.brightroom.mindstock.domain.model.product.Product
-import net.brightroom.mindstock.domain.model.user.User
-import net.brightroom.mindstock.infrastructure.datasource.product.ProductArchivesTable
-import net.brightroom.mindstock.infrastructure.datasource.product.ProductMinimumStocksTable
-import net.brightroom.mindstock.infrastructure.datasource.product.ProductsTable
+import net.brightroom.mindstock.domain.model.user.UserId
 import org.jetbrains.exposed.v1.jdbc.insert
 import kotlin.uuid.ExperimentalUuidApi
 
@@ -35,22 +32,22 @@ class ProductRegisterDataSource : ProductRegisterRepository {
     override fun setMinimumStock(
         product: Product,
         value: MinimumStock,
-        editedBy: User,
+        editedBy: UserId,
     ) {
         ProductMinimumStocksTable.insert {
             it[product_id] = product.id()
             it[minimum_stock] = value()
-            it[edited_by] = editedBy.id()
+            it[edited_by] = editedBy()
         }
     }
 
     override fun archive(
         product: Product,
-        by: User,
+        by: UserId,
     ) {
         ProductArchivesTable.insert {
             it[product_id] = product.id()
-            it[archived_by] = by.id()
+            it[archived_by] = by()
         }
     }
 }

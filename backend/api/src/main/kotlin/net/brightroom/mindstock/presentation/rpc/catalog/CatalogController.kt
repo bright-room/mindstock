@@ -13,7 +13,7 @@ import net.brightroom.mindstock.domain.model.catalog.CatalogItemId
 import net.brightroom.mindstock.domain.model.catalog.CatalogItemName
 import net.brightroom.mindstock.domain.model.catalog.CatalogItemUnit
 import net.brightroom.mindstock.domain.model.catalog.CatalogItems
-import net.brightroom.mindstock.domain.model.user.User
+import net.brightroom.mindstock.domain.model.user.profile.Profile
 import net.brightroom.mindstock.rpc.CatalogRpcService
 import org.jetbrains.exposed.v1.jdbc.Database
 
@@ -27,7 +27,7 @@ class CatalogController(
 ) : CatalogRpcService {
     // Memoized for the lifetime of this per-connection Service Impl.
     // NOTE: a rename within the same connection won't refresh this cache until reconnect.
-    private val actor: User by lazy { call.actor(userRepository) }
+    private val actor: Profile by lazy { call.actor(userRepository) }
 
     override suspend fun search(
         query: String,
@@ -47,7 +47,7 @@ class CatalogController(
     override suspend fun register(
         name: CatalogItemName,
         unit: CatalogItemUnit,
-    ): CatalogItem = tx(database) { catalogItemRegisterService.register(name, unit, actor) }
+    ): CatalogItem = tx(database) { catalogItemRegisterService.register(name, unit, actor.userId) }
 
     override suspend fun revise(
         id: CatalogItemId,
@@ -57,6 +57,6 @@ class CatalogController(
         val catalogItem =
             catalogItemRepository.findById(id)
                 ?: throw NotFoundException("catalog item not found: $id")
-        catalogItemRegisterService.revise(catalogItem, newName, newUnit, actor)
+        catalogItemRegisterService.revise(catalogItem, newName, newUnit, actor.userId)
     }
 }

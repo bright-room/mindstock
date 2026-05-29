@@ -5,13 +5,10 @@ import net.brightroom.mindstock.domain.model.household.Household
 import net.brightroom.mindstock.domain.model.household.HouseholdId
 import net.brightroom.mindstock.domain.model.household.HouseholdMember
 import net.brightroom.mindstock.domain.model.household.HouseholdMemberRole
-import net.brightroom.mindstock.domain.model.user.User
-import net.brightroom.mindstock.infrastructure.datasource.household.HouseholdMembershipRevocationsTable
-import net.brightroom.mindstock.infrastructure.datasource.household.HouseholdMembershipsTable
-import net.brightroom.mindstock.infrastructure.datasource.household.HouseholdsTable
+import net.brightroom.mindstock.domain.model.user.UserId
 import net.brightroom.mindstock.infrastructure.datasource.user.UserDisplayNamesTable
 import net.brightroom.mindstock.infrastructure.datasource.user.UsersTable
-import net.brightroom.mindstock.infrastructure.datasource.user.toUser
+import net.brightroom.mindstock.infrastructure.datasource.user.toProfile
 import org.jetbrains.exposed.v1.core.JoinType
 import org.jetbrains.exposed.v1.core.SortOrder
 import org.jetbrains.exposed.v1.core.alias
@@ -25,7 +22,7 @@ import kotlin.uuid.ExperimentalUuidApi
 
 @OptIn(ExperimentalUuidApi::class)
 class HouseholdDataSource : HouseholdRepository {
-    override fun findOf(user: User): Household? {
+    override fun findOf(userId: UserId): Household? {
         // --- latest display name per user ---
         val maxNameIdAlias = UserDisplayNamesTable.id.max().alias("max_name_id")
         val latestNames =
@@ -48,7 +45,7 @@ class HouseholdDataSource : HouseholdRepository {
                     },
                 ).select(HouseholdMembershipsTable.household_id, maxMembershipIdAlias)
                 .where {
-                    (HouseholdMembershipsTable.user_id eq user.id()) and
+                    (HouseholdMembershipsTable.user_id eq userId()) and
                         HouseholdMembershipRevocationsTable.id.isNull()
                 }.groupBy(HouseholdMembershipsTable.household_id)
                 .orderBy(maxMembershipIdAlias, SortOrder.DESC)
@@ -83,7 +80,7 @@ class HouseholdDataSource : HouseholdRepository {
         val members =
             rows.map { row ->
                 HouseholdMember(
-                    user = row.toUser(),
+                    profile = row.toProfile(),
                     role = row[HouseholdMembershipsTable.role],
                 )
             }
@@ -134,7 +131,7 @@ class HouseholdDataSource : HouseholdRepository {
         val members =
             rows.map { row ->
                 HouseholdMember(
-                    user = row.toUser(),
+                    profile = row.toProfile(),
                     role = row[HouseholdMembershipsTable.role],
                 )
             }
