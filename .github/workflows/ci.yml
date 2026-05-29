@@ -17,7 +17,7 @@ jobs:
           POSTGRES_PASSWORD: mindstock
           POSTGRES_DB: mindstock_test
         ports:
-          - 5433:5432
+          - 5432:5432
         options: >-
           --health-cmd "pg_isready -U mindstock -d mindstock_test"
           --health-interval 5s
@@ -38,7 +38,7 @@ jobs:
           AUTH_CLIENT_ID: ci-placeholder
           AUTH_AUDIENCE: ci-placeholder
           AUTH_PROJECT_ID: ci-placeholder
-          TEST_DB_URL: jdbc:postgresql://localhost:5433/mindstock_test
+          TEST_DB_URL: jdbc:postgresql://localhost:5432/mindstock_test
           TEST_DB_USER: mindstock
           TEST_DB_PASSWORD: mindstock
         run: ./gradlew check
