@@ -1,11 +1,13 @@
 package net.brightroom.mindstock.infrastructure.datasource.household
 
+import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.annotation.Tags
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.collections.shouldContain
 import io.kotest.matchers.collections.shouldHaveSize
-import io.kotest.matchers.nulls.shouldBeNull
 import io.kotest.matchers.shouldBe
+import io.kotest.matchers.string.shouldContain
+import net.brightroom.mindstock.domain.exception.ResourceNotFoundException
 import net.brightroom.mindstock.domain.model.household.HouseholdMemberRole
 import net.brightroom.mindstock.domain.model.user.auth.AuthIdentity
 import net.brightroom.mindstock.domain.model.user.auth.AuthProvider
@@ -52,7 +54,7 @@ class HouseholdRegisterDataSourceIntegrationTest :
                 tx { householdRepo.invite(household, invitee.userId, HouseholdMemberRole.MEMBER) }
 
                 val refetched = tx { householdReader.findOf(invitee.userId) }
-                refetched!!.members.list.map { it.profile.displayName } shouldContain DisplayName("Invitee")
+                refetched.members.list.map { it.profile.displayName } shouldContain DisplayName("Invitee")
             }
         }
 
@@ -68,8 +70,9 @@ class HouseholdRegisterDataSourceIntegrationTest :
                 tx { householdRepo.invite(household, invitee.userId, HouseholdMemberRole.MEMBER) }
                 tx { householdRepo.revoke(household, invitee.userId) }
 
-                val refetched = tx { householdReader.findOf(invitee.userId) }
-                refetched.shouldBeNull()
+                shouldThrow<ResourceNotFoundException> {
+                    tx { householdReader.findOf(invitee.userId) }
+                }.message shouldContain "household not found"
             }
         }
     })

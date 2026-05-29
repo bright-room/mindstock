@@ -1,10 +1,12 @@
 package net.brightroom.mindstock.infrastructure.datasource.household
 
+import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.annotation.Tags
 import io.kotest.core.spec.style.FunSpec
-import io.kotest.matchers.nulls.shouldBeNull
 import io.kotest.matchers.nulls.shouldNotBeNull
 import io.kotest.matchers.shouldBe
+import io.kotest.matchers.string.shouldContain
+import net.brightroom.mindstock.domain.exception.ResourceNotFoundException
 import net.brightroom.mindstock.domain.model.household.HouseholdId
 import net.brightroom.mindstock.domain.model.household.HouseholdMemberRole
 import net.brightroom.mindstock.domain.model.user.auth.AuthIdentity
@@ -21,15 +23,15 @@ import kotlin.uuid.Uuid
 class HouseholdDataSourceIntegrationTest :
     FunSpec({
 
-        test("findOf returns null when user has no household membership") {
+        test("findOf throws ResourceNotFoundException when user has no household membership") {
             withRepositoryTestContext {
                 val userRepo = UserRegisterDataSource()
                 val householdReader = HouseholdDataSource()
                 val user = tx { userRepo.register(AuthIdentity(AuthProvider.ZITADEL, AuthSubject("lonely")), DisplayName("Lonely")) }
 
-                val result = tx { householdReader.findOf(user.userId) }
-
-                result.shouldBeNull()
+                shouldThrow<ResourceNotFoundException> {
+                    tx { householdReader.findOf(user.userId) }
+                }.message shouldContain "household not found"
             }
         }
 
@@ -51,14 +53,14 @@ class HouseholdDataSourceIntegrationTest :
             }
         }
 
-        test("findById returns null when no household with this id exists") {
+        test("findById throws ResourceNotFoundException when no household with this id exists") {
             withRepositoryTestContext {
                 val householdReader = HouseholdDataSource()
                 val nonexistent = HouseholdId(Uuid.random())
 
-                val found = tx { householdReader.findById(nonexistent) }
-
-                found.shouldBeNull()
+                shouldThrow<ResourceNotFoundException> {
+                    tx { householdReader.findById(nonexistent) }
+                }.message shouldContain "household not found"
             }
         }
 
@@ -72,11 +74,10 @@ class HouseholdDataSourceIntegrationTest :
                 tx { householdRegister.create(owner.userId) }
 
                 val found = tx { householdReader.findOf(owner.userId) }
-                found
-                    ?.members
-                    ?.list
-                    ?.single()
-                    ?.role shouldBe HouseholdMemberRole.OWNER
+                found.members
+                    .list
+                    .single()
+                    .role shouldBe HouseholdMemberRole.OWNER
             }
         }
     })

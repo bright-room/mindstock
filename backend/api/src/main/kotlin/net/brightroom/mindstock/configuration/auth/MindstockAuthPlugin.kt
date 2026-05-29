@@ -77,7 +77,9 @@ val MindstockAuthPlugin =
             val identity = AuthIdentity(AuthProvider.ZITADEL, AuthSubject(sub))
             val userId =
                 newSuspendedTransaction(db = database) {
-                    userRepository.findProfileByAuthIdentity(identity)?.userId
+                    // ResourceNotFoundException → 未登録 user (userId=null) として扱う。
+                    // 他の例外 (DB エラー等) も同様に null になる副作用は許容(spec §3.5)。
+                    runCatching { userRepository.findProfileByAuthIdentity(identity).userId }.getOrNull()
                 }
             val expDate =
                 decoded.expiresAt

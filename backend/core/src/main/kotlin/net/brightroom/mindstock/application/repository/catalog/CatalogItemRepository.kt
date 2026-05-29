@@ -11,6 +11,9 @@ interface CatalogItemRepository {
         limit: Int = 50,
     ): CatalogItems
 
-    /** id 引き(主に RPC 経由)。 */
-    fun findById(id: CatalogItemId): CatalogItem?
+    /**
+     * id 引き(主に RPC 経由)。
+     * 該当 catalog item が存在しなければ `ResourceNotFoundException` を throw する。
+     */
+    fun findById(id: CatalogItemId): CatalogItem
 }

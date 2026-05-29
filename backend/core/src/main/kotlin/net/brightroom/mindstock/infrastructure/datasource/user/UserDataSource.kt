@@ -1,6 +1,7 @@
 package net.brightroom.mindstock.infrastructure.datasource.user
 
 import net.brightroom.mindstock.application.repository.user.UserRepository
+import net.brightroom.mindstock.domain.exception.ResourceNotFoundException
 import net.brightroom.mindstock.domain.model.user.UserId
 import net.brightroom.mindstock.domain.model.user.auth.AuthIdentity
 import net.brightroom.mindstock.domain.model.user.profile.Profile
@@ -15,9 +16,13 @@ import kotlin.uuid.ExperimentalUuidApi
 
 @OptIn(ExperimentalUuidApi::class)
 class UserDataSource : UserRepository {
-    override fun findProfileByAuthIdentity(identity: AuthIdentity): Profile? = queryLatest { UsersTable.zitadel_sub eq identity.subject() }
+    override fun findProfileByAuthIdentity(identity: AuthIdentity): Profile =
+        queryLatest { UsersTable.zitadel_sub eq identity.subject() }
+            ?: throw ResourceNotFoundException("user not found: subject=${identity.subject()}")
 
-    override fun findProfileById(id: UserId): Profile? = queryLatest { UsersTable.id eq id() }
+    override fun findProfileById(id: UserId): Profile =
+        queryLatest { UsersTable.id eq id() }
+            ?: throw ResourceNotFoundException("user not found: $id")
 
     private fun queryLatest(where: () -> Op<Boolean>): Profile? {
         val latest = latestDisplayNames()

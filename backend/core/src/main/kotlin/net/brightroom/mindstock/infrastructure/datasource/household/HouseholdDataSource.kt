@@ -6,6 +6,7 @@ import net.brightroom.mindstock.domain.model.household.HouseholdId
 import net.brightroom.mindstock.domain.model.household.HouseholdMember
 import net.brightroom.mindstock.domain.model.household.HouseholdMemberRole
 import net.brightroom.mindstock.domain.model.user.UserId
+import net.brightroom.mindstock.domain.exception.ResourceNotFoundException
 import net.brightroom.mindstock.infrastructure.datasource.user.UserDisplayNamesTable
 import net.brightroom.mindstock.infrastructure.datasource.user.UsersTable
 import net.brightroom.mindstock.infrastructure.datasource.user.latestDisplayNames
@@ -23,7 +24,7 @@ import kotlin.uuid.ExperimentalUuidApi
 
 @OptIn(ExperimentalUuidApi::class)
 class HouseholdDataSource : HouseholdRepository {
-    override fun findOf(userId: UserId): Household? {
+    override fun findOf(userId: UserId): Household {
         val latest = latestDisplayNames()
 
         // --- target household: most recent active membership's household for this user ---
@@ -67,7 +68,7 @@ class HouseholdDataSource : HouseholdRepository {
                 .orderBy(HouseholdMembershipsTable.id, SortOrder.ASC)
                 .toList()
 
-        if (rows.isEmpty()) return null
+        if (rows.isEmpty()) throw ResourceNotFoundException("household not found for user: $userId")
 
         val householdId = rows.first()[HouseholdMembershipsTable.household_id]
         val members =
@@ -80,7 +81,7 @@ class HouseholdDataSource : HouseholdRepository {
         return hydrateHousehold(householdId, members)
     }
 
-    override fun findById(id: HouseholdId): Household? {
+    override fun findById(id: HouseholdId): Household {
         // --- household existence check (returns even if all memberships are revoked) ---
         val householdExists =
             HouseholdsTable
@@ -88,7 +89,7 @@ class HouseholdDataSource : HouseholdRepository {
                 .where { HouseholdsTable.id eq id() }
                 .limit(1)
                 .firstOrNull() != null
-        if (!householdExists) return null
+        if (!householdExists) throw ResourceNotFoundException("household not found: $id")
 
         val latest = latestDisplayNames()
 

@@ -4,6 +4,7 @@ import net.brightroom.mindstock.application.repository.catalog.CatalogItemReposi
 import net.brightroom.mindstock.domain.model.catalog.CatalogItem
 import net.brightroom.mindstock.domain.model.catalog.CatalogItemId
 import net.brightroom.mindstock.domain.model.catalog.CatalogItems
+import net.brightroom.mindstock.domain.exception.ResourceNotFoundException
 import net.brightroom.mindstock.infrastructure.datasource.catalog.CatalogItemRevisionsTable
 import net.brightroom.mindstock.infrastructure.datasource.catalog.CatalogItemsTable
 import org.jetbrains.exposed.v1.core.Column
@@ -69,7 +70,7 @@ class CatalogItemDataSource : CatalogItemRepository {
         return CatalogItems(items)
     }
 
-    override fun findById(id: CatalogItemId): CatalogItem? {
+    override fun findById(id: CatalogItemId): CatalogItem {
         val latestRevs = buildLatestRevs()
 
         return CatalogItemsTable
@@ -86,6 +87,6 @@ class CatalogItemDataSource : CatalogItemRepository {
                     name = row[CatalogItemRevisionsTable.name],
                     unit = row[CatalogItemRevisionsTable.unit],
                 )
-            }
+            } ?: throw ResourceNotFoundException("catalog item not found: $id")
     }
 }

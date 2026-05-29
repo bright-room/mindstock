@@ -1,9 +1,11 @@
 package net.brightroom.mindstock.infrastructure.datasource.catalog
 
+import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.annotation.Tags
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.collections.shouldHaveSize
-import io.kotest.matchers.nulls.shouldBeNull
+import io.kotest.matchers.string.shouldContain
+import net.brightroom.mindstock.domain.exception.ResourceNotFoundException
 import net.brightroom.mindstock.domain.model.catalog.CatalogItemId
 import net.brightroom.mindstock.domain.model.catalog.CatalogItemName
 import net.brightroom.mindstock.domain.model.catalog.CatalogItemUnit
@@ -21,11 +23,12 @@ import kotlin.uuid.Uuid
 class CatalogItemDataSourceIntegrationTest :
     FunSpec({
 
-        test("findById returns null when id does not exist") {
+        test("findById throws ResourceNotFoundException when id does not exist") {
             withRepositoryTestContext {
                 val reader = CatalogItemDataSource()
-                val result = tx { reader.findById(CatalogItemId(Uuid.random())) }
-                result.shouldBeNull()
+                shouldThrow<ResourceNotFoundException> {
+                    tx { reader.findById(CatalogItemId(Uuid.random())) }
+                }.message shouldContain "catalog item not found"
             }
         }
 

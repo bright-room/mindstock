@@ -1,9 +1,11 @@
 package net.brightroom.mindstock.infrastructure.datasource.user
 
+import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.annotation.Tags
 import io.kotest.core.spec.style.FunSpec
-import io.kotest.matchers.nulls.shouldBeNull
 import io.kotest.matchers.shouldBe
+import io.kotest.matchers.string.shouldContain
+import net.brightroom.mindstock.domain.exception.ResourceNotFoundException
 import net.brightroom.mindstock.domain.model.user.auth.AuthIdentity
 import net.brightroom.mindstock.domain.model.user.auth.AuthProvider
 import net.brightroom.mindstock.domain.model.user.auth.AuthSubject
@@ -14,11 +16,12 @@ import net.brightroom.mindstock.infrastructure.datasource.repository.withReposit
 class UserDataSourceIntegrationTest :
     FunSpec({
 
-        test("findProfileByAuthIdentity returns null when no user with that subject exists") {
+        test("findProfileByAuthIdentity throws ResourceNotFoundException when no user with that subject exists") {
             withRepositoryTestContext {
                 val repo = UserDataSource()
-                val result = tx { repo.findProfileByAuthIdentity(AuthIdentity(AuthProvider.ZITADEL, AuthSubject("unknown"))) }
-                result.shouldBeNull()
+                shouldThrow<ResourceNotFoundException> {
+                    tx { repo.findProfileByAuthIdentity(AuthIdentity(AuthProvider.ZITADEL, AuthSubject("unknown"))) }
+                }.message shouldContain "user not found"
             }
         }
 
@@ -31,7 +34,7 @@ class UserDataSourceIntegrationTest :
                 tx { registerRepo.register(identity, DisplayName("Alice")) }
                 val refetched = tx { readerRepo.findProfileByAuthIdentity(identity) }
 
-                refetched?.displayName shouldBe DisplayName("Alice")
+                refetched.displayName shouldBe DisplayName("Alice")
             }
         }
 
@@ -45,7 +48,7 @@ class UserDataSourceIntegrationTest :
                 tx { registerRepo.rename(profile.userId, DisplayName("Alicia")) }
 
                 val refetched = tx { readerRepo.findProfileByAuthIdentity(identity) }
-                refetched?.displayName shouldBe DisplayName("Alicia")
+                refetched.displayName shouldBe DisplayName("Alicia")
             }
         }
     })

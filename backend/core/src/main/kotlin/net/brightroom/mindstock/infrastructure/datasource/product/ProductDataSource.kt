@@ -6,6 +6,7 @@ import net.brightroom.mindstock.domain.model.household.Household
 import net.brightroom.mindstock.domain.model.product.Product
 import net.brightroom.mindstock.domain.model.product.ProductId
 import net.brightroom.mindstock.domain.model.product.Products
+import net.brightroom.mindstock.domain.exception.ResourceNotFoundException
 import net.brightroom.mindstock.infrastructure.datasource.catalog.CatalogItemRevisionsTable
 import net.brightroom.mindstock.infrastructure.datasource.catalog.CatalogItemsTable
 import net.brightroom.mindstock.infrastructure.datasource.catalog.hydrateCatalogItem
@@ -111,7 +112,7 @@ class ProductDataSource : ProductRepository {
     override fun find(
         household: Household,
         catalogItem: CatalogItem,
-    ): Product? =
+    ): Product =
         buildJoinedQuery()
             .selectAll()
             .where {
@@ -119,13 +120,17 @@ class ProductDataSource : ProductRepository {
                     (ProductsTable.catalog_item_id eq catalogItem.id())
             }.singleOrNull()
             ?.toProduct()
+            ?: throw ResourceNotFoundException(
+                "product not found: household=${household.id()}, catalog_item=${catalogItem.id()}",
+            )
 
-    override fun findById(id: ProductId): Product? =
+    override fun findById(id: ProductId): Product =
         buildJoinedQuery()
             .selectAll()
             .where { ProductsTable.id eq id() }
             .singleOrNull()
             ?.toProduct()
+            ?: throw ResourceNotFoundException("product not found: $id")
 
     private fun ResultRow.toProduct(): Product =
         hydrateProduct(
