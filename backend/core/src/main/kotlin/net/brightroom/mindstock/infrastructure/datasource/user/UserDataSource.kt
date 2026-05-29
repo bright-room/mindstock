@@ -18,11 +18,11 @@ import kotlin.uuid.ExperimentalUuidApi
 class UserDataSource : UserRepository {
     override fun findProfileByAuthIdentity(identity: AuthIdentity): Profile =
         queryLatest { UsersTable.zitadel_sub eq identity.subject() }
-            ?: throw ResourceNotFoundException("user not found: subject=${identity.subject()}")
+            ?: throw ResourceNotFoundException("user not found")
 
     override fun findProfileById(id: UserId): Profile =
         queryLatest { UsersTable.id eq id() }
-            ?: throw ResourceNotFoundException("user not found: $id")
+            ?: throw ResourceNotFoundException("user not found")
 
     private fun queryLatest(where: () -> Op<Boolean>): Profile? {
         val latest = latestDisplayNames()
