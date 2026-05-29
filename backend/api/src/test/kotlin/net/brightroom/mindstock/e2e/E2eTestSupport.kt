@@ -138,7 +138,10 @@ class E2eContext(
     fun publicRpcClient(path: String): RpcClient = httpClient.rpc("/api/v1/$path").also { opened += it }
 
     /**
-     * Opens an authenticated Krpc connection for [asUser]. JWT は sub=user.authIdentity.subject() で発行。
+     * Opens an authenticated Krpc connection for [asUser].
+     *
+     * [asUser] は `authIdentity` を持たないため、JWT の sub は `UsersTable.zitadel_sub`
+     * を `asUser.userId` で引いて取得する(DB に該当行が無ければ失敗)。
      */
     fun authenticatedRpcClient(
         asUser: Profile,

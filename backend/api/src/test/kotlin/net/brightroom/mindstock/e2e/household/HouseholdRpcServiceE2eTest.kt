@@ -66,6 +66,8 @@ class HouseholdRpcServiceE2eTest :
                 household.members.list.size shouldBe 1
                 household.members.list[0]
                     .profile.userId shouldBe owner.userId
+                household.members.list[0]
+                    .profile.displayName shouldBe owner.displayName
                 household.members.list[0].role shouldBe HouseholdMemberRole.OWNER
             }
         }

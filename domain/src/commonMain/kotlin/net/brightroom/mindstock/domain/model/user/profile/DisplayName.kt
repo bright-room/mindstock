@@ -4,7 +4,7 @@ import kotlinx.serialization.Serializable
 import kotlin.jvm.JvmInline
 
 /**
- * ユーザーの表示名。空文字禁止、最大 100 文字。
+ * ユーザーの表示名。空白のみ(空文字含む)禁止、最大 100 文字。
  */
 @Serializable
 @JvmInline

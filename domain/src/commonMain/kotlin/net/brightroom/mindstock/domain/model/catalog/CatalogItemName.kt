@@ -4,7 +4,7 @@ import kotlinx.serialization.Serializable
 import kotlin.jvm.JvmInline
 
 /**
- * カタログ商品の名前。空文字禁止、最大 200 文字。
+ * カタログ商品の名前。空白のみ(空文字含む)禁止、最大 200 文字。
  */
 @Serializable
 @JvmInline

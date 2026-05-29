@@ -4,7 +4,7 @@ import kotlinx.serialization.Serializable
 import kotlin.jvm.JvmInline
 
 /**
- * カタログ商品の単位。空文字禁止、最大 10 文字。
+ * カタログ商品の単位。空白のみ(空文字含む)禁止、最大 10 文字。
  */
 @Serializable
 @JvmInline

@@ -5,7 +5,7 @@ import kotlin.jvm.JvmInline
 
 /**
  * 認証プロバイダにおけるサブジェクト識別子(OIDC の sub クレーム相当)。
- * 空文字は禁止。
+ * 空白のみ(空文字含む)は禁止。
  */
 @Serializable
 @JvmInline
