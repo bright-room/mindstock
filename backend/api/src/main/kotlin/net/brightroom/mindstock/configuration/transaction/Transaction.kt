@@ -1,10 +1,13 @@
 @file:Suppress("DEPRECATION")
+@file:OptIn(kotlin.uuid.ExperimentalUuidApi::class)
 
 package net.brightroom.mindstock.configuration.transaction
 
 import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.supervisorScope
+import kotlinx.datetime.Clock
+import net.brightroom.mindstock.configuration.auth.MindstockSession
 import net.brightroom.mindstock.rpc.RpcError
 import net.brightroom.mindstock.rpc.RpcResult
 import org.jetbrains.exposed.v1.jdbc.Database
@@ -13,27 +16,28 @@ import org.jetbrains.exposed.v1.jdbc.transactions.experimental.newSuspendedTrans
 private val logger = KotlinLogging.logger {}
 
 /**
- * RPC message-scoped transaction boundary。
+ * RPC message-scoped transaction boundary + session guard。
  *
- * 仕様変更(2026-05-29 ktor-restructure):
- * - 例外 throw ベースから [RpcResult] 戻り値ベースに移行。
- * - 想定外の例外は [RpcError.Internal] に変換する(client にスタックトレースは漏らさない)。
- * - [CancellationException] は伝播させる(coroutine cancellation 仕様)。
- * - [supervisorScope] は kRPC server scope へのエラー leak 防止のため維持。
- *
- * Phase 4 で `session: MindstockSession` 引数が追加され、`session.exp` チェックが組み込まれる。
+ * - session.exp が現在時刻を超えていたら即 `Err(Unauthorized("token expired"))`(L2)
+ * - block 内の想定外例外は `Err(Internal)` に変換し、logger.error する
+ * - CancellationException は伝播
+ * - supervisorScope は kRPC server scope へのエラー leak 防止のため維持
  */
 suspend fun <T> tx(
     database: Database,
+    session: MindstockSession,
     block: suspend () -> RpcResult<T, RpcError>,
-): RpcResult<T, RpcError> =
-    try {
-        supervisorScope {
-            newSuspendedTransaction(db = database) { block() }
-        }
+): RpcResult<T, RpcError> {
+    val now = Clock.System.now()
+    if (now > session.exp) {
+        return RpcResult.Err(RpcError.Unauthorized(reason = "token expired"))
+    }
+    return try {
+        supervisorScope { newSuspendedTransaction(db = database) { block() } }
     } catch (e: CancellationException) {
         throw e
     } catch (e: Throwable) {
-        logger.error(e) { "unhandled exception during RPC" }
+        logger.error(e) { "unhandled exception during RPC call_id=${session.callId} user_id=${session.userId}" }
         RpcResult.Err(RpcError.Internal(reason = "unexpected server error"))
     }
+}

@@ -1,7 +1,7 @@
 package net.brightroom.mindstock.presentation.rpc.product
 
-import io.ktor.server.application.ApplicationCall
+import net.brightroom.mindstock.configuration.auth.MindstockSession
 
 fun interface ProductControllerFactory {
-    fun create(call: ApplicationCall): ProductController
+    fun create(session: MindstockSession): ProductController
 }

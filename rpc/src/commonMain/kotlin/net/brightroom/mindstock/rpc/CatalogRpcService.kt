@@ -9,7 +9,10 @@ import net.brightroom.mindstock.domain.model.catalog.CatalogItems
 
 @Rpc
 interface CatalogRpcService {
-    suspend fun search(query: String, limit: Int): RpcResult<CatalogItems, RpcError>
+    suspend fun search(
+        query: String,
+        limit: Int,
+    ): RpcResult<CatalogItems, RpcError>
 
     suspend fun findById(id: CatalogItemId): RpcResult<CatalogItem?, RpcError>
 

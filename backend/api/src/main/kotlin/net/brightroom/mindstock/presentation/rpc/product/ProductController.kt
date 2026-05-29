@@ -1,13 +1,12 @@
 package net.brightroom.mindstock.presentation.rpc.product
 
-import io.ktor.server.application.ApplicationCall
 import net.brightroom.mindstock.application.repository.catalog.CatalogItemRepository
 import net.brightroom.mindstock.application.repository.household.HouseholdRepository
 import net.brightroom.mindstock.application.repository.product.ProductRepository
 import net.brightroom.mindstock.application.repository.user.UserRepository
 import net.brightroom.mindstock.application.service.product.ProductRegisterService
 import net.brightroom.mindstock.application.service.product.ProductService
-import net.brightroom.mindstock.configuration.auth.actor
+import net.brightroom.mindstock.configuration.auth.MindstockSession
 import net.brightroom.mindstock.configuration.transaction.tx
 import net.brightroom.mindstock.domain.model.catalog.CatalogItemId
 import net.brightroom.mindstock.domain.model.household.HouseholdId
@@ -28,14 +27,15 @@ class ProductController(
     private val catalogItemRepository: CatalogItemRepository,
     private val productRepository: ProductRepository,
     private val userRepository: UserRepository,
-    private val call: ApplicationCall,
+    private val session: MindstockSession,
     private val database: Database,
 ) : ProductRpcService {
-    private val actor: User by lazy { call.actor(userRepository) }
+    private suspend fun resolveActor(): User =
+        userRepository.findById(requireNotNull(session.userId))
+            ?: error("session.userId points to non-existent User")
 
     override suspend fun listOfHousehold(householdId: HouseholdId): RpcResult<Products, RpcError> =
-        tx(database) {
-            actor
+        tx(database, session) {
             val household =
                 householdRepository.findById(householdId)
                     ?: return@tx RpcResult.Err(RpcError.NotFound(resource = "household", id = "$householdId"))
@@ -46,8 +46,7 @@ class ProductController(
         householdId: HouseholdId,
         catalogItemId: CatalogItemId,
     ): RpcResult<Product?, RpcError> =
-        tx(database) {
-            actor
+        tx(database, session) {
             val household =
                 householdRepository.findById(householdId)
                     ?: return@tx RpcResult.Err(RpcError.NotFound(resource = "household", id = "$householdId"))
@@ -61,8 +60,7 @@ class ProductController(
         householdId: HouseholdId,
         catalogItemId: CatalogItemId,
     ): RpcResult<Product, RpcError> =
-        tx(database) {
-            actor
+        tx(database, session) {
             val household =
                 householdRepository.findById(householdId)
                     ?: return@tx RpcResult.Err(RpcError.NotFound(resource = "household", id = "$householdId"))
@@ -76,20 +74,20 @@ class ProductController(
         id: ProductId,
         minimumStock: MinimumStock,
     ): RpcResult<Unit, RpcError> =
-        tx(database) {
+        tx(database, session) {
             val product =
                 productRepository.findById(id)
                     ?: return@tx RpcResult.Err(RpcError.NotFound(resource = "product", id = "$id"))
-            productRegisterService.setMinimumStock(product, minimumStock, actor)
+            productRegisterService.setMinimumStock(product, minimumStock, resolveActor())
             RpcResult.Ok(Unit)
         }
 
     override suspend fun archive(id: ProductId): RpcResult<Unit, RpcError> =
-        tx(database) {
+        tx(database, session) {
             val product =
                 productRepository.findById(id)
                     ?: return@tx RpcResult.Err(RpcError.NotFound(resource = "product", id = "$id"))
-            productRegisterService.archive(product, actor)
+            productRegisterService.archive(product, resolveActor())
             RpcResult.Ok(Unit)
         }
 }

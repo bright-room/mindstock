@@ -2,16 +2,14 @@ package net.brightroom.mindstock.presentation.rpc.user
 
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
-import io.kotest.matchers.types.shouldBeInstanceOf
-import io.ktor.server.application.ApplicationCall
-import io.ktor.server.auth.principal
 import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.mockkStatic
 import io.mockk.unmockkAll
+import kotlinx.datetime.Instant
 import net.brightroom.mindstock.application.service.user.UserRegisterService
-import net.brightroom.mindstock.configuration.auth.MindstockPrincipal
+import net.brightroom.mindstock.configuration.auth.MindstockSession
 import net.brightroom.mindstock.domain.model.user.DisplayName
 import net.brightroom.mindstock.domain.model.user.User
 import net.brightroom.mindstock.domain.model.user.UserId
@@ -29,10 +27,9 @@ class UserPublicControllerTest :
     FunSpec({
         afterTest { unmockkAll() }
 
-        test("register pulls AuthIdentity from the call's Principal and delegates to UserRegisterService") {
+        test("register pulls AuthIdentity from the session and delegates to UserRegisterService") {
             val userRegisterService = mockk<UserRegisterService>()
             val database = mockk<Database>()
-            val call = mockk<ApplicationCall>()
             val displayName = DisplayName("Alice")
             val authIdentity = AuthIdentity(AuthProvider.ZITADEL, AuthSubject("sub-1"))
             val expected =
@@ -41,44 +38,26 @@ class UserPublicControllerTest :
                     authIdentity = authIdentity,
                     displayName = displayName,
                 )
+            val session =
+                MindstockSession(
+                    identity = authIdentity,
+                    userId = null,
+                    exp = Instant.fromEpochMilliseconds(Long.MAX_VALUE),
+                    callId = Uuid.random(),
+                )
 
-            mockkStatic("io.ktor.server.auth.AuthenticationKt")
-            every { call.principal<MindstockPrincipal>() } returns MindstockPrincipal(authIdentity)
             every { userRegisterService.register(authIdentity, displayName) } returns expected
 
             mockkStatic("net.brightroom.mindstock.configuration.transaction.TransactionKt")
             coEvery {
                 net.brightroom.mindstock.configuration.transaction
-                    .tx<User>(any(), any())
+                    .tx<User>(any(), any(), any())
             } coAnswers {
-                val block = arg<suspend () -> RpcResult<User, RpcError>>(1)
+                val block = arg<suspend () -> RpcResult<User, RpcError>>(2)
                 block()
             }
 
-            val impl = UserPublicController(userRegisterService, call, database)
+            val impl = UserPublicController(userRegisterService, session, database)
             impl.register(displayName) shouldBe RpcResult.Ok(expected)
-        }
-
-        test("register returns Err(Unauthorized) when Principal is missing") {
-            val userRegisterService = mockk<UserRegisterService>()
-            val database = mockk<Database>()
-            val call = mockk<ApplicationCall>()
-
-            mockkStatic("io.ktor.server.auth.AuthenticationKt")
-            every { call.principal<MindstockPrincipal>() } returns null
-
-            mockkStatic("net.brightroom.mindstock.configuration.transaction.TransactionKt")
-            coEvery {
-                net.brightroom.mindstock.configuration.transaction
-                    .tx<User>(any(), any())
-            } coAnswers {
-                val block = arg<suspend () -> RpcResult<User, RpcError>>(1)
-                block()
-            }
-
-            val impl = UserPublicController(userRegisterService, call, database)
-            val result = impl.register(DisplayName("Anyone"))
-            result.shouldBeInstanceOf<RpcResult.Err<RpcError>>()
-            result.error.shouldBeInstanceOf<RpcError.Unauthorized>()
         }
     })

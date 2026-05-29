@@ -1,7 +1,7 @@
 package net.brightroom.mindstock.presentation.rpc.household
 
-import io.ktor.server.application.ApplicationCall
+import net.brightroom.mindstock.configuration.auth.MindstockSession
 
 fun interface HouseholdControllerFactory {
-    fun create(call: ApplicationCall): HouseholdController
+    fun create(session: MindstockSession): HouseholdController
 }

@@ -2,17 +2,17 @@ package net.brightroom.mindstock.presentation.rpc.catalog
 
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
-import io.ktor.server.application.ApplicationCall
 import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.mockkStatic
 import io.mockk.unmockkAll
+import kotlinx.datetime.Instant
 import net.brightroom.mindstock.application.repository.catalog.CatalogItemRepository
 import net.brightroom.mindstock.application.repository.user.UserRepository
 import net.brightroom.mindstock.application.service.catalog.CatalogItemRegisterService
 import net.brightroom.mindstock.application.service.catalog.CatalogItemService
-import net.brightroom.mindstock.configuration.auth.actor
+import net.brightroom.mindstock.configuration.auth.MindstockSession
 import net.brightroom.mindstock.domain.model.catalog.CatalogItems
 import net.brightroom.mindstock.domain.model.user.DisplayName
 import net.brightroom.mindstock.domain.model.user.User
@@ -31,12 +31,11 @@ class CatalogControllerTest :
     FunSpec({
         afterTest { unmockkAll() }
 
-        test("search resolves actor and delegates to CatalogItemService") {
+        test("search delegates to CatalogItemService (no actor resolution required for read)") {
             val catalogItemService = mockk<CatalogItemService>()
             val catalogItemRegisterService = mockk<CatalogItemRegisterService>()
             val catalogItemRepository = mockk<CatalogItemRepository>()
             val userRepository = mockk<UserRepository>()
-            val call = mockk<ApplicationCall>()
             val database = mockk<Database>()
             val user =
                 User(
@@ -47,17 +46,22 @@ class CatalogControllerTest :
             val expected = CatalogItems(emptyList())
             val query = "milk"
             val limit = 20
+            val session =
+                MindstockSession(
+                    identity = user.authIdentity,
+                    userId = user.id,
+                    exp = Instant.fromEpochMilliseconds(Long.MAX_VALUE),
+                    callId = Uuid.random(),
+                )
 
-            mockkStatic(ApplicationCall::actor)
-            every { call.actor(userRepository) } returns user
             every { catalogItemService.search(query, limit) } returns expected
 
             mockkStatic("net.brightroom.mindstock.configuration.transaction.TransactionKt")
             coEvery {
                 net.brightroom.mindstock.configuration.transaction
-                    .tx<CatalogItems>(any(), any())
+                    .tx<CatalogItems>(any(), any(), any())
             } coAnswers {
-                val block = arg<suspend () -> RpcResult<CatalogItems, RpcError>>(1)
+                val block = arg<suspend () -> RpcResult<CatalogItems, RpcError>>(2)
                 block()
             }
 
@@ -67,7 +71,7 @@ class CatalogControllerTest :
                     catalogItemRegisterService = catalogItemRegisterService,
                     catalogItemRepository = catalogItemRepository,
                     userRepository = userRepository,
-                    call = call,
+                    session = session,
                     database = database,
                 )
             impl.search(query, limit) shouldBe RpcResult.Ok(expected)

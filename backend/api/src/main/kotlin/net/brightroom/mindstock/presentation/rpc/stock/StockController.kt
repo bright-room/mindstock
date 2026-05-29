@@ -1,12 +1,11 @@
 package net.brightroom.mindstock.presentation.rpc.stock
 
-import io.ktor.server.application.ApplicationCall
 import net.brightroom.mindstock.application.repository.household.HouseholdRepository
 import net.brightroom.mindstock.application.repository.product.ProductRepository
 import net.brightroom.mindstock.application.repository.user.UserRepository
 import net.brightroom.mindstock.application.service.stock.StockRegisterService
 import net.brightroom.mindstock.application.service.stock.StockService
-import net.brightroom.mindstock.configuration.auth.actor
+import net.brightroom.mindstock.configuration.auth.MindstockSession
 import net.brightroom.mindstock.configuration.transaction.tx
 import net.brightroom.mindstock.domain.model.household.HouseholdId
 import net.brightroom.mindstock.domain.model.product.ProductId
@@ -29,14 +28,15 @@ class StockController(
     private val productRepository: ProductRepository,
     private val householdRepository: HouseholdRepository,
     private val userRepository: UserRepository,
-    private val call: ApplicationCall,
+    private val session: MindstockSession,
     private val database: Database,
 ) : StockRpcService {
-    private val actor: User by lazy { call.actor(userRepository) }
+    private suspend fun resolveActor(): User =
+        userRepository.findById(requireNotNull(session.userId))
+            ?: error("session.userId points to non-existent User")
 
     override suspend fun get(productId: ProductId): RpcResult<Stock, RpcError> =
-        tx(database) {
-            actor
+        tx(database, session) {
             val product =
                 productRepository.findById(productId)
                     ?: return@tx RpcResult.Err(RpcError.NotFound(resource = "product", id = "$productId"))
@@ -44,8 +44,7 @@ class StockController(
         }
 
     override suspend fun list(householdId: HouseholdId): RpcResult<List<Stock>, RpcError> =
-        tx(database) {
-            actor
+        tx(database, session) {
             val household =
                 householdRepository.findById(householdId)
                     ?: return@tx RpcResult.Err(RpcError.NotFound(resource = "household", id = "$householdId"))
@@ -56,8 +55,7 @@ class StockController(
         productId: ProductId,
         limit: Int,
     ): RpcResult<StockMovements, RpcError> =
-        tx(database) {
-            actor
+        tx(database, session) {
             val product =
                 productRepository.findById(productId)
                     ?: return@tx RpcResult.Err(RpcError.NotFound(resource = "product", id = "$productId"))
@@ -70,11 +68,11 @@ class StockController(
         occurredAt: OccurredAt,
         note: Note,
     ): RpcResult<Replenishment, RpcError> =
-        tx(database) {
+        tx(database, session) {
             val product =
                 productRepository.findById(productId)
                     ?: return@tx RpcResult.Err(RpcError.NotFound(resource = "product", id = "$productId"))
-            RpcResult.Ok(stockRegisterService.replenish(product, qty, occurredAt, actor, note))
+            RpcResult.Ok(stockRegisterService.replenish(product, qty, occurredAt, resolveActor(), note))
         }
 
     override suspend fun consume(
@@ -83,10 +81,10 @@ class StockController(
         occurredAt: OccurredAt,
         note: Note,
     ): RpcResult<Consumption, RpcError> =
-        tx(database) {
+        tx(database, session) {
             val product =
                 productRepository.findById(productId)
                     ?: return@tx RpcResult.Err(RpcError.NotFound(resource = "product", id = "$productId"))
-            RpcResult.Ok(stockRegisterService.consume(product, qty, occurredAt, actor, note))
+            RpcResult.Ok(stockRegisterService.consume(product, qty, occurredAt, resolveActor(), note))
         }
 }

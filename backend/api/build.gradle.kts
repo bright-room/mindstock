@@ -20,8 +20,6 @@ dependencies {
     implementation(ktorLib.server.di)
     implementation(ktorLib.server.config.yaml)
     implementation(ktorLib.server.websockets)
-    implementation(ktorLib.server.auth)
-    implementation(ktorLib.server.auth.jwt)
     implementation(ktorLib.server.contentNegotiation)
     implementation(ktorLib.serialization.kotlinx.json)
     implementation(libs.kotlinx.rpc.server)
@@ -35,6 +33,8 @@ dependencies {
     implementation(libs.postgres.jdbc)
     implementation(libs.flyway.core)
     implementation(libs.flyway.database.postgresql)
+    implementation(libs.auth0.java.jwt)
+    implementation(libs.auth0.jwks.rsa)
 
     testFixturesImplementation(projects.domain)
     testFixturesImplementation(testFixtures(projects.backend.core))

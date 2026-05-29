@@ -1,11 +1,10 @@
 package net.brightroom.mindstock.presentation.rpc.catalog
 
-import io.ktor.server.application.ApplicationCall
 import net.brightroom.mindstock.application.repository.catalog.CatalogItemRepository
 import net.brightroom.mindstock.application.repository.user.UserRepository
 import net.brightroom.mindstock.application.service.catalog.CatalogItemRegisterService
 import net.brightroom.mindstock.application.service.catalog.CatalogItemService
-import net.brightroom.mindstock.configuration.auth.actor
+import net.brightroom.mindstock.configuration.auth.MindstockSession
 import net.brightroom.mindstock.configuration.transaction.tx
 import net.brightroom.mindstock.domain.model.catalog.CatalogItem
 import net.brightroom.mindstock.domain.model.catalog.CatalogItemId
@@ -23,41 +22,37 @@ class CatalogController(
     private val catalogItemRegisterService: CatalogItemRegisterService,
     private val catalogItemRepository: CatalogItemRepository,
     private val userRepository: UserRepository,
-    private val call: ApplicationCall,
+    private val session: MindstockSession,
     private val database: Database,
 ) : CatalogRpcService {
-    private val actor: User by lazy { call.actor(userRepository) }
+    private suspend fun resolveActor(): User =
+        userRepository.findById(requireNotNull(session.userId))
+            ?: error("session.userId points to non-existent User")
 
     override suspend fun search(
         query: String,
         limit: Int,
-    ): RpcResult<CatalogItems, RpcError> =
-        tx(database) {
-            actor
-            RpcResult.Ok(catalogItemService.search(query, limit))
-        }
+    ): RpcResult<CatalogItems, RpcError> = tx(database, session) { RpcResult.Ok(catalogItemService.search(query, limit)) }
 
     override suspend fun findById(id: CatalogItemId): RpcResult<CatalogItem?, RpcError> =
-        tx(database) {
-            actor
-            RpcResult.Ok(catalogItemService.findById(id))
-        }
+        tx(database, session) { RpcResult.Ok(catalogItemService.findById(id)) }
 
     override suspend fun register(
         name: CatalogItemName,
         unit: CatalogItemUnit,
-    ): RpcResult<CatalogItem, RpcError> = tx(database) { RpcResult.Ok(catalogItemRegisterService.register(name, unit, actor)) }
+    ): RpcResult<CatalogItem, RpcError> =
+        tx(database, session) { RpcResult.Ok(catalogItemRegisterService.register(name, unit, resolveActor())) }
 
     override suspend fun revise(
         id: CatalogItemId,
         newName: CatalogItemName,
         newUnit: CatalogItemUnit,
     ): RpcResult<Unit, RpcError> =
-        tx(database) {
+        tx(database, session) {
             val catalogItem =
                 catalogItemRepository.findById(id)
                     ?: return@tx RpcResult.Err(RpcError.NotFound(resource = "catalog item", id = "$id"))
-            catalogItemRegisterService.revise(catalogItem, newName, newUnit, actor)
+            catalogItemRegisterService.revise(catalogItem, newName, newUnit, resolveActor())
             RpcResult.Ok(Unit)
         }
 }

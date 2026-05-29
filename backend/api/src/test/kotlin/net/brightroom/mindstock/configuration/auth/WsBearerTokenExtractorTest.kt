@@ -6,7 +6,6 @@ import io.kotest.matchers.shouldBe
 import io.ktor.client.request.get
 import io.ktor.client.request.header
 import io.ktor.http.HttpHeaders
-import io.ktor.http.auth.HttpAuthHeader
 import io.ktor.server.response.respondText
 import io.ktor.server.routing.get
 import io.ktor.server.routing.routing
@@ -19,12 +18,12 @@ class WsBearerTokenExtractorTest :
             authHeader: String? = null,
             wsProtocol: String? = null,
         ): String? {
-            var captured: HttpAuthHeader? = null
+            var captured: String? = null
             testApplication {
                 application {
                     routing {
                         get("/probe") {
-                            captured = WsBearerTokenExtractor.extract(call)
+                            captured = WsBearerTokenExtractor.extractRaw(call)
                             call.respondText("ok")
                         }
                     }
@@ -34,7 +33,7 @@ class WsBearerTokenExtractorTest :
                     if (wsProtocol != null) header(HttpHeaders.SecWebSocketProtocol, wsProtocol)
                 }
             }
-            return (captured as? HttpAuthHeader.Single)?.blob
+            return captured
         }
 
         test("returns null when no auth header and no Sec-WebSocket-Protocol") {

@@ -2,18 +2,18 @@ package net.brightroom.mindstock.presentation.rpc.stock
 
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
-import io.ktor.server.application.ApplicationCall
 import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.mockkStatic
 import io.mockk.unmockkAll
+import kotlinx.datetime.Instant
 import net.brightroom.mindstock.application.repository.household.HouseholdRepository
 import net.brightroom.mindstock.application.repository.product.ProductRepository
 import net.brightroom.mindstock.application.repository.user.UserRepository
 import net.brightroom.mindstock.application.service.stock.StockRegisterService
 import net.brightroom.mindstock.application.service.stock.StockService
-import net.brightroom.mindstock.configuration.auth.actor
+import net.brightroom.mindstock.configuration.auth.MindstockSession
 import net.brightroom.mindstock.domain.model.catalog.CatalogItem
 import net.brightroom.mindstock.domain.model.catalog.CatalogItemId
 import net.brightroom.mindstock.domain.model.catalog.CatalogItemName
@@ -39,13 +39,12 @@ class StockControllerTest :
     FunSpec({
         afterTest { unmockkAll() }
 
-        test("get resolves actor, product then delegates to StockService") {
+        test("get resolves product then delegates to StockService") {
             val stockService = mockk<StockService>()
             val stockRegisterService = mockk<StockRegisterService>()
             val productRepository = mockk<ProductRepository>()
             val householdRepository = mockk<HouseholdRepository>()
             val userRepository = mockk<UserRepository>()
-            val call = mockk<ApplicationCall>()
             val database = mockk<Database>()
 
             val user =
@@ -69,18 +68,23 @@ class StockControllerTest :
                     archived = false,
                 )
             val stock = Stock(product = product, movements = StockMovements(emptyList()))
+            val session =
+                MindstockSession(
+                    identity = user.authIdentity,
+                    userId = user.id,
+                    exp = Instant.fromEpochMilliseconds(Long.MAX_VALUE),
+                    callId = Uuid.random(),
+                )
 
-            mockkStatic(ApplicationCall::actor)
-            every { call.actor(userRepository) } returns user
             every { productRepository.findById(productId) } returns product
             every { stockService.get(product) } returns stock
 
             mockkStatic("net.brightroom.mindstock.configuration.transaction.TransactionKt")
             coEvery {
                 net.brightroom.mindstock.configuration.transaction
-                    .tx<Stock>(any(), any())
+                    .tx<Stock>(any(), any(), any())
             } coAnswers {
-                val block = arg<suspend () -> RpcResult<Stock, RpcError>>(1)
+                val block = arg<suspend () -> RpcResult<Stock, RpcError>>(2)
                 block()
             }
 
@@ -91,7 +95,7 @@ class StockControllerTest :
                     productRepository = productRepository,
                     householdRepository = householdRepository,
                     userRepository = userRepository,
-                    call = call,
+                    session = session,
                     database = database,
                 )
             impl.get(productId) shouldBe RpcResult.Ok(stock)

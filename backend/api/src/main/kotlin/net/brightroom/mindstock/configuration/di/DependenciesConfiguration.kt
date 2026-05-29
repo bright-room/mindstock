@@ -91,13 +91,13 @@ fun Application.dependenciesConfigure(
         provide<UserPublicControllerFactory> {
             val urs = resolve<UserRegisterService>()
             val db = resolve<Database>()
-            UserPublicControllerFactory { call -> UserPublicController(urs, call, db) }
+            UserPublicControllerFactory { session -> UserPublicController(urs, session, db) }
         }
         provide<UserControllerFactory> {
             val urs = resolve<UserRegisterService>()
             val ur = resolve<UserRepository>()
             val db = resolve<Database>()
-            UserControllerFactory { call -> UserController(urs, ur, call, db) }
+            UserControllerFactory { session -> UserController(urs, ur, session, db) }
         }
         provide<HouseholdControllerFactory> {
             val hs = resolve<HouseholdService>()
@@ -105,7 +105,7 @@ fun Application.dependenciesConfigure(
             val hr = resolve<HouseholdRepository>()
             val ur = resolve<UserRepository>()
             val db = resolve<Database>()
-            HouseholdControllerFactory { call -> HouseholdController(hs, hrs, hr, ur, call, db) }
+            HouseholdControllerFactory { session -> HouseholdController(hs, hrs, hr, ur, session, db) }
         }
         provide<CatalogControllerFactory> {
             val cs = resolve<CatalogItemService>()
@@ -113,7 +113,7 @@ fun Application.dependenciesConfigure(
             val cr = resolve<CatalogItemRepository>()
             val ur = resolve<UserRepository>()
             val db = resolve<Database>()
-            CatalogControllerFactory { call -> CatalogController(cs, crs, cr, ur, call, db) }
+            CatalogControllerFactory { session -> CatalogController(cs, crs, cr, ur, session, db) }
         }
         provide<ProductControllerFactory> {
             val ps = resolve<ProductService>()
@@ -123,7 +123,7 @@ fun Application.dependenciesConfigure(
             val pr = resolve<ProductRepository>()
             val ur = resolve<UserRepository>()
             val db = resolve<Database>()
-            ProductControllerFactory { call -> ProductController(ps, prs, hr, cr, pr, ur, call, db) }
+            ProductControllerFactory { session -> ProductController(ps, prs, hr, cr, pr, ur, session, db) }
         }
         provide<StockControllerFactory> {
             val ss = resolve<StockService>()
@@ -132,7 +132,7 @@ fun Application.dependenciesConfigure(
             val hr = resolve<HouseholdRepository>()
             val ur = resolve<UserRepository>()
             val db = resolve<Database>()
-            StockControllerFactory { call -> StockController(ss, srs, pr, hr, ur, call, db) }
+            StockControllerFactory { session -> StockController(ss, srs, pr, hr, ur, session, db) }
         }
     }
 }

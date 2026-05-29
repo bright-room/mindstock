@@ -2,17 +2,17 @@ package net.brightroom.mindstock.presentation.rpc.household
 
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
-import io.ktor.server.application.ApplicationCall
 import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.mockkStatic
 import io.mockk.unmockkAll
+import kotlinx.datetime.Instant
 import net.brightroom.mindstock.application.repository.household.HouseholdRepository
 import net.brightroom.mindstock.application.repository.user.UserRepository
 import net.brightroom.mindstock.application.service.household.HouseholdRegisterService
 import net.brightroom.mindstock.application.service.household.HouseholdService
-import net.brightroom.mindstock.configuration.auth.actor
+import net.brightroom.mindstock.configuration.auth.MindstockSession
 import net.brightroom.mindstock.domain.model.household.Household
 import net.brightroom.mindstock.domain.model.household.HouseholdId
 import net.brightroom.mindstock.domain.model.household.HouseholdMembers
@@ -38,7 +38,6 @@ class HouseholdControllerTest :
             val householdRegisterService = mockk<HouseholdRegisterService>()
             val householdRepository = mockk<HouseholdRepository>()
             val userRepository = mockk<UserRepository>()
-            val call = mockk<ApplicationCall>()
             val database = mockk<Database>()
             val user =
                 User(
@@ -51,17 +50,23 @@ class HouseholdControllerTest :
                     id = HouseholdId(Uuid.parse("00000000-0000-0000-0000-000000000002")),
                     members = HouseholdMembers(emptyList()),
                 )
+            val session =
+                MindstockSession(
+                    identity = user.authIdentity,
+                    userId = user.id,
+                    exp = Instant.fromEpochMilliseconds(Long.MAX_VALUE),
+                    callId = Uuid.random(),
+                )
 
-            mockkStatic(ApplicationCall::actor)
-            every { call.actor(userRepository) } returns user
+            every { userRepository.findById(user.id) } returns user
             every { householdService.findOf(user) } returns household
 
             mockkStatic("net.brightroom.mindstock.configuration.transaction.TransactionKt")
             coEvery {
                 net.brightroom.mindstock.configuration.transaction
-                    .tx<Household?>(any(), any())
+                    .tx<Household?>(any(), any(), any())
             } coAnswers {
-                val block = arg<suspend () -> RpcResult<Household?, RpcError>>(1)
+                val block = arg<suspend () -> RpcResult<Household?, RpcError>>(2)
                 block()
             }
 
@@ -71,7 +76,7 @@ class HouseholdControllerTest :
                     householdRegisterService = householdRegisterService,
                     householdRepository = householdRepository,
                     userRepository = userRepository,
-                    call = call,
+                    session = session,
                     database = database,
                 )
             impl.findOf() shouldBe RpcResult.Ok(household)
