@@ -63,6 +63,8 @@ class StockRpcServiceE2eTest :
                         Note(""),
                     )
                 rep.quantity shouldBe Quantity(5)
+                rep.actor.userId shouldBe owner.userId
+                rep.actor.displayName shouldBe owner.displayName
 
                 rpc.get(product.id).currentQuantity() shouldBe 5
             }
@@ -167,6 +169,11 @@ class StockRpcServiceE2eTest :
                         OccurredAt(Instant.parse("2026-05-26T09:00:00Z")),
                         OccurredAt(Instant.parse("2026-05-26T08:00:00Z")),
                     )
+                // Verify actor hydration via JOIN to UserDisplayNamesTable.
+                history.list.forEach { movement ->
+                    movement.actor.userId shouldBe owner.userId
+                    movement.actor.displayName shouldBe owner.displayName
+                }
             }
         }
 
