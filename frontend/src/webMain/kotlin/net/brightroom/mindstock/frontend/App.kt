@@ -16,7 +16,7 @@ import io.ktor.serialization.kotlinx.json.json
 import kotlinx.browser.window
 import kotlinx.coroutines.launch
 import kotlinx.rpc.withService
-import net.brightroom.mindstock.domain.model.user.DisplayName
+import net.brightroom.mindstock.domain.model.user.profile.DisplayName
 import net.brightroom.mindstock.frontend.auth.AuthBootstrap
 import net.brightroom.mindstock.frontend.auth.AuthCallbackHandler
 import net.brightroom.mindstock.frontend.auth.AuthClient

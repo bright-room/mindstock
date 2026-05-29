@@ -1,9 +1,9 @@
 package net.brightroom.mindstock.infrastructure.datasource.user
 
 import net.brightroom.mindstock.application.repository.user.UserRegisterRepository
-import net.brightroom.mindstock.domain.model.user.DisplayName
 import net.brightroom.mindstock.domain.model.user.User
 import net.brightroom.mindstock.domain.model.user.auth.AuthIdentity
+import net.brightroom.mindstock.domain.model.user.profile.DisplayName
 import net.brightroom.mindstock.infrastructure.datasource.user.UserDisplayNamesTable
 import net.brightroom.mindstock.infrastructure.datasource.user.UsersTable
 import org.jetbrains.exposed.v1.core.eq

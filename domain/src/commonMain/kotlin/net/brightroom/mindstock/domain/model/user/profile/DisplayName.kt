@@ -1,4 +1,4 @@
-package net.brightroom.mindstock.domain.model.user
+package net.brightroom.mindstock.domain.model.user.profile
 
 import kotlinx.serialization.Serializable
 import net.brightroom.mindstock.domain.exception.DomainException

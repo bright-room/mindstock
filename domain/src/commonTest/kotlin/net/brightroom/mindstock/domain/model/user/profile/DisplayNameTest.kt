@@ -1,4 +1,4 @@
-package net.brightroom.mindstock.domain.model.user
+package net.brightroom.mindstock.domain.model.user.profile
 
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.matchers.shouldBe

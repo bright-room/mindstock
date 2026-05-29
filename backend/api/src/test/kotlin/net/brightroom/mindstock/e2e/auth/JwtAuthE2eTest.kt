@@ -6,7 +6,7 @@ import io.kotest.core.annotation.Tags
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldNotBe
 import kotlinx.rpc.withService
-import net.brightroom.mindstock.domain.model.user.DisplayName
+import net.brightroom.mindstock.domain.model.user.profile.DisplayName
 import net.brightroom.mindstock.e2e.e2eTest
 import net.brightroom.mindstock.e2e.seedUser
 import net.brightroom.mindstock.rpc.UserPublicRpcService

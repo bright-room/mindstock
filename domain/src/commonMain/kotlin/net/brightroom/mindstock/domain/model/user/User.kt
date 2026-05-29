@@ -2,6 +2,7 @@ package net.brightroom.mindstock.domain.model.user
 
 import kotlinx.serialization.Serializable
 import net.brightroom.mindstock.domain.model.user.auth.AuthIdentity
+import net.brightroom.mindstock.domain.model.user.profile.DisplayName
 
 /**
  * アプリ内ユーザー集約。
