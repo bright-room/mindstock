@@ -4,9 +4,9 @@ import io.kotest.core.annotation.Tags
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.collections.shouldHaveSize
 import io.kotest.matchers.shouldBe
-import net.brightroom.mindstock.domain.model.stock.Note
-import net.brightroom.mindstock.domain.model.stock.OccurredAt
-import net.brightroom.mindstock.domain.model.stock.Quantity
+import net.brightroom.mindstock.domain.model.stock.movement.Note
+import net.brightroom.mindstock.domain.model.stock.movement.OccurredAt
+import net.brightroom.mindstock.domain.model.stock.movement.Quantity
 import net.brightroom.mindstock.infrastructure.datasource.product.ProductDataSource
 import net.brightroom.mindstock.infrastructure.datasource.repository.withRepositoryTestContext
 import kotlin.time.Clock
