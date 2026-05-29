@@ -23,12 +23,15 @@ object TestDataSource {
     val password: String get() = System.getenv("TEST_DB_PASSWORD") ?: "mindstock"
 
     fun create(): HikariDataSource {
+        val dbUrl = url
+        val dbUser = user
+        val dbPassword = password
         val config =
             HikariConfig().apply {
                 driverClassName = "org.postgresql.Driver"
-                jdbcUrl = url
-                username = user
-                password = password
+                jdbcUrl = dbUrl
+                username = dbUser
+                password = dbPassword
                 maximumPoolSize = 4
                 isAutoCommit = false
             }
