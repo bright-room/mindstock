@@ -52,7 +52,6 @@ class ShoppingListTest {
             if (currentReplenished > 0) {
                 listOf(
                     Replenishment(
-                        product = product,
                         quantity = Quantity(currentReplenished),
                         occurredAt = OccurredAt(Instant.parse("2026-05-23T10:00:00Z"), now),
                         actor = profile,

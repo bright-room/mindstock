@@ -56,12 +56,12 @@ class StockTest {
     private fun replenish(
         product: Product,
         qty: Int,
-    ) = Replenishment(product, Quantity(qty), occurred(), profile, Note(""))
+    ) = Replenishment(Quantity(qty), occurred(), profile, Note(""))
 
     private fun consume(
         product: Product,
         qty: Int,
-    ) = Consumption(product, Quantity(qty), occurred(), profile, Note(""))
+    ) = Consumption(Quantity(qty), occurred(), profile, Note(""))
 
     @Test
     fun `currentQuantity is sum of replenishments minus consumptions`() {

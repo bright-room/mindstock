@@ -1,6 +1,5 @@
 package net.brightroom.mindstock.infrastructure.datasource.stock
 
-import net.brightroom.mindstock.domain.model.product.Product
 import net.brightroom.mindstock.domain.model.stock.Note
 import net.brightroom.mindstock.domain.model.stock.OccurredAt
 import net.brightroom.mindstock.domain.model.stock.Quantity
@@ -11,7 +10,6 @@ import net.brightroom.mindstock.domain.model.user.profile.Profile
 import kotlin.time.Instant
 
 internal fun toStockMovement(
-    product: Product,
     actor: Profile,
     type: StockMovementType,
     quantity: Int,
@@ -22,7 +20,7 @@ internal fun toStockMovement(
     val occurred = OccurredAt(occurredAt)
     val n = Note(note)
     return when (type) {
-        StockMovementType.REPLENISHMENT -> Replenishment(product, q, occurred, actor, n)
-        StockMovementType.CONSUMPTION -> Consumption(product, q, occurred, actor, n)
+        StockMovementType.REPLENISHMENT -> Replenishment(q, occurred, actor, n)
+        StockMovementType.CONSUMPTION -> Consumption(q, occurred, actor, n)
     }
 }

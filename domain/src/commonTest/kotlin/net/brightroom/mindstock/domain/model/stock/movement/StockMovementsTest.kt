@@ -4,12 +4,6 @@ import io.kotest.matchers.shouldBe
 import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toInstant
-import net.brightroom.mindstock.domain.model.catalog.CatalogItem
-import net.brightroom.mindstock.domain.model.catalog.CatalogItemId
-import net.brightroom.mindstock.domain.model.catalog.CatalogItemName
-import net.brightroom.mindstock.domain.model.catalog.CatalogItemUnit
-import net.brightroom.mindstock.domain.model.product.Product
-import net.brightroom.mindstock.domain.model.product.ProductId
 import net.brightroom.mindstock.domain.model.stock.Note
 import net.brightroom.mindstock.domain.model.stock.OccurredAt
 import net.brightroom.mindstock.domain.model.stock.Quantity
@@ -29,18 +23,6 @@ class StockMovementsTest {
             userId = UserId(Uuid.generateV7()),
             displayName = DisplayName("alice"),
         )
-    private val product =
-        Product(
-            id = ProductId(Uuid.generateV7()),
-            catalogItem =
-                CatalogItem(
-                    id = CatalogItemId(Uuid.generateV7()),
-                    name = CatalogItemName("ハンドソープ"),
-                    unit = CatalogItemUnit("本"),
-                ),
-            minimumStock = null,
-            archived = false,
-        )
 
     private fun occurred() =
         OccurredAt(
@@ -48,9 +30,9 @@ class StockMovementsTest {
             now,
         )
 
-    private fun replenish(qty: Int) = Replenishment(product, Quantity(qty), occurred(), profile, Note(""))
+    private fun replenish(qty: Int) = Replenishment(Quantity(qty), occurred(), profile, Note(""))
 
-    private fun consume(qty: Int) = Consumption(product, Quantity(qty), occurred(), profile, Note(""))
+    private fun consume(qty: Int) = Consumption(Quantity(qty), occurred(), profile, Note(""))
 
     @Test
     fun `netQuantity is zero for empty movements`() {

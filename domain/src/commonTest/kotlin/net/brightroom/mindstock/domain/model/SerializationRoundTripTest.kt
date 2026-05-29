@@ -62,7 +62,6 @@ class SerializationRoundTripTest {
 
     private val replenishment: StockMovement =
         Replenishment(
-            product = product,
             quantity = Quantity(5),
             occurredAt = OccurredAt(Instant.parse("2026-05-25T10:00:00Z")),
             actor = profile,
@@ -71,7 +70,6 @@ class SerializationRoundTripTest {
 
     private val consumption: StockMovement =
         Consumption(
-            product = product,
             quantity = Quantity(1),
             occurredAt = OccurredAt(Instant.parse("2026-05-25T11:00:00Z")),
             actor = profile,

@@ -70,7 +70,6 @@ class StockDataSource(
                 ).limit(limit)
                 .map { row ->
                     toStockMovement(
-                        product = product,
                         actor = row.toProfile(),
                         type = row[StockMovementsTable.type],
                         quantity = row[StockMovementsTable.quantity],
@@ -85,7 +84,6 @@ class StockDataSource(
     private fun loadMovementsFor(products: List<Product>): Map<Uuid, List<StockMovement>> {
         if (products.isEmpty()) return emptyMap()
         val productUuids = products.map { it.id() }
-        val productByUuid = products.associateBy { it.id() }
 
         val maxNameIdAlias = UserDisplayNamesTable.id.max().alias("max_name_id")
         val latestNames =
@@ -110,11 +108,8 @@ class StockDataSource(
                     StockMovementsTable.id to SortOrder.ASC,
                 ).map { row ->
                     val productUuid = row[StockMovementsTable.product_id]
-                    val product =
-                        productByUuid[productUuid] ?: error("product not found for movement: $productUuid")
                     productUuid to
                         toStockMovement(
-                            product = product,
                             actor = row.toProfile(),
                             type = row[StockMovementsTable.type],
                             quantity = row[StockMovementsTable.quantity],
