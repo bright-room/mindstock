@@ -2,9 +2,8 @@ package net.brightroom.mindstock.e2e.household
 
 import io.kotest.core.annotation.Tags
 import io.kotest.core.spec.style.FunSpec
-import io.kotest.matchers.nulls.shouldBeNull
-import io.kotest.matchers.nulls.shouldNotBeNull
 import io.kotest.matchers.shouldBe
+import io.kotest.matchers.string.shouldContain
 import io.kotest.matchers.types.shouldBeInstanceOf
 import kotlinx.rpc.withService
 import net.brightroom.mindstock.domain.model.household.Household
@@ -21,7 +20,7 @@ import kotlin.uuid.Uuid
 
 /**
  * Pinned behaviors:
- * 1. findOf returns the household the actor owns (and null if none).
+ * 1. findOf returns the household the actor owns (and Err(NotFound) if none).
  * 2. create makes a new household with the caller as the sole OWNER.
  * 3. invite + revoke alter membership, observable via findOf as the affected user.
  * 4. invite to a non-existent householdId raises a NotFound error end-to-end.
@@ -40,14 +39,13 @@ class HouseholdRpcServiceE2eTest :
                         .withService<HouseholdRpcService>()
 
                 val r = rpc.findOf()
-                r.shouldBeInstanceOf<RpcResult.Ok<Household?>>()
+                r.shouldBeInstanceOf<RpcResult.Ok<Household>>()
                 val found = r.value
-                found.shouldNotBeNull()
                 found.id shouldBe expected.id
             }
         }
 
-        test("findOf returns null when the actor has no household") {
+        test("findOf returns Err(NotFound) when the actor has no household") {
             e2eTest {
                 val orphan = seedUser()
                 val rpc =
@@ -55,8 +53,10 @@ class HouseholdRpcServiceE2eTest :
                         .withService<HouseholdRpcService>()
 
                 val r = rpc.findOf()
-                r.shouldBeInstanceOf<RpcResult.Ok<Household?>>()
-                r.value.shouldBeNull()
+                r.shouldBeInstanceOf<RpcResult.Err<RpcError>>()
+                val err = r.error
+                err.shouldBeInstanceOf<RpcError.NotFound>()
+                err.message shouldContain "household not found"
             }
         }
 
@@ -71,7 +71,6 @@ class HouseholdRpcServiceE2eTest :
                 r.shouldBeInstanceOf<RpcResult.Ok<Household>>()
                 val household = r.value
 
-                household.members.list.shouldNotBeNull()
                 household.members.list.size shouldBe 1
                 household.members.list[0]
                     .profile.userId shouldBe owner.userId
@@ -97,9 +96,8 @@ class HouseholdRpcServiceE2eTest :
                     authenticatedRpcClient(asUser = invitee, path = "household")
                         .withService<HouseholdRpcService>()
                 val seen = inviteeRpc.findOf()
-                seen.shouldBeInstanceOf<RpcResult.Ok<Household?>>()
-                seen.value.shouldNotBeNull()
-                seen.value!!.id shouldBe household.id
+                seen.shouldBeInstanceOf<RpcResult.Ok<Household>>()
+                seen.value.id shouldBe household.id
             }
         }
 
@@ -118,11 +116,13 @@ class HouseholdRpcServiceE2eTest :
                         role = HouseholdMemberRole.MEMBER,
                     )
                 r.shouldBeInstanceOf<RpcResult.Err<RpcError>>()
-                r.error.shouldBeInstanceOf<RpcError.NotFound>()
+                val err = r.error
+                err.shouldBeInstanceOf<RpcError.NotFound>()
+                err.message shouldContain "household not found"
             }
         }
 
-        test("revoke removes the member, observable as null findOf for that user") {
+        test("revoke removes the member, findOf for that user then returns Err(NotFound)") {
             e2eTest {
                 val owner = seedUser()
                 val household = seedHousehold(owner)
@@ -141,8 +141,10 @@ class HouseholdRpcServiceE2eTest :
                     authenticatedRpcClient(asUser = member, path = "household")
                         .withService<HouseholdRpcService>()
                 val seen = memberRpc.findOf()
-                seen.shouldBeInstanceOf<RpcResult.Ok<Household?>>()
-                seen.value.shouldBeNull()
+                seen.shouldBeInstanceOf<RpcResult.Err<RpcError>>()
+                val err = seen.error
+                err.shouldBeInstanceOf<RpcError.NotFound>()
+                err.message shouldContain "household not found"
             }
         }
     })

@@ -4,6 +4,7 @@ import io.kotest.core.annotation.Tags
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.collections.shouldHaveSize
 import io.kotest.matchers.shouldBe
+import io.kotest.matchers.string.shouldContain
 import io.kotest.matchers.types.shouldBeInstanceOf
 import kotlinx.rpc.withService
 import net.brightroom.mindstock.domain.model.product.ProductId
@@ -205,7 +206,9 @@ class StockRpcServiceE2eTest :
                         .withService<StockRpcService>()
                 val r = rpc.get(ProductId(Uuid.random()))
                 r.shouldBeInstanceOf<RpcResult.Err<RpcError>>()
-                r.error.shouldBeInstanceOf<RpcError.NotFound>()
+                val err = r.error
+                err.shouldBeInstanceOf<RpcError.NotFound>()
+                err.message shouldContain "product not found"
             }
         }
 
@@ -223,7 +226,9 @@ class StockRpcServiceE2eTest :
                         Note(""),
                     )
                 r.shouldBeInstanceOf<RpcResult.Err<RpcError>>()
-                r.error.shouldBeInstanceOf<RpcError.NotFound>()
+                val err = r.error
+                err.shouldBeInstanceOf<RpcError.NotFound>()
+                err.message shouldContain "product not found"
             }
         }
 
