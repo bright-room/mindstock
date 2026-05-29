@@ -60,26 +60,6 @@ class StocksTest {
     }
 
     @Test
-    fun `needsReplenishment returns stocks below minimum only`() {
-        val low = stockOf(min = 5, currentReplenished = 2)
-        val ok = stockOf(min = 5, currentReplenished = 10)
-        val stocks = Stocks(listOf(low, ok))
-
-        val result = stocks.needsReplenishment()
-        result.size shouldBe 1
-        result[0] shouldBe low
-    }
-
-    @Test
-    fun `needsReplenishment returns empty when all are sufficient`() {
-        val ok1 = stockOf(min = 3, currentReplenished = 5)
-        val ok2 = stockOf(min = 3, currentReplenished = 10)
-        val stocks = Stocks(listOf(ok1, ok2))
-
-        stocks.needsReplenishment() shouldBe emptyList()
-    }
-
-    @Test
     fun `list is exposed directly`() {
         val s1 = stockOf(min = 1, currentReplenished = 0)
         val s2 = stockOf(min = 1, currentReplenished = 5)

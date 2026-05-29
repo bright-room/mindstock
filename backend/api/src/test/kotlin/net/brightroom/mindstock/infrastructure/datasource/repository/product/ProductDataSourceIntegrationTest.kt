@@ -54,8 +54,8 @@ class ProductDataSourceIntegrationTest :
                 tx { productRegister.archive(milkProduct, user.userId) }
 
                 val results = tx { productReader.listOf(household) }
-                results.asList() shouldHaveSize 2
-                results.asList().single { it.catalogItem.name == CatalogItemName("Milk") }.archived shouldBe true
+                results.list shouldHaveSize 2
+                results.list.single { it.catalogItem.name == CatalogItemName("Milk") }.archived shouldBe true
             }
         }
     })

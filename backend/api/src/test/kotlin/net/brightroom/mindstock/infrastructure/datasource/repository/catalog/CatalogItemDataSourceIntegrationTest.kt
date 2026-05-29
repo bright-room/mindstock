@@ -41,7 +41,7 @@ class CatalogItemDataSourceIntegrationTest :
                 tx { register.register(CatalogItemName("Bread"), CatalogItemUnit("loaf"), creator.userId) }
 
                 val results = tx { reader.search("milk", limit = 10) }
-                results.asList() shouldHaveSize 2
+                results.list shouldHaveSize 2
             }
         }
     })

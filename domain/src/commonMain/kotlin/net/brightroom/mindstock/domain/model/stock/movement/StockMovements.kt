@@ -12,10 +12,6 @@ import kotlinx.serialization.Serializable
 data class StockMovements(
     val list: List<StockMovement>,
 ) {
-    fun asList(): List<StockMovement> = list.toList()
-
-    val size: Int get() = list.size
-
     fun netQuantity(): Int =
         list.sumOf { m ->
             when (m) {
