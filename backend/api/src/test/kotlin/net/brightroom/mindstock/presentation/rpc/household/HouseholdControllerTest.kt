@@ -7,11 +7,11 @@ import io.mockk.every
 import io.mockk.mockk
 import io.mockk.mockkStatic
 import io.mockk.unmockkAll
+import kotlinx.coroutines.runBlocking
 import kotlinx.datetime.Instant
-import net.brightroom.mindstock.application.repository.household.HouseholdRepository
-import net.brightroom.mindstock.application.repository.user.UserRepository
 import net.brightroom.mindstock.application.service.household.HouseholdRegisterService
 import net.brightroom.mindstock.application.service.household.HouseholdService
+import net.brightroom.mindstock.application.service.user.UserService
 import net.brightroom.mindstock.configuration.auth.MindstockSession
 import net.brightroom.mindstock.domain.model.household.Household
 import net.brightroom.mindstock.domain.model.household.HouseholdId
@@ -34,8 +34,7 @@ class HouseholdControllerTest :
         test("findOf resolves actor and delegates to HouseholdService") {
             val householdService = mockk<HouseholdService>()
             val householdRegisterService = mockk<HouseholdRegisterService>()
-            val householdRepository = mockk<HouseholdRepository>()
-            val userRepository = mockk<UserRepository>()
+            val userService = mockk<UserService>()
             val database = mockk<Database>()
             val userId = UserId(Uuid.parse("00000000-0000-0000-0000-000000000001"))
             val household =
@@ -56,9 +55,9 @@ class HouseholdControllerTest :
             mockkStatic("net.brightroom.mindstock.configuration.transaction.TransactionKt")
             coEvery {
                 net.brightroom.mindstock.configuration.transaction
-                    .tx<Household?>(any(), any(), any())
+                    .tx<Household>(any(), any(), any())
             } coAnswers {
-                val block = arg<suspend () -> RpcResult<Household?, RpcError>>(2)
+                val block = arg<suspend () -> RpcResult<Household, RpcError>>(2)
                 block()
             }
 
@@ -66,11 +65,10 @@ class HouseholdControllerTest :
                 HouseholdController(
                     householdService = householdService,
                     householdRegisterService = householdRegisterService,
-                    householdRepository = householdRepository,
-                    userRepository = userRepository,
+                    userService = userService,
                     session = session,
                     database = database,
                 )
-            impl.findOf() shouldBe RpcResult.Ok(household)
+            runBlocking { impl.findOf() } shouldBe RpcResult.Ok(household)
         }
     })

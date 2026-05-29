@@ -22,6 +22,7 @@ import net.brightroom.mindstock.application.service.product.ProductService
 import net.brightroom.mindstock.application.service.stock.StockRegisterService
 import net.brightroom.mindstock.application.service.stock.StockService
 import net.brightroom.mindstock.application.service.user.UserRegisterService
+import net.brightroom.mindstock.application.service.user.UserService
 import net.brightroom.mindstock.configuration.Environment
 import net.brightroom.mindstock.infrastructure.datasource.catalog.CatalogItemDataSource
 import net.brightroom.mindstock.infrastructure.datasource.catalog.CatalogItemRegisterDataSource
@@ -69,6 +70,7 @@ fun Application.dependenciesConfigure(
 
         // Handler (20)
         // User
+        provide<UserService> { UserService(resolve()) }
         provide<UserRegisterService> { UserRegisterService(resolve()) }
 
         // Household
@@ -101,34 +103,31 @@ fun Application.dependenciesConfigure(
         provide<HouseholdControllerFactory> {
             val hs = resolve<HouseholdService>()
             val hrs = resolve<HouseholdRegisterService>()
-            val hr = resolve<HouseholdRepository>()
-            val ur = resolve<UserRepository>()
+            val us = resolve<UserService>()
             val db = resolve<Database>()
-            HouseholdControllerFactory { session -> HouseholdController(hs, hrs, hr, ur, session, db) }
+            HouseholdControllerFactory { session -> HouseholdController(hs, hrs, us, session, db) }
         }
         provide<CatalogControllerFactory> {
             val cs = resolve<CatalogItemService>()
             val crs = resolve<CatalogItemRegisterService>()
-            val cr = resolve<CatalogItemRepository>()
             val db = resolve<Database>()
-            CatalogControllerFactory { session -> CatalogController(cs, crs, cr, session, db) }
+            CatalogControllerFactory { session -> CatalogController(cs, crs, session, db) }
         }
         provide<ProductControllerFactory> {
             val ps = resolve<ProductService>()
             val prs = resolve<ProductRegisterService>()
-            val hr = resolve<HouseholdRepository>()
-            val cr = resolve<CatalogItemRepository>()
-            val pr = resolve<ProductRepository>()
+            val hs = resolve<HouseholdService>()
+            val cs = resolve<CatalogItemService>()
             val db = resolve<Database>()
-            ProductControllerFactory { session -> ProductController(ps, prs, hr, cr, pr, session, db) }
+            ProductControllerFactory { session -> ProductController(ps, prs, hs, cs, session, db) }
         }
         provide<StockControllerFactory> {
             val ss = resolve<StockService>()
             val srs = resolve<StockRegisterService>()
-            val pr = resolve<ProductRepository>()
-            val hr = resolve<HouseholdRepository>()
+            val ps = resolve<ProductService>()
+            val hs = resolve<HouseholdService>()
             val db = resolve<Database>()
-            StockControllerFactory { session -> StockController(ss, srs, pr, hr, session, db) }
+            StockControllerFactory { session -> StockController(ss, srs, ps, hs, session, db) }
         }
     }
 }

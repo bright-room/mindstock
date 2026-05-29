@@ -8,7 +8,7 @@ import net.brightroom.mindstock.domain.model.user.UserId
 
 @Rpc
 interface HouseholdRpcService {
-    suspend fun findOf(): RpcResult<Household?, RpcError>
+    suspend fun findOf(): RpcResult<Household, RpcError>
 
     suspend fun create(): RpcResult<Household, RpcError>
 

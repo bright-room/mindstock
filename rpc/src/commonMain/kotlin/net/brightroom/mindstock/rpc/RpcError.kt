@@ -17,11 +17,16 @@ sealed interface RpcError {
         val reason: String,
     ) : RpcError
 
-    /** 集約 resolve 失敗(例: Repository.findById() が null)。 */
+    /**
+     * 単一値の resource が見つからなかった。
+     *
+     * message は server 側で発生した `ResourceNotFoundException` の reason がそのまま
+     * 乗る。例: "household not found: $id" / "product not found: $id"。
+     * クライアントは呼び出しコンテキスト(どの RPC method を呼んだか)から意味を組み立てる。
+     */
     @Serializable
     data class NotFound(
-        val resource: String,
-        val id: String,
+        val message: String,
     ) : RpcError
 
     /** 入力検証エラー。 */

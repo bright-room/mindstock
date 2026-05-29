@@ -2,19 +2,45 @@ package net.brightroom.mindstock.infrastructure.datasource.stock
 
 import io.kotest.core.annotation.Tags
 import io.kotest.core.spec.style.FunSpec
+import io.kotest.matchers.collections.shouldBeEmpty
 import io.kotest.matchers.collections.shouldHaveSize
 import io.kotest.matchers.shouldBe
 import net.brightroom.mindstock.domain.model.stock.movement.Note
 import net.brightroom.mindstock.domain.model.stock.movement.OccurredAt
 import net.brightroom.mindstock.domain.model.stock.movement.Quantity
+import net.brightroom.mindstock.domain.model.user.auth.AuthIdentity
+import net.brightroom.mindstock.domain.model.user.auth.AuthProvider
+import net.brightroom.mindstock.domain.model.user.auth.AuthSubject
+import net.brightroom.mindstock.domain.model.user.profile.DisplayName
+import net.brightroom.mindstock.infrastructure.datasource.household.HouseholdRegisterDataSource
 import net.brightroom.mindstock.infrastructure.datasource.product.ProductDataSource
 import net.brightroom.mindstock.infrastructure.datasource.repository.withRepositoryTestContext
+import net.brightroom.mindstock.infrastructure.datasource.user.UserRegisterDataSource
 import kotlin.time.Clock
 import kotlin.time.Duration.Companion.seconds
 
 @Tags("integration")
 class StockDataSourceIntegrationTest :
     FunSpec({
+
+        test("stocksOf returns empty Stocks when household has no products") {
+            withRepositoryTestContext {
+                val userRepo = UserRegisterDataSource()
+                val householdRepo = HouseholdRegisterDataSource()
+                val user =
+                    tx {
+                        userRepo.register(
+                            AuthIdentity(AuthProvider.ZITADEL, AuthSubject("u")),
+                            DisplayName("U"),
+                        )
+                    }
+                val household = tx { householdRepo.create(user.userId) }
+
+                val stockRepo = StockDataSource(ProductDataSource())
+                val result = tx { stockRepo.stocksOf(household) }
+                result.list.shouldBeEmpty()
+            }
+        }
 
         test("stockOf returns empty StockMovements for a fresh product") {
             withRepositoryTestContext {

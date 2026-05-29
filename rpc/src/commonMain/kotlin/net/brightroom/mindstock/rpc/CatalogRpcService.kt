@@ -14,7 +14,7 @@ interface CatalogRpcService {
         limit: Int,
     ): RpcResult<CatalogItems, RpcError>
 
-    suspend fun findById(id: CatalogItemId): RpcResult<CatalogItem?, RpcError>
+    suspend fun findById(id: CatalogItemId): RpcResult<CatalogItem, RpcError>
 
     suspend fun register(
         name: CatalogItemName,

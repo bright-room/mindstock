@@ -5,9 +5,9 @@ import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.collections.shouldContain
 import io.kotest.matchers.collections.shouldHaveAtLeastSize
 import io.kotest.matchers.collections.shouldNotContain
-import io.kotest.matchers.nulls.shouldBeNull
 import io.kotest.matchers.nulls.shouldNotBeNull
 import io.kotest.matchers.shouldBe
+import io.kotest.matchers.string.shouldContain
 import io.kotest.matchers.types.shouldBeInstanceOf
 import kotlinx.rpc.withService
 import net.brightroom.mindstock.domain.model.catalog.CatalogItem
@@ -28,7 +28,7 @@ import kotlin.uuid.Uuid
  * Pinned behaviors:
  * 1. register persists a new CatalogItem and returns it.
  * 2. findById returns a previously-seeded item.
- * 3. findById returns null for an unknown id.
+ * 3. findById returns Err(NotFound) for an unknown id.
  * 4. search matches items by query substring.
  * 5. revise mutates name/unit; read-back via findById reflects the change.
  * 6. revise against an unknown id returns Err(NotFound) end-to-end.
@@ -63,16 +63,15 @@ class CatalogRpcServiceE2eTest :
                         .withService<CatalogRpcService>()
 
                 val r = rpc.findById(seeded.id)
-                r.shouldBeInstanceOf<RpcResult.Ok<CatalogItem?>>()
+                r.shouldBeInstanceOf<RpcResult.Ok<CatalogItem>>()
                 val found = r.value
 
-                found.shouldNotBeNull()
                 found.id shouldBe seeded.id
                 found.name shouldBe CatalogItemName("Bread")
             }
         }
 
-        test("findById returns null for unknown id") {
+        test("findById returns Err(NotFound) for unknown id") {
             e2eTest {
                 val user = seedUser()
                 val rpc =
@@ -80,8 +79,10 @@ class CatalogRpcServiceE2eTest :
                         .withService<CatalogRpcService>()
 
                 val r = rpc.findById(CatalogItemId(Uuid.random()))
-                r.shouldBeInstanceOf<RpcResult.Ok<CatalogItem?>>()
-                r.value.shouldBeNull()
+                r.shouldBeInstanceOf<RpcResult.Err<RpcError>>()
+                val err = r.error
+                err.shouldBeInstanceOf<RpcError.NotFound>()
+                err.message shouldContain "catalog item not found"
             }
         }
 
@@ -119,9 +120,8 @@ class CatalogRpcServiceE2eTest :
                 r.shouldBeInstanceOf<RpcResult.Ok<Unit>>()
 
                 val read = rpc.findById(item.id)
-                read.shouldBeInstanceOf<RpcResult.Ok<CatalogItem?>>()
+                read.shouldBeInstanceOf<RpcResult.Ok<CatalogItem>>()
                 val updated = read.value
-                updated.shouldNotBeNull()
                 updated.name shouldBe CatalogItemName("New")
                 updated.unit shouldBe CatalogItemUnit("kg")
             }
@@ -141,7 +141,9 @@ class CatalogRpcServiceE2eTest :
                         newUnit = CatalogItemUnit("個"),
                     )
                 r.shouldBeInstanceOf<RpcResult.Err<RpcError>>()
-                r.error.shouldBeInstanceOf<RpcError.NotFound>()
+                val err = r.error
+                err.shouldBeInstanceOf<RpcError.NotFound>()
+                err.message shouldContain "catalog item not found"
             }
         }
     })

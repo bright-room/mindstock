@@ -10,6 +10,7 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import net.brightroom.mindstock.configuration.auth.MindstockSession
+import net.brightroom.mindstock.domain.exception.ResourceNotFoundException
 import net.brightroom.mindstock.rpc.RpcError
 import net.brightroom.mindstock.rpc.RpcResult
 import org.jetbrains.exposed.v1.jdbc.Database
@@ -23,7 +24,7 @@ private val callLogJson = Json { encodeDefaults = true }
 private data class TxLogEntry(
     val callId: String,
     val userId: String?,
-    val outcome: String, // "Ok" | "Err:<variant>" | "Throwable"
+    val outcome: String, // "Ok" | "Err:<variant>" | "Err:NotFound" | "Err:Unauthorized(expired)" | "Throwable:<class>"
     val elapsedMs: Long,
 )
 
@@ -65,6 +66,9 @@ suspend fun <T> tx(
         result
     } catch (e: CancellationException) {
         throw e
+    } catch (e: ResourceNotFoundException) {
+        emitLog(session, start, outcome = "Err:NotFound")
+        RpcResult.Err(RpcError.NotFound(message = e.message.orEmpty()))
     } catch (e: Throwable) {
         logger.error(e) { "unhandled exception during RPC call_id=${session.callId}" }
         emitLog(session, start, outcome = "Throwable:${e::class.simpleName}")

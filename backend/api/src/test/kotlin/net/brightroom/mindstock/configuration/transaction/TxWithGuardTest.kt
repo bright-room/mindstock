@@ -9,6 +9,7 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant
 import net.brightroom.mindstock.configuration.auth.MindstockSession
+import net.brightroom.mindstock.domain.exception.ResourceNotFoundException
 import net.brightroom.mindstock.domain.model.user.UserId
 import net.brightroom.mindstock.domain.model.user.auth.AuthIdentity
 import net.brightroom.mindstock.domain.model.user.auth.AuthProvider
@@ -71,6 +72,33 @@ class TxWithGuardTest :
                         }
                     result.shouldBeInstanceOf<RpcResult.Err<RpcError>>()
                     result.error.shouldBeInstanceOf<RpcError.Internal>()
+                } finally {
+                    ds.close()
+                }
+            }
+        }
+
+        test("block 内で ResourceNotFoundException → Err(NotFound) でメッセージがパススルー") {
+            TestDataSource.withFreshSchema { jdbcUrl, _ ->
+                val ds = testHikariDataSource(jdbcUrl, TestDataSource.user, TestDataSource.password)
+                try {
+                    Flyway
+                        .configure()
+                        .dataSource(ds)
+                        .locations("classpath:db/migration")
+                        .load()
+                        .migrate()
+                    val database = Database.connect(ds)
+                    val result =
+                        runBlocking {
+                            tx<Int>(database, sessionWith(Clock.System.now() + 1.hours)) {
+                                throw ResourceNotFoundException("household not found: test-id")
+                            }
+                        }
+                    result.shouldBeInstanceOf<RpcResult.Err<RpcError>>()
+                    val err = result.error
+                    err.shouldBeInstanceOf<RpcError.NotFound>()
+                    err.message shouldBe "household not found: test-id"
                 } finally {
                     ds.close()
                 }

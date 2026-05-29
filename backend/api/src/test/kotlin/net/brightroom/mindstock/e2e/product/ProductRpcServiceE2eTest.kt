@@ -3,8 +3,8 @@ package net.brightroom.mindstock.e2e.product
 import io.kotest.core.annotation.Tags
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.collections.shouldHaveSize
-import io.kotest.matchers.nulls.shouldNotBeNull
 import io.kotest.matchers.shouldBe
+import io.kotest.matchers.string.shouldContain
 import io.kotest.matchers.types.shouldBeInstanceOf
 import kotlinx.rpc.withService
 import net.brightroom.mindstock.domain.model.catalog.CatalogItemId
@@ -86,9 +86,8 @@ class ProductRpcServiceE2eTest :
                         .withService<ProductRpcService>()
 
                 val r = rpc.find(hh.id, item.id)
-                r.shouldBeInstanceOf<RpcResult.Ok<Product?>>()
+                r.shouldBeInstanceOf<RpcResult.Ok<Product>>()
                 val found = r.value
-                found.shouldNotBeNull()
                 found.id shouldBe product.id
             }
         }
@@ -108,9 +107,8 @@ class ProductRpcServiceE2eTest :
                     .shouldBeInstanceOf<RpcResult.Ok<Unit>>()
 
                 val read = rpc.find(hh.id, item.id)
-                read.shouldBeInstanceOf<RpcResult.Ok<Product?>>()
+                read.shouldBeInstanceOf<RpcResult.Ok<Product>>()
                 val updated = read.value
-                updated.shouldNotBeNull()
                 updated.minimumStock shouldBe MinimumStock.Set(3)
             }
         }
@@ -127,16 +125,11 @@ class ProductRpcServiceE2eTest :
 
                 rpc.archive(product.id).shouldBeInstanceOf<RpcResult.Ok<Unit>>()
 
-                // archive 後の find は実装依存:
-                //   - null を返す (archived は find から除外)
-                //   - or archived=true で返す
-                // どちらでも整合と見なす。
+                // 現状: find は archived も含めて返す。non-null 契約のもとで
+                // archived=true をそのまま観測する。
                 val read = rpc.find(hh.id, item.id)
-                read.shouldBeInstanceOf<RpcResult.Ok<Product?>>()
-                val after = read.value
-                if (after != null) {
-                    after.archived shouldBe true
-                }
+                read.shouldBeInstanceOf<RpcResult.Ok<Product>>()
+                read.value.archived shouldBe true
             }
         }
 
@@ -148,7 +141,9 @@ class ProductRpcServiceE2eTest :
                         .withService<ProductRpcService>()
                 val r = rpc.setMinimumStock(ProductId(Uuid.random()), MinimumStock.Set(1))
                 r.shouldBeInstanceOf<RpcResult.Err<RpcError>>()
-                r.error.shouldBeInstanceOf<RpcError.NotFound>()
+                val err = r.error
+                err.shouldBeInstanceOf<RpcError.NotFound>()
+                err.message shouldContain "product not found"
             }
         }
 
@@ -160,7 +155,9 @@ class ProductRpcServiceE2eTest :
                         .withService<ProductRpcService>()
                 val r = rpc.archive(ProductId(Uuid.random()))
                 r.shouldBeInstanceOf<RpcResult.Err<RpcError>>()
-                r.error.shouldBeInstanceOf<RpcError.NotFound>()
+                val err = r.error
+                err.shouldBeInstanceOf<RpcError.NotFound>()
+                err.message shouldContain "product not found"
             }
         }
 
@@ -178,7 +175,9 @@ class ProductRpcServiceE2eTest :
 
                 val failed = rpc.adopt(hh.id, CatalogItemId(Uuid.random()))
                 failed.shouldBeInstanceOf<RpcResult.Err<RpcError>>()
-                failed.error.shouldBeInstanceOf<RpcError.NotFound>()
+                val err = failed.error
+                err.shouldBeInstanceOf<RpcError.NotFound>()
+                err.message shouldContain "catalog item not found"
 
                 val after = rpc.listOfHousehold(hh.id)
                 after.shouldBeInstanceOf<RpcResult.Ok<Products>>()
