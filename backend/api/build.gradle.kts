@@ -66,6 +66,9 @@ tasks.test {
 val integrationTest by tasks.registering(Test::class) {
     group = "verification"
     description = "Runs @Tags(\"integration\") specs against TEST_DB_URL."
+    // 外部 DB に当てる統合テストはキャッシュさせず毎回実行する(stale 結果防止)。
+    // doNotTrackState は UP-TO-DATE チェックとビルドキャッシュの両方を無効化する。
+    doNotTrackState("integration tests run against a live external DB")
     testClassesDirs = sourceSets["test"].output.classesDirs
     classpath = sourceSets["test"].runtimeClasspath
     shouldRunAfter(tasks.test)

@@ -109,7 +109,9 @@ jobs:
         uses: gradle/actions/setup-gradle@50e97c2cd7a37755bbfafc9c5b7cafaece252f6e # v6
 
       - name: Integration tests
-        # HikariPool 接続枯渇で flaky 化したら `--max-workers=1` を付与する。
+        # テスト用 HikariCP プールはキャップ済み(TestDataSource / E2E アプリプール)。
+        # default 並列度で接続枯渇しない。詳細は
+        # docs/superpowers/specs/2026-05-30-integration-test-pool-capping-design.md
         env:
           TEST_DB_URL: jdbc:postgresql://localhost:5432/mindstock_test
           TEST_DB_USER: mindstock
