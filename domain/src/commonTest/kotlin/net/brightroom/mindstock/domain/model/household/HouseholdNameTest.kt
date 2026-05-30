@@ -18,6 +18,11 @@ class HouseholdNameTest {
     }
 
     @Test
+    fun `100 文字ちょうどは許可する`() {
+        HouseholdName("あ".repeat(100)).toString() shouldBe "あ".repeat(100)
+    }
+
+    @Test
     fun `100 文字超は拒否する`() {
         shouldThrow<IllegalArgumentException> { HouseholdName("あ".repeat(101)) }
     }

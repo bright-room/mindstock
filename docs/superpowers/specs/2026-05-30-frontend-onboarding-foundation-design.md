@@ -65,7 +65,7 @@ MVP の 9 画面は 1 spec には大きすぎるため、以下に分割する�
 
 初回サインインで**黙って自動作成**する(「始める」のような明示タップは設けない)。フロー:
 
-```
+```text
 サインイン(Zitadel)
   ↓
 [未登録?] → 表示名入力ダイアログ
@@ -199,5 +199,5 @@ sealed interface SessionBootstrap {
 |---|---|
 | アクセスモデル | 認証済みアイデンティティが「アプリを使える状態」になるまでのライフサイクル(本 MVP ではセルフサインアップ + 世帯自動作成) |
 | オンボーディング | 初回サインインで User + Household + OWNER membership を原子的に揃える一連の処理 |
-| session endpoint | 起動時ブートストラップ用の薄い HTTP エンドポイント(§3.2)。RPC ではない |
+| bootstrap RPC | 起動時セッション初期化情報を返す RPC(§3.2、`OnboardingRpcService.bootstrap()`)。HTTP ではなく WS 経路 |
 | gateway | frontend 側で RPC service をラップし `RpcResult` を結果型へマッピングする薄い層(本サブプロジェクトでは土台のみ) |

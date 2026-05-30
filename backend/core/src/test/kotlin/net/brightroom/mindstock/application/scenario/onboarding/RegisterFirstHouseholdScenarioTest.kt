@@ -49,7 +49,7 @@ class RegisterFirstHouseholdScenarioTest :
             val nameSlot = slot<HouseholdName>()
             verify(exactly = 1) { userRegisterService.register(identity, displayName) }
             verify(exactly = 1) { householdRegisterService.create(profile.userId, capture(nameSlot)) }
-            nameSlot.captured() shouldBe "Aliceの家"
+            nameSlot.captured shouldBe HouseholdName("Aliceの家")
         }
 
         test("既に登録済みなら register も create も呼ばず既存 Profile を返す(冪等)") {
