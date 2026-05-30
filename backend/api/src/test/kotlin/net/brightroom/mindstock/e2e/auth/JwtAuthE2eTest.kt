@@ -88,7 +88,7 @@ class JwtAuthE2eTest :
                 seedUser(displayName = "Alice", subject = sub)
                 val token = TestJwtIssuer.issue(subject = sub)
                 val rpc =
-                    authenticatedRpcClientViaWsProtocol(token = token, path = "user").withService<UserRpcService>()
+                    authenticatedRpcClientWithToken(token = token, path = "user").withService<UserRpcService>()
                 rpc.rename(DisplayName("Renamed"))
             }
         }
