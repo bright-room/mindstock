@@ -5,6 +5,7 @@ import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
 import net.brightroom.mindstock.domain.model.catalog.CatalogItemName
 import net.brightroom.mindstock.domain.model.catalog.CatalogItemUnit
+import net.brightroom.mindstock.domain.model.household.HouseholdName
 import net.brightroom.mindstock.domain.model.product.MinimumStock
 import net.brightroom.mindstock.domain.model.user.auth.AuthIdentity
 import net.brightroom.mindstock.domain.model.user.auth.AuthProvider
@@ -27,7 +28,7 @@ class ProductRegisterDataSourceIntegrationTest :
                 val productRepo = ProductRegisterDataSource()
 
                 val user = tx { userRepo.register(AuthIdentity(AuthProvider.ZITADEL, AuthSubject("u")), DisplayName("U")) }
-                val household = tx { householdRepo.create(user.userId) }
+                val household = tx { householdRepo.create(user.userId, HouseholdName("テスト世帯")) }
                 val item = tx { catalogRepo.register(CatalogItemName("Milk"), CatalogItemUnit("L"), user.userId) }
 
                 val product = tx { productRepo.adopt(household, item) }
@@ -47,7 +48,7 @@ class ProductRegisterDataSourceIntegrationTest :
                 val productReader = ProductDataSource()
 
                 val user = tx { userRepo.register(AuthIdentity(AuthProvider.ZITADEL, AuthSubject("u")), DisplayName("U")) }
-                val household = tx { householdRepo.create(user.userId) }
+                val household = tx { householdRepo.create(user.userId, HouseholdName("テスト世帯")) }
                 val item = tx { catalogRepo.register(CatalogItemName("Milk"), CatalogItemUnit("L"), user.userId) }
                 val product = tx { productRegister.adopt(household, item) }
 
@@ -68,7 +69,7 @@ class ProductRegisterDataSourceIntegrationTest :
                 val productReader = ProductDataSource()
 
                 val user = tx { userRepo.register(AuthIdentity(AuthProvider.ZITADEL, AuthSubject("u")), DisplayName("U")) }
-                val household = tx { householdRepo.create(user.userId) }
+                val household = tx { householdRepo.create(user.userId, HouseholdName("テスト世帯")) }
                 val item = tx { catalogRepo.register(CatalogItemName("Milk"), CatalogItemUnit("L"), user.userId) }
                 val product = tx { productRegister.adopt(household, item) }
                 tx { productRegister.archive(product, user.userId) }

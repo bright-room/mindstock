@@ -6,6 +6,7 @@ import io.kotest.matchers.shouldBe
 import net.brightroom.mindstock.domain.model.catalog.CatalogItemName
 import net.brightroom.mindstock.domain.model.catalog.CatalogItemUnit
 import net.brightroom.mindstock.domain.model.household.Household
+import net.brightroom.mindstock.domain.model.household.HouseholdName
 import net.brightroom.mindstock.domain.model.product.Product
 import net.brightroom.mindstock.domain.model.stock.movement.Note
 import net.brightroom.mindstock.domain.model.stock.movement.OccurredAt
@@ -31,7 +32,7 @@ internal fun RepositoryTestContext.setupUserHouseholdProduct(): Triple<Profile, 
                 AuthIdentity(AuthProvider.ZITADEL, AuthSubject("u")),
                 DisplayName("U"),
             )
-        val household = HouseholdRegisterDataSource().create(user.userId)
+        val household = HouseholdRegisterDataSource().create(user.userId, HouseholdName("テスト世帯"))
         val item = CatalogItemRegisterDataSource().register(CatalogItemName("Milk"), CatalogItemUnit("L"), user.userId)
         val product = ProductRegisterDataSource().adopt(household, item)
         Triple(user, household, product)

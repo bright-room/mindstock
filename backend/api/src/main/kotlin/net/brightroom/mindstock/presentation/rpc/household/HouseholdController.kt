@@ -8,6 +8,7 @@ import net.brightroom.mindstock.configuration.transaction.tx
 import net.brightroom.mindstock.domain.model.household.Household
 import net.brightroom.mindstock.domain.model.household.HouseholdId
 import net.brightroom.mindstock.domain.model.household.HouseholdMemberRole
+import net.brightroom.mindstock.domain.model.household.HouseholdName
 import net.brightroom.mindstock.domain.model.user.UserId
 import net.brightroom.mindstock.rpc.HouseholdRpcService
 import net.brightroom.mindstock.rpc.RpcError
@@ -25,7 +26,10 @@ class HouseholdController(
         tx(database, session) { RpcResult.Ok(householdService.findOf(requireNotNull(session.userId))) }
 
     override suspend fun create(): RpcResult<Household, RpcError> =
-        tx(database, session) { RpcResult.Ok(householdRegisterService.create(requireNotNull(session.userId))) }
+        tx(database, session) {
+            // TODO: onboarding task で RPC 経由の世帯名(HouseholdRpcService.create 引数)に差し替える。暫定で固定名。
+            RpcResult.Ok(householdRegisterService.create(requireNotNull(session.userId), HouseholdName("マイ世帯")))
+        }
 
     override suspend fun invite(
         householdId: HouseholdId,

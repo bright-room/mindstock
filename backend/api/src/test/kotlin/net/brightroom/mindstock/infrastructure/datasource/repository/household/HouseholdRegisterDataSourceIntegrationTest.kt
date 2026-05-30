@@ -9,6 +9,7 @@ import io.kotest.matchers.shouldBe
 import io.kotest.matchers.string.shouldContain
 import net.brightroom.mindstock.domain.exception.ResourceNotFoundException
 import net.brightroom.mindstock.domain.model.household.HouseholdMemberRole
+import net.brightroom.mindstock.domain.model.household.HouseholdName
 import net.brightroom.mindstock.domain.model.user.auth.AuthIdentity
 import net.brightroom.mindstock.domain.model.user.auth.AuthProvider
 import net.brightroom.mindstock.domain.model.user.auth.AuthSubject
@@ -32,7 +33,7 @@ class HouseholdRegisterDataSourceIntegrationTest :
                         )
                     }
 
-                val household = tx { householdRepo.create(owner.userId) }
+                val household = tx { householdRepo.create(owner.userId, HouseholdName("テスト世帯")) }
 
                 household.members.list shouldHaveSize 1
                 household.members
@@ -50,7 +51,7 @@ class HouseholdRegisterDataSourceIntegrationTest :
 
                 val owner = tx { userRepo.register(AuthIdentity(AuthProvider.ZITADEL, AuthSubject("owner")), DisplayName("Owner")) }
                 val invitee = tx { userRepo.register(AuthIdentity(AuthProvider.ZITADEL, AuthSubject("invitee")), DisplayName("Invitee")) }
-                val household = tx { householdRepo.create(owner.userId) }
+                val household = tx { householdRepo.create(owner.userId, HouseholdName("テスト世帯")) }
                 tx { householdRepo.invite(household, invitee.userId, HouseholdMemberRole.MEMBER) }
 
                 val refetched = tx { householdReader.findOf(invitee.userId) }
@@ -66,7 +67,7 @@ class HouseholdRegisterDataSourceIntegrationTest :
 
                 val owner = tx { userRepo.register(AuthIdentity(AuthProvider.ZITADEL, AuthSubject("owner")), DisplayName("Owner")) }
                 val invitee = tx { userRepo.register(AuthIdentity(AuthProvider.ZITADEL, AuthSubject("invitee")), DisplayName("Invitee")) }
-                val household = tx { householdRepo.create(owner.userId) }
+                val household = tx { householdRepo.create(owner.userId, HouseholdName("テスト世帯")) }
                 tx { householdRepo.invite(household, invitee.userId, HouseholdMemberRole.MEMBER) }
                 tx { householdRepo.revoke(household, invitee.userId) }
 

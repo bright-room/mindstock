@@ -4,6 +4,7 @@ import net.brightroom.mindstock.domain.model.catalog.CatalogItem
 import net.brightroom.mindstock.domain.model.catalog.CatalogItemName
 import net.brightroom.mindstock.domain.model.catalog.CatalogItemUnit
 import net.brightroom.mindstock.domain.model.household.Household
+import net.brightroom.mindstock.domain.model.household.HouseholdName
 import net.brightroom.mindstock.domain.model.product.Product
 import net.brightroom.mindstock.domain.model.user.auth.AuthIdentity
 import net.brightroom.mindstock.domain.model.user.auth.AuthProvider
@@ -48,9 +49,12 @@ fun E2eContext.seedUser(
         )
     }
 
-fun E2eContext.seedHousehold(owner: Profile): Household =
+fun E2eContext.seedHousehold(
+    owner: Profile,
+    name: String = "World-${shortRandom()}",
+): Household =
     transaction(database) {
-        HouseholdRegisterDataSource().create(owner.userId)
+        HouseholdRegisterDataSource().create(owner.userId, HouseholdName(name))
     }
 
 fun E2eContext.seedCatalogItem(

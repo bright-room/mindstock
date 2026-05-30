@@ -21,6 +21,7 @@ import net.brightroom.mindstock.domain.model.catalog.CatalogItemUnit
 import net.brightroom.mindstock.domain.model.household.Household
 import net.brightroom.mindstock.domain.model.household.HouseholdId
 import net.brightroom.mindstock.domain.model.household.HouseholdMembers
+import net.brightroom.mindstock.domain.model.household.HouseholdName
 import net.brightroom.mindstock.domain.model.product.MinimumStock
 import net.brightroom.mindstock.domain.model.product.Product
 import net.brightroom.mindstock.domain.model.product.ProductId
@@ -48,7 +49,7 @@ class ProductControllerTest :
 
             val userId = UserId(Uuid.parse("00000000-0000-0000-0000-000000000001"))
             val householdId = HouseholdId(Uuid.parse("00000000-0000-0000-0000-000000000002"))
-            val household = Household(id = householdId, members = HouseholdMembers(emptyList()))
+            val household = Household(id = householdId, name = HouseholdName("テスト世帯"), members = HouseholdMembers(emptyList()))
             val catalogItemId = CatalogItemId(Uuid.parse("00000000-0000-0000-0000-000000000003"))
             val catalogItem =
                 CatalogItem(

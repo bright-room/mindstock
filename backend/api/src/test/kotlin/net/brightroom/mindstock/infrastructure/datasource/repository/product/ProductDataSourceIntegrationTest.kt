@@ -9,6 +9,7 @@ import io.kotest.matchers.string.shouldContain
 import net.brightroom.mindstock.domain.exception.ResourceNotFoundException
 import net.brightroom.mindstock.domain.model.catalog.CatalogItemName
 import net.brightroom.mindstock.domain.model.catalog.CatalogItemUnit
+import net.brightroom.mindstock.domain.model.household.HouseholdName
 import net.brightroom.mindstock.domain.model.product.ProductId
 import net.brightroom.mindstock.domain.model.user.auth.AuthIdentity
 import net.brightroom.mindstock.domain.model.user.auth.AuthProvider
@@ -34,7 +35,7 @@ class ProductDataSourceIntegrationTest :
                 val productReader = ProductDataSource()
 
                 val user = tx { userRepo.register(AuthIdentity(AuthProvider.ZITADEL, AuthSubject("u")), DisplayName("U")) }
-                val household = tx { householdRepo.create(user.userId) }
+                val household = tx { householdRepo.create(user.userId, HouseholdName("テスト世帯")) }
                 val item = tx { catalogRepo.register(CatalogItemName("Milk"), CatalogItemUnit("L"), user.userId) }
 
                 shouldThrow<ResourceNotFoundException> {
@@ -61,7 +62,7 @@ class ProductDataSourceIntegrationTest :
                 val productReader = ProductDataSource()
 
                 val user = tx { userRepo.register(AuthIdentity(AuthProvider.ZITADEL, AuthSubject("u")), DisplayName("U")) }
-                val household = tx { householdRepo.create(user.userId) }
+                val household = tx { householdRepo.create(user.userId, HouseholdName("テスト世帯")) }
                 val milk = tx { catalogRepo.register(CatalogItemName("Milk"), CatalogItemUnit("L"), user.userId) }
                 val bread = tx { catalogRepo.register(CatalogItemName("Bread"), CatalogItemUnit("loaf"), user.userId) }
 

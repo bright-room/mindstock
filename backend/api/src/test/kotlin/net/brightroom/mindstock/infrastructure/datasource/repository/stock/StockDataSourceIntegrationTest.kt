@@ -5,6 +5,7 @@ import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.collections.shouldBeEmpty
 import io.kotest.matchers.collections.shouldHaveSize
 import io.kotest.matchers.shouldBe
+import net.brightroom.mindstock.domain.model.household.HouseholdName
 import net.brightroom.mindstock.domain.model.stock.movement.Note
 import net.brightroom.mindstock.domain.model.stock.movement.OccurredAt
 import net.brightroom.mindstock.domain.model.stock.movement.Quantity
@@ -34,7 +35,7 @@ class StockDataSourceIntegrationTest :
                             DisplayName("U"),
                         )
                     }
-                val household = tx { householdRepo.create(user.userId) }
+                val household = tx { householdRepo.create(user.userId, HouseholdName("テスト世帯")) }
 
                 val stockRepo = StockDataSource(ProductDataSource())
                 val result = tx { stockRepo.stocksOf(household) }

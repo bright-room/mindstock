@@ -4,6 +4,7 @@ import net.brightroom.mindstock.application.repository.household.HouseholdRegist
 import net.brightroom.mindstock.domain.model.household.Household
 import net.brightroom.mindstock.domain.model.household.HouseholdMember
 import net.brightroom.mindstock.domain.model.household.HouseholdMemberRole
+import net.brightroom.mindstock.domain.model.household.HouseholdName
 import net.brightroom.mindstock.domain.model.user.UserId
 import net.brightroom.mindstock.infrastructure.datasource.user.UserDisplayNamesTable
 import net.brightroom.mindstock.infrastructure.datasource.user.UsersTable
@@ -21,11 +22,19 @@ import kotlin.uuid.ExperimentalUuidApi
 
 @OptIn(ExperimentalUuidApi::class)
 class HouseholdRegisterDataSource : HouseholdRegisterRepository {
-    override fun create(ownerId: UserId): Household {
+    override fun create(
+        ownerId: UserId,
+        name: HouseholdName,
+    ): Household {
         val newHouseholdId =
             HouseholdsTable.insert {
                 // id は default uuidv7()
             } get HouseholdsTable.id
+
+        HouseholdNamesTable.insert {
+            it[household_id] = newHouseholdId
+            it[this.name] = name()
+        }
 
         HouseholdMembershipsTable.insert {
             it[household_id] = newHouseholdId
@@ -47,6 +56,7 @@ class HouseholdRegisterDataSource : HouseholdRegisterRepository {
 
         return hydrateHousehold(
             householdId = newHouseholdId,
+            name = name,
             members = listOf(HouseholdMember(ownerProfile, HouseholdMemberRole.OWNER)),
         )
     }
