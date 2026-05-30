@@ -2,57 +2,505 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-> ⚠️ **このプランは全面改訂が必要(2026-05-30)。着手前に読むこと。**
-> brainstorming で設計が更新され、以下が確定した:
-> 1. **世帯名**(`household_names` 事実テーブル + `HouseholdName` VO)の追加。`Household(id, name, members)` に変更。`HouseholdRegisterRepository/Service/DataSource.create` を `(ownerId)` → `(ownerId, householdName)` に。
-> 2. **session bootstrap を HTTP endpoint 案から破棄** → WS の `bootstrap()` RPC へ。**Task 3/4(HTTP `GET /api/v1/auth/session`)は無効**。
-> 3. **`UserPublicRpcService` → `OnboardingRpcService` 改名** + `register` を Scenario 経由 + `bootstrap()` 追加。
-> 4. 登録判定は「事実(user 行 + OWNER membership)の存在から導出」。
->
-> 正は spec [2026-05-30-frontend-onboarding-foundation-design.md](../specs/2026-05-30-frontend-onboarding-foundation-design.md)。下記 Task 1/2 の Scenario・Controller 差し替えの骨子は流用できるが、Task 3/4 は bootstrap RPC に置き換える。本ファイルは次ステップで書き直す。
+**Goal:** 初回サインインで User + 世帯(デフォルト名)+ OWNER membership を原子的・冪等に作る `RegisterFirstHouseholdScenario` と、WS 経路でセッション初期化情報を返す `bootstrap()` RPC を追加する。あわせて世帯名(`HouseholdName` / `household_names` 事実テーブル)を導入する。
 
-**Goal:** 初回サインイン時に User + Household + OWNER membership を原子的かつ冪等に作る `RegisterFirstHouseholdScenario` と、起動時ブートストラップ用の薄い HTTP `GET /api/v1/auth/session` エンドポイントを追加する。
+**Architecture:** Phase A で世帯名ドメイン(VO + 事実テーブル + repository 変更)を入れ、Phase B でオンボーディング(初の Scenario)と初期化 RPC を組む。認証は既存の WS subprotocol 一本を維持し、bootstrap は「JWT 有効なら未登録でも通る」既存 route(旧 `/user/public`)を `OnboardingRpcService` として再定義して乗せる。登録判定は専用フラグを持たず、user 行 + OWNER membership の存在から導出する。
 
-**Architecture:** application 層に初の Scenario(複数 Service をまたぐユースケース)を導入し、`UserPublicController.register` をそれ経由に差し替える。session endpoint は RPC ではなく素の Ktor route で、`MindstockAuthPlugin` の内側 / `RequireRegisteredUserPlugin` の外側に置き、JWT 有効・未登録(`registered=false`)/ 登録済み(`registered=true` + displayName + householdId)/ トークン無効(401)を区別する。
+**Tech Stack:** Kotlin/JVM, Ktor, Ktor DI, Exposed(`newSuspendedTransaction` / Exposed migration plugin), kotlinx-rpc(`KrpcJson` = POLYMORPHIC discriminator), Kotest(FunSpec) + MockK, Testcontainers(integration)。
 
-**Tech Stack:** Kotlin/JVM, Ktor, Ktor DI, Exposed(`newSuspendedTransaction`), kotlinx-serialization(CustomJson = snake_case + discriminator NONE), Kotest(FunSpec) + MockK。
-
-**親 spec:** [docs/superpowers/specs/2026-05-30-frontend-onboarding-foundation-design.md](../specs/2026-05-30-frontend-onboarding-foundation-design.md)(§3 Backend スコープ)
+**親 spec:** [docs/superpowers/specs/2026-05-30-frontend-onboarding-foundation-design.md](../specs/2026-05-30-frontend-onboarding-foundation-design.md)
 
 ---
 
 ## 前提・重要な約束
 
-- **冪等性は Scenario レベルで担保する。** `household_memberships` に `UNIQUE(user_id)` を**張らない**(将来「1 世帯 = 複数ユーザー」を塞がないため)。
-- `UserRegisterDataSource.register` / `HouseholdRegisterDataSource.create` は無条件 INSERT で冪等性が無い(`users.zitadel_sub` は UNIQUE なので二重 register は DB エラーになる)。よって Scenario が「既に登録済みなら作らない」を判定する。
-- 「不在」の判定には `try { ... } catch (e: ResourceNotFoundException) { null }` を使う。これは `MindstockAuthPlugin` が既に採用している既存慣行(`error-handling.md` の「素通し」原則は『Repository の不在を別例外に詰め替えるな』であり、ここは詰め替えではなくユースケース分岐なので整合する)。
-- session endpoint のレスポンスは **CustomJson(`ClassDiscriminatorMode.NONE` + `JsonNamingStrategy.SnakeCase` + `encodeDefaults = true`)** でシリアライズされる。よって sealed polymorphic を避け、フラットな `data class` + デフォルト値で表現する。wire 上のキーは snake_case(`display_name` / `household_id`)になる。
+- **冪等性は Scenario レベル**で担保する(`household_memberships` に `UNIQUE(user_id)` を張らない。将来の複数ユーザー世帯を塞がない)。
+- 「不在」判定は `try { ... } catch (e: ResourceNotFoundException) { null }`(`MindstockAuthPlugin` の既存慣行)。
+- **`Household` の constructor が `(id, members)` → `(id, name, members)` に変わる破壊的変更**。生成箇所は `hydrateHousehold`(本体)と各テストの `Household(...)` 直書き。Phase A で漏れなく追従する。
+- 世帯名テーブルは `user_display_names` と同型(`HistoryTable` ベース、`household_id` 参照、最新行が現在値)。`latestHouseholdNames()` は `latestDisplayNames()` の写し。
+- migration は **Exposed migration plugin が Table 定義から生成**する(手書きしない)。append-only role は `ALTER DEFAULT PRIVILEGES`(`V00000000000000__append_only_role.sql`)で新テーブルに SELECT/INSERT + sequence USAGE が自動付与される。
+- **`HouseholdName` 最大長 = 100**(`DisplayName` に合わせる)。デフォルト世帯名 = `"${displayName().take(97)}の家"`(100 を超えない)。
+- bootstrap の戻り値 `SessionBootstrap` は sealed。RPC は `KrpcJson`(POLYMORPHIC discriminator)なので sealed polymorphic が安全に通る。
 
 ---
 
 ## File Structure
 
-- Create: `backend/core/src/main/kotlin/net/brightroom/mindstock/application/scenario/onboarding/RegisterFirstHouseholdScenario.kt` — 原子的・冪等なオンボーディング Scenario
-- Create: `backend/core/src/test/kotlin/net/brightroom/mindstock/application/scenario/onboarding/RegisterFirstHouseholdScenarioTest.kt` — Scenario 単体テスト(core/src/test を新設)
-- Modify: `backend/api/src/main/kotlin/net/brightroom/mindstock/presentation/rpc/user/UserPublicController.kt` — register を Scenario 経由に
-- Modify: `backend/api/src/main/kotlin/net/brightroom/mindstock/presentation/rpc/user/UserPublicControllerFactory.kt` — 変更不要(確認のみ。後述)
-- Modify: `backend/api/src/main/kotlin/net/brightroom/mindstock/configuration/di/DependenciesConfiguration.kt` — Scenario の provide + UserPublic factory 配線変更
-- Modify: `backend/api/src/test/kotlin/net/brightroom/mindstock/presentation/rpc/user/UserPublicControllerTest.kt` — Scenario を MockK に差し替え
-- Create: `backend/api/src/main/kotlin/net/brightroom/mindstock/presentation/http/session/SessionResponse.kt` — wire DTO + resolveSession 純粋ロジック
-- Create: `backend/api/src/test/kotlin/net/brightroom/mindstock/presentation/http/session/SessionResponseTest.kt` — resolveSession 単体テスト
-- Modify: `backend/api/src/main/kotlin/net/brightroom/mindstock/configuration/routing/RoutingConfiguration.kt` — `GET /api/v1/auth/session` route 追加
+**Phase A(世帯名ドメイン)**
+- Create: `domain/src/commonMain/kotlin/net/brightroom/mindstock/domain/model/household/HouseholdName.kt`
+- Create: `domain/src/commonTest/kotlin/net/brightroom/mindstock/domain/model/household/HouseholdNameTest.kt`
+- Modify: `domain/src/commonMain/kotlin/net/brightroom/mindstock/domain/model/household/Household.kt`(`name` 追加)
+- Create: `backend/core/src/main/kotlin/net/brightroom/mindstock/infrastructure/datasource/household/HouseholdNamesTable.kt`
+- Create: `backend/core/src/main/kotlin/net/brightroom/mindstock/infrastructure/datasource/household/LatestHouseholdNames.kt`
+- Modify: `backend/core/src/main/kotlin/net/brightroom/mindstock/infrastructure/datasource/household/HouseholdHydration.kt`(`name` 追加)
+- Modify: `backend/core/src/main/kotlin/net/brightroom/mindstock/application/repository/household/HouseholdRegisterRepository.kt`(`create` シグネチャ)
+- Modify: `backend/core/src/main/kotlin/net/brightroom/mindstock/application/service/household/HouseholdRegisterService.kt`
+- Modify: `backend/core/src/main/kotlin/net/brightroom/mindstock/infrastructure/datasource/household/HouseholdRegisterDataSource.kt`
+- Modify: `backend/core/src/main/kotlin/net/brightroom/mindstock/infrastructure/datasource/household/HouseholdDataSource.kt`(`findOf`/`findById` で name hydrate)
+- Create: `backend/core/src/main/resources/db/migration/V<timestamp>__household_names.sql`(生成)
+
+**Phase B(オンボーディング + bootstrap)**
+- Create: `backend/core/src/main/kotlin/net/brightroom/mindstock/application/scenario/onboarding/RegisterFirstHouseholdScenario.kt`
+- Create: `backend/core/src/test/kotlin/net/brightroom/mindstock/application/scenario/onboarding/RegisterFirstHouseholdScenarioTest.kt`
+- Rename: `rpc/src/commonMain/kotlin/net/brightroom/mindstock/rpc/UserPublicRpcService.kt` → `OnboardingRpcService.kt`
+- Create: `rpc/src/commonMain/kotlin/net/brightroom/mindstock/rpc/SessionBootstrap.kt`
+- Rename/Modify: `backend/api/.../presentation/rpc/user/UserPublicController.kt` → `onboarding/OnboardingController.kt`(+ Factory)
+- Modify: `backend/api/.../configuration/di/DependenciesConfiguration.kt`
+- Modify: `backend/api/.../configuration/routing/RoutingConfiguration.kt`
+- Modify: `backend/api/.../presentation/rpc/user/UserPublicControllerTest.kt` → onboarding 配下へ
 
 ---
 
-## Task 1: RegisterFirstHouseholdScenario(原子的・冪等なオンボーディング)
+# Phase A — 世帯名ドメイン
+
+## Task A1: HouseholdName VO
+
+**Files:**
+- Create: `domain/src/commonMain/kotlin/net/brightroom/mindstock/domain/model/household/HouseholdName.kt`
+- Test: `domain/src/commonTest/kotlin/net/brightroom/mindstock/domain/model/household/HouseholdNameTest.kt`
+
+- [ ] **Step 1: 失敗するテストを書く**
+
+```kotlin
+package net.brightroom.mindstock.domain.model.household
+
+import io.kotest.assertions.throwables.shouldThrow
+import io.kotest.core.spec.style.FunSpec
+import io.kotest.matchers.shouldBe
+
+class HouseholdNameTest :
+    FunSpec({
+        test("値を保持し toString / invoke で取り出せる") {
+            val name = HouseholdName("我が家")
+            name.toString() shouldBe "我が家"
+            name() shouldBe "我が家"
+        }
+
+        test("空白のみは拒否する") {
+            shouldThrow<IllegalArgumentException> { HouseholdName(" ") }
+        }
+
+        test("100 文字超は拒否する") {
+            shouldThrow<IllegalArgumentException> { HouseholdName("あ".repeat(101)) }
+        }
+    })
+```
+
+- [ ] **Step 2: テスト失敗を確認**
+
+Run: `./gradlew :domain:allTests --tests "*HouseholdNameTest*"`
+Expected: コンパイルエラー(`HouseholdName` 未定義)。
+
+- [ ] **Step 3: 実装(`DisplayName` の写し)**
+
+```kotlin
+package net.brightroom.mindstock.domain.model.household
+
+import kotlinx.serialization.Serializable
+import kotlin.jvm.JvmInline
+
+/**
+ * 世帯名。空白のみ(空文字含む)禁止、最大 100 文字。後から変更可能(履歴は household_names 事実テーブル)。
+ */
+@Serializable
+@JvmInline
+value class HouseholdName(
+    private val value: String,
+) {
+    init {
+        require(value.isNotBlank()) { "household name must not be blank" }
+        require(value.length <= 100) { "household name length ${value.length} > 100" }
+    }
+
+    override fun toString(): String = value
+
+    operator fun invoke(): String = value
+}
+```
+
+- [ ] **Step 4: テスト成功を確認**
+
+Run: `./gradlew :domain:allTests --tests "*HouseholdNameTest*"`
+Expected: PASS(3 tests)。
+
+- [ ] **Step 5: コミット**
+
+```bash
+git add domain/src/commonMain/kotlin/net/brightroom/mindstock/domain/model/household/HouseholdName.kt \
+        domain/src/commonTest/kotlin/net/brightroom/mindstock/domain/model/household/HouseholdNameTest.kt
+git commit -m "feat(domain): HouseholdName VO を追加
+
+Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>"
+```
+
+---
+
+## Task A2: Household に name を追加(破壊的変更の追従)
+
+**Files:**
+- Modify: `domain/src/commonMain/kotlin/net/brightroom/mindstock/domain/model/household/Household.kt`
+- Modify: `backend/core/src/main/kotlin/net/brightroom/mindstock/infrastructure/datasource/household/HouseholdHydration.kt`
+
+- [ ] **Step 1: Household に name を追加**
+
+`Household.kt`:
+
+```kotlin
+package net.brightroom.mindstock.domain.model.household
+
+import kotlinx.serialization.Serializable
+
+/**
+ * 世帯集約。世帯名とアクティブなメンバー一覧を持つ。
+ */
+@Serializable
+data class Household(
+    val id: HouseholdId,
+    val name: HouseholdName,
+    val members: HouseholdMembers,
+)
+```
+
+- [ ] **Step 2: コンパイルを走らせて全壊箇所を洗い出す**
+
+Run: `./gradlew :domain:compileKotlinJvm :backend:core:compileKotlin`
+Expected: `Household(...)` の呼び出し箇所が「引数不足」でコンパイルエラー。**ここで出たエラー箇所が Task A4/A5 で直す対象**。`hydrateHousehold` が主。
+
+- [ ] **Step 3: hydrateHousehold に name を通す**
+
+`HouseholdHydration.kt`:
+
+```kotlin
+package net.brightroom.mindstock.infrastructure.datasource.household
+
+import net.brightroom.mindstock.domain.model.household.Household
+import net.brightroom.mindstock.domain.model.household.HouseholdId
+import net.brightroom.mindstock.domain.model.household.HouseholdMember
+import net.brightroom.mindstock.domain.model.household.HouseholdMembers
+import net.brightroom.mindstock.domain.model.household.HouseholdName
+import kotlin.uuid.ExperimentalUuidApi
+import kotlin.uuid.Uuid
+
+@OptIn(ExperimentalUuidApi::class)
+internal fun hydrateHousehold(
+    householdId: Uuid,
+    name: HouseholdName,
+    members: List<HouseholdMember>,
+): Household =
+    Household(
+        id = HouseholdId(householdId),
+        name = name,
+        members = HouseholdMembers(members),
+    )
+```
+
+- [ ] **Step 4: コミット(コンパイルはまだ赤でよい。A4/A5 で緑にする)**
+
+> 注: `hydrateHousehold` の呼び出し元(`HouseholdRegisterDataSource` / `HouseholdDataSource`)は A4/A5 で直す。ここでは domain の確定だけコミットする。
+
+```bash
+git add domain/src/commonMain/kotlin/net/brightroom/mindstock/domain/model/household/Household.kt \
+        backend/core/src/main/kotlin/net/brightroom/mindstock/infrastructure/datasource/household/HouseholdHydration.kt
+git commit -m "feat(domain): Household に HouseholdName を追加(以降のタスクで生成箇所を追従)
+
+Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>"
+```
+
+---
+
+## Task A3: household_names テーブル + 最新値クエリ
+
+**Files:**
+- Create: `backend/core/src/main/kotlin/net/brightroom/mindstock/infrastructure/datasource/household/HouseholdNamesTable.kt`
+- Create: `backend/core/src/main/kotlin/net/brightroom/mindstock/infrastructure/datasource/household/LatestHouseholdNames.kt`
+
+- [ ] **Step 1: HouseholdNamesTable(`UserDisplayNamesTable` の写し)**
+
+```kotlin
+@file:OptIn(kotlin.uuid.ExperimentalUuidApi::class)
+
+package net.brightroom.mindstock.infrastructure.datasource.household
+
+import net.brightroom.mindstock.infrastructure.datasource.HistoryTable
+import org.jetbrains.exposed.v1.core.ReferenceOption
+import org.jetbrains.exposed.v1.datetime.CurrentTimestampWithTimeZone
+import org.jetbrains.exposed.v1.datetime.timestampWithTimeZone
+
+object HouseholdNamesTable : HistoryTable("household_names") {
+    val household_id = reference("household_id", HouseholdsTable.id, onDelete = ReferenceOption.RESTRICT)
+    val name = varchar("name", 100)
+    val created_at = timestampWithTimeZone("created_at").defaultExpression(CurrentTimestampWithTimeZone)
+
+    init {
+        index(false, household_id, id)
+    }
+}
+```
+
+- [ ] **Step 2: LatestHouseholdNames(`LatestDisplayNames` の写し)**
+
+```kotlin
+package net.brightroom.mindstock.infrastructure.datasource.household
+
+import org.jetbrains.exposed.v1.core.ExpressionWithColumnType
+import org.jetbrains.exposed.v1.core.QueryAlias
+import org.jetbrains.exposed.v1.core.alias
+import org.jetbrains.exposed.v1.core.max
+import org.jetbrains.exposed.v1.jdbc.select
+import kotlin.uuid.ExperimentalUuidApi
+import kotlin.uuid.Uuid
+
+@OptIn(ExperimentalUuidApi::class)
+internal class LatestHouseholdNames(
+    val alias: QueryAlias,
+    val householdId: ExpressionWithColumnType<Uuid>,
+    val maxId: ExpressionWithColumnType<Long?>,
+)
+
+@OptIn(ExperimentalUuidApi::class)
+internal fun latestHouseholdNames(): LatestHouseholdNames {
+    val maxIdExpr = HouseholdNamesTable.id.max().alias("max_household_name_id")
+    val alias =
+        HouseholdNamesTable
+            .select(HouseholdNamesTable.household_id, maxIdExpr)
+            .groupBy(HouseholdNamesTable.household_id)
+            .alias("latest_household_names")
+    return LatestHouseholdNames(
+        alias = alias,
+        householdId = alias[HouseholdNamesTable.household_id],
+        maxId = alias[maxIdExpr],
+    )
+}
+```
+
+- [ ] **Step 3: コンパイル確認**
+
+Run: `./gradlew :backend:core:compileKotlin`
+Expected: `HouseholdNamesTable` / `latestHouseholdNames` 自体は通る(`HouseholdRegisterDataSource` / `HouseholdDataSource` は A2 の影響でまだ赤)。
+
+- [ ] **Step 4: コミット**
+
+```bash
+git add backend/core/src/main/kotlin/net/brightroom/mindstock/infrastructure/datasource/household/HouseholdNamesTable.kt \
+        backend/core/src/main/kotlin/net/brightroom/mindstock/infrastructure/datasource/household/LatestHouseholdNames.kt
+git commit -m "feat(infra): household_names テーブルと最新値クエリを追加
+
+Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>"
+```
+
+---
+
+## Task A4: create に世帯名を追加(repository / service / datasource)
+
+**Files:**
+- Modify: `backend/core/.../application/repository/household/HouseholdRegisterRepository.kt`
+- Modify: `backend/core/.../application/service/household/HouseholdRegisterService.kt`
+- Modify: `backend/core/.../infrastructure/datasource/household/HouseholdRegisterDataSource.kt`
+- Test: `backend/api/src/test/.../infrastructure/datasource/repository/household/HouseholdRegisterDataSourceIntegrationTest`(既存があれば追従。無ければ `HouseholdDataSourceIntegrationTest` に追記)
+
+- [ ] **Step 1: interface のシグネチャ変更**
+
+`HouseholdRegisterRepository.kt` の `create` を変更:
+
+```kotlin
+import net.brightroom.mindstock.domain.model.household.HouseholdName
+// ...
+    /** households + household_names + 初回 household_memberships(OWNER)を 1 トランザクションで INSERT。 */
+    fun create(
+        ownerId: UserId,
+        name: HouseholdName,
+    ): Household
+```
+
+- [ ] **Step 2: Service の委譲を変更**
+
+`HouseholdRegisterService.kt`:
+
+```kotlin
+import net.brightroom.mindstock.domain.model.household.HouseholdName
+// ...
+    fun create(
+        ownerId: UserId,
+        name: HouseholdName,
+    ): Household = householdRegisterRepository.create(ownerId, name)
+```
+
+- [ ] **Step 3: DataSource を変更(household_names INSERT + hydrate に name)**
+
+`HouseholdRegisterDataSource.kt` の `create` を以下に置換(import に `HouseholdName` を追加):
+
+```kotlin
+    override fun create(
+        ownerId: UserId,
+        name: HouseholdName,
+    ): Household {
+        val newHouseholdId =
+            HouseholdsTable.insert {
+                // id は default uuidv7()
+            } get HouseholdsTable.id
+
+        HouseholdNamesTable.insert {
+            it[household_id] = newHouseholdId
+            it[this.name] = name()
+        }
+
+        HouseholdMembershipsTable.insert {
+            it[household_id] = newHouseholdId
+            it[user_id] = ownerId()
+            it[role] = HouseholdMemberRole.OWNER
+        }
+
+        val latest = latestDisplayNames()
+        val ownerProfile =
+            UsersTable
+                .join(latest.alias, JoinType.INNER, onColumn = UsersTable.id, otherColumn = latest.userId)
+                .join(UserDisplayNamesTable, JoinType.INNER) {
+                    (UserDisplayNamesTable.user_id eq latest.userId) and
+                        (UserDisplayNamesTable.id eq latest.maxId)
+                }.selectAll()
+                .where { UsersTable.id eq ownerId() }
+                .single()
+                .toProfile()
+
+        return hydrateHousehold(
+            householdId = newHouseholdId,
+            name = name,
+            members = listOf(HouseholdMember(ownerProfile, HouseholdMemberRole.OWNER)),
+        )
+    }
+```
+
+- [ ] **Step 4: 既存の Household 統合テストを世帯名つきに追従させる**
+
+`HouseholdDataSourceIntegrationTest.kt`(既存)の `householdRegister.create(owner.userId)` 呼び出しを `householdRegister.create(owner.userId, HouseholdName("テスト世帯"))` に全置換し、`import net.brightroom.mindstock.domain.model.household.HouseholdName` を追加する。
+
+- [ ] **Step 5: コンパイル + 既存統合テストを確認**
+
+Run: `./gradlew :backend:api:integrationTest --tests "*HouseholdDataSourceIntegrationTest*" --max-workers=1`
+Expected: PASS(`findById`/`findOf` は A5 で name hydrate を入れるまで `name` が読めず落ちる場合がある → A5 と連続で実施し、A5 完了後に再実行して緑にする)。
+
+- [ ] **Step 6: コミット**
+
+```bash
+git add backend/core/src/main/kotlin/net/brightroom/mindstock/application/repository/household/HouseholdRegisterRepository.kt \
+        backend/core/src/main/kotlin/net/brightroom/mindstock/application/service/household/HouseholdRegisterService.kt \
+        backend/core/src/main/kotlin/net/brightroom/mindstock/infrastructure/datasource/household/HouseholdRegisterDataSource.kt \
+        backend/api/src/test/kotlin/net/brightroom/mindstock/infrastructure/datasource/household/HouseholdDataSourceIntegrationTest.kt
+git commit -m "feat(infra): 世帯作成時に household_names へ INSERT し名前付き Household を返す
+
+Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>"
+```
+
+---
+
+## Task A5: findOf / findById で世帯名を hydrate
+
+**Files:**
+- Modify: `backend/core/.../infrastructure/datasource/household/HouseholdDataSource.kt`
+
+`findOf` / `findById` は現在 `hydrateHousehold(householdId, members)` を呼んでいる(A2 で引数不足の赤)。最新世帯名を引いて渡す。
+
+- [ ] **Step 1: 最新世帯名を引くヘルパーを使い、hydrate に name を渡す**
+
+`HouseholdDataSource.kt` の `findOf` / `findById` 双方で、members を組み立てた後の `hydrateHousehold(...)` 呼び出し直前に最新世帯名を取得する。両メソッド共通の private 関数を足す:
+
+```kotlin
+import net.brightroom.mindstock.domain.model.household.HouseholdName
+import net.brightroom.mindstock.domain.exception.ResourceNotFoundException
+import org.jetbrains.exposed.v1.core.SortOrder
+// ...
+
+    private fun latestHouseholdNameOf(householdId: Uuid): HouseholdName =
+        HouseholdNamesTable
+            .selectAll()
+            .where { HouseholdNamesTable.household_id eq householdId }
+            .orderBy(HouseholdNamesTable.id, SortOrder.DESC)
+            .limit(1)
+            .singleOrNull()
+            ?.let { HouseholdName(it[HouseholdNamesTable.name]) }
+            ?: throw ResourceNotFoundException("household name not found: $householdId")
+```
+
+そして `findOf` / `findById` の `return hydrateHousehold(householdId = householdId, members = members)` を以下に変更:
+
+```kotlin
+        return hydrateHousehold(
+            householdId = householdId,
+            name = latestHouseholdNameOf(householdId),
+            members = members,
+        )
+```
+
+> 注: `findById` の「revoked-only(members 空)」テストケースでも世帯名は引ける(household_names は membership とは独立)。`findOf` 側の `householdId` 変数名は既存コードに合わせる(`rows.first()[HouseholdMembershipsTable.household_id]` 等)。
+
+- [ ] **Step 2: Household 統合テストを緑にする**
+
+Run: `./gradlew :backend:api:integrationTest --tests "*HouseholdDataSourceIntegrationTest*" --max-workers=1`
+Expected: PASS（A4 の `create(..., HouseholdName(...))` と合わせ、`findOf`/`findById` が名前付き Household を返す）。
+
+- [ ] **Step 3: backend 全体のコンパイルを確認(A2 の赤が解消)**
+
+Run: `./gradlew :backend:core:compileKotlin :backend:api:compileKotlin`
+Expected: BUILD SUCCESSFUL（`SessionResponseTest` 等で `Household(...)` を直書きしている箇所があれば、それも `name` 付きに直す）。
+
+- [ ] **Step 4: コミット**
+
+```bash
+git add backend/core/src/main/kotlin/net/brightroom/mindstock/infrastructure/datasource/household/HouseholdDataSource.kt
+git commit -m "feat(infra): findOf/findById で最新の世帯名を hydrate する
+
+Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>"
+```
+
+---
+
+## Task A6: migration 生成(household_names)
+
+**Files:**
+- Create: `backend/core/src/main/resources/db/migration/V<timestamp>__household_names.sql`(生成)
+
+- [ ] **Step 1: Exposed migration plugin で差分 SQL を生成**
+
+Run: `./gradlew :backend:core:generateMigrationScript`
+（タスク名はプラグインに依存。`./gradlew :backend:core:tasks --group=migration` で正確名を確認し、`HouseholdNamesTable` を含む差分 SQL を `src/main/resources/db/migration/` に生成する。）
+
+- [ ] **Step 2: 生成 SQL を確認**
+
+生成された `V<timestamp>__*.sql` が以下に相当することを確認(既存 `user_display_names` と同形):
+
+```sql
+CREATE TABLE IF NOT EXISTS household_names (id BIGSERIAL PRIMARY KEY, household_id uuid NOT NULL, "name" VARCHAR(100) NOT NULL, created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL, CONSTRAINT fk_household_names_household_id__id FOREIGN KEY (household_id) REFERENCES households(id) ON DELETE RESTRICT ON UPDATE RESTRICT);
+CREATE INDEX household_names_household_id_id ON household_names (household_id, id);
+CREATE SEQUENCE IF NOT EXISTS household_names_id_seq START WITH 1 MINVALUE 1 MAXVALUE 9223372036854775807;
+```
+
+> append-only role: `V00000000000000__append_only_role.sql` の `ALTER DEFAULT PRIVILEGES` により、本テーブルへ `mindstock_app` の SELECT/INSERT と sequence USAGE が自動付与される(追加の GRANT 文は不要)。生成 SQL に余計な `DROP`/`ALTER` が混ざっていないかだけ確認する。
+
+- [ ] **Step 3: 適用が通ることを統合テストで確認(Flyway がクリーン DB に全 migration 適用)**
+
+Run: `./gradlew :backend:api:integrationTest --tests "*HouseholdDataSourceIntegrationTest*" --max-workers=1`
+Expected: PASS（Testcontainers の新規 schema に household_names が作られ、A4/A5 が通る）。
+
+- [ ] **Step 4: コミット**
+
+```bash
+git add backend/core/src/main/resources/db/migration/
+git commit -m "feat(db): household_names テーブルの migration を追加
+
+Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>"
+```
+
+---
+
+# Phase B — オンボーディング + bootstrap
+
+## Task B1: RegisterFirstHouseholdScenario
 
 **Files:**
 - Create: `backend/core/src/main/kotlin/net/brightroom/mindstock/application/scenario/onboarding/RegisterFirstHouseholdScenario.kt`
 - Test: `backend/core/src/test/kotlin/net/brightroom/mindstock/application/scenario/onboarding/RegisterFirstHouseholdScenarioTest.kt`
 
 - [ ] **Step 1: 失敗するテストを書く**
-
-`backend/core/src/test/kotlin/net/brightroom/mindstock/application/scenario/onboarding/RegisterFirstHouseholdScenarioTest.kt`:
 
 ```kotlin
 package net.brightroom.mindstock.application.scenario.onboarding
@@ -61,11 +509,13 @@ import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
 import io.mockk.every
 import io.mockk.mockk
+import io.mockk.slot
 import io.mockk.verify
 import net.brightroom.mindstock.application.repository.user.UserRepository
 import net.brightroom.mindstock.application.service.household.HouseholdRegisterService
 import net.brightroom.mindstock.application.service.user.UserRegisterService
 import net.brightroom.mindstock.domain.exception.ResourceNotFoundException
+import net.brightroom.mindstock.domain.model.household.HouseholdName
 import net.brightroom.mindstock.domain.model.user.UserId
 import net.brightroom.mindstock.domain.model.user.auth.AuthIdentity
 import net.brightroom.mindstock.domain.model.user.auth.AuthProvider
@@ -87,7 +537,7 @@ class RegisterFirstHouseholdScenarioTest :
                 displayName = displayName,
             )
 
-        test("未登録なら User を作り Household を作って Profile を返す") {
+        test("未登録なら User を作り、デフォルト世帯名で Household を作って Profile を返す") {
             val userRepository = mockk<UserRepository>()
             val userRegisterService = mockk<UserRegisterService>()
             val householdRegisterService = mockk<HouseholdRegisterService>(relaxed = true)
@@ -101,8 +551,10 @@ class RegisterFirstHouseholdScenarioTest :
 
             scenario.run(identity, displayName) shouldBe profile
 
+            val nameSlot = slot<HouseholdName>()
             verify(exactly = 1) { userRegisterService.register(identity, displayName) }
-            verify(exactly = 1) { householdRegisterService.create(profile.userId) }
+            verify(exactly = 1) { householdRegisterService.create(profile.userId, capture(nameSlot)) }
+            nameSlot.captured() shouldBe "Aliceの家"
         }
 
         test("既に登録済みなら register も create も呼ばず既存 Profile を返す(冪等)") {
@@ -118,19 +570,17 @@ class RegisterFirstHouseholdScenarioTest :
             scenario.run(identity, displayName) shouldBe profile
 
             verify(exactly = 0) { userRegisterService.register(any(), any()) }
-            verify(exactly = 0) { householdRegisterService.create(any()) }
+            verify(exactly = 0) { householdRegisterService.create(any(), any()) }
         }
     })
 ```
 
-- [ ] **Step 2: テストが失敗することを確認**
+- [ ] **Step 2: テスト失敗を確認**
 
 Run: `./gradlew :backend:core:test --tests "*RegisterFirstHouseholdScenarioTest*"`
 Expected: コンパイルエラー(`RegisterFirstHouseholdScenario` 未定義)。
 
-- [ ] **Step 3: 最小実装を書く**
-
-`backend/core/src/main/kotlin/net/brightroom/mindstock/application/scenario/onboarding/RegisterFirstHouseholdScenario.kt`:
+- [ ] **Step 3: 実装**
 
 ```kotlin
 package net.brightroom.mindstock.application.scenario.onboarding
@@ -139,16 +589,16 @@ import net.brightroom.mindstock.application.repository.user.UserRepository
 import net.brightroom.mindstock.application.service.household.HouseholdRegisterService
 import net.brightroom.mindstock.application.service.user.UserRegisterService
 import net.brightroom.mindstock.domain.exception.ResourceNotFoundException
+import net.brightroom.mindstock.domain.model.household.HouseholdName
 import net.brightroom.mindstock.domain.model.user.auth.AuthIdentity
 import net.brightroom.mindstock.domain.model.user.profile.DisplayName
 import net.brightroom.mindstock.domain.model.user.profile.Profile
 
 /**
- * 初回サインインのオンボーディング。User + Household + OWNER membership を 1 ユースケースで揃える。
+ * 初回サインインのオンボーディング。User + Household(デフォルト名)+ OWNER membership を 1 ユースケースで揃える。
  *
  * 冪等: 既に当該 identity の User が存在する場合は何も作らず既存 Profile を返す。
- * これにより二重サインアップ(ダブルサブミット等)で世帯が重複しない。トランザクション境界は
- * 呼び出し側(Controller の `tx()`)が張る。
+ * トランザクション境界は呼び出し側(Controller の `tx()`)が張る。
  */
 class RegisterFirstHouseholdScenario(
     private val userRepository: UserRepository,
@@ -168,13 +618,17 @@ class RegisterFirstHouseholdScenario(
         if (existing != null) return existing
 
         val profile = userRegisterService.register(identity, displayName)
-        householdRegisterService.create(profile.userId)
+        householdRegisterService.create(profile.userId, defaultHouseholdName(displayName))
         return profile
     }
+
+    /** 表示名から導出するデフォルト世帯名。HouseholdName(100) を超えないよう表示名を丸める。 */
+    private fun defaultHouseholdName(displayName: DisplayName): HouseholdName =
+        HouseholdName("${displayName().take(97)}の家")
 }
 ```
 
-- [ ] **Step 4: テストが通ることを確認**
+- [ ] **Step 4: テスト成功を確認**
 
 Run: `./gradlew :backend:core:test --tests "*RegisterFirstHouseholdScenarioTest*"`
 Expected: PASS(2 tests)。
@@ -184,28 +638,137 @@ Expected: PASS(2 tests)。
 ```bash
 git add backend/core/src/main/kotlin/net/brightroom/mindstock/application/scenario/onboarding/RegisterFirstHouseholdScenario.kt \
         backend/core/src/test/kotlin/net/brightroom/mindstock/application/scenario/onboarding/RegisterFirstHouseholdScenarioTest.kt
-git commit -m "feat(onboarding): RegisterFirstHouseholdScenario で User+Household を原子的・冪等に作る
+git commit -m "feat(onboarding): RegisterFirstHouseholdScenario(デフォルト世帯名・冪等)
 
 Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>"
 ```
 
 ---
 
-## Task 2: UserPublicController を Scenario 経由に差し替え
+## Task B2: UserPublicRpcService → OnboardingRpcService 改名 + register を Scenario 経由
 
 **Files:**
-- Modify: `backend/api/src/main/kotlin/net/brightroom/mindstock/presentation/rpc/user/UserPublicController.kt`
-- Modify: `backend/api/src/main/kotlin/net/brightroom/mindstock/configuration/di/DependenciesConfiguration.kt`
-- Test: `backend/api/src/test/kotlin/net/brightroom/mindstock/presentation/rpc/user/UserPublicControllerTest.kt`
+- Rename: `rpc/src/commonMain/kotlin/net/brightroom/mindstock/rpc/UserPublicRpcService.kt` → `OnboardingRpcService.kt`
+- Rename: `backend/api/.../presentation/rpc/user/UserPublicController.kt` → `presentation/rpc/onboarding/OnboardingController.kt`
+- Rename: `backend/api/.../presentation/rpc/user/UserPublicControllerFactory.kt` → `presentation/rpc/onboarding/OnboardingControllerFactory.kt`
+- Modify: `backend/api/.../configuration/di/DependenciesConfiguration.kt`
+- Modify: `backend/api/.../configuration/routing/RoutingConfiguration.kt`
+- Move/Modify test: `backend/api/.../presentation/rpc/user/UserPublicControllerTest.kt` → `presentation/rpc/onboarding/OnboardingControllerTest.kt`
 
-`UserPublicControllerFactory.kt`(`fun interface UserPublicControllerFactory { fun create(session: MindstockSession): UserPublicController }`)は **変更不要**(constructor 引数は DI closure 内で組み立てるため、interface は不変)。
+> bootstrap メソッドは Task B4 で足す。本タスクは「改名 + register の Scenario 化」まで。
 
-- [ ] **Step 1: 既存テストを Scenario 依存に書き換える(失敗させる)**
+- [ ] **Step 1: RPC interface を改名**
 
-`backend/api/src/test/kotlin/net/brightroom/mindstock/presentation/rpc/user/UserPublicControllerTest.kt` を以下で全置換:
+`rpc/.../OnboardingRpcService.kt`(旧 `UserPublicRpcService.kt` を改名):
 
 ```kotlin
-package net.brightroom.mindstock.presentation.rpc.user
+package net.brightroom.mindstock.rpc
+
+import kotlinx.rpc.annotations.Rpc
+import net.brightroom.mindstock.domain.model.user.profile.DisplayName
+import net.brightroom.mindstock.domain.model.user.profile.Profile
+
+/**
+ * 未登録(JWT 有効・User 未登録)でも通る初期化 service。
+ * 認証は WS subprotocol 一本。AuthIdentity は session(Principal)から取得する(なりすまし防止)。
+ */
+@Rpc
+interface OnboardingRpcService {
+    suspend fun register(displayName: DisplayName): RpcResult<Profile, RpcError>
+}
+```
+
+- [ ] **Step 2: Controller を改名 + Scenario 経由に**
+
+`backend/api/.../presentation/rpc/onboarding/OnboardingController.kt`:
+
+```kotlin
+package net.brightroom.mindstock.presentation.rpc.onboarding
+
+import net.brightroom.mindstock.application.scenario.onboarding.RegisterFirstHouseholdScenario
+import net.brightroom.mindstock.configuration.auth.MindstockSession
+import net.brightroom.mindstock.configuration.transaction.tx
+import net.brightroom.mindstock.domain.model.user.profile.DisplayName
+import net.brightroom.mindstock.domain.model.user.profile.Profile
+import net.brightroom.mindstock.rpc.OnboardingRpcService
+import net.brightroom.mindstock.rpc.RpcError
+import net.brightroom.mindstock.rpc.RpcResult
+import org.jetbrains.exposed.v1.jdbc.Database
+
+class OnboardingController(
+    private val registerFirstHouseholdScenario: RegisterFirstHouseholdScenario,
+    private val session: MindstockSession,
+    private val database: Database,
+) : OnboardingRpcService {
+    override suspend fun register(displayName: DisplayName): RpcResult<Profile, RpcError> =
+        tx(database, session) {
+            RpcResult.Ok(registerFirstHouseholdScenario.run(session.identity, displayName))
+        }
+}
+```
+
+`OnboardingControllerFactory.kt`:
+
+```kotlin
+package net.brightroom.mindstock.presentation.rpc.onboarding
+
+import net.brightroom.mindstock.configuration.auth.MindstockSession
+
+fun interface OnboardingControllerFactory {
+    fun create(session: MindstockSession): OnboardingController
+}
+```
+
+旧 `presentation/rpc/user/UserPublicController.kt` と `UserPublicControllerFactory.kt` は削除する。
+
+- [ ] **Step 3: DI を更新**
+
+`DependenciesConfiguration.kt`:
+- import を更新: `UserPublicController`/`UserPublicControllerFactory` → `onboarding.OnboardingController`/`onboarding.OnboardingControllerFactory`、`RegisterFirstHouseholdScenario` を追加。
+- Scenario を provide(`// Controller Factory (30)` の直前):
+
+```kotlin
+        // Scenario (25)
+        provide<RegisterFirstHouseholdScenario> {
+            RegisterFirstHouseholdScenario(resolve(), resolve(), resolve())
+        }
+```
+
+- 旧 `provide<UserPublicControllerFactory> { ... }` を置換:
+
+```kotlin
+        provide<OnboardingControllerFactory> {
+            val scenario = resolve<RegisterFirstHouseholdScenario>()
+            val db = resolve<Database>()
+            OnboardingControllerFactory { session -> OnboardingController(scenario, session, db) }
+        }
+```
+
+- [ ] **Step 4: routing を更新**
+
+`RoutingConfiguration.kt`:
+- import: `UserPublicControllerFactory` → `onboarding.OnboardingControllerFactory`、`UserPublicRpcService` → `OnboardingRpcService`。
+- `val userPublicFactory: UserPublicControllerFactory by dependencies` → `val onboardingFactory: OnboardingControllerFactory by dependencies`。
+- `route("/user/public") { rpc { ... registerService<UserPublicRpcService> { userPublicFactory.create(session) } } }` を以下に置換(route パスは据え置きで frontend 改修を最小化):
+
+```kotlin
+            // 未登録でも通る初期化 route(register + bootstrap)
+            route("/user/public") {
+                rpc {
+                    val session = call.attributes[MindstockSessionKey]
+                    registerService<OnboardingRpcService> { onboardingFactory.create(session) }
+                }
+            }
+```
+
+> route パス `/user/public` は据え置き(改名は §6 未決。frontend の `open("user/public")` を変えずに済む)。
+
+- [ ] **Step 5: テストを移設 + Scenario mock に**
+
+`presentation/rpc/onboarding/OnboardingControllerTest.kt`(旧 `UserPublicControllerTest.kt` を移動して書き換え):
+
+```kotlin
+package net.brightroom.mindstock.presentation.rpc.onboarding
 
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
@@ -230,7 +793,7 @@ import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
 @OptIn(ExperimentalUuidApi::class)
-class UserPublicControllerTest :
+class OnboardingControllerTest :
     FunSpec({
         afterTest { unmockkAll() }
 
@@ -263,109 +826,74 @@ class UserPublicControllerTest :
                 block()
             }
 
-            val impl = UserPublicController(scenario, session, database)
+            val impl = OnboardingController(scenario, session, database)
             impl.register(displayName) shouldBe RpcResult.Ok(expected)
         }
     })
 ```
 
-- [ ] **Step 2: テストが失敗することを確認**
+旧 `UserPublicControllerTest.kt` は削除する。
 
-Run: `./gradlew :backend:api:test --tests "*UserPublicControllerTest*"`
-Expected: コンパイルエラー(`UserPublicController` の constructor が `RegisterFirstHouseholdScenario` を受け取らない)。
+- [ ] **Step 6: ビルド + テスト確認**
 
-- [ ] **Step 3: UserPublicController を Scenario 経由に変更**
+Run: `./gradlew :rpc:compileKotlinJvm :backend:api:test --tests "*OnboardingControllerTest*"`
+Expected: PASS(1 test)。`UserPublic*` を参照する箇所が他に無いことも確認(`grep -rn UserPublic backend rpc` が 0 件)。
 
-`backend/api/src/main/kotlin/net/brightroom/mindstock/presentation/rpc/user/UserPublicController.kt` を全置換:
-
-```kotlin
-package net.brightroom.mindstock.presentation.rpc.user
-
-import net.brightroom.mindstock.application.scenario.onboarding.RegisterFirstHouseholdScenario
-import net.brightroom.mindstock.configuration.auth.MindstockSession
-import net.brightroom.mindstock.configuration.transaction.tx
-import net.brightroom.mindstock.domain.model.user.profile.DisplayName
-import net.brightroom.mindstock.domain.model.user.profile.Profile
-import net.brightroom.mindstock.rpc.RpcError
-import net.brightroom.mindstock.rpc.RpcResult
-import net.brightroom.mindstock.rpc.UserPublicRpcService
-import org.jetbrains.exposed.v1.jdbc.Database
-
-class UserPublicController(
-    private val registerFirstHouseholdScenario: RegisterFirstHouseholdScenario,
-    private val session: MindstockSession,
-    private val database: Database,
-) : UserPublicRpcService {
-    override suspend fun register(displayName: DisplayName): RpcResult<Profile, RpcError> =
-        tx(database, session) {
-            RpcResult.Ok(registerFirstHouseholdScenario.run(session.identity, displayName))
-        }
-}
-```
-
-- [ ] **Step 4: DI を更新する**
-
-`backend/api/src/main/kotlin/net/brightroom/mindstock/configuration/di/DependenciesConfiguration.kt` を 2 箇所変更する。
-
-4a. import を追加(他の `application.scenario` import が無いので新規追加):
-
-```kotlin
-import net.brightroom.mindstock.application.scenario.onboarding.RegisterFirstHouseholdScenario
-```
-
-4b. `// Controller Factory (30)` コメントの直前(Stock Service の provide 群の後)に Scenario の provide を追加:
-
-```kotlin
-        // Scenario (25) — 複数 Service をまたぐユースケース
-        provide<RegisterFirstHouseholdScenario> {
-            RegisterFirstHouseholdScenario(resolve(), resolve(), resolve())
-        }
-```
-
-4c. 既存の `provide<UserPublicControllerFactory> { ... }` ブロックを以下で置換:
-
-```kotlin
-        provide<UserPublicControllerFactory> {
-            val scenario = resolve<RegisterFirstHouseholdScenario>()
-            val db = resolve<Database>()
-            UserPublicControllerFactory { session -> UserPublicController(scenario, session, db) }
-        }
-```
-
-（`RegisterFirstHouseholdScenario(resolve(), resolve(), resolve())` の 3 つの `resolve()` は宣言順に `UserRepository` / `UserRegisterService` / `HouseholdRegisterService` を解決する。いずれも既に provide 済み。）
-
-- [ ] **Step 5: テストが通ることを確認**
-
-Run: `./gradlew :backend:api:test --tests "*UserPublicControllerTest*"`
-Expected: PASS(1 test)。
-
-- [ ] **Step 6: コミット**
+- [ ] **Step 7: コミット**
 
 ```bash
-git add backend/api/src/main/kotlin/net/brightroom/mindstock/presentation/rpc/user/UserPublicController.kt \
-        backend/api/src/main/kotlin/net/brightroom/mindstock/configuration/di/DependenciesConfiguration.kt \
-        backend/api/src/test/kotlin/net/brightroom/mindstock/presentation/rpc/user/UserPublicControllerTest.kt
-git commit -m "feat(onboarding): UserPublicController.register を RegisterFirstHouseholdScenario 経由に
+git add -A
+git commit -m "refactor(rpc): UserPublicRpcService を OnboardingRpcService に改名し register を Scenario 経由に
 
 Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>"
 ```
 
 ---
 
-## Task 3: SessionResponse(wire DTO)+ resolveSession(純粋ロジック)
+## Task B3: SessionBootstrap 型 + bootstrap ロジック(純粋関数)
 
-session endpoint のレスポンス型と「`MindstockSession` → レスポンス」変換ロジックを、route 配線から切り離して単体テスト可能にする。route 自体のテストは JWKS 認証モックが重いため Task 4 では手動検証に留め、ロジックの正しさは本タスクの単体テストで担保する。
+bootstrap の「session → SessionBootstrap」変換を route/Controller から切り離し、単体テスト可能にする。
 
 **Files:**
-- Create: `backend/api/src/main/kotlin/net/brightroom/mindstock/presentation/http/session/SessionResponse.kt`
-- Test: `backend/api/src/test/kotlin/net/brightroom/mindstock/presentation/http/session/SessionResponseTest.kt`
+- Create: `rpc/src/commonMain/kotlin/net/brightroom/mindstock/rpc/SessionBootstrap.kt`
+- Create: `backend/api/.../presentation/rpc/onboarding/ResolveSessionBootstrap.kt`
+- Test: `backend/api/.../presentation/rpc/onboarding/ResolveSessionBootstrapTest.kt`
 
-- [ ] **Step 1: 失敗するテストを書く**
-
-`backend/api/src/test/kotlin/net/brightroom/mindstock/presentation/http/session/SessionResponseTest.kt`:
+- [ ] **Step 1: SessionBootstrap 型(`:rpc`)**
 
 ```kotlin
-package net.brightroom.mindstock.presentation.http.session
+package net.brightroom.mindstock.rpc
+
+import kotlinx.serialization.Serializable
+import net.brightroom.mindstock.domain.model.household.HouseholdId
+import net.brightroom.mindstock.domain.model.household.HouseholdName
+import net.brightroom.mindstock.domain.model.user.profile.DisplayName
+
+/**
+ * 起動時セッション初期化情報。`bootstrap()` の戻り値。
+ *
+ * KrpcJson(POLYMORPHIC discriminator)で wire を通るため sealed で表現でき、nullable を持たない。
+ */
+@Serializable
+sealed interface SessionBootstrap {
+    @Serializable
+    data object Unregistered : SessionBootstrap
+
+    @Serializable
+    data class Registered(
+        val displayName: DisplayName,
+        val householdId: HouseholdId,
+        val householdName: HouseholdName,
+    ) : SessionBootstrap
+}
+```
+
+- [ ] **Step 2: 失敗するテストを書く**
+
+`ResolveSessionBootstrapTest.kt`:
+
+```kotlin
+package net.brightroom.mindstock.presentation.rpc.onboarding
 
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
@@ -378,17 +906,19 @@ import net.brightroom.mindstock.configuration.auth.MindstockSession
 import net.brightroom.mindstock.domain.model.household.Household
 import net.brightroom.mindstock.domain.model.household.HouseholdId
 import net.brightroom.mindstock.domain.model.household.HouseholdMembers
+import net.brightroom.mindstock.domain.model.household.HouseholdName
 import net.brightroom.mindstock.domain.model.user.UserId
 import net.brightroom.mindstock.domain.model.user.auth.AuthIdentity
 import net.brightroom.mindstock.domain.model.user.auth.AuthProvider
 import net.brightroom.mindstock.domain.model.user.auth.AuthSubject
 import net.brightroom.mindstock.domain.model.user.profile.DisplayName
 import net.brightroom.mindstock.domain.model.user.profile.Profile
+import net.brightroom.mindstock.rpc.SessionBootstrap
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
 @OptIn(ExperimentalUuidApi::class)
-class SessionResponseTest :
+class ResolveSessionBootstrapTest :
     FunSpec({
 
         val identity = AuthIdentity(AuthProvider.ZITADEL, AuthSubject("sub-1"))
@@ -401,199 +931,201 @@ class SessionResponseTest :
                 callId = Uuid.random(),
             )
 
-        test("userId が null(未登録)なら registered=false を返し Service を呼ばない") {
+        test("userId が null(未登録)なら Unregistered を返し Service を呼ばない") {
             val userService = mockk<UserService>()
             val householdService = mockk<HouseholdService>()
 
-            val result = resolveSession(session(userId = null), userService, householdService)
-
-            result shouldBe SessionResponse(registered = false)
+            resolveSessionBootstrap(session(userId = null), userService, householdService) shouldBe
+                SessionBootstrap.Unregistered
         }
 
-        test("登録済みなら displayName と householdId を載せた registered=true を返す") {
+        test("登録済みなら Registered(displayName / householdId / householdName)を返す") {
             val userId = UserId(Uuid.parse("00000000-0000-0000-0000-000000000001"))
             val householdId = HouseholdId(Uuid.parse("00000000-0000-0000-0000-0000000000aa"))
             val userService = mockk<UserService>()
             val householdService = mockk<HouseholdService>()
 
             every { userService.findById(userId) } returns Profile(userId, DisplayName("Alice"))
-            every { householdService.findOf(userId) } returns Household(householdId, HouseholdMembers(emptyList()))
+            every { householdService.findOf(userId) } returns
+                Household(householdId, HouseholdName("Aliceの家"), HouseholdMembers(emptyList()))
 
-            val result = resolveSession(session(userId = userId), userService, householdService)
-
-            result shouldBe
-                SessionResponse(
-                    registered = true,
-                    displayName = "Alice",
-                    householdId = householdId.toString(),
+            resolveSessionBootstrap(session(userId = userId), userService, householdService) shouldBe
+                SessionBootstrap.Registered(
+                    displayName = DisplayName("Alice"),
+                    householdId = householdId,
+                    householdName = HouseholdName("Aliceの家"),
                 )
         }
     })
 ```
 
-> 注: `HouseholdMembers(val list: List<HouseholdMember>)` / `Household(val id, val members)` はいずれも data class(確認済み)。`HouseholdMembers(emptyList())` でよい。
+- [ ] **Step 3: テスト失敗を確認**
 
-- [ ] **Step 2: テストが失敗することを確認**
+Run: `./gradlew :backend:api:test --tests "*ResolveSessionBootstrapTest*"`
+Expected: コンパイルエラー(`resolveSessionBootstrap` / `SessionBootstrap` 未解決)。
 
-Run: `./gradlew :backend:api:test --tests "*SessionResponseTest*"`
-Expected: コンパイルエラー(`SessionResponse` / `resolveSession` 未定義)。
+- [ ] **Step 4: 実装**
 
-- [ ] **Step 3: 最小実装を書く**
-
-`backend/api/src/main/kotlin/net/brightroom/mindstock/presentation/http/session/SessionResponse.kt`:
+`ResolveSessionBootstrap.kt`:
 
 ```kotlin
-package net.brightroom.mindstock.presentation.http.session
+package net.brightroom.mindstock.presentation.rpc.onboarding
 
-import kotlinx.serialization.Serializable
 import net.brightroom.mindstock.application.service.household.HouseholdService
 import net.brightroom.mindstock.application.service.user.UserService
 import net.brightroom.mindstock.configuration.auth.MindstockSession
+import net.brightroom.mindstock.rpc.SessionBootstrap
 
 /**
- * 起動時ブートストラップ用の薄い HTTP レスポンス(`GET /api/v1/auth/session`)。
+ * session から起動時初期化情報を組み立てる。
  *
- * CustomJson(`ClassDiscriminatorMode.NONE` + snake_case + `encodeDefaults`)でシリアライズされるため、
- * sealed polymorphic を避けフラットな data class で表現する。wire のキーは `registered` /
- * `display_name` / `household_id`。registered=false のとき displayName / householdId は空文字(意味なし)。
- */
-@Serializable
-data class SessionResponse(
-    val registered: Boolean,
-    val displayName: String = "",
-    val householdId: String = "",
-)
-
-/**
- * [MindstockSession] からブートストラップ用レスポンスを組み立てる。
- *
- * - userId が null(JWT 有効・User 未登録)→ registered=false
- * - userId 非 null(登録済み)→ displayName / householdId を載せる
- *   (オンボーディング設計上、登録済みなら世帯は必ず存在する)
+ * - userId が null(JWT 有効・User 未登録)→ Unregistered
+ * - userId 非 null(登録済み)→ Registered(displayName / householdId / householdName)
+ *   登録済みなら世帯は必ず存在する(オンボーディングが原子的に作る)。
  *
  * DB アクセスを含むため、呼び出し側が transaction 境界を張る。
  */
-fun resolveSession(
+fun resolveSessionBootstrap(
     session: MindstockSession,
     userService: UserService,
     householdService: HouseholdService,
-): SessionResponse {
-    val userId = session.userId ?: return SessionResponse(registered = false)
+): SessionBootstrap {
+    val userId = session.userId ?: return SessionBootstrap.Unregistered
     val profile = userService.findById(userId)
     val household = householdService.findOf(userId)
-    return SessionResponse(
-        registered = true,
-        displayName = profile.displayName(),
-        householdId = household.id.toString(),
+    return SessionBootstrap.Registered(
+        displayName = profile.displayName,
+        householdId = household.id,
+        householdName = household.name,
     )
 }
 ```
 
-> 注: `profile.displayName` は `DisplayName` VO。文字列は `profile.displayName()`(`operator fun invoke(): String`)で取り出す。`household.id.toString()` は `HouseholdId.toString()`(内部 Uuid の文字列)。
+- [ ] **Step 5: テスト成功を確認**
 
-- [ ] **Step 4: テストが通ることを確認**
-
-Run: `./gradlew :backend:api:test --tests "*SessionResponseTest*"`
+Run: `./gradlew :backend:api:test --tests "*ResolveSessionBootstrapTest*"`
 Expected: PASS(2 tests)。
 
-- [ ] **Step 5: コミット**
+- [ ] **Step 6: コミット**
 
 ```bash
-git add backend/api/src/main/kotlin/net/brightroom/mindstock/presentation/http/session/SessionResponse.kt \
-        backend/api/src/test/kotlin/net/brightroom/mindstock/presentation/http/session/SessionResponseTest.kt
-git commit -m "feat(onboarding): session bootstrap の SessionResponse と resolveSession を追加
+git add rpc/src/commonMain/kotlin/net/brightroom/mindstock/rpc/SessionBootstrap.kt \
+        backend/api/src/main/kotlin/net/brightroom/mindstock/presentation/rpc/onboarding/ResolveSessionBootstrap.kt \
+        backend/api/src/test/kotlin/net/brightroom/mindstock/presentation/rpc/onboarding/ResolveSessionBootstrapTest.kt
+git commit -m "feat(onboarding): SessionBootstrap 型と resolveSessionBootstrap ロジックを追加
 
 Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>"
 ```
 
 ---
 
-## Task 4: session endpoint の route 配線(GET /api/v1/auth/session)
+## Task B4: bootstrap() を OnboardingRpcService に追加 + 配線
 
 **Files:**
-- Modify: `backend/api/src/main/kotlin/net/brightroom/mindstock/configuration/routing/RoutingConfiguration.kt`
+- Modify: `rpc/.../OnboardingRpcService.kt`
+- Modify: `backend/api/.../presentation/rpc/onboarding/OnboardingController.kt`(+ Factory に Service 注入)
+- Modify: `backend/api/.../configuration/di/DependenciesConfiguration.kt`
+- Test: `backend/api/.../presentation/rpc/onboarding/OnboardingControllerTest.kt`
 
-route のロジックは Task 3 の `resolveSession` で単体テスト済み。本タスクは配線のみで、自動テストは付けない(`MindstockAuthPlugin` の JWKS 検証を通す TestApplication は重く、本プランの ROI に合わない)。代わりに Step 4 で手動検証する。
+- [ ] **Step 1: interface に bootstrap を追加**
 
-- [ ] **Step 1: import と依存解決を追加**
-
-`RoutingConfiguration.kt` の import 群に以下を追加:
+`OnboardingRpcService.kt` に追記:
 
 ```kotlin
-import io.ktor.server.response.respond
-import io.ktor.server.routing.get
-import net.brightroom.mindstock.application.service.household.HouseholdService
-import net.brightroom.mindstock.application.service.user.UserService
-import net.brightroom.mindstock.presentation.http.session.resolveSession
-import org.jetbrains.exposed.v1.jdbc.transactions.experimental.newSuspendedTransaction
+import net.brightroom.mindstock.domain.model.user.profile.DisplayName
+// SessionBootstrap は同 :rpc パッケージ
+// ...
+    suspend fun bootstrap(): RpcResult<SessionBootstrap, RpcError>
 ```
 
-関数冒頭の `by dependencies` 群(`val database: Database by dependencies` がある箇所)に 2 つ追加:
+- [ ] **Step 2: Controller に bootstrap を実装(UserService/HouseholdService を注入)**
+
+`OnboardingController.kt` の constructor に `userService` / `householdService` を追加し、bootstrap を実装:
 
 ```kotlin
-    val userService: UserService by dependencies
-    val householdService: HouseholdService by dependencies
+class OnboardingController(
+    private val registerFirstHouseholdScenario: RegisterFirstHouseholdScenario,
+    private val userService: net.brightroom.mindstock.application.service.user.UserService,
+    private val householdService: net.brightroom.mindstock.application.service.household.HouseholdService,
+    private val session: MindstockSession,
+    private val database: Database,
+) : OnboardingRpcService {
+    override suspend fun register(displayName: DisplayName): RpcResult<Profile, RpcError> =
+        tx(database, session) {
+            RpcResult.Ok(registerFirstHouseholdScenario.run(session.identity, displayName))
+        }
+
+    override suspend fun bootstrap(): RpcResult<net.brightroom.mindstock.rpc.SessionBootstrap, RpcError> =
+        tx(database, session) {
+            RpcResult.Ok(resolveSessionBootstrap(session, userService, householdService))
+        }
+}
 ```
 
-- [ ] **Step 2: route を追加**
+- [ ] **Step 3: DI を更新(Factory に Service 注入)**
 
-`route("/api/v1") { install(MindstockAuthPlugin) { ... } ... }` の中、`install(MindstockAuthPlugin) { ... }` ブロックの**直後**かつ `route("/user/public") { ... }` の**直前**に以下を挿入(= `MindstockAuthPlugin` の内側 / `RequireRegisteredUserPlugin` の外側):
+`DependenciesConfiguration.kt` の `provide<OnboardingControllerFactory>` を置換:
 
 ```kotlin
-            // 起動時ブートストラップ。JWT 有効なら 200(registered で登録判定)、無効なら
-            // MindstockAuthPlugin が 401 を返す。RequireRegisteredUserPlugin の外側に置くことで
-            // 未登録 User も registered=false を受け取れる。
-            get("/auth/session") {
-                val session = call.attributes[MindstockSessionKey]
-                val response =
-                    newSuspendedTransaction(db = database) {
-                        resolveSession(session, userService, householdService)
-                    }
-                call.respond(response)
+        provide<OnboardingControllerFactory> {
+            val scenario = resolve<RegisterFirstHouseholdScenario>()
+            val us = resolve<UserService>()
+            val hs = resolve<HouseholdService>()
+            val db = resolve<Database>()
+            OnboardingControllerFactory { session -> OnboardingController(scenario, us, hs, session, db) }
+        }
+```
+
+(`UserService` / `HouseholdService` は既に provide 済み。import 追加が必要なら足す。)
+
+- [ ] **Step 4: Controller テストに bootstrap ケースを追加**
+
+`OnboardingControllerTest.kt` に test を追加(constructor 変更に伴い既存 test の `OnboardingController(...)` 生成も引数を合わせる):
+
+```kotlin
+        test("bootstrap は未登録なら Unregistered を返す") {
+            val scenario = mockk<RegisterFirstHouseholdScenario>()
+            val userService = mockk<net.brightroom.mindstock.application.service.user.UserService>()
+            val householdService = mockk<net.brightroom.mindstock.application.service.household.HouseholdService>()
+            val database = mockk<Database>()
+            val session =
+                MindstockSession(
+                    identity = AuthIdentity(AuthProvider.ZITADEL, AuthSubject("sub-1")),
+                    userId = null,
+                    exp = Instant.fromEpochMilliseconds(Long.MAX_VALUE),
+                    callId = Uuid.random(),
+                )
+
+            mockkStatic("net.brightroom.mindstock.configuration.transaction.TransactionKt")
+            coEvery {
+                net.brightroom.mindstock.configuration.transaction
+                    .tx<net.brightroom.mindstock.rpc.SessionBootstrap>(any(), any(), any())
+            } coAnswers {
+                val block = arg<suspend () -> RpcResult<net.brightroom.mindstock.rpc.SessionBootstrap, RpcError>>(2)
+                block()
             }
+
+            val impl = OnboardingController(scenario, userService, householdService, session, database)
+            impl.bootstrap() shouldBe RpcResult.Ok(net.brightroom.mindstock.rpc.SessionBootstrap.Unregistered)
+        }
 ```
 
-（`MindstockSessionKey` は既に import 済み。JWT 無効時は `MindstockAuthPlugin` が `call.respond(HttpStatusCode.Unauthorized)` 済みのため、この handler に到達した時点で session は必ず存在する。）
+既存の register テストの `OnboardingController(scenario, session, database)` を `OnboardingController(scenario, mockk(), mockk(), session, database)` に直す。
 
-- [ ] **Step 3: ビルドが通ることを確認**
+- [ ] **Step 5: ビルド + テスト確認**
 
-Run: `./gradlew :backend:api:compileKotlin`
-Expected: BUILD SUCCESSFUL。
+Run: `./gradlew :rpc:compileKotlinJvm :backend:api:test --tests "*OnboardingControllerTest*"`
+Expected: PASS(2 tests)。
 
-- [ ] **Step 4: 手動検証(ローカル起動 + curl)**
+- [ ] **Step 6: 手動検証(任意 / ローカル)**
 
-`MindstockAuthPlugin` は token を `Authorization` ヘッダではなく **`Sec-WebSocket-Protocol`**(`mindstock.bearer.<base64url(jwt)>`)からのみ抽出する(`WsBearerTokenExtractor`。REST/Authorization 経路は持たない)。HTTP GET でもこのヘッダは送れる(frontend の `RpcClientFactory.openRaw` が同じ経路を実証済み)ので、session endpoint も同じヘッダで叩く。
+bootstrap は WS RPC なので、frontend(Plan 1b)接続時に検証するのが本筋。backend 単体では in-memory kRPC transport テスト or 起動 + frontend で確認。本タスクでは単体テストでロジックを担保済みとし、E2E は Plan 1b に委ねる。
 
-ローカルの PostgreSQL + Zitadel を起動した上で backend を起動する(`compose.yml` 利用)。
-
-Run: `./gradlew :backend:api:run`(別ターミナル)
-
-検証(`<token>` は Zitadel から取得した有効な access token):
+- [ ] **Step 7: コミット**
 
 ```bash
-# token を base64url(padding 無し)に変換。frontend の Base64.UrlSafe.trimEnd('=') と同じ。
-TOKEN='<有効な access token>'
-B64=$(python3 -c "import base64,sys;print(base64.urlsafe_b64encode(sys.argv[1].encode()).decode().rstrip('='))" "$TOKEN")
-
-# 1) token 無し → 401
-curl -i http://localhost:8080/api/v1/auth/session
-# Expected: HTTP/1.1 401
-
-# 2) 有効トークン・未登録 User → 200 {"registered":false,...}
-curl -i \
-  -H "Sec-WebSocket-Protocol: mindstock.v1" \
-  -H "Sec-WebSocket-Protocol: mindstock.bearer.$B64" \
-  http://localhost:8080/api/v1/auth/session
-# Expected: HTTP/1.1 200, body に "registered":false(snake_case: display_name / household_id)
-```
-
-> 補足: 登録済み User(registered=true)の検証は、frontend(Plan 1b)で register を通した後に同じ curl を打つか、1b の E2E に委ねる。route ロジック自体は Task 3 の単体テストで担保済み。
-
-- [ ] **Step 5: コミット**
-
-```bash
-git add backend/api/src/main/kotlin/net/brightroom/mindstock/configuration/routing/RoutingConfiguration.kt
-git commit -m "feat(onboarding): GET /api/v1/auth/session ブートストラップ endpoint を配線
+git add -A
+git commit -m "feat(onboarding): bootstrap() RPC を追加し UserService/HouseholdService を配線
 
 Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>"
 ```
@@ -602,11 +1134,13 @@ Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>"
 
 ## 完了条件
 
-- [ ] `./gradlew :backend:core:test :backend:api:test` がグリーン(`-Dkotest.tags.exclude` のデフォルトで integration を除外した状態)
-- [ ] `./gradlew :backend:api:compileKotlin` が成功
-- [ ] 手動検証(Task 4 Step 4)で 401 / registered=false が確認できる
-- [ ] `RegisterFirstHouseholdScenario` の冪等性テストがグリーン(2 回実行相当=登録済みパスで register/create が呼ばれない)
+- [ ] `./gradlew :domain:allTests :backend:core:test :backend:api:test` がグリーン(integration 除外のデフォルト)
+- [ ] `./gradlew :backend:api:integrationTest --tests "*HouseholdDataSourceIntegrationTest*" --max-workers=1` がグリーン(household_names migration 適用 + 世帯名 hydrate)
+- [ ] `grep -rn "UserPublic" backend rpc`(build ディレクトリ除く)が 0 件
+- [ ] `RegisterFirstHouseholdScenario` の冪等性テスト + `resolveSessionBootstrap` の 2 状態テストがグリーン
 
 ## このプランで扱わないこと(後続)
 
-- frontend の AuthViewModel / AppSession / RPC 統合 / navigation-compose 導入は **Plan 1b(frontend)** で扱う。frontend から session endpoint を叩く配線(`Sec-WebSocket-Protocol` ヘッダ付き HTTP GET)も 1b のスコープ。
+- frontend(`App.kt` の `register` 呼び出しと、ping → `bootstrap()` 置き換え、AuthViewModel / nav-compose / AppSession)は **Plan 1b**。route パス `/api/v1/user/public` は据え置いたので frontend の `open("user/public")` 変更は不要(改名するなら 1b で同時に)。
+- `OnboardingRpcService` の route パス改名(§6 未決)、`HouseholdName` 最大長の最終確定(本プランは 100)。
+- `CatalogItem.unit` → `Product` 移動は独立 Plan。
