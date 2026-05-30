@@ -137,6 +137,8 @@ Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>"
 
 ## Task A2: Household に name を追加(破壊的変更の追従)
 
+> ⚠️ **実行単位の注意**: 本タスク(A2)は単独ではコンパイルが通らない。`Household` の constructor 変更で `hydrateHousehold` とその呼び出し元(`HouseholdRegisterDataSource` / `HouseholdDataSource`)が赤になり、**green になるのは A5 完了時点**。よって **A2〜A5 を 1 つの作業単位として連続実行**すること。subagent-driven で進める場合は A2〜A5 を **1 subagent にまとめて渡し**、タスク間の green gate は A5 の後に置く(A2/A3/A4 個別の「コンパイル green」を完了条件にしない)。inline 実行ならそのまま順に流す。A1(VO)と A6(migration)は単独で green。
+
 **Files:**
 - Modify: `domain/src/commonMain/kotlin/net/brightroom/mindstock/domain/model/household/Household.kt`
 - Modify: `backend/core/src/main/kotlin/net/brightroom/mindstock/infrastructure/datasource/household/HouseholdHydration.kt`
@@ -888,6 +890,16 @@ sealed interface SessionBootstrap {
 }
 ```
 
+- [ ] **Step 1b: UserService に findByIdentity を追加**
+
+`backend/core/src/main/kotlin/net/brightroom/mindstock/application/service/user/UserService.kt` にメソッドを追加(`UserRepository.findProfileByAuthIdentity` を素通し。不在は例外で上層へ伝播):
+
+```kotlin
+import net.brightroom.mindstock.domain.model.user.auth.AuthIdentity
+// ... class UserService 内
+    fun findByIdentity(identity: AuthIdentity): Profile = userRepository.findProfileByAuthIdentity(identity)
+```
+
 - [ ] **Step 2: 失敗するテストを書く**
 
 `ResolveSessionBootstrapTest.kt`:
@@ -903,6 +915,7 @@ import kotlinx.datetime.Instant
 import net.brightroom.mindstock.application.service.household.HouseholdService
 import net.brightroom.mindstock.application.service.user.UserService
 import net.brightroom.mindstock.configuration.auth.MindstockSession
+import net.brightroom.mindstock.domain.exception.ResourceNotFoundException
 import net.brightroom.mindstock.domain.model.household.Household
 import net.brightroom.mindstock.domain.model.household.HouseholdId
 import net.brightroom.mindstock.domain.model.household.HouseholdMembers
@@ -922,8 +935,10 @@ class ResolveSessionBootstrapTest :
     FunSpec({
 
         val identity = AuthIdentity(AuthProvider.ZITADEL, AuthSubject("sub-1"))
+        val userId = UserId(Uuid.parse("00000000-0000-0000-0000-000000000001"))
 
-        fun session(userId: UserId?) =
+        // userId フィールドは handshake 時の値で bootstrap は使わない(identity で引き直す)。
+        fun session() =
             MindstockSession(
                 identity = identity,
                 userId = userId,
@@ -931,25 +946,26 @@ class ResolveSessionBootstrapTest :
                 callId = Uuid.random(),
             )
 
-        test("userId が null(未登録)なら Unregistered を返し Service を呼ばない") {
+        test("identity の User が存在しなければ Unregistered を返す") {
             val userService = mockk<UserService>()
             val householdService = mockk<HouseholdService>()
 
-            resolveSessionBootstrap(session(userId = null), userService, householdService) shouldBe
+            every { userService.findByIdentity(identity) } throws ResourceNotFoundException("user not found")
+
+            resolveSessionBootstrap(session(), userService, householdService) shouldBe
                 SessionBootstrap.Unregistered
         }
 
-        test("登録済みなら Registered(displayName / householdId / householdName)を返す") {
-            val userId = UserId(Uuid.parse("00000000-0000-0000-0000-000000000001"))
+        test("identity の User が存在すれば Registered(displayName / householdId / householdName)を返す") {
             val householdId = HouseholdId(Uuid.parse("00000000-0000-0000-0000-0000000000aa"))
             val userService = mockk<UserService>()
             val householdService = mockk<HouseholdService>()
 
-            every { userService.findById(userId) } returns Profile(userId, DisplayName("Alice"))
+            every { userService.findByIdentity(identity) } returns Profile(userId, DisplayName("Alice"))
             every { householdService.findOf(userId) } returns
                 Household(householdId, HouseholdName("Aliceの家"), HouseholdMembers(emptyList()))
 
-            resolveSessionBootstrap(session(userId = userId), userService, householdService) shouldBe
+            resolveSessionBootstrap(session(), userService, householdService) shouldBe
                 SessionBootstrap.Registered(
                     displayName = DisplayName("Alice"),
                     householdId = householdId,
@@ -974,25 +990,34 @@ package net.brightroom.mindstock.presentation.rpc.onboarding
 import net.brightroom.mindstock.application.service.household.HouseholdService
 import net.brightroom.mindstock.application.service.user.UserService
 import net.brightroom.mindstock.configuration.auth.MindstockSession
+import net.brightroom.mindstock.domain.exception.ResourceNotFoundException
 import net.brightroom.mindstock.rpc.SessionBootstrap
 
 /**
  * session から起動時初期化情報を組み立てる。
  *
- * - userId が null(JWT 有効・User 未登録)→ Unregistered
- * - userId 非 null(登録済み)→ Registered(displayName / householdId / householdName)
+ * **重要**: `session.userId` は WS handshake 時に固定された値で、同一接続で `register()` した
+ * 直後はまだ `null` のまま(`MindstockSession` は接続単位 immutable)。よって登録状態は
+ * `session.identity` で DB を引き直して判定する。
+ *
+ * - identity の User が存在しない(ResourceNotFoundException)→ Unregistered
+ * - 存在する → Registered(displayName / householdId / householdName)
  *   登録済みなら世帯は必ず存在する(オンボーディングが原子的に作る)。
  *
- * DB アクセスを含むため、呼び出し側が transaction 境界を張る。
+ * 例外 → 値の変換は presentation の腐敗防止。DB アクセスを含むため呼び出し側が transaction 境界を張る。
  */
 fun resolveSessionBootstrap(
     session: MindstockSession,
     userService: UserService,
     householdService: HouseholdService,
 ): SessionBootstrap {
-    val userId = session.userId ?: return SessionBootstrap.Unregistered
-    val profile = userService.findById(userId)
-    val household = householdService.findOf(userId)
+    val profile =
+        try {
+            userService.findByIdentity(session.identity)
+        } catch (e: ResourceNotFoundException) {
+            return SessionBootstrap.Unregistered
+        }
+    val household = householdService.findOf(profile.userId)
     return SessionBootstrap.Registered(
         displayName = profile.displayName,
         householdId = household.id,
@@ -1095,6 +1120,10 @@ class OnboardingController(
                     exp = Instant.fromEpochMilliseconds(Long.MAX_VALUE),
                     callId = Uuid.random(),
                 )
+
+            // bootstrap は identity で DB を引き直す。未登録は findByIdentity が例外を投げることで表現。
+            every { userService.findByIdentity(any()) } throws
+                net.brightroom.mindstock.domain.exception.ResourceNotFoundException("not found")
 
             mockkStatic("net.brightroom.mindstock.configuration.transaction.TransactionKt")
             coEvery {
