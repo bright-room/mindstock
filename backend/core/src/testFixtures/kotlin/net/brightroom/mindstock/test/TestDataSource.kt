@@ -32,7 +32,9 @@ object TestDataSource {
                 jdbcUrl = dbUrl
                 username = dbUser
                 password = dbPassword
-                maximumPoolSize = 4
+                // 単発 DDL(CREATE/DROP SCHEMA)を流すだけなので 1 接続で足りる。
+                // テスト並列・連続実行時の Postgres 接続枯渇を避けるためキャップする。
+                maximumPoolSize = 1
                 isAutoCommit = false
             }
         val ds = HikariDataSource(config)
@@ -106,6 +108,12 @@ fun testHikariDataSource(
             this.jdbcUrl = jdbcUrl
             this.username = username
             this.password = password
+            // Flyway は PostgreSQL のセッションロック用に 1 接続を保持したまま
+            // マイグレーション実行用にもう 1 接続を要求するため、最低 2 必要
+            // (pool=1 だと self-deadlock で 30s タイムアウトする)。
+            // default の 10 は接続枯渇の主因なので、必要最小限の 2 に絞る。
+            maximumPoolSize = 2
+            minimumIdle = 2
         }
     return HikariDataSource(config)
 }

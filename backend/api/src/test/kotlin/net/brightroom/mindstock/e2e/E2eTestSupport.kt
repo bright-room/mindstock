@@ -96,6 +96,9 @@ fun e2eTest(block: suspend E2eContext.() -> Unit) {
                                 "external.datasource.database.jdbc-url" to jdbcUrl,
                                 "external.datasource.database.username" to TestDataSource.user,
                                 "external.datasource.database.password" to TestDataSource.password,
+                                // 本番 application.yaml は maximum-pool-size: 10。テストでは
+                                // RPC を概ね直列に叩くため 2 で足り、接続枯渇を防ぐ。
+                                "external.datasource.database.maximum-pool-size" to "2",
                                 "external.auth.issuer" to TestJwtIssuer.DEFAULT_ISSUER,
                                 "external.auth.audience" to TestJwtIssuer.DEFAULT_AUDIENCE,
                                 "external.auth.jwks-url" to SharedJwksServer.jwksUrl,
