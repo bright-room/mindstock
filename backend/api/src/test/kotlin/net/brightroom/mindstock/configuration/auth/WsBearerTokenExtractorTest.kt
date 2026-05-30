@@ -14,10 +14,7 @@ import java.util.Base64
 
 class WsBearerTokenExtractorTest :
     FunSpec({
-        suspend fun extractedTokenWith(
-            authHeader: String? = null,
-            wsProtocol: String? = null,
-        ): String? {
+        suspend fun extractedTokenWith(wsProtocol: String? = null): String? {
             var captured: String? = null
             testApplication {
                 application {
@@ -29,34 +26,20 @@ class WsBearerTokenExtractorTest :
                     }
                 }
                 client.get("/probe") {
-                    if (authHeader != null) header(HttpHeaders.Authorization, authHeader)
                     if (wsProtocol != null) header(HttpHeaders.SecWebSocketProtocol, wsProtocol)
                 }
             }
             return captured
         }
 
-        test("returns null when no auth header and no Sec-WebSocket-Protocol") {
+        test("returns null when no Sec-WebSocket-Protocol") {
             extractedTokenWith().shouldBeNull()
-        }
-
-        test("returns token from Authorization Bearer header") {
-            extractedTokenWith(authHeader = "Bearer abc.def.ghi") shouldBe "abc.def.ghi"
         }
 
         test("returns token from Sec-WebSocket-Protocol when it has a mindstock.bearer entry") {
             val token = "abc.def.ghi"
             val b64 = Base64.getUrlEncoder().withoutPadding().encodeToString(token.toByteArray())
             extractedTokenWith(wsProtocol = "mindstock.v1, mindstock.bearer.$b64") shouldBe token
-        }
-
-        test("prefers Authorization header over Sec-WebSocket-Protocol when both present") {
-            val token = "ws.token"
-            val b64 = Base64.getUrlEncoder().withoutPadding().encodeToString(token.toByteArray())
-            extractedTokenWith(
-                authHeader = "Bearer auth.token",
-                wsProtocol = "mindstock.v1, mindstock.bearer.$b64",
-            ) shouldBe "auth.token"
         }
 
         test("returns null when Sec-WebSocket-Protocol has no mindstock.bearer entry") {
@@ -67,5 +50,13 @@ class WsBearerTokenExtractorTest :
             val token = "abc"
             val b64 = Base64.getUrlEncoder().withoutPadding().encodeToString(token.toByteArray())
             extractedTokenWith(wsProtocol = "mindstock.v1 ,  mindstock.bearer.$b64") shouldBe token
+        }
+
+        test("returns null (fail-closed) when multiple mindstock.bearer entries are present") {
+            val first = Base64.getUrlEncoder().withoutPadding().encodeToString("first".toByteArray())
+            val second = Base64.getUrlEncoder().withoutPadding().encodeToString("second".toByteArray())
+            extractedTokenWith(
+                wsProtocol = "mindstock.v1, mindstock.bearer.$first, mindstock.bearer.$second",
+            ).shouldBeNull()
         }
     })

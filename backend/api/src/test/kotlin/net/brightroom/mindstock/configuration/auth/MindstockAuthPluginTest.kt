@@ -26,7 +26,7 @@ import java.util.concurrent.TimeUnit
  */
 class MindstockAuthPluginTest :
     FunSpec({
-        test("Authorization header 無し → 401, MindstockSession 属性は付かない") {
+        test("認証情報無し(token なし)→ 401, MindstockSession 属性は付かない") {
             var sessionSeen = false
             testApplication {
                 application {

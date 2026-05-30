@@ -1,7 +1,6 @@
 package net.brightroom.mindstock.e2e
 
 import io.ktor.client.HttpClient
-import io.ktor.client.request.HttpRequestBuilder
 import io.ktor.http.ContentType
 import io.ktor.http.HttpHeaders
 import io.ktor.server.application.call
@@ -167,25 +166,41 @@ class E2eContext(
         return authenticatedRpcClientWithToken(token = token, path = path)
     }
 
-    /** 任意の token で接続(エラーケース検証用)。 */
+    /**
+     * 任意の token で接続(エラーケース検証用)。
+     *
+     * 本番フロント([RpcClientFactory])と同じく `Sec-WebSocket-Protocol` の
+     * `mindstock.bearer.<base64url(jwt)>` で token を運ぶ。テストが本番経路を踏むことで
+     * 認証経路の忠実性を担保する。
+     */
     fun authenticatedRpcClientWithToken(
-        token: String,
-        path: String,
-    ): RpcClient =
-        httpClient
-            .rpc("/api/v1/$path") {
-                authorize(token)
-            }.also { opened += it }
-
-    /** Sec-WebSocket-Protocol で token を渡して接続する。 */
-    fun authenticatedRpcClientViaWsProtocol(
         token: String,
         path: String,
     ): RpcClient {
         val b64 = Base64.getUrlEncoder().withoutPadding().encodeToString(token.toByteArray())
         return httpClient
             .rpc("/api/v1/$path") {
-                headers.append(HttpHeaders.SecWebSocketProtocol, "mindstock.v1, mindstock.bearer.$b64")
+                // 本番ブラウザ([RpcClientFactory])と同じく subprotocol を 2 本に分けて送る。
+                headers.append(HttpHeaders.SecWebSocketProtocol, "mindstock.v1")
+                headers.append(HttpHeaders.SecWebSocketProtocol, "mindstock.bearer.$b64")
+            }.also { opened += it }
+    }
+
+    /**
+     * 2 つの `mindstock.bearer.*` entry を同時に提示して接続(fail-closed 検証用)。
+     * 各 token 単体なら有効でも、曖昧なため extractor が null を返し 401 になることを確認する。
+     */
+    fun rpcClientWithDuplicateBearer(
+        firstToken: String,
+        secondToken: String,
+        path: String,
+    ): RpcClient {
+        fun encode(token: String) = Base64.getUrlEncoder().withoutPadding().encodeToString(token.toByteArray())
+        return httpClient
+            .rpc("/api/v1/$path") {
+                headers.append(HttpHeaders.SecWebSocketProtocol, "mindstock.v1")
+                headers.append(HttpHeaders.SecWebSocketProtocol, "mindstock.bearer.${encode(firstToken)}")
+                headers.append(HttpHeaders.SecWebSocketProtocol, "mindstock.bearer.${encode(secondToken)}")
             }.also { opened += it }
     }
 
@@ -193,8 +208,4 @@ class E2eContext(
         opened.forEach { it.close("e2e test completed") }
         opened.clear()
     }
-}
-
-private fun HttpRequestBuilder.authorize(token: String) {
-    headers.append(HttpHeaders.Authorization, "Bearer $token")
 }
