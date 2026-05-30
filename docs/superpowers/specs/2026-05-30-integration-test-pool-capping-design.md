@@ -97,9 +97,12 @@ default 30s 後に例外)**に変わり得る。E2E は RPC を概ね直列に�
 ### 2. 連続実行で stale 結果を見ない
 
 **`backend/api/build.gradle.kts`** の `integrationTest` タスクに
-**`outputs.upToDateWhen { false }`** を追加。外部 DB に当てる統合テストは毎回実行が正で、
-`cleanIntegrationTest` を都度付ける運用が不要になる。
+**`doNotTrackState("integration tests run against a live external DB")`** を追加。外部 DB に
+当てる統合テストは毎回実行が正で、`cleanIntegrationTest` を都度付ける運用が不要になる。
 
+- `doNotTrackState` は **UP-TO-DATE チェックとビルドキャッシュの両方** を無効化する。
+  `outputs.upToDateWhen { false }` は UP-TO-DATE しか無効化せず、`org.gradle.caching=true`
+  環境では `@CacheableTask` の Test タスクが FROM-CACHE で復元され実行をスキップしうるため不可。
 - 留意: `tasks.check { dependsOn(integrationTest) }` のため、`check`/`build` 経由でも
   毎回 integrationTest が走る(意図どおり。外部 DB 依存テストはキャッシュさせない)。
 

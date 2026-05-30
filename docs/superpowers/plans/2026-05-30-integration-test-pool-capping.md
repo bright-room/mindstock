@@ -30,7 +30,7 @@
 **Files:**
 - Modify: `backend/core/src/testFixtures/kotlin/net/brightroom/mindstock/test/TestDataSource.kt`
 
-このファイルは 2 つのプール生成元を持つ。`create()`(schema 作成/破棄の root DS、現状 pool=4)と `testHikariDataSource()`(seed/Flyway 用、現状プール未指定=HikariCP default 10)。両方を 1 に絞る。HikariCP は `minimumIdle = maximumPoolSize` が default なので、`maximumPoolSize = 1` にすると生成時に開く接続も 1 になる。
+このファイルは 2 つのプール生成元を持つ。`create()`(schema 作成/破棄の root DS、現状 pool=4)と `testHikariDataSource()`(seed/Flyway 用、現状プール未指定=HikariCP default 10)。**`create()` は 1、`testHikariDataSource()` は 2 に絞る**。HikariCP は `minimumIdle = maximumPoolSize` が default なので、生成時に開く接続もそれぞれ 1 / 2 になる。`create()` は単発 DDL のみなので 1 で足りるが、`testHikariDataSource()` は Flyway がセッションロック + マイグレーションで最低 2 接続を要求するため 2 が必須(pool=1 だと self-deadlock し 30s タイムアウトする)。
 
 - [ ] **Step 1: `create()` のプールを 4 → 1 に変更**
 
@@ -168,9 +168,9 @@ git commit -m "test: E2E アプリプールを 2 にキャップ"
 **Files:**
 - Modify: `backend/api/build.gradle.kts`
 
-外部 DB に当てる統合テストはキャッシュさせず毎回実行が正。`outputs.upToDateWhen { false }` で UP-TO-DATE スキップを無効化し、`cleanIntegrationTest` を都度付ける運用を不要にする。
+外部 DB に当てる統合テストはキャッシュさせず毎回実行が正。`doNotTrackState(...)` で UP-TO-DATE スキップ **とビルドキャッシュの両方** を無効化し、`cleanIntegrationTest` を都度付ける運用を不要にする。`outputs.upToDateWhen { false }` は UP-TO-DATE しか無効化せず、`org.gradle.caching=true` 環境では `@CacheableTask` の Test が FROM-CACHE で復元され実行をスキップしうるため不可。
 
-- [ ] **Step 1: `integrationTest` タスクに `outputs.upToDateWhen { false }` を追加**
+- [ ] **Step 1: `integrationTest` タスクに `doNotTrackState(...)` を追加**
 
 `val integrationTest by tasks.registering(Test::class) { ... }` ブロック内の先頭付近(`group`/`description` の直後)に 1 行追加する。
 
@@ -179,7 +179,7 @@ git commit -m "test: E2E アプリプールを 2 にキャップ"
 val integrationTest by tasks.registering(Test::class) {
     group = "verification"
     description = "Runs @Tags(\"integration\") specs against TEST_DB_URL."
-    useJUnitPlatform()
+    testClassesDirs = sourceSets["test"].output.classesDirs
 ```
 
 変更後:
@@ -188,8 +188,9 @@ val integrationTest by tasks.registering(Test::class) {
     group = "verification"
     description = "Runs @Tags(\"integration\") specs against TEST_DB_URL."
     // 外部 DB に当てる統合テストはキャッシュさせず毎回実行する(stale 結果防止)。
-    outputs.upToDateWhen { false }
-    useJUnitPlatform()
+    // doNotTrackState は UP-TO-DATE チェックとビルドキャッシュの両方を無効化する。
+    doNotTrackState("integration tests run against a live external DB")
+    testClassesDirs = sourceSets["test"].output.classesDirs
 ```
 
 - [ ] **Step 2: タスク設定が解決できることを確認**
