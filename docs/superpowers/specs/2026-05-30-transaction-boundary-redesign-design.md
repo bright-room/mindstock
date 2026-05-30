@@ -9,7 +9,7 @@
 backend の全 RPC Controller は presentation 層の `tx()` ヘルパー(`configuration/transaction/Transaction.kt`)で各メソッドを包んでいる。この `tx()` は 4 つの責務を一手に背負っている:
 
 1. **トランザクション境界** — `supervisorScope { newSuspendedTransaction(db) { } }`
-2. **例外 → RpcError 変換** — `ResourceNotFoundException → NotFound` / `Throwable → Internal` / `CancellationException` 再送出
+2. **例外 → RpcError 変換** — `ResourceNotFoundException → NotFound` / `IllegalArgumentException → BadRequest`(VO の require 違反)/ `Throwable → Internal` / `CancellationException` 再送出。あわせて `RpcError.BadRequest` は `(field, reason)` から `(reason)` に簡素化(構築箇所が無いため安全)
 3. **セッション guard** — `session.exp` 失効チェック → `Unauthorized`
 4. **呼び出しログ** — callId / userId / outcome / elapsedMs の 1 行 JSON
 
@@ -151,6 +151,9 @@ suspend fun <T> rpcBoundary(
     } catch (e: ResourceNotFoundException) {
         emitLog(session, start, outcome = "Err:NotFound")
         RpcResult.Err(RpcError.NotFound(message = e.message.orEmpty()))
+    } catch (e: IllegalArgumentException) {
+        emitLog(session, start, outcome = "Err:BadRequest")
+        RpcResult.Err(RpcError.BadRequest(reason = e.message.orEmpty()))
     } catch (e: Throwable) {
         logger.error(e) { "unhandled exception during RPC call_id=${session.callId}" }
         emitLog(session, start, outcome = "Throwable:${e::class.simpleName}")

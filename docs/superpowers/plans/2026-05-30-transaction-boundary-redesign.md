@@ -598,7 +598,7 @@ private data class RpcCallLogEntry(
  *
  * - session.exp が現在時刻を超えていたら即 Err(Unauthorized("token expired"))
  * - block はドメイン値 T を返す。成功時は RpcResult.Ok(result) に包む
- * - ResourceNotFoundException → Err(NotFound) / その他 Throwable → Err(Internal)
+ * - ResourceNotFoundException → Err(NotFound) / IllegalArgumentException → Err(BadRequest) / その他 Throwable → Err(Internal)
  * - CancellationException は伝播
  * - supervisorScope は kRPC server scope へのエラー leak 防止のため維持
  * - 各呼び出しごとに callId / userId / outcome / elapsedMs を 1 行 JSON でログ出力
@@ -622,6 +622,9 @@ suspend fun <T> rpcBoundary(
     } catch (e: ResourceNotFoundException) {
         emitLog(session, start, outcome = "Err:NotFound")
         RpcResult.Err(RpcError.NotFound(message = e.message.orEmpty()))
+    } catch (e: IllegalArgumentException) {
+        emitLog(session, start, outcome = "Err:BadRequest")
+        RpcResult.Err(RpcError.BadRequest(reason = e.message.orEmpty()))
     } catch (e: Throwable) {
         logger.error(e) { "unhandled exception during RPC call_id=${session.callId}" }
         emitLog(session, start, outcome = "Throwable:${e::class.simpleName}")
