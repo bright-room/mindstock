@@ -103,7 +103,8 @@ class UserPublicRpcServiceE2eTest :
                 val first =
                     authenticatedRpcClientWithToken(token = token, path = "user/public")
                         .withService<UserPublicRpcService>()
-                first.register(DisplayName("Alice"))
+                val firstResult = first.register(DisplayName("Alice"))
+                firstResult.shouldBeInstanceOf<RpcResult.Ok<Profile>>()
 
                 // 2 回目: 別接続を同じ token で開く → MindstockAuthPlugin が userId を解決
                 //   → RequireUnregisteredUserPlugin が 409 で WS upgrade を弾く
