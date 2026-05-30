@@ -19,16 +19,17 @@ import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import kotlin.uuid.ExperimentalUuidApi
 
 /**
- * E2E for [UserRpcService]: authenticated RPC path covering Bearer token wiring
- * and [net.brightroom.mindstock.configuration.auth.MindstockAuthPlugin] /
+ * E2E for [UserRpcService]: authenticated RPC path covering bearer-token wiring
+ * (token carried in the `Sec-WebSocket-Protocol` subprotocol) and
+ * [net.brightroom.mindstock.configuration.auth.MindstockAuthPlugin] /
  * [net.brightroom.mindstock.configuration.auth.RequireRegisteredUserPlugin] behaviour.
  *
  * The three tests pin down:
- *  1. Happy path — Bearer header is honoured, MindstockAuthPlugin builds the session,
+ *  1. Happy path — the bearer token is honoured, MindstockAuthPlugin builds the session,
  *     RequireRegisteredUserPlugin admits the request, mutation persists.
- *  2. No `Authorization` header — MindstockAuthPlugin rejects with 401 before the WS upgrade
- *     completes (WS upgrade itself fails → `shouldThrowAny` on the client).
- *  3. Bearer with an unknown UserId — RequireRegisteredUserPlugin's DB check fails for the
+ *  2. No bearer token (no `mindstock.bearer.*` subprotocol) — MindstockAuthPlugin rejects with
+ *     401 before the WS upgrade completes (WS upgrade itself fails → `shouldThrowAny`).
+ *  3. A valid token for an unknown UserId — RequireRegisteredUserPlugin's DB check fails for the
  *     unknown sub → 401 → WS upgrade itself fails on the client.
  */
 @Tags("integration")
@@ -52,7 +53,7 @@ class UserRpcServiceE2eTest :
             }
         }
 
-        test("rename without Authorization header is rejected at WS upgrade") {
+        test("rename without a bearer token is rejected at WS upgrade") {
             e2eTest {
                 val rpc = publicRpcClient("user").withService<UserRpcService>()
                 shouldThrowAny {
