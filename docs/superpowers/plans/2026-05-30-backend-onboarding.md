@@ -2,6 +2,15 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
+> ⚠️ **このプランは全面改訂が必要(2026-05-30)。着手前に読むこと。**
+> brainstorming で設計が更新され、以下が確定した:
+> 1. **世帯名**(`household_names` 事実テーブル + `HouseholdName` VO)の追加。`Household(id, name, members)` に変更。`HouseholdRegisterRepository/Service/DataSource.create` を `(ownerId)` → `(ownerId, householdName)` に。
+> 2. **session bootstrap を HTTP endpoint 案から破棄** → WS の `bootstrap()` RPC へ。**Task 3/4(HTTP `GET /api/v1/auth/session`)は無効**。
+> 3. **`UserPublicRpcService` → `OnboardingRpcService` 改名** + `register` を Scenario 経由 + `bootstrap()` 追加。
+> 4. 登録判定は「事実(user 行 + OWNER membership)の存在から導出」。
+>
+> 正は spec [2026-05-30-frontend-onboarding-foundation-design.md](../specs/2026-05-30-frontend-onboarding-foundation-design.md)。下記 Task 1/2 の Scenario・Controller 差し替えの骨子は流用できるが、Task 3/4 は bootstrap RPC に置き換える。本ファイルは次ステップで書き直す。
+
 **Goal:** 初回サインイン時に User + Household + OWNER membership を原子的かつ冪等に作る `RegisterFirstHouseholdScenario` と、起動時ブートストラップ用の薄い HTTP `GET /api/v1/auth/session` エンドポイントを追加する。
 
 **Architecture:** application 層に初の Scenario(複数 Service をまたぐユースケース)を導入し、`UserPublicController.register` をそれ経由に差し替える。session endpoint は RPC ではなく素の Ktor route で、`MindstockAuthPlugin` の内側 / `RequireRegisteredUserPlugin` の外側に置き、JWT 有効・未登録(`registered=false`)/ 登録済み(`registered=true` + displayName + householdId)/ トークン無効(401)を区別する。
