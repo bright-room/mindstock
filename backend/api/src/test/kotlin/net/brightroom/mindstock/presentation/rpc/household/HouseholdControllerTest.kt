@@ -16,6 +16,7 @@ import net.brightroom.mindstock.configuration.auth.MindstockSession
 import net.brightroom.mindstock.domain.model.household.Household
 import net.brightroom.mindstock.domain.model.household.HouseholdId
 import net.brightroom.mindstock.domain.model.household.HouseholdMembers
+import net.brightroom.mindstock.domain.model.household.HouseholdName
 import net.brightroom.mindstock.domain.model.user.UserId
 import net.brightroom.mindstock.domain.model.user.auth.AuthIdentity
 import net.brightroom.mindstock.domain.model.user.auth.AuthProvider
@@ -40,6 +41,7 @@ class HouseholdControllerTest :
             val household =
                 Household(
                     id = HouseholdId(Uuid.parse("00000000-0000-0000-0000-000000000002")),
+                    name = HouseholdName("テスト世帯"),
                     members = HouseholdMembers(emptyList()),
                 )
             val session =

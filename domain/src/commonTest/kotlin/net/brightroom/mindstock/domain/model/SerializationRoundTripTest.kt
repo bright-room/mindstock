@@ -11,6 +11,7 @@ import net.brightroom.mindstock.domain.model.household.HouseholdId
 import net.brightroom.mindstock.domain.model.household.HouseholdMember
 import net.brightroom.mindstock.domain.model.household.HouseholdMemberRole
 import net.brightroom.mindstock.domain.model.household.HouseholdMembers
+import net.brightroom.mindstock.domain.model.household.HouseholdName
 import net.brightroom.mindstock.domain.model.product.MinimumStock
 import net.brightroom.mindstock.domain.model.product.Product
 import net.brightroom.mindstock.domain.model.product.ProductId
@@ -152,6 +153,7 @@ class SerializationRoundTripTest {
         val household =
             Household(
                 id = HouseholdId(Uuid.parse("00000000-0000-0000-0000-000000000004")),
+                name = HouseholdName("テスト世帯"),
                 members =
                     HouseholdMembers(
                         list = listOf(HouseholdMember(profile, HouseholdMemberRole.OWNER)),

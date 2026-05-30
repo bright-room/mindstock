@@ -23,15 +23,15 @@ import net.brightroom.mindstock.extensions.kotlinx.serialization.CustomJson
 import net.brightroom.mindstock.extensions.kotlinx.serialization.KrpcJson
 import net.brightroom.mindstock.presentation.rpc.catalog.CatalogControllerFactory
 import net.brightroom.mindstock.presentation.rpc.household.HouseholdControllerFactory
+import net.brightroom.mindstock.presentation.rpc.onboarding.OnboardingControllerFactory
 import net.brightroom.mindstock.presentation.rpc.product.ProductControllerFactory
 import net.brightroom.mindstock.presentation.rpc.stock.StockControllerFactory
 import net.brightroom.mindstock.presentation.rpc.user.UserControllerFactory
-import net.brightroom.mindstock.presentation.rpc.user.UserPublicControllerFactory
 import net.brightroom.mindstock.rpc.CatalogRpcService
 import net.brightroom.mindstock.rpc.HouseholdRpcService
+import net.brightroom.mindstock.rpc.OnboardingRpcService
 import net.brightroom.mindstock.rpc.ProductRpcService
 import net.brightroom.mindstock.rpc.StockRpcService
-import net.brightroom.mindstock.rpc.UserPublicRpcService
 import net.brightroom.mindstock.rpc.UserRpcService
 import org.jetbrains.exposed.v1.jdbc.Database
 import java.net.URL
@@ -54,7 +54,7 @@ fun Application.routingConfigure() {
     val userRepository: UserRepository by dependencies
     val database: Database by dependencies
 
-    val userPublicFactory: UserPublicControllerFactory by dependencies
+    val onboardingFactory: OnboardingControllerFactory by dependencies
     val userFactory: UserControllerFactory by dependencies
     val householdFactory: HouseholdControllerFactory by dependencies
     val catalogFactory: CatalogControllerFactory by dependencies
@@ -78,7 +78,7 @@ fun Application.routingConfigure() {
             route("/user/public") {
                 rpc {
                     val session = call.attributes[MindstockSessionKey]
-                    registerService<UserPublicRpcService> { userPublicFactory.create(session) }
+                    registerService<OnboardingRpcService> { onboardingFactory.create(session) }
                 }
             }
             // 登録済み User 必須

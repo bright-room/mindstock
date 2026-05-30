@@ -9,6 +9,7 @@ import io.kotest.matchers.string.shouldContain
 import net.brightroom.mindstock.domain.exception.ResourceNotFoundException
 import net.brightroom.mindstock.domain.model.household.HouseholdId
 import net.brightroom.mindstock.domain.model.household.HouseholdMemberRole
+import net.brightroom.mindstock.domain.model.household.HouseholdName
 import net.brightroom.mindstock.domain.model.user.auth.AuthIdentity
 import net.brightroom.mindstock.domain.model.user.auth.AuthProvider
 import net.brightroom.mindstock.domain.model.user.auth.AuthSubject
@@ -42,13 +43,14 @@ class HouseholdDataSourceIntegrationTest :
                 val householdReader = HouseholdDataSource()
 
                 val owner = tx { userRepo.register(AuthIdentity(AuthProvider.ZITADEL, AuthSubject("rev-owner")), DisplayName("RevOwner")) }
-                val created = tx { householdRegister.create(owner.userId) }
+                val created = tx { householdRegister.create(owner.userId, HouseholdName("テスト世帯")) }
                 tx { householdRegister.revoke(created, owner.userId) }
 
                 val found = tx { householdReader.findById(created.id) }
 
                 found.shouldNotBeNull()
                 found.id shouldBe created.id
+                found.name shouldBe HouseholdName("テスト世帯")
                 found.members.list shouldBe emptyList()
             }
         }
@@ -71,9 +73,10 @@ class HouseholdDataSourceIntegrationTest :
                 val householdReader = HouseholdDataSource()
 
                 val owner = tx { userRepo.register(AuthIdentity(AuthProvider.ZITADEL, AuthSubject("owner")), DisplayName("Owner")) }
-                tx { householdRegister.create(owner.userId) }
+                tx { householdRegister.create(owner.userId, HouseholdName("テスト世帯")) }
 
                 val found = tx { householdReader.findOf(owner.userId) }
+                found.name shouldBe HouseholdName("テスト世帯")
                 found.members
                     .list
                     .single()

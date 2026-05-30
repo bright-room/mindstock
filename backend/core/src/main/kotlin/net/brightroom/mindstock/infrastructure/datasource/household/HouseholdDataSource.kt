@@ -6,6 +6,7 @@ import net.brightroom.mindstock.domain.model.household.Household
 import net.brightroom.mindstock.domain.model.household.HouseholdId
 import net.brightroom.mindstock.domain.model.household.HouseholdMember
 import net.brightroom.mindstock.domain.model.household.HouseholdMemberRole
+import net.brightroom.mindstock.domain.model.household.HouseholdName
 import net.brightroom.mindstock.domain.model.user.UserId
 import net.brightroom.mindstock.infrastructure.datasource.user.UserDisplayNamesTable
 import net.brightroom.mindstock.infrastructure.datasource.user.UsersTable
@@ -21,6 +22,7 @@ import org.jetbrains.exposed.v1.core.max
 import org.jetbrains.exposed.v1.jdbc.select
 import org.jetbrains.exposed.v1.jdbc.selectAll
 import kotlin.uuid.ExperimentalUuidApi
+import kotlin.uuid.Uuid
 
 @OptIn(ExperimentalUuidApi::class)
 class HouseholdDataSource : HouseholdRepository {
@@ -78,7 +80,11 @@ class HouseholdDataSource : HouseholdRepository {
                     role = row[HouseholdMembershipsTable.role],
                 )
             }
-        return hydrateHousehold(householdId, members)
+        return hydrateHousehold(
+            householdId = householdId,
+            name = latestHouseholdNameOf(householdId),
+            members = members,
+        )
     }
 
     override fun findById(id: HouseholdId): Household {
@@ -121,6 +127,20 @@ class HouseholdDataSource : HouseholdRepository {
                     role = row[HouseholdMembershipsTable.role],
                 )
             }
-        return hydrateHousehold(id(), members)
+        return hydrateHousehold(
+            householdId = id(),
+            name = latestHouseholdNameOf(id()),
+            members = members,
+        )
     }
+
+    private fun latestHouseholdNameOf(householdId: Uuid): HouseholdName =
+        HouseholdNamesTable
+            .selectAll()
+            .where { HouseholdNamesTable.household_id eq householdId }
+            .orderBy(HouseholdNamesTable.id, SortOrder.DESC)
+            .limit(1)
+            .singleOrNull()
+            ?.let { HouseholdName(it[HouseholdNamesTable.name]) }
+            ?: throw ResourceNotFoundException("household name not found: $householdId")
 }

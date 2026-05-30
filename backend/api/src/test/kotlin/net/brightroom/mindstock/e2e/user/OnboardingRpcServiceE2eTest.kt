@@ -13,25 +13,24 @@ import net.brightroom.mindstock.e2e.auth.TestJwtIssuer
 import net.brightroom.mindstock.e2e.e2eTest
 import net.brightroom.mindstock.infrastructure.datasource.user.UserDataSource
 import net.brightroom.mindstock.infrastructure.datasource.user.UsersTable
-import net.brightroom.mindstock.rpc.RpcError
+import net.brightroom.mindstock.rpc.OnboardingRpcService
 import net.brightroom.mindstock.rpc.RpcResult
-import net.brightroom.mindstock.rpc.UserPublicRpcService
 import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import kotlin.uuid.ExperimentalUuidApi
 
 /**
- * E2E for [UserPublicRpcService]: WebSocket → JWT(`user-public` realm) → kRPC → Handler → Repository → Postgres.
+ * E2E for [OnboardingRpcService]: WebSocket → JWT(`user/public` realm) → kRPC → Controller → Scenario → Repository → Postgres.
  *
  * `register()` no longer takes `AuthIdentity`; it derives the identity from the verified
- * JWT `sub` (mapped to `AuthProvider.ZITADEL`) on the server side. The tests below issue
- * real JWTs through [TestJwtIssuer] / [SharedJwksServer] and assert the persisted identity
- * matches the token's subject.
+ * JWT `sub` (mapped to `AuthProvider.ZITADEL`) on the server side, then runs the onboarding
+ * scenario. The tests below issue real JWTs through [TestJwtIssuer] / [SharedJwksServer] and
+ * assert the persisted identity matches the token's subject.
  */
 @Tags("integration")
 @OptIn(ExperimentalUuidApi::class)
-class UserPublicRpcServiceE2eTest :
+class OnboardingRpcServiceE2eTest :
     FunSpec({
         test("register persists a new User keyed off the JWT sub and returns its Profile with assigned id") {
             e2eTest {
@@ -39,7 +38,7 @@ class UserPublicRpcServiceE2eTest :
                 val token = TestJwtIssuer.issue(subject = sub)
                 val rpc =
                     authenticatedRpcClientWithToken(token = token, path = "user/public")
-                        .withService<UserPublicRpcService>()
+                        .withService<OnboardingRpcService>()
 
                 val result = rpc.register(DisplayName("Alice"))
                 result.shouldBeInstanceOf<RpcResult.Ok<Profile>>()
@@ -66,28 +65,31 @@ class UserPublicRpcServiceE2eTest :
             }
         }
 
-        // Pinning test for the server→client error propagation contract.
-        // 重複 sub による DB UNIQUE 制約違反は tx() の catch で RpcError.Internal に変換される。
-        // 将来 UserRegisterService で重複検出を入れ Conflict を明示返却するのは TODO。
-        test("register returns Err(Internal) on duplicate sub and pipeline stays usable") {
+        // Pinning test for the onboarding scenario's idempotency contract.
+        // register を Scenario 経由にしたことで、同一 sub の再 register は新規作成せず
+        // 既存 Profile をそのまま返す(冪等)。重複 sub は DB UNIQUE 違反に到達しない。
+        test("register is idempotent for the same sub and the pipeline stays usable for other subs") {
             e2eTest {
-                val dupeSub = "dupe-subject"
-                val dupeToken = TestJwtIssuer.issue(subject = dupeSub)
+                val sameSub = "idempotent-subject"
+                val token = TestJwtIssuer.issue(subject = sameSub)
                 val rpc =
-                    authenticatedRpcClientWithToken(token = dupeToken, path = "user/public")
-                        .withService<UserPublicRpcService>()
-                rpc.register(DisplayName("First"))
+                    authenticatedRpcClientWithToken(token = token, path = "user/public")
+                        .withService<OnboardingRpcService>()
 
-                val dup = rpc.register(DisplayName("Second"))
-                dup.shouldBeInstanceOf<RpcResult.Err<RpcError>>()
-                dup.error.shouldBeInstanceOf<RpcError.Internal>()
+                val first = rpc.register(DisplayName("First"))
+                first.shouldBeInstanceOf<RpcResult.Ok<Profile>>()
 
-                // The pipeline must still be usable for a *different* sub after the failure
-                // — proves the exception did not also leak via the server's connection scope.
+                // Second register with the same sub returns the existing Profile (same userId),
+                // not a new row and not an error.
+                val second = rpc.register(DisplayName("Second"))
+                second.shouldBeInstanceOf<RpcResult.Ok<Profile>>()
+                second.value.userId shouldBe first.value.userId
+
+                // The pipeline must still be usable for a *different* sub.
                 val freshToken = TestJwtIssuer.issue(subject = "different-subject")
                 val freshRpc =
                     authenticatedRpcClientWithToken(token = freshToken, path = "user/public")
-                        .withService<UserPublicRpcService>()
+                        .withService<OnboardingRpcService>()
                 val third = freshRpc.register(DisplayName("Third"))
                 third.shouldBeInstanceOf<RpcResult.Ok<Profile>>()
                 third.value.displayName shouldBe DisplayName("Third")

@@ -5,10 +5,12 @@ import net.brightroom.mindstock.domain.model.user.profile.DisplayName
 import net.brightroom.mindstock.domain.model.user.profile.Profile
 
 /**
- * JWT 検証は通すが User 未登録でも通る RPC。新規ユーザー登録のみ。
- * AuthIdentity は Principal から取得するため引数では受け取らない(なりすまし防止)。
+ * 未登録(JWT 有効・User 未登録)でも通る初期化 service。
+ * 認証は WS subprotocol 一本。AuthIdentity は session(Principal)から取得する(なりすまし防止)。
  */
 @Rpc
-interface UserPublicRpcService {
+interface OnboardingRpcService {
     suspend fun register(displayName: DisplayName): RpcResult<Profile, RpcError>
+
+    suspend fun bootstrap(): RpcResult<SessionBootstrap, RpcError>
 }
