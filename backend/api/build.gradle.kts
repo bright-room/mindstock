@@ -5,10 +5,6 @@ plugins {
     `java-test-fixtures`
 }
 
-application {
-    mainClass.set("net.brightroom.mindstock.MainKt")
-}
-
 dependencies {
     implementation(projects.backend.core)
     implementation(projects.domain)
@@ -62,7 +58,6 @@ dependencies {
 }
 
 tasks.test {
-    useJUnitPlatform()
     // Exclude "integration" and "manual" tagged specs by default.
     // Override on the command line with -Dkotest.tags.exclude= (empty string) to run all.
     systemProperty("kotest.tags.exclude", "integration | manual")
@@ -71,7 +66,6 @@ tasks.test {
 val integrationTest by tasks.registering(Test::class) {
     group = "verification"
     description = "Runs @Tags(\"integration\") specs against TEST_DB_URL."
-    useJUnitPlatform()
     testClassesDirs = sourceSets["test"].output.classesDirs
     classpath = sourceSets["test"].runtimeClasspath
     shouldRunAfter(tasks.test)
