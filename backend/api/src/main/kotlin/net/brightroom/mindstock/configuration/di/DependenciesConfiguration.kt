@@ -98,8 +98,10 @@ fun Application.dependenciesConfigure(
         // Controller Factory (30) — per-WS-connection 単位で Controller を組み立てる
         provide<OnboardingControllerFactory> {
             val scenario = resolve<RegisterFirstHouseholdScenario>()
+            val us = resolve<UserService>()
+            val hs = resolve<HouseholdService>()
             val db = resolve<Database>()
-            OnboardingControllerFactory { session -> OnboardingController(scenario, session, db) }
+            OnboardingControllerFactory { session -> OnboardingController(scenario, us, hs, session, db) }
         }
         provide<UserControllerFactory> {
             val urs = resolve<UserRegisterService>()

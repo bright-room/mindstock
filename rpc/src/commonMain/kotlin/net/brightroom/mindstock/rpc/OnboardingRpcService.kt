@@ -11,4 +11,6 @@ import net.brightroom.mindstock.domain.model.user.profile.Profile
 @Rpc
 interface OnboardingRpcService {
     suspend fun register(displayName: DisplayName): RpcResult<Profile, RpcError>
+
+    suspend fun bootstrap(): RpcResult<SessionBootstrap, RpcError>
 }

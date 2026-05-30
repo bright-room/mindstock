@@ -56,7 +56,37 @@ class OnboardingControllerTest :
                 block()
             }
 
-            val impl = OnboardingController(scenario, session, database)
+            val impl = OnboardingController(scenario, mockk(), mockk(), session, database)
             impl.register(displayName) shouldBe RpcResult.Ok(expected)
+        }
+
+        test("bootstrap は未登録(identity の User 無し)なら Unregistered を返す") {
+            val scenario = mockk<RegisterFirstHouseholdScenario>()
+            val userService = mockk<net.brightroom.mindstock.application.service.user.UserService>()
+            val householdService = mockk<net.brightroom.mindstock.application.service.household.HouseholdService>()
+            val database = mockk<Database>()
+            val session =
+                MindstockSession(
+                    identity = AuthIdentity(AuthProvider.ZITADEL, AuthSubject("sub-1")),
+                    userId = null,
+                    exp = Instant.fromEpochMilliseconds(Long.MAX_VALUE),
+                    callId = Uuid.random(),
+                )
+
+            every { userService.findByIdentity(any()) } throws
+                net.brightroom.mindstock.domain.exception
+                    .ResourceNotFoundException("not found")
+
+            mockkStatic("net.brightroom.mindstock.configuration.transaction.TransactionKt")
+            coEvery {
+                net.brightroom.mindstock.configuration.transaction
+                    .tx<net.brightroom.mindstock.rpc.SessionBootstrap>(any(), any(), any())
+            } coAnswers {
+                val block = arg<suspend () -> RpcResult<net.brightroom.mindstock.rpc.SessionBootstrap, RpcError>>(2)
+                block()
+            }
+
+            val impl = OnboardingController(scenario, userService, householdService, session, database)
+            impl.bootstrap() shouldBe RpcResult.Ok(net.brightroom.mindstock.rpc.SessionBootstrap.Unregistered)
         }
     })
