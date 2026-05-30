@@ -41,7 +41,9 @@ classDiagram
     }
     class Household {
         id
-        ※属性を持たない（名前すら無い）
+    }
+    class HouseholdName {
+        value（世帯名・後から変更可）
     }
     class HouseholdMembership {
         role: OWNER | MEMBER
@@ -67,6 +69,7 @@ classDiagram
     }
 
     User "1" -- "1" Profile : 表示名を持つ
+    Household "1" -- "1" HouseholdName : 世帯名（最新値）
     User "1" -- "0..*" HouseholdMembership : 所属
     Household "1" -- "1..*" HouseholdMembership : メンバー
     Household "1" -- "0..*" Product : 採用した商品
@@ -79,7 +82,7 @@ classDiagram
 
 - **User と Household は多対多**(`HouseholdMembership` で繋ぐ)。役割(OWNER/MEMBER)と脱退(revoked)を持つ。
   - MVP は **1 User = 1 世帯**に倒すが、データ構造は将来の「1 世帯 = 複数ユーザー」をそのまま許す形。
-- **Household は属性を持たない**(`id` だけ)。だから「世帯を作る」画面でユーザーに尋ねることが何も無い。
+- **Household は名前(`HouseholdName`)を持つ**(`household_names` 事実テーブルで履歴、後から変更可)。ただし初回は表示名から導出したデフォルト名で自動作成するので、作成時にユーザーへは尋ねない。
 - **CatalogItem は全世帯共有**、**Product は世帯固有**(CatalogItem を「採用」したもの + 最低在庫)。
 - **在庫数は持たず、Stock が Movement(補充/消費)から計算する**(append-only)。
 
@@ -100,7 +103,7 @@ stateDiagram-v2
     判定中 --> 表示名入力 : 未登録（JWTは有効だがUser無し）
     判定中 --> エラー : トークン無効/通信失敗
 
-    表示名入力 --> 在庫管理可能 : 表示名入力 → User+世帯+OWNER を自動作成
+    表示名入力 --> 在庫管理可能 : 表示名入力 → User+世帯(デフォルト名)+OWNER を自動作成
 
     在庫管理可能 --> 未ログイン : ログアウト
     エラー --> 未ログイン : やり直し
@@ -136,7 +139,7 @@ sequenceDiagram
     B->>U: 表示名の入力を求める
     U->>B: 表示名を入力
     B->>S: 登録（表示名）
-    note over S: 1トランザクションで原子的に作成<br/>User + Household + OWNER membership
+    note over S: 1トランザクションで原子的に作成<br/>User + Household（デフォルト名） + OWNER membership
     S-->>B: 登録完了
     B->>U: 在庫一覧へ
 ```
@@ -235,9 +238,11 @@ flowchart TD
 
 ---
 
-## 5. この整理で擦り合わせたい点
+## 5. 確定した前提(2026-05-30 合意)
 
-1. 「**ユーザーと世帯の作成 = 3-A(登録の一撃で User+世帯+OWNER を同時作成)**」という理解で合っているか。
-2. 「**未登録だが世帯なし、という中間状態を作らない**(登録 = 即・世帯持ち)」で良いか。
-3. 「**1 User = 1 世帯(MVP)/ 構造は将来の複数ユーザー世帯を許す**」で良いか。
-4. 在庫管理が常に「自分の世帯」前提で動くこと(世帯の切替は将来)で良いか。
+1. **ユーザーと世帯の作成 = 3-A**: 登録の一撃で User + 世帯(デフォルト名)+ OWNER を**原子的に**同時作成。
+2. **中間状態を作らない**: 登録 = 即・世帯持ち。「未登録だが世帯なし」は発生しない(staged commit 不要)。
+3. **1 User = 1 世帯(MVP)** / データ構造は将来の「1 世帯 = 複数ユーザー」を許す(membership に `UNIQUE(user_id)` を張らない)。
+4. **在庫管理は常に「自分の世帯」前提**(世帯切替は将来)。
+5. **世帯は名前を持つ**(後から変更可)。**登録判定**は専用フラグを持たず、user 行 + OWNER membership の存在から導出。
+6. **`CatalogItem.unit` → `Product` 移動**は妥当だが MVP 価値が薄いため別 Plan に切り出し(本図では現状の CatalogItem に unit がある前提のまま)。

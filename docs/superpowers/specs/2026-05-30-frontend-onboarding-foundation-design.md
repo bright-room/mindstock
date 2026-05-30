@@ -39,6 +39,7 @@ MVP の 9 画面は 1 spec には大きすぎるため、以下に分割する�
 
 - **買い物リストは backend 不要**。`ShoppingList(stocks).itemsToBuy()` は共有 domain なので、フロントが取得済みの `Stocks` から導出できる。
 - 在庫/一覧系の RPC は全て `householdId` を取る。これは認証後に 1 回だけ取得し、セッションホルダーに保持する(本サブプロジェクトで確立)。
+- **`CatalogItem.unit` → `Product` 移動は別 Plan**。「単位は世帯固有の Product に属すべき」という整合性修正(StockMovement の数量は Product に対して記録される)だが、1 ユーザー 1 世帯の MVP では実利益がほぼ無く、settled/tested/migrated な domain に触る。frontend を進める本サブプロジェクト群とは独立した「ドメイン改善 Plan」として切り出す。
 
 ## 2. アクセスモデル & オンボーディング設計
 
@@ -51,12 +52,14 @@ MVP の 9 画面は 1 spec には大きすぎるため、以下に分割する�
 - **1 User = 1 世帯**(MVP)。
 - 招待 / 複数世帯所属 / 世帯間共有は **将来スコープ**(親 spec §1.3 と一致)。`invite()` / `revoke()` は backend に実装済みだが、その UI は将来。
 
-### 2.2 キーストーンとなる事実: 世帯には属性が無い
+### 2.2 世帯名と「一発作成」
 
-- スキーマ: `households(id, created_at)` のみ。
-- ドメイン: `Household(id, members)` のみ。名前も設定も持たない。
+世帯は **名前(`HouseholdName`)を持つ**(将来「1 世帯 = 複数ユーザー」で世帯を識別するためにも要る)。ただし MVP「1 ユーザー 1 世帯・実質個人利用」では初回に世帯名を入力させる UX 摩擦を避け、**表示名から導出したデフォルト名(例: 「〇〇の家」)で登録と一体に自動作成**し、後から世帯設定で変更可能とする。
 
-世帯作成時にユーザーへ尋ねることが何も無いため、明示的な作成ステップは空のステップになる。よって **登録と一体で自動作成** するのが唯一綺麗な形であり、`RegisterFirstHouseholdScenario` で原子的に作る根拠もここにある。
+- スキーマ: append-only の柱に従い `households` にカラムを足さず、**`household_names` 事実テーブル**(`user_display_names` と同パターン: `id BIGINT IDENTITY` / `household_id` / `name VARCHAR` / `created_at`、`index(household_id, id)`)で表す。最新行が現在の世帯名。
+- ドメイン: `Household(id, name, members)`。`HouseholdName` VO(`DisplayName` に倣い「空白のみ禁止」、最大長は実装時に確定)。
+
+初回は世帯名を入力させずデフォルト名で**原子的に一発作成**する(`RegisterFirstHouseholdScenario`)。これにより「登録済みだが世帯なし」の中間状態は発生しない(staged commit 不要)。世帯名の有無に関わらず、初回作成を 1 トランザクションに保つのが綺麗。
 
 ### 2.3 自動作成のタイミング
 
@@ -67,11 +70,12 @@ MVP の 9 画面は 1 spec には大きすぎるため、以下に分割する�
   ↓
 [未登録?] → 表示名入力ダイアログ
   ↓  register(displayName)
-  │   = User + Household + OWNER を原子的に作成(RegisterFirstHouseholdScenario)
+  │   = User + Household(デフォルト名) + OWNER を原子的に作成
+  │     (RegisterFirstHouseholdScenario)
   ↓
 [登録済] → 在庫一覧(householdId 必ずあり)
 
-※ 「世帯なし」状態は存在しない
+※ 「世帯なし」状態は存在しない。世帯名は後から世帯設定で変更可能
 ```
 
 ### 2.4 将来「1 世帯 = 複数ユーザー」への拡張性
@@ -89,35 +93,52 @@ MVP の 9 画面は 1 spec には大きすぎるため、以下に分割する�
 ### 3.1 RegisterFirstHouseholdScenario
 
 - 配置: `application/scenario/onboarding/RegisterFirstHouseholdScenario.kt`(`scenario` パッケージは現状空。本サブプロジェクトで初の Scenario)
-- 責務: `UserRegisterService.register(identity, displayName)` + `HouseholdRegisterService.create(ownerId)` を **1 トランザクション**で実行
-- **冪等**: 既に当該 identity の User / owner 世帯が存在する場合は二重作成しない(2 回呼んでも世帯は 1 個)
+- 責務: `UserRegisterService.register(identity, displayName)` + `HouseholdRegisterService.create(ownerId, householdName)` を **1 トランザクション**で実行。世帯名は表示名から導出したデフォルト名(例: 「〇〇の家」)を Scenario で組み立てて渡す
+- **冪等**: 既に当該 identity の User が存在する場合は二重作成しない(2 回呼んでも世帯は 1 個)。判定は「事実の存在」=`userRepository.findProfileByAuthIdentity` の `ResourceNotFoundException` を握る既存慣行で行う
+- 世帯名の追加に伴い `HouseholdRegisterService.create` / `HouseholdRegisterRepository.create` / `HouseholdRegisterDataSource.create` のシグネチャを `(ownerId)` → `(ownerId, householdName)` に変更し、`household_names` 事実テーブルへ INSERT する(§2.2)
 - アーキテクチャルール(`software-architecture.md`)が「複数 Service をまたぐユースケース = Scenario」と定め、本 Scenario をその正規例として挙げている方針に沿う
-- `UserPublicController.register` をこの Scenario 経由に差し替える(現状は `UserRegisterService.register` のみ呼び、世帯を作らない)
+- `register` を担う Controller をこの Scenario 経由に差し替える(現状は `UserRegisterService.register` のみ呼び、世帯を作らない)
 
-> 契約変更の注記: `UserPublicRpcService.register(displayName)` の戻り値は現状 `RpcResult<Profile, RpcError>`。世帯を同時に作るようになるが、戻り値の形は据え置きでよい(frontend は直後に session endpoint で householdId を取得する)。
+> 契約注記: `register(displayName)` の戻り値は `RpcResult<Profile, RpcError>` のまま据え置き。世帯情報(householdId/householdName)は直後の `bootstrap()`(§3.2)で取得する。
 
-### 3.2 Session bootstrap endpoint(薄い HTTP, RPC ではない)
+### 3.2 初期化 route と bootstrap RPC
 
-WebSocket の handshake では 401 ステータスがブラウザ JS に公開されないため、現状 frontend は「ping 失敗 = すべて NeedRegister」に倒している。これを HTTP の薄いエンドポイントで解決する。
+> 旧案(薄い HTTP `GET /api/v1/auth/session` + `Authorization: Bearer`)は **破棄した**。理由: 認証は WS subprotocol 一本に統一済みで、ブラウザの `fetch` は `Sec-` 始まりのヘッダを送れず、`Authorization` の再導入は本ブランチで閉じたばかりの動線を開け直すことになる(`docs/authentication-current-state.md`)。
 
+WebSocket handshake の 401 がブラウザ JS に見えない問題は、**WS 経路の中で**解決する。現状 `/api/v1/user/public`(`RequireRegisteredUserPlugin` の外 = JWT 有効なら未登録でも通る唯一の route)を「**初期化 route**」と再定義し、`UserPublicRpcService` を初期化 service(改名: `OnboardingRpcService`)として `register` + `bootstrap` を持たせる。route は 1 本のまま(動線を増やさない)。
+
+```kotlin
+@Rpc
+interface OnboardingRpcService {                                   // 旧 UserPublicRpcService を改名
+    suspend fun register(displayName: DisplayName): RpcResult<Profile, RpcError>
+    suspend fun bootstrap(): RpcResult<SessionBootstrap, RpcError>
+}
+
+// RpcResult は KrpcJson(POLYMORPHIC discriminator)なので sealed が使える = nullable 不要
+@Serializable
+sealed interface SessionBootstrap {
+    @Serializable data object Unregistered : SessionBootstrap
+    @Serializable data class Registered(
+        val displayName: DisplayName,
+        val householdId: HouseholdId,
+        val householdName: HouseholdName,
+    ) : SessionBootstrap
+}
 ```
-GET /api/v1/auth/session
-  - 配置: MindstockAuthPlugin の内側 / RequireRegisteredUserPlugin の外側
-  - 200 { registered: false }
-        … JWT 有効・User 未登録 → NeedRegister
-  - 200 { registered: true, displayName, householdId }
-        … Ready(2.1 より登録済みなら householdId は必ず存在 = nullable 不要)
-  - 401
-        … トークン無効/期限切れ → 要 refresh / 再ログイン
-```
+
+3 状態の区別(現状の ping「全 Throwable を Unauthorized」より正確):
+
+- **トークン無効/期限切れ** → WS handshake 自体が失敗(ブラウザは接続例外)→ 要 refresh / 再ログイン
+- **JWT 有効・未登録** → 接続成功 + `bootstrap()` が `Unregistered`(登録判定は §2「事実の存在から導出」=`MindstockAuthPlugin` が解決した `session.userId` が null)
+- **登録済み** → 接続成功 + `bootstrap()` が `Registered`(displayName / householdId / householdName)
 
 効果:
 
-- WS の 401 不可視問題を解決し、3 状態(reauth / NeedRegister / Ready)を HTTP ステータス + body で明確に区別できる
-- `me()` 相当の profile 取得 RPC が存在しない穴を埋める(再訪ユーザーが起動時に displayName を復元できる。現状は `"user"` 固定)
-- registered=true なら householdId を必ず含むため、frontend セッションモデルを nullable-free に保てる
+- WS 一本のまま 3 状態を区別でき、HTTP endpoint も `Authorization` も増えない
+- `me()` 相当の profile 取得の穴を埋める(再訪時に displayName 復元。現状は `"user"` 固定)
+- 登録判定に専用マーカーを持たず、user 行 + OWNER membership の存在から導出(§2)。sealed なので nullable ゼロ
 
-> 補足: これは RPC ではなく素の HTTP JSON エンドポイント。レスポンス形は backend の腐敗防止として `presentation` 配下に専用 Response 型を置く。`registered=false` 時は displayName/householdId を含めない(sealed 的な 2 形)。
+> 改名の波及: `UserPublicRpcService` → `OnboardingRpcService` は `:rpc` モジュール + backend の Controller/Factory/DI/route に及ぶ。frontend(`App.kt` の `open("user/public")` と `register` 呼び出し)への波及は Plan 1b で吸収する。route パス(`/api/v1/user/public`)を併せて改名するかは Plan 1a の実装時に決める(機能には影響しない)。
 
 ## 4. Frontend スコープ
 
@@ -131,15 +152,15 @@ GET /api/v1/auth/session
 
 ### 4.2 AppSession(認証後コンテキスト)
 
-- 認証後の文脈(`tokens` + `householdId` + `displayName`)を保持
-- session endpoint(§3.2)のレスポンスから構築
+- 認証後の文脈(`tokens` + `householdId` + `householdName` + `displayName`)を保持
+- `bootstrap()`(§3.2)の `Registered` レスポンスから構築
 - 「`Ready` なら `householdId` は必ずある」を型で保証(nullable を持ち込まない)
 - 後続サブプロジェクトの画面 ViewModel はここから `householdId` を得る
 
 ### 4.3 RPC アクセス統合
 
 - `RpcClientFactory` の `open` / `openRaw` 二重実装と Base64URL エンコード重複を解消(`openRaw` はテスト helper のためだけに internal を露出している)
-- `RpcCallWrapper`(401 → refresh → retry。実装済みだが App.kt に未配線)を session endpoint ベースで配線する
+- `RpcCallWrapper`(401 → refresh → retry。実装済みだが App.kt に未配線)を配線する
 - context 別の薄い gateway(`RpcResult<T, RpcError>` を frontend 都合の結果型へマッピングする層)の**土台のみ**用意する。各 context の本格的な gateway 実装は #2 以降で行う
 
 ### 4.4 navigation-compose 導入
@@ -158,18 +179,19 @@ GET /api/v1/auth/session
 ## 5. 検証ライン
 
 - 新規サインイン → 表示名入力 → (裏で世帯自動作成) → メインシェル表示、が新アーキテクチャでグリーン
-- 再訪(有効トークンあり)→ session endpoint で displayName / householdId 復元 → メインシェル
+- 再訪(有効トークンあり)→ `bootstrap()` で displayName / householdId / householdName 復元 → メインシェル
 - トークン期限切れ → refresh → 復帰、または refresh 失敗 → ログイン画面
 - 既存の auth テスト群(`AuthBootstrapTest` / `AuthCallbackHandlerTest` / `PkceTest` / `TokenStoreTest` / `TokensTest` / `AuthClientTest` / `RpcClientFactoryTest` / `RpcCallWrapperTest`)は維持(リファクタに追従して更新可)
-- backend: `RegisterFirstHouseholdScenario` の単体テスト(冪等性含む) + session endpoint の TestApplication テスト
+- backend: `RegisterFirstHouseholdScenario` の単体テスト(冪等性含む)+ `bootstrap()` Controller の単体テスト + `household_names` を含む Household repository の統合テスト
 
 メインシェルの中身(在庫一覧)は #2 のスコープ。本サブプロジェクトのメインシェルは現状の placeholder を維持してよい(土台が動くことの検証が目的)。
 
 ## 6. 未決事項
 
 1. **navigation-compose のバージョン**: Compose Multiplatform 1.11.0 に整合する `org.jetbrains.androidx.navigation:navigation-compose` のバージョンを実装フェーズで確定する。
-2. **session endpoint のパス名**: `GET /api/v1/auth/session` を仮置き。`/api/v1/me` 等の別案も実装フェーズで最終決定してよい(意味は §3.2 のとおり固定)。
-3. **expect/actual 統合(§4.5)**: compose-web convention の制約で実際に統合できるかは着手時に確認。できなければ現状維持で可。
+2. **`OnboardingRpcService` の route パス**: 改名後も route パスは `/api/v1/user/public` 据え置きか、`/api/v1/onboarding` 等へ改名するかを Plan 1a 実装時に決める(機能には影響しない。frontend 波及は 1b)。
+3. **`HouseholdName` の最大長**: `DisplayName`(100)に倣うか別値か。デフォルト世帯名の導出規則(「〇〇の家」等)と併せて Plan 1a 実装時に確定。
+4. **expect/actual 統合(§4.5)**: compose-web convention の制約で実際に統合できるかは着手時に確認。できなければ現状維持で可。
 
 ## 7. 用語(本ドキュメント固有)
 
