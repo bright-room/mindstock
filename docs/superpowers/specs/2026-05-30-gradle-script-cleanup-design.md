@@ -95,6 +95,8 @@ JS ターゲット(`js(IR)` + `wasmJs` の二本立て、`webMain` 中間ソー�
 
 memory の local-build-tips(frontend WasmJs は OOM、統合テストは `--max-workers=1`)に従う。
 
+> ⚠️ **2026-05-30 追記**: 統合テストの `--max-workers=1` は不要になった(テスト側 HikariCP プールをキャップして接続枯渇を解消、`docs/superpowers/specs/2026-05-30-integration-test-pool-capping-design.md`)。
+
 - バックエンド中心のビルド:
   `./gradlew :domain:build :backend:core:build :backend:api:build :rpc:build`
 - frontend のコンパイルのみ確認(フル build は OOM 回避で避ける):

@@ -292,7 +292,7 @@ wall-clock 比較をユーザに報告する。
   - DB は integration-test のみ + `TEST_DB_*` → integration-test job の service と env。✓
   - AUTH_* は test-frontend のみ → test-frontend job の env。✓
   - ヒープ増量しない(escape hatch コメントのみ)→ test-frontend のコメント。✓
-  - `--max-workers=1` 強制しない(コメントのみ)→ integration-test のコメント。✓
+  - `--max-workers=1` 強制しない(コメントのみ)→ integration-test のコメント。✓(⚠️ 2026-05-30: プールキャップで接続枯渇を解消し、このコメント自体も撤去済み。`docs/superpowers/specs/2026-05-30-integration-test-pool-capping-design.md`)
   - permissions / persist-credentials / action pin 踏襲 → Task 1 で維持。✓
 - **Placeholder scan:** プレースホルダ無し。全 step に実コマンド/実 YAML を記載。✓
 - **Type consistency:** job 名(lint / test-backend / test-frontend / integration-test)、

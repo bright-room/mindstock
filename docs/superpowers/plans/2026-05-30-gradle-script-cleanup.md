@@ -16,6 +16,7 @@
 
 - **frontend のフル build は OOM するため避ける**(memory: local-build-tips)。frontend はコンパイルタスク単体で確認する。
 - 統合テストを走らせる場合は `--max-workers=1`。
+  - ⚠️ **2026-05-30 以降は不要**: テスト側 HikariCP プールをキャップして接続枯渇を解消済み(`docs/superpowers/specs/2026-05-30-integration-test-pool-capping-design.md`)。本ドキュメント内の `--max-workers=1` 付きコマンドは当時の記録。
 - `*.gradle.kts` は spotless(ktlint)対象。編集後にフォーマット崩れがあれば
   `./gradlew spotlessApply` で整形してからコミットする。
 - 各タスクは「変更 → 検証コマンドが成功 → コミット」の順。検証コマンドが失敗したら原因を直してから次へ進む。

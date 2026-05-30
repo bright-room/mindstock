@@ -164,6 +164,7 @@ Renovate automerge を有効にしているため、main へ立て続けにマ�
   `org.gradle.parallel=true` で green なため踏襲。Postgres 接続枯渇
   (`max_connections=100`、test class ごとの JVM fork が HikariPool を開く)で
   flaky 化した場合の mitigation として `--max-workers=1` をコメントで残す。
+  - ⚠️ **2026-05-30 追記**: 真因は「test class ごとの JVM fork」ではなくテスト固有のプール過大だった。テスト側プールをキャップして解消し、`--max-workers=1` コメントも撤去済み(`docs/superpowers/specs/2026-05-30-integration-test-pool-capping-design.md`)。
 
 ## 想定 wall-clock
 
