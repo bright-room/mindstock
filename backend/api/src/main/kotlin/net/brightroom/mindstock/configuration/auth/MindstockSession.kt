@@ -13,7 +13,7 @@ import kotlin.uuid.Uuid
  *
  * - [identity]: JWT 検証成功時に組み立てた AuthIdentity
  * - [userId]: 登録済み User の id。未登録の場合は null(register エンドポイントでのみ許容)
- * - [exp]: JWT の expiresAt。各 RPC メソッドで `tx()` 経由の guard が比較する
+ * - [exp]: JWT の expiresAt。各 RPC メソッドで `rpcBoundary` 経由の guard が比較する
  * - [callId]: 接続単位のトレース ID。構造化ログに紐付ける
  */
 @OptIn(ExperimentalUuidApi::class)

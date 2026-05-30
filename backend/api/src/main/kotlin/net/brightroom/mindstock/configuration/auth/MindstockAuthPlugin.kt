@@ -76,9 +76,11 @@ val MindstockAuthPlugin =
                 return@onCall
             }
             val identity = AuthIdentity(AuthProvider.ZITADEL, AuthSubject(sub))
-            // 認証は WS upgrade 時の処理で RPC 境界(rpcBoundary)の外。よって
-            // 「tx は DataSource 内」原則の対象外とし、ここでは findProfileByAuthIdentity を
-            // 呼ぶための独立した小さな tx を直接張る。
+            // 認証は WS upgrade 時の処理で RPC 境界(rpcBoundary)の外。
+            // UserDataSource は自前で newSuspendedTransaction を張るため、技術的には
+            // この外側ラップは不要(呼び出しだけでも動く)。ただし認証 tx を明示的な
+            // 独立境界として残し意図を示している。ネストは useNestedTransactions=true
+            // (SAVEPOINT)で吸収される。
             // userId が null になるのは「JWT 検証は通ったが対応する User が DB に未登録」のケース。
             val userId =
                 newSuspendedTransaction(db = database) {
