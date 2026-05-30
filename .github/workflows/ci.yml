@@ -2,12 +2,89 @@ name: CI
 
 on:
   pull_request:
+  push:
+    branches: [main]
 
 permissions:
   contents: read
 
+# PR は新しい push で古い run を cancel(CI 分節約)。
+# main(push)は cancel せず全コミットを完走させる:
+#   - 各コミットの CI 検証を残す(Renovate automerge 対応)
+#   - setup-gradle のキャッシュ seed を各コミットで行う
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
-  build:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        with:
+          persist-credentials: false
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@50e97c2cd7a37755bbfafc9c5b7cafaece252f6e # v6
+
+      - name: Spotless check
+        run: ./gradlew spotlessCheck
+
+  test-backend:
+    needs: lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        with:
+          persist-credentials: false
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@50e97c2cd7a37755bbfafc9c5b7cafaece252f6e # v6
+
+      - name: Unit tests (JVM)
+        run: ./gradlew test jvmTest
+
+      - name: Upload reports on failure
+        if: failure()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: build-reports-test-backend
+          path: |
+            **/build/reports/
+            **/build/test-results/
+
+  test-frontend:
+    needs: lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        with:
+          persist-credentials: false
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@50e97c2cd7a37755bbfafc9c5b7cafaece252f6e # v6
+
+      - name: Browser tests (JS/Wasm)
+        # AUTH_* は frontend/build.gradle.kts:generateAuthConfig が要求する。
+        # CI ではコンパイルが通れば十分なので placeholder で埋める。
+        # WasmJs compile で OOM したら -Pkotlin.daemon.jvmargs=-Xmx6144M を付与する。
+        env:
+          AUTH_CLIENT_ID: ci-placeholder
+          AUTH_AUDIENCE: ci-placeholder
+          AUTH_PROJECT_ID: ci-placeholder
+        run: ./gradlew jsTest wasmJsTest
+
+      - name: Upload reports on failure
+        if: failure()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: build-reports-test-frontend
+          path: |
+            **/build/reports/
+            **/build/test-results/
+
+  integration-test:
+    needs: lint
     runs-on: ubuntu-latest
     services:
       postgres:
@@ -31,23 +108,19 @@ jobs:
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@50e97c2cd7a37755bbfafc9c5b7cafaece252f6e # v6
 
-      - name: Check
-        # AUTH_* は frontend/build.gradle.kts:generateAuthConfig が要求する。
-        # CI ではコンパイルが通れば十分なので placeholder で埋める。実 deploy には別途設定。
+      - name: Integration tests
+        # HikariPool 接続枯渇で flaky 化したら `--max-workers=1` を付与する。
         env:
-          AUTH_CLIENT_ID: ci-placeholder
-          AUTH_AUDIENCE: ci-placeholder
-          AUTH_PROJECT_ID: ci-placeholder
           TEST_DB_URL: jdbc:postgresql://localhost:5432/mindstock_test
           TEST_DB_USER: mindstock
           TEST_DB_PASSWORD: mindstock
-        run: ./gradlew check
+        run: ./gradlew :backend:api:integrationTest
 
       - name: Upload reports on failure
         if: failure()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
-          name: build-reports
+          name: build-reports-integration-test
           path: |
             **/build/reports/
             **/build/test-results/
