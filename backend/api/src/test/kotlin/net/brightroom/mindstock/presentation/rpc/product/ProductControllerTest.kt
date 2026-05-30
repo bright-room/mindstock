@@ -3,9 +3,7 @@ package net.brightroom.mindstock.presentation.rpc.product
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
 import io.mockk.coEvery
-import io.mockk.every
 import io.mockk.mockk
-import io.mockk.mockkStatic
 import io.mockk.unmockkAll
 import kotlinx.coroutines.runBlocking
 import kotlinx.datetime.Instant
@@ -28,9 +26,7 @@ import net.brightroom.mindstock.domain.model.user.UserId
 import net.brightroom.mindstock.domain.model.user.auth.AuthIdentity
 import net.brightroom.mindstock.domain.model.user.auth.AuthProvider
 import net.brightroom.mindstock.domain.model.user.auth.AuthSubject
-import net.brightroom.mindstock.rpc.RpcError
 import net.brightroom.mindstock.rpc.RpcResult
-import org.jetbrains.exposed.v1.jdbc.Database
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
@@ -44,7 +40,6 @@ class ProductControllerTest :
             val productRegisterService = mockk<ProductRegisterService>()
             val householdService = mockk<HouseholdService>()
             val catalogItemService = mockk<CatalogItemService>()
-            val database = mockk<Database>()
 
             val userId = UserId(Uuid.parse("00000000-0000-0000-0000-000000000001"))
             val householdId = HouseholdId(Uuid.parse("00000000-0000-0000-0000-000000000002"))
@@ -71,18 +66,9 @@ class ProductControllerTest :
                     callId = Uuid.random(),
                 )
 
-            every { householdService.findById(householdId) } returns household
-            every { catalogItemService.findById(catalogItemId) } returns catalogItem
-            every { productService.find(household, catalogItem) } returns product
-
-            mockkStatic("net.brightroom.mindstock.configuration.transaction.TransactionKt")
-            coEvery {
-                net.brightroom.mindstock.configuration.transaction
-                    .tx<Product>(any(), any(), any())
-            } coAnswers {
-                val block = arg<suspend () -> RpcResult<Product, RpcError>>(2)
-                block()
-            }
+            coEvery { householdService.findById(householdId) } returns household
+            coEvery { catalogItemService.findById(catalogItemId) } returns catalogItem
+            coEvery { productService.find(household, catalogItem) } returns product
 
             val impl =
                 ProductController(
@@ -91,7 +77,6 @@ class ProductControllerTest :
                     householdService = householdService,
                     catalogItemService = catalogItemService,
                     session = session,
-                    database = database,
                 )
             runBlocking { impl.find(householdId, catalogItemId) } shouldBe RpcResult.Ok(product)
         }

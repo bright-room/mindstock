@@ -15,7 +15,6 @@ import net.brightroom.mindstock.infrastructure.datasource.user.UserDataSource
 import net.brightroom.mindstock.rpc.RpcError
 import net.brightroom.mindstock.rpc.RpcResult
 import net.brightroom.mindstock.rpc.UserRpcService
-import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import kotlin.uuid.ExperimentalUuidApi
 
 /**
@@ -44,9 +43,7 @@ class UserRpcServiceE2eTest :
                 r.shouldBeInstanceOf<RpcResult.Ok<Unit>>()
 
                 val persisted =
-                    transaction(database) {
-                        (UserDataSource() as UserRepository).findProfileById(user.userId)
-                    }
+                    (UserDataSource(database) as UserRepository).findProfileById(user.userId)
                 persisted.shouldNotBeNull()
                 persisted.displayName shouldBe DisplayName("New Name")
             }

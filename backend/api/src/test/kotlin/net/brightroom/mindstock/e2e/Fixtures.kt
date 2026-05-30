@@ -14,7 +14,6 @@ import net.brightroom.mindstock.infrastructure.datasource.catalog.CatalogItemReg
 import net.brightroom.mindstock.infrastructure.datasource.household.HouseholdRegisterDataSource
 import net.brightroom.mindstock.infrastructure.datasource.product.ProductRegisterDataSource
 import net.brightroom.mindstock.infrastructure.datasource.user.UserRegisterDataSource
-import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
@@ -36,40 +35,30 @@ private fun shortRandom(): String =
         .replace("-", "")
         .take(8)
 
-fun E2eContext.seedUser(
+suspend fun E2eContext.seedUser(
     displayName: String = "User-${shortRandom()}",
     provider: AuthProvider = AuthProvider.ZITADEL,
     subject: String = "sub-${shortRandom()}",
 ): Profile =
-    transaction(database) {
-        UserRegisterDataSource().register(
-            identity = AuthIdentity(provider, AuthSubject(subject)),
-            defaultDisplayName = DisplayName(displayName),
-        )
-    }
+    UserRegisterDataSource(database).register(
+        identity = AuthIdentity(provider, AuthSubject(subject)),
+        defaultDisplayName = DisplayName(displayName),
+    )
 
-fun E2eContext.seedHousehold(owner: Profile): Household =
-    transaction(database) {
-        HouseholdRegisterDataSource().create(owner.userId)
-    }
+suspend fun E2eContext.seedHousehold(owner: Profile): Household = HouseholdRegisterDataSource(database).create(owner.userId)
 
-fun E2eContext.seedCatalogItem(
+suspend fun E2eContext.seedCatalogItem(
     createdBy: Profile,
     name: String = "Item-${shortRandom()}",
     unit: String = "個",
 ): CatalogItem =
-    transaction(database) {
-        CatalogItemRegisterDataSource().register(
-            name = CatalogItemName(name),
-            unit = CatalogItemUnit(unit),
-            createdBy = createdBy.userId,
-        )
-    }
+    CatalogItemRegisterDataSource(database).register(
+        name = CatalogItemName(name),
+        unit = CatalogItemUnit(unit),
+        createdBy = createdBy.userId,
+    )
 
-fun E2eContext.seedProduct(
+suspend fun E2eContext.seedProduct(
     household: Household,
     catalogItem: CatalogItem,
-): Product =
-    transaction(database) {
-        ProductRegisterDataSource().adopt(household, catalogItem)
-    }
+): Product = ProductRegisterDataSource(database).adopt(household, catalogItem)
