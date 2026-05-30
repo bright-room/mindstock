@@ -43,6 +43,25 @@ class StockDataSourceIntegrationTest :
             }
         }
 
+        test("stocksOf returns the household's products with their current quantities") {
+            withRepositoryTestContext {
+                val (user, household, product) = setupUserHouseholdProduct()
+                val register = StockRegisterDataSource(database)
+                val reader = StockDataSource(ProductDataSource(database), database)
+
+                runBlocking {
+                    register.replenish(product, Quantity(7), OccurredAt(Clock.System.now()), user.userId, Note(""))
+                }
+
+                val stocks = runBlocking { reader.stocksOf(household) }
+
+                stocks.list shouldHaveSize 1
+                val stock = stocks.list.single()
+                stock.product.id shouldBe product.id
+                stock.currentQuantity() shouldBe 7
+            }
+        }
+
         test("stockOf returns empty StockMovements for a fresh product") {
             withRepositoryTestContext {
                 val (_, _, product) = setupUserHouseholdProduct()
