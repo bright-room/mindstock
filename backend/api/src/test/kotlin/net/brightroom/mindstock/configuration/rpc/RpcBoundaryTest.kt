@@ -1,8 +1,10 @@
 package net.brightroom.mindstock.configuration.rpc
 
+import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.types.shouldBeInstanceOf
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.runBlocking
 import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant
@@ -72,5 +74,37 @@ class RpcBoundaryTest :
                 }
             result.shouldBeInstanceOf<RpcResult.Err<RpcError>>()
             result.error.shouldBeInstanceOf<RpcError.Internal>()
+        }
+
+        test("block 内で IllegalArgumentException → Err(BadRequest) でメッセージがパススルー") {
+            val result =
+                runBlocking {
+                    rpcBoundary<Int>(sessionWith(Clock.System.now() + 1.hours)) {
+                        require(false) { "quantity must be > 0" }
+                        1
+                    }
+                }
+            result.shouldBeInstanceOf<RpcResult.Err<RpcError>>()
+            val err = result.error
+            err.shouldBeInstanceOf<RpcError.BadRequest>()
+            err.reason shouldBe "quantity must be > 0"
+        }
+
+        test("Unit を返す block は RpcResult.Ok(Unit) に包まれる") {
+            val result =
+                runBlocking {
+                    rpcBoundary(sessionWith(Clock.System.now() + 1.hours)) { }
+                }
+            result shouldBe RpcResult.Ok(Unit)
+        }
+
+        test("block 内の CancellationException は伝播する(Internal に変換しない)") {
+            shouldThrow<CancellationException> {
+                runBlocking {
+                    rpcBoundary<Int>(sessionWith(Clock.System.now() + 1.hours)) {
+                        throw CancellationException("cancelled")
+                    }
+                }
+            }
         }
     })

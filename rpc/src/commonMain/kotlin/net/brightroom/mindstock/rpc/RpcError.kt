@@ -29,10 +29,9 @@ sealed interface RpcError {
         val message: String,
     ) : RpcError
 
-    /** 入力検証エラー。 */
+    /** 入力検証エラー。VO の値域違反(IllegalArgumentException)等。 */
     @Serializable
     data class BadRequest(
-        val field: String,
         val reason: String,
     ) : RpcError
 

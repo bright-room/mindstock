@@ -54,6 +54,9 @@ suspend fun <T> rpcBoundary(
     } catch (e: ResourceNotFoundException) {
         emitLog(session, start, outcome = "Err:NotFound")
         RpcResult.Err(RpcError.NotFound(message = e.message.orEmpty()))
+    } catch (e: IllegalArgumentException) {
+        emitLog(session, start, outcome = "Err:BadRequest")
+        RpcResult.Err(RpcError.BadRequest(reason = e.message.orEmpty()))
     } catch (e: Throwable) {
         logger.error(e) { "unhandled exception during RPC call_id=${session.callId}" }
         emitLog(session, start, outcome = "Throwable:${e::class.simpleName}")
