@@ -59,13 +59,18 @@ on:
     branches: [main]
 ```
 
-加えて `concurrency` で同一 ref の進行中 run を cancel し、無駄な実行を抑える。
+加えて `concurrency` で重複 run を抑える。ただし **main(push)では
+cancel しない**。
 
 ```yaml
 concurrency:
-  group: ci-${{ github.ref }}
-  cancel-in-progress: true
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 ```
+
+- PR: 新しい push で古い進行中 run を cancel(CI 分節約)。
+- main(push): cancel せず全コミットを完走させる。理由は次節
+  「連続マージ / Renovate automerge とキャッシュ」を参照。
 
 ### ジョブ構成（4 job）
 
@@ -107,6 +112,30 @@ lint  ──►  test-backend
   重複** する(runner 跨ぎのローカル build-cache 共有は remote build cache 基盤
   無しでは不可)。共有されるのは依存ダウンロードと、main で seed 済みの build-cache
   ヒット分。これは job 並列を選んだ代償であり、設計上の既知トレードオフ。
+
+### 連続マージ / Renovate automerge とキャッシュ
+
+Renovate automerge を有効にしているため、main へ立て続けにマージされるケースを
+前提に設計する。setup-gradle のキャッシュキーは
+`${protocol}-gradle|${os}|${job-id}[${matrix/workflow hash}]-${git-sha}` で、
+**末尾に git-sha を含む**。
+
+- main の各コミットは毎回**別の**キャッシュエントリを書き、復元は restore-keys の
+  プレフィックス一致で「最も新しい互換エントリ」を拾う。GHA のキャッシュキーは
+  不変だが SHA が異なるため、**連続マージでキーを奪い合わずロールフォワード**する。
+  main run が並走しても別 SHA なので衝突しない。job-id もキーに含まれるので 4 job
+  それぞれ独立エントリを持ち、main run ごとに 4 つ seed される。
+- **concurrency を main で cancel しない理由**: `cancel-in-progress: true` を
+  main にも適用すると、automerge 密集時に先行の main run がキャンセルされ、その run
+  は (a) そのコミットの CI 検証を行わず、(b) キャッシュを保存しない。各依存バンプを
+  main で検証したいので、main は完走させる
+  (`cancel-in-progress: ${{ github.event_name == 'pull_request' }}`)。代償は
+  automerge 密集時に main run が複数並走して CI 分を食うことだが、各 run は別 SHA で
+  別キャッシュを書き、PR は常に最新を復元できるため破綻しない。
+- **10GB 上限 / LRU**: 連続マージで unique キャッシュが積み上がり 10GB 超で古い
+  ものから evict されるが、復元は常に「最新の一致」を拾うので実害なし。setup-gradle
+  は save 前に未使用ファイルを cleanup する。automerge が多いと単にキャッシュの回転が
+  速くなるだけ。
 
 ### 環境変数
 
