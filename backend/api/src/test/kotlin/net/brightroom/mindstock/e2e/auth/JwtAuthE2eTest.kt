@@ -93,6 +93,23 @@ class JwtAuthE2eTest :
             }
         }
 
+        test("multiple mindstock.bearer entries → rejected even when each token is valid (fail-closed)") {
+            e2eTest {
+                val sub = "alice-sub"
+                seedUser(displayName = "Alice", subject = sub)
+                // 各 token は単体なら有効。2 つ同時提示は曖昧なので extractor が null → 401。
+                val first = TestJwtIssuer.issue(subject = sub)
+                val second = TestJwtIssuer.issue(subject = sub)
+                val rpc =
+                    rpcClientWithDuplicateBearer(
+                        firstToken = first,
+                        secondToken = second,
+                        path = "user",
+                    ).withService<UserRpcService>()
+                shouldThrowAny { rpc.rename(DisplayName("X")) }
+            }
+        }
+
         test("unregistered sub may call register via user-public realm") {
             e2eTest {
                 val newSub = "brand-new-user-sub"

@@ -180,7 +180,27 @@ class E2eContext(
         val b64 = Base64.getUrlEncoder().withoutPadding().encodeToString(token.toByteArray())
         return httpClient
             .rpc("/api/v1/$path") {
-                headers.append(HttpHeaders.SecWebSocketProtocol, "mindstock.v1, mindstock.bearer.$b64")
+                // 本番ブラウザ([RpcClientFactory])と同じく subprotocol を 2 本に分けて送る。
+                headers.append(HttpHeaders.SecWebSocketProtocol, "mindstock.v1")
+                headers.append(HttpHeaders.SecWebSocketProtocol, "mindstock.bearer.$b64")
+            }.also { opened += it }
+    }
+
+    /**
+     * 2 つの `mindstock.bearer.*` entry を同時に提示して接続(fail-closed 検証用)。
+     * 各 token 単体なら有効でも、曖昧なため extractor が null を返し 401 になることを確認する。
+     */
+    fun rpcClientWithDuplicateBearer(
+        firstToken: String,
+        secondToken: String,
+        path: String,
+    ): RpcClient {
+        fun encode(token: String) = Base64.getUrlEncoder().withoutPadding().encodeToString(token.toByteArray())
+        return httpClient
+            .rpc("/api/v1/$path") {
+                headers.append(HttpHeaders.SecWebSocketProtocol, "mindstock.v1")
+                headers.append(HttpHeaders.SecWebSocketProtocol, "mindstock.bearer.${encode(firstToken)}")
+                headers.append(HttpHeaders.SecWebSocketProtocol, "mindstock.bearer.${encode(secondToken)}")
             }.also { opened += it }
     }
 
