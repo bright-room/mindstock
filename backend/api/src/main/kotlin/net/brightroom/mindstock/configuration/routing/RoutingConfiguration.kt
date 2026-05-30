@@ -18,6 +18,7 @@ import net.brightroom.mindstock.application.repository.user.UserRepository
 import net.brightroom.mindstock.configuration.auth.MindstockAuthPlugin
 import net.brightroom.mindstock.configuration.auth.MindstockSessionKey
 import net.brightroom.mindstock.configuration.auth.RequireRegisteredUserPlugin
+import net.brightroom.mindstock.configuration.auth.RequireUnregisteredUserPlugin
 import net.brightroom.mindstock.configuration.auth.WsSubprotocolEchoPlugin
 import net.brightroom.mindstock.extensions.kotlinx.serialization.CustomJson
 import net.brightroom.mindstock.extensions.kotlinx.serialization.KrpcJson
@@ -74,8 +75,9 @@ fun Application.routingConfigure() {
                 this.userRepository = userRepository
                 this.database = database
             }
-            // JWT 有効ならよい(未登録 OK)
+            // JWT 有効ならよい(未登録 OK)。ただし登録済みは register に到達させない
             route("/user/public") {
+                install(RequireUnregisteredUserPlugin)
                 rpc {
                     val session = call.attributes[MindstockSessionKey]
                     registerService<UserPublicRpcService> { userPublicFactory.create(session) }

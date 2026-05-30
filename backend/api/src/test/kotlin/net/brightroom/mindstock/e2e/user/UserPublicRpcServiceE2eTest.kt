@@ -1,5 +1,6 @@
 package net.brightroom.mindstock.e2e.user
 
+import io.kotest.assertions.throwables.shouldThrowAny
 import io.kotest.core.annotation.Tags
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.nulls.shouldNotBeNull
@@ -48,9 +49,7 @@ class UserPublicRpcServiceE2eTest :
                 profile.displayName shouldBe DisplayName("Alice")
 
                 val persisted =
-                    transaction(database) {
-                        (UserDataSource() as UserRepository).findProfileById(profile.userId)
-                    }
+                    (UserDataSource(database) as UserRepository).findProfileById(profile.userId)
                 persisted.shouldNotBeNull()
                 persisted.displayName shouldBe DisplayName("Alice")
 
@@ -67,8 +66,9 @@ class UserPublicRpcServiceE2eTest :
         }
 
         // Pinning test for the server→client error propagation contract.
-        // 重複 sub による DB UNIQUE 制約違反は tx() の catch で RpcError.Internal に変換される。
-        // 将来 UserRegisterService で重複検出を入れ Conflict を明示返却するのは TODO。
+        // 重複 sub による DB UNIQUE 制約違反は rpcBoundary の catch で RpcError.Internal に変換される。
+        // 同一接続での 2 回 register は接続単位 guard を通過するため、この退行ケースは Internal を返す。
+        // 別接続の再試行(登録済み JWT で再接続)は RequireUnregisteredUserPlugin が 409 で弾く(別テストで検証)。
         test("register returns Err(Internal) on duplicate sub and pipeline stays usable") {
             e2eTest {
                 val dupeSub = "dupe-subject"
@@ -91,6 +91,29 @@ class UserPublicRpcServiceE2eTest :
                 val third = freshRpc.register(DisplayName("Third"))
                 third.shouldBeInstanceOf<RpcResult.Ok<Profile>>()
                 third.value.displayName shouldBe DisplayName("Third")
+            }
+        }
+
+        test("registered user re-registering on a fresh connection is rejected by guard") {
+            e2eTest {
+                val sub = "retry-subject"
+                val token = TestJwtIssuer.issue(subject = sub)
+
+                // 1 回目: 未登録なので register 成功
+                val first =
+                    authenticatedRpcClientWithToken(token = token, path = "user/public")
+                        .withService<UserPublicRpcService>()
+                first.register(DisplayName("Alice"))
+
+                // 2 回目: 別接続を同じ token で開く → MindstockAuthPlugin が userId を解決
+                //   → RequireUnregisteredUserPlugin が 409 で WS upgrade を弾く
+                //   → RPC 呼び出しが確立できず例外になる
+                shouldThrowAny {
+                    val second =
+                        authenticatedRpcClientWithToken(token = token, path = "user/public")
+                            .withService<UserPublicRpcService>()
+                    second.register(DisplayName("Bob"))
+                }
             }
         }
     })
