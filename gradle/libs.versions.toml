@@ -74,7 +74,7 @@ compose-material3 = { module = "org.jetbrains.compose.material3:material3", vers
 compose-ui = { module = "org.jetbrains.compose.ui:ui", version.ref = "compose-multiplatform" }
 compose-components-resources = { module = "org.jetbrains.compose.components:components-resources", version.ref = "compose-multiplatform" }
 compose-ui-tooling-preview = { module = "org.jetbrains.compose.ui:ui-tooling-preview", version.ref = "compose-multiplatform" }
-compose-adaptive = { module = "org.jetbrains.compose.material3.adaptive:adaptive", version = { strictly = "1.3.0-alpha06" } }
+compose-adaptive = { module = "org.jetbrains.compose.material3.adaptive:adaptive", version = { strictly = "1.3.0-beta01" } }
 material-icons-extended = { module = "org.jetbrains.compose.material:material-icons-extended", version = { strictly = "1.7.3" } }
 material3-adaptive-navigation-suite = { module = "org.jetbrains.compose.material3:material3-adaptive-navigation-suite", version.ref = "material3" }
 lifecycle-viewmodel = { module = "org.jetbrains.androidx.lifecycle:lifecycle-viewmodel", version.ref = "lifecycle" }
