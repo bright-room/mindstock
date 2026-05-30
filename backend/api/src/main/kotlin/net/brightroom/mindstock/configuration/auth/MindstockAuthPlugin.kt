@@ -76,12 +76,10 @@ val MindstockAuthPlugin =
                 return@onCall
             }
             val identity = AuthIdentity(AuthProvider.ZITADEL, AuthSubject(sub))
+            // 認証は WS upgrade 時の処理で RPC 境界(rpcBoundary)の外。よって
+            // 「tx は DataSource 内」原則の対象外とし、ここでは findProfileByAuthIdentity を
+            // 呼ぶための独立した小さな tx を直接張る。
             // userId が null になるのは「JWT 検証は通ったが対応する User が DB に未登録」のケース。
-            // `/api/v1/user/public/register` だけがこの状態の呼び出しを受理し、他の route は
-            // RequireRegisteredUserPlugin が userId == null を 401 で弾く。
-            //
-            // ResourceNotFoundException 以外(DB / Cancellation 等)はそのまま伝播させて
-            // 認証層が真の障害を握り込まないようにする。
             val userId =
                 newSuspendedTransaction(db = database) {
                     try {
