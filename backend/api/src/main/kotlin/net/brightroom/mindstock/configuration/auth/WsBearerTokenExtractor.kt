@@ -12,11 +12,16 @@ import java.util.Base64
  *
  * 本番フロントもテストもこの経路一本に統一している(REST/Authorization 経路は持たない)。
  */
-object WsBearerTokenExtractor {
+internal object WsBearerTokenExtractor {
     private const val WS_PROTOCOL_BEARER_PREFIX = "mindstock.bearer."
 
     /**
      * Sec-WebSocket-Protocol から生の JWT 文字列を取り出す。MindstockAuthPlugin 用。
+     *
+     * 戻り値の `null` は「使える bearer token が無い」を一律に表す(未指定 / bearer entry が
+     * 複数で曖昧 / base64 decode 失敗)。認証境界では理由を区別せず一律 401 に倒すのが
+     * 正しい(理由の出し分けは情報漏洩になる)ため、これは意図した契約。`internal` 限定で
+     * 公開 API ではない。
      */
     fun extractRaw(call: ApplicationCall): String? {
         val protocols =
