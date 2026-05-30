@@ -5,7 +5,7 @@ import net.brightroom.mindstock.application.service.product.ProductService
 import net.brightroom.mindstock.application.service.stock.StockRegisterService
 import net.brightroom.mindstock.application.service.stock.StockService
 import net.brightroom.mindstock.configuration.auth.MindstockSession
-import net.brightroom.mindstock.configuration.transaction.tx
+import net.brightroom.mindstock.configuration.rpc.rpcBoundary
 import net.brightroom.mindstock.domain.model.household.HouseholdId
 import net.brightroom.mindstock.domain.model.product.ProductId
 import net.brightroom.mindstock.domain.model.stock.Stock
@@ -17,7 +17,6 @@ import net.brightroom.mindstock.domain.model.stock.movement.StockMovements
 import net.brightroom.mindstock.rpc.RpcError
 import net.brightroom.mindstock.rpc.RpcResult
 import net.brightroom.mindstock.rpc.StockRpcService
-import org.jetbrains.exposed.v1.jdbc.Database
 
 class StockController(
     private val stockService: StockService,
@@ -25,27 +24,26 @@ class StockController(
     private val productService: ProductService,
     private val householdService: HouseholdService,
     private val session: MindstockSession,
-    private val database: Database,
 ) : StockRpcService {
     override suspend fun get(productId: ProductId): RpcResult<Stock, RpcError> =
-        tx(database, session) {
+        rpcBoundary(session) {
             val product = productService.findById(productId)
-            RpcResult.Ok(stockService.get(product))
+            stockService.get(product)
         }
 
     override suspend fun list(householdId: HouseholdId): RpcResult<Stocks, RpcError> =
-        tx(database, session) {
+        rpcBoundary(session) {
             val household = householdService.findById(householdId)
-            RpcResult.Ok(stockService.list(household))
+            stockService.list(household)
         }
 
     override suspend fun movementHistory(
         productId: ProductId,
         limit: Int,
     ): RpcResult<StockMovements, RpcError> =
-        tx(database, session) {
+        rpcBoundary(session) {
             val product = productService.findById(productId)
-            RpcResult.Ok(stockService.getMovementHistory(product, limit))
+            stockService.getMovementHistory(product, limit)
         }
 
     override suspend fun replenish(
@@ -54,10 +52,9 @@ class StockController(
         occurredAt: OccurredAt,
         note: Note,
     ): RpcResult<Unit, RpcError> =
-        tx(database, session) {
+        rpcBoundary(session) {
             val product = productService.findById(productId)
             stockRegisterService.replenish(product, qty, occurredAt, requireNotNull(session.userId), note)
-            RpcResult.Ok(Unit)
         }
 
     override suspend fun consume(
@@ -66,9 +63,8 @@ class StockController(
         occurredAt: OccurredAt,
         note: Note,
     ): RpcResult<Unit, RpcError> =
-        tx(database, session) {
+        rpcBoundary(session) {
             val product = productService.findById(productId)
             stockRegisterService.consume(product, qty, occurredAt, requireNotNull(session.userId), note)
-            RpcResult.Ok(Unit)
         }
 }
