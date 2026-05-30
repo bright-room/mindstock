@@ -10,11 +10,11 @@ import net.brightroom.mindstock.domain.model.stock.movement.StockMovements
 class StockService(
     private val stockRepository: StockRepository,
 ) {
-    fun get(product: Product): Stock = stockRepository.stockOf(product)
+    suspend fun get(product: Product): Stock = stockRepository.stockOf(product)
 
-    fun list(household: Household): Stocks = stockRepository.stocksOf(household)
+    suspend fun list(household: Household): Stocks = stockRepository.stocksOf(household)
 
-    fun getMovementHistory(
+    suspend fun getMovementHistory(
         product: Product,
         limit: Int = 50,
     ): StockMovements = stockRepository.movementHistory(product, limit)

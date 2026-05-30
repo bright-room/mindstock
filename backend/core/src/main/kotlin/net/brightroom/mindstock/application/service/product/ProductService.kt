@@ -10,12 +10,12 @@ import net.brightroom.mindstock.domain.model.product.Products
 class ProductService(
     private val productRepository: ProductRepository,
 ) {
-    fun findById(id: ProductId): Product = productRepository.findById(id)
+    suspend fun findById(id: ProductId): Product = productRepository.findById(id)
 
-    fun find(
+    suspend fun find(
         household: Household,
         catalogItem: CatalogItem,
     ): Product = productRepository.find(household, catalogItem)
 
-    fun listOf(household: Household): Products = productRepository.listOf(household)
+    suspend fun listOf(household: Household): Products = productRepository.listOf(household)
 }

@@ -9,13 +9,13 @@ import net.brightroom.mindstock.domain.model.user.UserId
 class CatalogItemRegisterService(
     private val catalogItemRegisterRepository: CatalogItemRegisterRepository,
 ) {
-    fun register(
+    suspend fun register(
         name: CatalogItemName,
         unit: CatalogItemUnit,
         createdBy: UserId,
     ): CatalogItem = catalogItemRegisterRepository.register(name, unit, createdBy)
 
-    fun revise(
+    suspend fun revise(
         catalogItem: CatalogItem,
         newName: CatalogItemName,
         newUnit: CatalogItemUnit,

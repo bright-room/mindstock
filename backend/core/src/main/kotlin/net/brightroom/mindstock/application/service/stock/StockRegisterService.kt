@@ -10,7 +10,7 @@ import net.brightroom.mindstock.domain.model.user.UserId
 class StockRegisterService(
     private val stockRegisterRepository: StockRegisterRepository,
 ) {
-    fun replenish(
+    suspend fun replenish(
         product: Product,
         quantity: Quantity,
         occurredAt: OccurredAt,
@@ -18,7 +18,7 @@ class StockRegisterService(
         note: Note,
     ) = stockRegisterRepository.replenish(product, quantity, occurredAt, by, note)
 
-    fun consume(
+    suspend fun consume(
         product: Product,
         quantity: Quantity,
         occurredAt: OccurredAt,

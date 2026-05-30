@@ -9,12 +9,12 @@ import net.brightroom.mindstock.domain.model.user.profile.Profile
 class UserRegisterService(
     private val userRegisterRepository: UserRegisterRepository,
 ) {
-    fun register(
+    suspend fun register(
         identity: AuthIdentity,
         defaultDisplayName: DisplayName,
     ): Profile = userRegisterRepository.register(identity, defaultDisplayName)
 
-    fun rename(
+    suspend fun rename(
         userId: UserId,
         newName: DisplayName,
     ) {

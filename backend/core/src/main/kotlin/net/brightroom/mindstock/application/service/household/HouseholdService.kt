@@ -8,7 +8,7 @@ import net.brightroom.mindstock.domain.model.user.UserId
 class HouseholdService(
     private val householdRepository: HouseholdRepository,
 ) {
-    fun findOf(userId: UserId): Household = householdRepository.findOf(userId)
+    suspend fun findOf(userId: UserId): Household = householdRepository.findOf(userId)
 
-    fun findById(id: HouseholdId): Household = householdRepository.findById(id)
+    suspend fun findById(id: HouseholdId): Household = householdRepository.findById(id)
 }

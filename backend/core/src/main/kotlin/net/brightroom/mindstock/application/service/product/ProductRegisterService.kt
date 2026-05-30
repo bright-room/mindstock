@@ -10,19 +10,19 @@ import net.brightroom.mindstock.domain.model.user.UserId
 class ProductRegisterService(
     private val productRegisterRepository: ProductRegisterRepository,
 ) {
-    fun adopt(
+    suspend fun adopt(
         household: Household,
         catalogItem: CatalogItem,
     ): Product = productRegisterRepository.adopt(household, catalogItem)
 
-    fun archive(
+    suspend fun archive(
         product: Product,
         by: UserId,
     ) {
         productRegisterRepository.archive(product, by)
     }
 
-    fun setMinimumStock(
+    suspend fun setMinimumStock(
         product: Product,
         value: MinimumStock.Set,
         editedBy: UserId,

@@ -8,9 +8,9 @@ import net.brightroom.mindstock.domain.model.user.UserId
 class HouseholdRegisterService(
     private val householdRegisterRepository: HouseholdRegisterRepository,
 ) {
-    fun create(ownerId: UserId): Household = householdRegisterRepository.create(ownerId)
+    suspend fun create(ownerId: UserId): Household = householdRegisterRepository.create(ownerId)
 
-    fun invite(
+    suspend fun invite(
         household: Household,
         userId: UserId,
         role: HouseholdMemberRole,
@@ -18,7 +18,7 @@ class HouseholdRegisterService(
         householdRegisterRepository.invite(household, userId, role)
     }
 
-    fun revoke(
+    suspend fun revoke(
         household: Household,
         userId: UserId,
     ) {

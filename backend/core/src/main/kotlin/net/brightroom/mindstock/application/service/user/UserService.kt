@@ -7,5 +7,5 @@ import net.brightroom.mindstock.domain.model.user.profile.Profile
 class UserService(
     private val userRepository: UserRepository,
 ) {
-    fun findById(userId: UserId): Profile = userRepository.findProfileById(userId)
+    suspend fun findById(userId: UserId): Profile = userRepository.findProfileById(userId)
 }
