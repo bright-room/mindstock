@@ -10,14 +10,9 @@ kotlin {
             implementation(libs.kotlinx.serialization.json)
             implementation(libs.kotlinx.datetime)
         }
-        commonTest.dependencies {}
-
-        jvmMain.dependencies {}
-        jvmTest.dependencies {}
 
         wasmJsMain.dependencies {
             implementation(npm("@js-joda/timezone", "2.3.0"))
         }
-        wasmJsTest.dependencies {}
     }
 }
