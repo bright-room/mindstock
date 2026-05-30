@@ -6,7 +6,7 @@ import net.brightroom.mindstock.domain.model.catalog.CatalogItems
 
 interface CatalogItemRepository {
     /** 名前部分一致検索。 */
-    fun search(
+    suspend fun search(
         query: String,
         limit: Int = 50,
     ): CatalogItems
@@ -15,5 +15,5 @@ interface CatalogItemRepository {
      * id 引き(主に RPC 経由)。
      * 該当 catalog item が存在しなければ `ResourceNotFoundException` を throw する。
      */
-    fun findById(id: CatalogItemId): CatalogItem
+    suspend fun findById(id: CatalogItemId): CatalogItem
 }

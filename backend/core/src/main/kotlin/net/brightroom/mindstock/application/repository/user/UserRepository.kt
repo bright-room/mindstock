@@ -9,11 +9,11 @@ interface UserRepository {
      * 認証 identity(zitadel sub 等)で profile を引く。
      * 該当 user が存在しなければ `ResourceNotFoundException` を throw する。
      */
-    fun findProfileByAuthIdentity(identity: AuthIdentity): Profile
+    suspend fun findProfileByAuthIdentity(identity: AuthIdentity): Profile
 
     /**
      * id 引き。
      * 該当 user が存在しなければ `ResourceNotFoundException` を throw する。
      */
-    fun findProfileById(id: UserId): Profile
+    suspend fun findProfileById(id: UserId): Profile
 }

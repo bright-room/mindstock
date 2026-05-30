@@ -6,17 +6,17 @@ import net.brightroom.mindstock.domain.model.user.UserId
 
 interface HouseholdRegisterRepository {
     /** households + 初回 household_memberships(OWNER)を 1 トランザクションで INSERT。 */
-    fun create(ownerId: UserId): Household
+    suspend fun create(ownerId: UserId): Household
 
     /** household_memberships に行を INSERT。 */
-    fun invite(
+    suspend fun invite(
         household: Household,
         userId: UserId,
         role: HouseholdMemberRole,
     )
 
     /** household_membership_revocations に行を INSERT。 */
-    fun revoke(
+    suspend fun revoke(
         household: Household,
         userId: UserId,
     )

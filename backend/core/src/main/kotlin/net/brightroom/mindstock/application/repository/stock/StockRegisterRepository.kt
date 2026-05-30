@@ -7,7 +7,7 @@ import net.brightroom.mindstock.domain.model.stock.movement.Quantity
 import net.brightroom.mindstock.domain.model.user.UserId
 
 interface StockRegisterRepository {
-    fun replenish(
+    suspend fun replenish(
         product: Product,
         quantity: Quantity,
         occurredAt: OccurredAt,
@@ -15,7 +15,7 @@ interface StockRegisterRepository {
         note: Note,
     )
 
-    fun consume(
+    suspend fun consume(
         product: Product,
         quantity: Quantity,
         occurredAt: OccurredAt,

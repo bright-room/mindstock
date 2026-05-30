@@ -8,7 +8,7 @@ import net.brightroom.mindstock.domain.model.product.Products
 
 interface ProductRepository {
     /** 世帯の全商品(archived 含む)。 */
-    fun listOf(household: Household): Products
+    suspend fun listOf(household: Household): Products
 
     /**
      * 複合キー(世帯 × カタログ商品)による Product 取得。`findById` の複合キー版。
@@ -19,7 +19,7 @@ interface ProductRepository {
      *   (minimumStock / archived 等) を読みたい」用途で使う
      * - 該当 Product が存在しなければ `ResourceNotFoundException` を throw する
      */
-    fun find(
+    suspend fun find(
         household: Household,
         catalogItem: CatalogItem,
     ): Product
@@ -28,5 +28,5 @@ interface ProductRepository {
      * id 引き(主に RPC 経由)。
      * 該当 product が存在しなければ `ResourceNotFoundException` を throw する。
      */
-    fun findById(id: ProductId): Product
+    suspend fun findById(id: ProductId): Product
 }

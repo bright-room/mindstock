@@ -8,20 +8,20 @@ import net.brightroom.mindstock.domain.model.user.UserId
 
 interface ProductRegisterRepository {
     /** products に行を INSERT。 */
-    fun adopt(
+    suspend fun adopt(
         household: Household,
         catalogItem: CatalogItem,
     ): Product
 
     /** product_minimum_stocks に行を INSERT。 */
-    fun setMinimumStock(
+    suspend fun setMinimumStock(
         product: Product,
         value: MinimumStock.Set,
         editedBy: UserId,
     )
 
     /** product_archives に行を INSERT。 */
-    fun archive(
+    suspend fun archive(
         product: Product,
         by: UserId,
     )

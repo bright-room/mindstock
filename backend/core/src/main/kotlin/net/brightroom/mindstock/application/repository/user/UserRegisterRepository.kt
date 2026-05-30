@@ -7,13 +7,13 @@ import net.brightroom.mindstock.domain.model.user.profile.Profile
 
 interface UserRegisterRepository {
     /** users + 初回 user_display_names を 1 トランザクションで INSERT。 */
-    fun register(
+    suspend fun register(
         identity: AuthIdentity,
         defaultDisplayName: DisplayName,
     ): Profile
 
     /** user_display_names に新規行を INSERT。 */
-    fun rename(
+    suspend fun rename(
         userId: UserId,
         newName: DisplayName,
     )

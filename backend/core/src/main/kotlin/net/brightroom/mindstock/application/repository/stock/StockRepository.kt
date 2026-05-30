@@ -8,13 +8,13 @@ import net.brightroom.mindstock.domain.model.stock.movement.StockMovements
 
 interface StockRepository {
     /** 1 商品の在庫状態。 */
-    fun stockOf(product: Product): Stock
+    suspend fun stockOf(product: Product): Stock
 
     /** 世帯全商品の在庫状態(ShoppingList 用)。 */
-    fun stocksOf(household: Household): Stocks
+    suspend fun stocksOf(household: Household): Stocks
 
     /** 指定商品の movement 履歴(最新順を想定)。 */
-    fun movementHistory(
+    suspend fun movementHistory(
         product: Product,
         limit: Int = 50,
     ): StockMovements

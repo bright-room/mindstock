@@ -9,11 +9,11 @@ interface HouseholdRepository {
      * ユーザーが所属する世帯(MVP は 1 ユーザー 1 世帯前提)。
      * 未所属なら `ResourceNotFoundException` を throw する。
      */
-    fun findOf(userId: UserId): Household
+    suspend fun findOf(userId: UserId): Household
 
     /**
      * id 引き(主に RPC 経由)。
      * 該当 household が存在しなければ `ResourceNotFoundException` を throw する。
      */
-    fun findById(id: HouseholdId): Household
+    suspend fun findById(id: HouseholdId): Household
 }
