@@ -22,7 +22,7 @@ mindstock の層責務と依存方向。Controller / Scenario / Service / Reposi
         infrastructure (DataSource = Repository 実装)
 
   domain (model, value object, exception) ← 全層が依存可能・横断
-  configuration (Ktor plugin / DI / routing / tx ヘルパー)
+  configuration (Ktor plugin / DI / routing / rpcBoundary)
     ← presentation か infrastructure の片方向 glue
 ```
 
@@ -52,6 +52,7 @@ mindstock の層責務と依存方向。Controller / Scenario / Service / Reposi
   - ✅ Repository から集約 fetch、Domain メソッドを呼ぶ、Repository に保存、複数 Repository を順序制御
   - ❌ 条件分岐によるビジネス判定、状態遷移、計算ロジック(全部 Domain へ)
 - 引数・戻り値はすべて VO / 集約 / ファーストクラスコレクション。primitive(`Int` / `String` 等)や raw `List<T>` を公開しない
+- 全メソッドは `suspend`(Repository が `suspend` のため伝播する)。素通しの本体は変えない
 - **Repository が返した値の null チェックを Service で書かない**。不在は infrastructure が例外で表現し、Service は素通しで forward する
 - 戻り値:
   - 単一値: 集約 or VO(non-null)
@@ -61,6 +62,7 @@ mindstock の層責務と依存方向。Controller / Scenario / Service / Reposi
 ### Repository(application interface / infrastructure 実装)
 
 - interface 側で例外の throw は **規約化しない**(interface は契約だけを示す)
+- 全メソッドは `suspend`(DataSource が `newSuspendedTransaction` で境界を張るため、`suspend` が Repository → Service へ伝播する)
 - 一覧 method は空のファーストクラスコレクションを返す(`Stocks(emptyList())` 等)
 - Reader / Writer 分離:
   - 読み: `<Ctx>Repository`
@@ -69,7 +71,10 @@ mindstock の層責務と依存方向。Controller / Scenario / Service / Reposi
 
 ### DataSource(infrastructure)
 
-- 実装内では `transaction {}` を書かない(Ktor plugin または `tx()` で境界管理)
+- **メソッド = トランザクション境界**。`Database` をコンストラクタで受け、各メソッド(read/write 問わず)本体を `newSuspendedTransaction(db = database) { ... }` で囲む。メソッドは `suspend`
+  - 旧方針(presentation の `tx()` で境界管理、DataSource では `transaction {}` を書かない)からの転換。`tx()` は廃止され `rpcBoundary` に分離された(詳細は [rpc-and-transactions](rpc-and-transactions.md))
+  - 複数 INSERT を 1 原子操作にしたいメソッド(user/catalog/household の register・create)は、その複数 INSERT を 1 つの `newSuspendedTransaction` 内に収める。単一 INSERT / 単一 read は単独の tx でよい
+  - private helper(hydration や query builder)は非 suspend のまま `newSuspendedTransaction` の中から呼ぶ
 - INSERT 後は RETURNING 相当(`insertAndGetId` + hydration)で読み戻して domain object を返す
 - 行が無かった場合は `ResourceNotFoundException` を throw する(Service / Scenario は素通しの前提)
 
