@@ -6,6 +6,7 @@ import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.collections.shouldHaveSize
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.string.shouldContain
+import kotlinx.coroutines.runBlocking
 import net.brightroom.mindstock.domain.exception.ResourceNotFoundException
 import net.brightroom.mindstock.domain.model.catalog.CatalogItemName
 import net.brightroom.mindstock.domain.model.catalog.CatalogItemUnit
@@ -28,48 +29,48 @@ class ProductDataSourceIntegrationTest :
 
         test("find throws ResourceNotFoundException when no product matches") {
             withRepositoryTestContext {
-                val userRepo = UserRegisterDataSource()
-                val householdRepo = HouseholdRegisterDataSource()
-                val catalogRepo = CatalogItemRegisterDataSource()
-                val productReader = ProductDataSource()
+                val userRepo = UserRegisterDataSource(database)
+                val householdRepo = HouseholdRegisterDataSource(database)
+                val catalogRepo = CatalogItemRegisterDataSource(database)
+                val productReader = ProductDataSource(database)
 
-                val user = tx { userRepo.register(AuthIdentity(AuthProvider.ZITADEL, AuthSubject("u")), DisplayName("U")) }
-                val household = tx { householdRepo.create(user.userId) }
-                val item = tx { catalogRepo.register(CatalogItemName("Milk"), CatalogItemUnit("L"), user.userId) }
+                val user = runBlocking { userRepo.register(AuthIdentity(AuthProvider.ZITADEL, AuthSubject("u")), DisplayName("U")) }
+                val household = runBlocking { householdRepo.create(user.userId) }
+                val item = runBlocking { catalogRepo.register(CatalogItemName("Milk"), CatalogItemUnit("L"), user.userId) }
 
                 shouldThrow<ResourceNotFoundException> {
-                    tx { productReader.find(household, item) }
+                    runBlocking { productReader.find(household, item) }
                 }.message shouldContain "product not found"
             }
         }
 
         test("findById throws ResourceNotFoundException when product does not exist") {
             withRepositoryTestContext {
-                val productReader = ProductDataSource()
+                val productReader = ProductDataSource(database)
                 shouldThrow<ResourceNotFoundException> {
-                    tx { productReader.findById(ProductId(Uuid.random())) }
+                    runBlocking { productReader.findById(ProductId(Uuid.random())) }
                 }.message shouldContain "product not found"
             }
         }
 
         test("listOf returns all products of household including archived") {
             withRepositoryTestContext {
-                val userRepo = UserRegisterDataSource()
-                val householdRepo = HouseholdRegisterDataSource()
-                val catalogRepo = CatalogItemRegisterDataSource()
-                val productRegister = ProductRegisterDataSource()
-                val productReader = ProductDataSource()
+                val userRepo = UserRegisterDataSource(database)
+                val householdRepo = HouseholdRegisterDataSource(database)
+                val catalogRepo = CatalogItemRegisterDataSource(database)
+                val productRegister = ProductRegisterDataSource(database)
+                val productReader = ProductDataSource(database)
 
-                val user = tx { userRepo.register(AuthIdentity(AuthProvider.ZITADEL, AuthSubject("u")), DisplayName("U")) }
-                val household = tx { householdRepo.create(user.userId) }
-                val milk = tx { catalogRepo.register(CatalogItemName("Milk"), CatalogItemUnit("L"), user.userId) }
-                val bread = tx { catalogRepo.register(CatalogItemName("Bread"), CatalogItemUnit("loaf"), user.userId) }
+                val user = runBlocking { userRepo.register(AuthIdentity(AuthProvider.ZITADEL, AuthSubject("u")), DisplayName("U")) }
+                val household = runBlocking { householdRepo.create(user.userId) }
+                val milk = runBlocking { catalogRepo.register(CatalogItemName("Milk"), CatalogItemUnit("L"), user.userId) }
+                val bread = runBlocking { catalogRepo.register(CatalogItemName("Bread"), CatalogItemUnit("loaf"), user.userId) }
 
-                val milkProduct = tx { productRegister.adopt(household, milk) }
-                tx { productRegister.adopt(household, bread) }
-                tx { productRegister.archive(milkProduct, user.userId) }
+                val milkProduct = runBlocking { productRegister.adopt(household, milk) }
+                runBlocking { productRegister.adopt(household, bread) }
+                runBlocking { productRegister.archive(milkProduct, user.userId) }
 
-                val results = tx { productReader.listOf(household) }
+                val results = runBlocking { productReader.listOf(household) }
                 results.list shouldHaveSize 2
                 results.list.single { it.catalogItem.name == CatalogItemName("Milk") }.archived shouldBe true
             }

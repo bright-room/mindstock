@@ -3,6 +3,7 @@ package net.brightroom.mindstock.infrastructure.datasource.product
 import io.kotest.core.annotation.Tags
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
+import kotlinx.coroutines.runBlocking
 import net.brightroom.mindstock.domain.model.catalog.CatalogItemName
 import net.brightroom.mindstock.domain.model.catalog.CatalogItemUnit
 import net.brightroom.mindstock.domain.model.product.MinimumStock
@@ -21,16 +22,16 @@ class ProductRegisterDataSourceIntegrationTest :
 
         test("adopt creates a Product with no MinimumStock and not archived") {
             withRepositoryTestContext {
-                val userRepo = UserRegisterDataSource()
-                val householdRepo = HouseholdRegisterDataSource()
-                val catalogRepo = CatalogItemRegisterDataSource()
-                val productRepo = ProductRegisterDataSource()
+                val userRepo = UserRegisterDataSource(database)
+                val householdRepo = HouseholdRegisterDataSource(database)
+                val catalogRepo = CatalogItemRegisterDataSource(database)
+                val productRepo = ProductRegisterDataSource(database)
 
-                val user = tx { userRepo.register(AuthIdentity(AuthProvider.ZITADEL, AuthSubject("u")), DisplayName("U")) }
-                val household = tx { householdRepo.create(user.userId) }
-                val item = tx { catalogRepo.register(CatalogItemName("Milk"), CatalogItemUnit("L"), user.userId) }
+                val user = runBlocking { userRepo.register(AuthIdentity(AuthProvider.ZITADEL, AuthSubject("u")), DisplayName("U")) }
+                val household = runBlocking { householdRepo.create(user.userId) }
+                val item = runBlocking { catalogRepo.register(CatalogItemName("Milk"), CatalogItemUnit("L"), user.userId) }
 
-                val product = tx { productRepo.adopt(household, item) }
+                val product = runBlocking { productRepo.adopt(household, item) }
 
                 product.minimumStock shouldBe MinimumStock.NotSet
                 product.archived shouldBe false
@@ -40,40 +41,40 @@ class ProductRegisterDataSourceIntegrationTest :
 
         test("setMinimumStock + find reflects the latest minimum stock value") {
             withRepositoryTestContext {
-                val userRepo = UserRegisterDataSource()
-                val householdRepo = HouseholdRegisterDataSource()
-                val catalogRepo = CatalogItemRegisterDataSource()
-                val productRegister = ProductRegisterDataSource()
-                val productReader = ProductDataSource()
+                val userRepo = UserRegisterDataSource(database)
+                val householdRepo = HouseholdRegisterDataSource(database)
+                val catalogRepo = CatalogItemRegisterDataSource(database)
+                val productRegister = ProductRegisterDataSource(database)
+                val productReader = ProductDataSource(database)
 
-                val user = tx { userRepo.register(AuthIdentity(AuthProvider.ZITADEL, AuthSubject("u")), DisplayName("U")) }
-                val household = tx { householdRepo.create(user.userId) }
-                val item = tx { catalogRepo.register(CatalogItemName("Milk"), CatalogItemUnit("L"), user.userId) }
-                val product = tx { productRegister.adopt(household, item) }
+                val user = runBlocking { userRepo.register(AuthIdentity(AuthProvider.ZITADEL, AuthSubject("u")), DisplayName("U")) }
+                val household = runBlocking { householdRepo.create(user.userId) }
+                val item = runBlocking { catalogRepo.register(CatalogItemName("Milk"), CatalogItemUnit("L"), user.userId) }
+                val product = runBlocking { productRegister.adopt(household, item) }
 
-                tx { productRegister.setMinimumStock(product, MinimumStock.Set(2), user.userId) }
-                tx { productRegister.setMinimumStock(product, MinimumStock.Set(5), user.userId) }
+                runBlocking { productRegister.setMinimumStock(product, MinimumStock.Set(2), user.userId) }
+                runBlocking { productRegister.setMinimumStock(product, MinimumStock.Set(5), user.userId) }
 
-                val refetched = tx { productReader.find(household, item) }
+                val refetched = runBlocking { productReader.find(household, item) }
                 refetched?.minimumStock shouldBe MinimumStock.Set(5)
             }
         }
 
         test("archive sets archived = true on Product") {
             withRepositoryTestContext {
-                val userRepo = UserRegisterDataSource()
-                val householdRepo = HouseholdRegisterDataSource()
-                val catalogRepo = CatalogItemRegisterDataSource()
-                val productRegister = ProductRegisterDataSource()
-                val productReader = ProductDataSource()
+                val userRepo = UserRegisterDataSource(database)
+                val householdRepo = HouseholdRegisterDataSource(database)
+                val catalogRepo = CatalogItemRegisterDataSource(database)
+                val productRegister = ProductRegisterDataSource(database)
+                val productReader = ProductDataSource(database)
 
-                val user = tx { userRepo.register(AuthIdentity(AuthProvider.ZITADEL, AuthSubject("u")), DisplayName("U")) }
-                val household = tx { householdRepo.create(user.userId) }
-                val item = tx { catalogRepo.register(CatalogItemName("Milk"), CatalogItemUnit("L"), user.userId) }
-                val product = tx { productRegister.adopt(household, item) }
-                tx { productRegister.archive(product, user.userId) }
+                val user = runBlocking { userRepo.register(AuthIdentity(AuthProvider.ZITADEL, AuthSubject("u")), DisplayName("U")) }
+                val household = runBlocking { householdRepo.create(user.userId) }
+                val item = runBlocking { catalogRepo.register(CatalogItemName("Milk"), CatalogItemUnit("L"), user.userId) }
+                val product = runBlocking { productRegister.adopt(household, item) }
+                runBlocking { productRegister.archive(product, user.userId) }
 
-                val refetched = tx { productReader.find(household, item) }
+                val refetched = runBlocking { productReader.find(household, item) }
                 refetched?.archived shouldBe true
             }
         }

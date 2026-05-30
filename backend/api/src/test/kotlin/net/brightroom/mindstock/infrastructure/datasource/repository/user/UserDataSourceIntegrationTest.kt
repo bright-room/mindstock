@@ -5,6 +5,7 @@ import io.kotest.core.annotation.Tags
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.string.shouldContain
+import kotlinx.coroutines.runBlocking
 import net.brightroom.mindstock.domain.exception.ResourceNotFoundException
 import net.brightroom.mindstock.domain.model.user.UserId
 import net.brightroom.mindstock.domain.model.user.auth.AuthIdentity
@@ -22,30 +23,30 @@ class UserDataSourceIntegrationTest :
 
         test("findProfileByAuthIdentity throws ResourceNotFoundException when no user with that subject exists") {
             withRepositoryTestContext {
-                val repo = UserDataSource()
+                val repo = UserDataSource(database)
                 shouldThrow<ResourceNotFoundException> {
-                    tx { repo.findProfileByAuthIdentity(AuthIdentity(AuthProvider.ZITADEL, AuthSubject("unknown"))) }
+                    runBlocking { repo.findProfileByAuthIdentity(AuthIdentity(AuthProvider.ZITADEL, AuthSubject("unknown"))) }
                 }.message shouldContain "user not found"
             }
         }
 
         test("findProfileById throws ResourceNotFoundException when no user with that id exists") {
             withRepositoryTestContext {
-                val repo = UserDataSource()
+                val repo = UserDataSource(database)
                 shouldThrow<ResourceNotFoundException> {
-                    tx { repo.findProfileById(UserId(Uuid.random())) }
+                    runBlocking { repo.findProfileById(UserId(Uuid.random())) }
                 }.message shouldContain "user not found"
             }
         }
 
         test("findProfileByAuthIdentity returns profile with initial display name") {
             withRepositoryTestContext {
-                val registerRepo = UserRegisterDataSource()
-                val readerRepo = UserDataSource()
+                val registerRepo = UserRegisterDataSource(database)
+                val readerRepo = UserDataSource(database)
                 val identity = AuthIdentity(AuthProvider.ZITADEL, AuthSubject("subject-1"))
 
-                tx { registerRepo.register(identity, DisplayName("Alice")) }
-                val refetched = tx { readerRepo.findProfileByAuthIdentity(identity) }
+                runBlocking { registerRepo.register(identity, DisplayName("Alice")) }
+                val refetched = runBlocking { readerRepo.findProfileByAuthIdentity(identity) }
 
                 refetched.displayName shouldBe DisplayName("Alice")
             }
@@ -53,14 +54,14 @@ class UserDataSourceIntegrationTest :
 
         test("findProfileByAuthIdentity returns LATEST display name after rename") {
             withRepositoryTestContext {
-                val registerRepo = UserRegisterDataSource()
-                val readerRepo = UserDataSource()
+                val registerRepo = UserRegisterDataSource(database)
+                val readerRepo = UserDataSource(database)
                 val identity = AuthIdentity(AuthProvider.ZITADEL, AuthSubject("subject-1"))
 
-                val profile = tx { registerRepo.register(identity, DisplayName("Alice")) }
-                tx { registerRepo.rename(profile.userId, DisplayName("Alicia")) }
+                val profile = runBlocking { registerRepo.register(identity, DisplayName("Alice")) }
+                runBlocking { registerRepo.rename(profile.userId, DisplayName("Alicia")) }
 
-                val refetched = tx { readerRepo.findProfileByAuthIdentity(identity) }
+                val refetched = runBlocking { readerRepo.findProfileByAuthIdentity(identity) }
                 refetched.displayName shouldBe DisplayName("Alicia")
             }
         }

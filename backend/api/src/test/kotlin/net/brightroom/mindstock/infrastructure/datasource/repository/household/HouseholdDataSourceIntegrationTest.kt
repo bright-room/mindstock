@@ -6,6 +6,7 @@ import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.nulls.shouldNotBeNull
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.string.shouldContain
+import kotlinx.coroutines.runBlocking
 import net.brightroom.mindstock.domain.exception.ResourceNotFoundException
 import net.brightroom.mindstock.domain.model.household.HouseholdId
 import net.brightroom.mindstock.domain.model.household.HouseholdMemberRole
@@ -25,27 +26,29 @@ class HouseholdDataSourceIntegrationTest :
 
         test("findOf throws ResourceNotFoundException when user has no household membership") {
             withRepositoryTestContext {
-                val userRepo = UserRegisterDataSource()
-                val householdReader = HouseholdDataSource()
-                val user = tx { userRepo.register(AuthIdentity(AuthProvider.ZITADEL, AuthSubject("lonely")), DisplayName("Lonely")) }
+                val userRepo = UserRegisterDataSource(database)
+                val householdReader = HouseholdDataSource(database)
+                val user =
+                    runBlocking { userRepo.register(AuthIdentity(AuthProvider.ZITADEL, AuthSubject("lonely")), DisplayName("Lonely")) }
 
                 shouldThrow<ResourceNotFoundException> {
-                    tx { householdReader.findOf(user.userId) }
+                    runBlocking { householdReader.findOf(user.userId) }
                 }.message shouldContain "household not found"
             }
         }
 
         test("findById returns a household whose only membership has been revoked (with empty members)") {
             withRepositoryTestContext {
-                val userRepo = UserRegisterDataSource()
-                val householdRegister = HouseholdRegisterDataSource()
-                val householdReader = HouseholdDataSource()
+                val userRepo = UserRegisterDataSource(database)
+                val householdRegister = HouseholdRegisterDataSource(database)
+                val householdReader = HouseholdDataSource(database)
 
-                val owner = tx { userRepo.register(AuthIdentity(AuthProvider.ZITADEL, AuthSubject("rev-owner")), DisplayName("RevOwner")) }
-                val created = tx { householdRegister.create(owner.userId) }
-                tx { householdRegister.revoke(created, owner.userId) }
+                val owner =
+                    runBlocking { userRepo.register(AuthIdentity(AuthProvider.ZITADEL, AuthSubject("rev-owner")), DisplayName("RevOwner")) }
+                val created = runBlocking { householdRegister.create(owner.userId) }
+                runBlocking { householdRegister.revoke(created, owner.userId) }
 
-                val found = tx { householdReader.findById(created.id) }
+                val found = runBlocking { householdReader.findById(created.id) }
 
                 found.shouldNotBeNull()
                 found.id shouldBe created.id
@@ -55,25 +58,26 @@ class HouseholdDataSourceIntegrationTest :
 
         test("findById throws ResourceNotFoundException when no household with this id exists") {
             withRepositoryTestContext {
-                val householdReader = HouseholdDataSource()
+                val householdReader = HouseholdDataSource(database)
                 val nonexistent = HouseholdId(Uuid.random())
 
                 shouldThrow<ResourceNotFoundException> {
-                    tx { householdReader.findById(nonexistent) }
+                    runBlocking { householdReader.findById(nonexistent) }
                 }.message shouldContain "household not found"
             }
         }
 
         test("findOf returns the household with owner as OWNER member") {
             withRepositoryTestContext {
-                val userRepo = UserRegisterDataSource()
-                val householdRegister = HouseholdRegisterDataSource()
-                val householdReader = HouseholdDataSource()
+                val userRepo = UserRegisterDataSource(database)
+                val householdRegister = HouseholdRegisterDataSource(database)
+                val householdReader = HouseholdDataSource(database)
 
-                val owner = tx { userRepo.register(AuthIdentity(AuthProvider.ZITADEL, AuthSubject("owner")), DisplayName("Owner")) }
-                tx { householdRegister.create(owner.userId) }
+                val owner =
+                    runBlocking { userRepo.register(AuthIdentity(AuthProvider.ZITADEL, AuthSubject("owner")), DisplayName("Owner")) }
+                runBlocking { householdRegister.create(owner.userId) }
 
-                val found = tx { householdReader.findOf(owner.userId) }
+                val found = runBlocking { householdReader.findOf(owner.userId) }
                 found.members
                     .list
                     .single()

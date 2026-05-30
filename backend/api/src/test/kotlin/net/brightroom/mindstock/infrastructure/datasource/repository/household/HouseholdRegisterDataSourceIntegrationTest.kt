@@ -7,6 +7,7 @@ import io.kotest.matchers.collections.shouldContain
 import io.kotest.matchers.collections.shouldHaveSize
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.string.shouldContain
+import kotlinx.coroutines.runBlocking
 import net.brightroom.mindstock.domain.exception.ResourceNotFoundException
 import net.brightroom.mindstock.domain.model.household.HouseholdMemberRole
 import net.brightroom.mindstock.domain.model.user.auth.AuthIdentity
@@ -22,17 +23,17 @@ class HouseholdRegisterDataSourceIntegrationTest :
 
         test("create inserts household + OWNER membership and returns Household with owner as member") {
             withRepositoryTestContext {
-                val userRepo = UserRegisterDataSource()
-                val householdRepo = HouseholdRegisterDataSource()
+                val userRepo = UserRegisterDataSource(database)
+                val householdRepo = HouseholdRegisterDataSource(database)
                 val owner =
-                    tx {
+                    runBlocking {
                         userRepo.register(
                             AuthIdentity(AuthProvider.ZITADEL, AuthSubject("owner")),
                             DisplayName("Owner"),
                         )
                     }
 
-                val household = tx { householdRepo.create(owner.userId) }
+                val household = runBlocking { householdRepo.create(owner.userId) }
 
                 household.members.list shouldHaveSize 1
                 household.members
@@ -44,34 +45,38 @@ class HouseholdRegisterDataSourceIntegrationTest :
 
         test("invite adds another active member that appears in findOf") {
             withRepositoryTestContext {
-                val userRepo = UserRegisterDataSource()
-                val householdRepo = HouseholdRegisterDataSource()
-                val householdReader = HouseholdDataSource()
+                val userRepo = UserRegisterDataSource(database)
+                val householdRepo = HouseholdRegisterDataSource(database)
+                val householdReader = HouseholdDataSource(database)
 
-                val owner = tx { userRepo.register(AuthIdentity(AuthProvider.ZITADEL, AuthSubject("owner")), DisplayName("Owner")) }
-                val invitee = tx { userRepo.register(AuthIdentity(AuthProvider.ZITADEL, AuthSubject("invitee")), DisplayName("Invitee")) }
-                val household = tx { householdRepo.create(owner.userId) }
-                tx { householdRepo.invite(household, invitee.userId, HouseholdMemberRole.MEMBER) }
+                val owner =
+                    runBlocking { userRepo.register(AuthIdentity(AuthProvider.ZITADEL, AuthSubject("owner")), DisplayName("Owner")) }
+                val invitee =
+                    runBlocking { userRepo.register(AuthIdentity(AuthProvider.ZITADEL, AuthSubject("invitee")), DisplayName("Invitee")) }
+                val household = runBlocking { householdRepo.create(owner.userId) }
+                runBlocking { householdRepo.invite(household, invitee.userId, HouseholdMemberRole.MEMBER) }
 
-                val refetched = tx { householdReader.findOf(invitee.userId) }
+                val refetched = runBlocking { householdReader.findOf(invitee.userId) }
                 refetched.members.list.map { it.profile.displayName } shouldContain DisplayName("Invitee")
             }
         }
 
         test("revoke removes the revoked member from active membership view") {
             withRepositoryTestContext {
-                val userRepo = UserRegisterDataSource()
-                val householdRepo = HouseholdRegisterDataSource()
-                val householdReader = HouseholdDataSource()
+                val userRepo = UserRegisterDataSource(database)
+                val householdRepo = HouseholdRegisterDataSource(database)
+                val householdReader = HouseholdDataSource(database)
 
-                val owner = tx { userRepo.register(AuthIdentity(AuthProvider.ZITADEL, AuthSubject("owner")), DisplayName("Owner")) }
-                val invitee = tx { userRepo.register(AuthIdentity(AuthProvider.ZITADEL, AuthSubject("invitee")), DisplayName("Invitee")) }
-                val household = tx { householdRepo.create(owner.userId) }
-                tx { householdRepo.invite(household, invitee.userId, HouseholdMemberRole.MEMBER) }
-                tx { householdRepo.revoke(household, invitee.userId) }
+                val owner =
+                    runBlocking { userRepo.register(AuthIdentity(AuthProvider.ZITADEL, AuthSubject("owner")), DisplayName("Owner")) }
+                val invitee =
+                    runBlocking { userRepo.register(AuthIdentity(AuthProvider.ZITADEL, AuthSubject("invitee")), DisplayName("Invitee")) }
+                val household = runBlocking { householdRepo.create(owner.userId) }
+                runBlocking { householdRepo.invite(household, invitee.userId, HouseholdMemberRole.MEMBER) }
+                runBlocking { householdRepo.revoke(household, invitee.userId) }
 
                 shouldThrow<ResourceNotFoundException> {
-                    tx { householdReader.findOf(invitee.userId) }
+                    runBlocking { householdReader.findOf(invitee.userId) }
                 }.message shouldContain "household not found"
             }
         }

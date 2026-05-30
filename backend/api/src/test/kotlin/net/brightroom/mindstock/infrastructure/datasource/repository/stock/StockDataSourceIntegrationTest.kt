@@ -5,6 +5,7 @@ import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.collections.shouldBeEmpty
 import io.kotest.matchers.collections.shouldHaveSize
 import io.kotest.matchers.shouldBe
+import kotlinx.coroutines.runBlocking
 import net.brightroom.mindstock.domain.model.stock.movement.Note
 import net.brightroom.mindstock.domain.model.stock.movement.OccurredAt
 import net.brightroom.mindstock.domain.model.stock.movement.Quantity
@@ -25,19 +26,19 @@ class StockDataSourceIntegrationTest :
 
         test("stocksOf returns empty Stocks when household has no products") {
             withRepositoryTestContext {
-                val userRepo = UserRegisterDataSource()
-                val householdRepo = HouseholdRegisterDataSource()
+                val userRepo = UserRegisterDataSource(database)
+                val householdRepo = HouseholdRegisterDataSource(database)
                 val user =
-                    tx {
+                    runBlocking {
                         userRepo.register(
                             AuthIdentity(AuthProvider.ZITADEL, AuthSubject("u")),
                             DisplayName("U"),
                         )
                     }
-                val household = tx { householdRepo.create(user.userId) }
+                val household = runBlocking { householdRepo.create(user.userId) }
 
-                val stockRepo = StockDataSource(ProductDataSource())
-                val result = tx { stockRepo.stocksOf(household) }
+                val stockRepo = StockDataSource(ProductDataSource(database), database)
+                val result = runBlocking { stockRepo.stocksOf(household) }
                 result.list.shouldBeEmpty()
             }
         }
@@ -45,9 +46,9 @@ class StockDataSourceIntegrationTest :
         test("stockOf returns empty StockMovements for a fresh product") {
             withRepositoryTestContext {
                 val (_, _, product) = setupUserHouseholdProduct()
-                val reader = StockDataSource(ProductDataSource())
+                val reader = StockDataSource(ProductDataSource(database), database)
 
-                val stock = tx { reader.stockOf(product) }
+                val stock = runBlocking { reader.stockOf(product) }
                 stock.movements.list.size shouldBe 0
                 stock.currentQuantity() shouldBe 0
             }
@@ -56,15 +57,15 @@ class StockDataSourceIntegrationTest :
         test("movementHistory respects limit and returns DESC by occurred_at") {
             withRepositoryTestContext {
                 val (user, _, product) = setupUserHouseholdProduct()
-                val register = StockRegisterDataSource()
-                val reader = StockDataSource(ProductDataSource())
+                val register = StockRegisterDataSource(database)
+                val reader = StockDataSource(ProductDataSource(database), database)
 
                 val t0 = Clock.System.now().minus(10.seconds)
-                tx { register.replenish(product, Quantity(1), OccurredAt(t0), user.userId, Note("a")) }
-                tx { register.replenish(product, Quantity(2), OccurredAt(t0.plus(1.seconds)), user.userId, Note("b")) }
-                tx { register.replenish(product, Quantity(3), OccurredAt(t0.plus(2.seconds)), user.userId, Note("c")) }
+                runBlocking { register.replenish(product, Quantity(1), OccurredAt(t0), user.userId, Note("a")) }
+                runBlocking { register.replenish(product, Quantity(2), OccurredAt(t0.plus(1.seconds)), user.userId, Note("b")) }
+                runBlocking { register.replenish(product, Quantity(3), OccurredAt(t0.plus(2.seconds)), user.userId, Note("c")) }
 
-                val history = tx { reader.movementHistory(product, limit = 2) }
+                val history = runBlocking { reader.movementHistory(product, limit = 2) }
                 val rows = history.list
                 rows shouldHaveSize 2
                 rows[0].quantity shouldBe Quantity(3) // most recent first

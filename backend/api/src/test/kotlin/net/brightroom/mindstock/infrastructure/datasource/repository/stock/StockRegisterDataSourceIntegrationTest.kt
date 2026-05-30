@@ -3,6 +3,7 @@ package net.brightroom.mindstock.infrastructure.datasource.stock
 import io.kotest.core.annotation.Tags
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
+import kotlinx.coroutines.runBlocking
 import net.brightroom.mindstock.domain.model.catalog.CatalogItemName
 import net.brightroom.mindstock.domain.model.catalog.CatalogItemUnit
 import net.brightroom.mindstock.domain.model.household.Household
@@ -25,15 +26,16 @@ import net.brightroom.mindstock.infrastructure.datasource.user.UserRegisterDataS
 import kotlin.time.Clock
 
 internal fun RepositoryTestContext.setupUserHouseholdProduct(): Triple<Profile, Household, Product> =
-    tx {
+    runBlocking {
         val user =
-            UserRegisterDataSource().register(
+            UserRegisterDataSource(database).register(
                 AuthIdentity(AuthProvider.ZITADEL, AuthSubject("u")),
                 DisplayName("U"),
             )
-        val household = HouseholdRegisterDataSource().create(user.userId)
-        val item = CatalogItemRegisterDataSource().register(CatalogItemName("Milk"), CatalogItemUnit("L"), user.userId)
-        val product = ProductRegisterDataSource().adopt(household, item)
+        val household = HouseholdRegisterDataSource(database).create(user.userId)
+        val item =
+            CatalogItemRegisterDataSource(database).register(CatalogItemName("Milk"), CatalogItemUnit("L"), user.userId)
+        val product = ProductRegisterDataSource(database).adopt(household, item)
         Triple(user, household, product)
     }
 
@@ -44,13 +46,13 @@ class StockRegisterDataSourceIntegrationTest :
         test("replenish inserts REPLENISHMENT movement; stockOf returns +quantity") {
             withRepositoryTestContext {
                 val (user, _, product) = setupUserHouseholdProduct()
-                val stockRegister = StockRegisterDataSource()
-                val stockReader = StockDataSource(ProductDataSource())
+                val stockRegister = StockRegisterDataSource(database)
+                val stockReader = StockDataSource(ProductDataSource(database), database)
 
-                tx {
+                runBlocking {
                     stockRegister.replenish(product, Quantity(3), OccurredAt(Clock.System.now()), user.userId, Note(""))
                 }
-                val stock = tx { stockReader.stockOf(product) }
+                val stock = runBlocking { stockReader.stockOf(product) }
                 stock.currentQuantity() shouldBe 3
             }
         }
@@ -58,13 +60,17 @@ class StockRegisterDataSourceIntegrationTest :
         test("consume inserts CONSUMPTION movement; stockOf returns net (replenish - consume)") {
             withRepositoryTestContext {
                 val (user, _, product) = setupUserHouseholdProduct()
-                val stockRegister = StockRegisterDataSource()
-                val stockReader = StockDataSource(ProductDataSource())
+                val stockRegister = StockRegisterDataSource(database)
+                val stockReader = StockDataSource(ProductDataSource(database), database)
 
-                tx { stockRegister.replenish(product, Quantity(5), OccurredAt(Clock.System.now()), user.userId, Note("")) }
-                tx { stockRegister.consume(product, Quantity(2), OccurredAt(Clock.System.now()), user.userId, Note("")) }
+                runBlocking {
+                    stockRegister.replenish(product, Quantity(5), OccurredAt(Clock.System.now()), user.userId, Note(""))
+                }
+                runBlocking {
+                    stockRegister.consume(product, Quantity(2), OccurredAt(Clock.System.now()), user.userId, Note(""))
+                }
 
-                val stock = tx { stockReader.stockOf(product) }
+                val stock = runBlocking { stockReader.stockOf(product) }
                 stock.currentQuantity() shouldBe 3
             }
         }

@@ -3,6 +3,7 @@ package net.brightroom.mindstock.infrastructure.datasource.user
 import io.kotest.core.annotation.Tags
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
+import kotlinx.coroutines.runBlocking
 import net.brightroom.mindstock.domain.model.user.auth.AuthIdentity
 import net.brightroom.mindstock.domain.model.user.auth.AuthProvider
 import net.brightroom.mindstock.domain.model.user.auth.AuthSubject
@@ -15,11 +16,11 @@ class UserRegisterDataSourceIntegrationTest :
 
         test("register inserts users + display_names and returns Profile with initial display name") {
             withRepositoryTestContext {
-                val repo = UserRegisterDataSource()
+                val repo = UserRegisterDataSource(database)
                 val identity = AuthIdentity(AuthProvider.ZITADEL, AuthSubject("subject-1"))
                 val name = DisplayName("Alice")
 
-                val profile = tx { repo.register(identity, name) }
+                val profile = runBlocking { repo.register(identity, name) }
 
                 profile.displayName shouldBe name
             }
@@ -27,15 +28,15 @@ class UserRegisterDataSourceIntegrationTest :
 
         test("rename inserts a new display_names row and the latest is returned by reader") {
             withRepositoryTestContext {
-                val registerRepo = UserRegisterDataSource()
-                val readerRepo = UserDataSource()
+                val registerRepo = UserRegisterDataSource(database)
+                val readerRepo = UserDataSource(database)
                 val identity = AuthIdentity(AuthProvider.ZITADEL, AuthSubject("subject-1"))
 
-                val profile = tx { registerRepo.register(identity, DisplayName("Alice")) }
-                tx { registerRepo.rename(profile.userId, DisplayName("Alicia")) }
+                val profile = runBlocking { registerRepo.register(identity, DisplayName("Alice")) }
+                runBlocking { registerRepo.rename(profile.userId, DisplayName("Alicia")) }
 
-                val refetched = tx { readerRepo.findProfileByAuthIdentity(identity) }
-                refetched?.displayName shouldBe DisplayName("Alicia")
+                val refetched = runBlocking { readerRepo.findProfileByAuthIdentity(identity) }
+                refetched.displayName shouldBe DisplayName("Alicia")
             }
         }
     })
