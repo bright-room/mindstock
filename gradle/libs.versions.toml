@@ -58,7 +58,7 @@ micrometer-registry-otlp = { module = "io.micrometer:micrometer-registry-otlp", 
 logback-classic = { module = "ch.qos.logback:logback-classic", version.ref = "logback" }
 kotlin-logging-jvm = { module = "io.github.oshai:kotlin-logging-jvm", version.ref = "kotlin-logging" }
 
-auth0-java-jwt = { module = "com.auth0:java-jwt", version = "4.4.0" }
+auth0-java-jwt = { module = "com.auth0:java-jwt", version = "4.5.2" }
 auth0-jwks-rsa = { module = "com.auth0:jwks-rsa", version = "0.22.2" }
 
 kotest-runner-junit5 = { module = "io.kotest:kotest-runner-junit5", version.ref = "kotest" }
