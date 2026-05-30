@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     services:
       postgres:
-        image: postgres:18.0-alpine
+        image: postgres:18.4-alpine
         env:
           POSTGRES_USER: mindstock
           POSTGRES_PASSWORD: mindstock
