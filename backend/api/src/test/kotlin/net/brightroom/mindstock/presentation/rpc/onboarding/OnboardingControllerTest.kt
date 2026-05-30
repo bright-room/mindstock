@@ -1,4 +1,4 @@
-package net.brightroom.mindstock.presentation.rpc.user
+package net.brightroom.mindstock.presentation.rpc.onboarding
 
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
@@ -8,7 +8,7 @@ import io.mockk.mockk
 import io.mockk.mockkStatic
 import io.mockk.unmockkAll
 import kotlinx.datetime.Instant
-import net.brightroom.mindstock.application.service.user.UserRegisterService
+import net.brightroom.mindstock.application.scenario.onboarding.RegisterFirstHouseholdScenario
 import net.brightroom.mindstock.configuration.auth.MindstockSession
 import net.brightroom.mindstock.domain.model.user.UserId
 import net.brightroom.mindstock.domain.model.user.auth.AuthIdentity
@@ -23,12 +23,12 @@ import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
 @OptIn(ExperimentalUuidApi::class)
-class UserPublicControllerTest :
+class OnboardingControllerTest :
     FunSpec({
         afterTest { unmockkAll() }
 
-        test("register pulls AuthIdentity from the session and delegates to UserRegisterService") {
-            val userRegisterService = mockk<UserRegisterService>()
+        test("register は session の AuthIdentity を使い Scenario に委譲する") {
+            val scenario = mockk<RegisterFirstHouseholdScenario>()
             val database = mockk<Database>()
             val displayName = DisplayName("Alice")
             val authIdentity = AuthIdentity(AuthProvider.ZITADEL, AuthSubject("sub-1"))
@@ -45,7 +45,7 @@ class UserPublicControllerTest :
                     callId = Uuid.random(),
                 )
 
-            every { userRegisterService.register(authIdentity, displayName) } returns expected
+            every { scenario.run(authIdentity, displayName) } returns expected
 
             mockkStatic("net.brightroom.mindstock.configuration.transaction.TransactionKt")
             coEvery {
@@ -56,7 +56,7 @@ class UserPublicControllerTest :
                 block()
             }
 
-            val impl = UserPublicController(userRegisterService, session, database)
+            val impl = OnboardingController(scenario, session, database)
             impl.register(displayName) shouldBe RpcResult.Ok(expected)
         }
     })

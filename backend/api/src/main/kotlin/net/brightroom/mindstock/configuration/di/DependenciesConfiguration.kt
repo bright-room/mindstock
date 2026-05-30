@@ -13,6 +13,7 @@ import net.brightroom.mindstock.application.repository.stock.StockRegisterReposi
 import net.brightroom.mindstock.application.repository.stock.StockRepository
 import net.brightroom.mindstock.application.repository.user.UserRegisterRepository
 import net.brightroom.mindstock.application.repository.user.UserRepository
+import net.brightroom.mindstock.application.scenario.onboarding.RegisterFirstHouseholdScenario
 import net.brightroom.mindstock.application.service.catalog.CatalogItemRegisterService
 import net.brightroom.mindstock.application.service.catalog.CatalogItemService
 import net.brightroom.mindstock.application.service.household.HouseholdRegisterService
@@ -38,14 +39,14 @@ import net.brightroom.mindstock.presentation.rpc.catalog.CatalogController
 import net.brightroom.mindstock.presentation.rpc.catalog.CatalogControllerFactory
 import net.brightroom.mindstock.presentation.rpc.household.HouseholdController
 import net.brightroom.mindstock.presentation.rpc.household.HouseholdControllerFactory
+import net.brightroom.mindstock.presentation.rpc.onboarding.OnboardingController
+import net.brightroom.mindstock.presentation.rpc.onboarding.OnboardingControllerFactory
 import net.brightroom.mindstock.presentation.rpc.product.ProductController
 import net.brightroom.mindstock.presentation.rpc.product.ProductControllerFactory
 import net.brightroom.mindstock.presentation.rpc.stock.StockController
 import net.brightroom.mindstock.presentation.rpc.stock.StockControllerFactory
 import net.brightroom.mindstock.presentation.rpc.user.UserController
 import net.brightroom.mindstock.presentation.rpc.user.UserControllerFactory
-import net.brightroom.mindstock.presentation.rpc.user.UserPublicController
-import net.brightroom.mindstock.presentation.rpc.user.UserPublicControllerFactory
 import org.jetbrains.exposed.v1.jdbc.Database
 
 fun Application.dependenciesConfigure(
@@ -89,11 +90,16 @@ fun Application.dependenciesConfigure(
         provide<StockService> { StockService(resolve()) }
         provide<StockRegisterService> { StockRegisterService(resolve()) }
 
+        // Scenario (25)
+        provide<RegisterFirstHouseholdScenario> {
+            RegisterFirstHouseholdScenario(resolve(), resolve(), resolve())
+        }
+
         // Controller Factory (30) — per-WS-connection 単位で Controller を組み立てる
-        provide<UserPublicControllerFactory> {
-            val urs = resolve<UserRegisterService>()
+        provide<OnboardingControllerFactory> {
+            val scenario = resolve<RegisterFirstHouseholdScenario>()
             val db = resolve<Database>()
-            UserPublicControllerFactory { session -> UserPublicController(urs, session, db) }
+            OnboardingControllerFactory { session -> OnboardingController(scenario, session, db) }
         }
         provide<UserControllerFactory> {
             val urs = resolve<UserRegisterService>()

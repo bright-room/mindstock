@@ -35,7 +35,7 @@ import net.brightroom.mindstock.frontend.ui.login.LoginScreen
 import net.brightroom.mindstock.frontend.ui.register.RegisterDialog
 import net.brightroom.mindstock.frontend.ui.shell.AppShell
 import net.brightroom.mindstock.rpc.HouseholdRpcService
-import net.brightroom.mindstock.rpc.UserPublicRpcService
+import net.brightroom.mindstock.rpc.OnboardingRpcService
 
 private const val STATE_KEY = "mindstock.oauth.state.v1"
 private const val VERIFIER_KEY = "mindstock.oauth.verifier.v1"
@@ -113,7 +113,7 @@ fun App() {
                             try {
                                 val tokens = TokenStore.load() ?: error("no tokens")
                                 val rpc = rpcFactory.open("user/public", tokens.accessToken)
-                                rpc.withService<UserPublicRpcService>().register(DisplayName(name))
+                                rpc.withService<OnboardingRpcService>().register(DisplayName(name))
                                 displayName = name
                                 state = AuthState.Ready(tokens)
                             } catch (e: Throwable) {

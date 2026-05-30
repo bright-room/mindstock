@@ -10,8 +10,8 @@ import net.brightroom.mindstock.domain.model.user.profile.DisplayName
 import net.brightroom.mindstock.domain.model.user.profile.Profile
 import net.brightroom.mindstock.e2e.e2eTest
 import net.brightroom.mindstock.e2e.seedUser
+import net.brightroom.mindstock.rpc.OnboardingRpcService
 import net.brightroom.mindstock.rpc.RpcResult
-import net.brightroom.mindstock.rpc.UserPublicRpcService
 import net.brightroom.mindstock.rpc.UserRpcService
 import java.security.KeyPairGenerator
 import java.security.interfaces.RSAPrivateKey
@@ -118,7 +118,7 @@ class JwtAuthE2eTest :
                     authenticatedRpcClientWithToken(
                         token = token,
                         path = "user/public",
-                    ).withService<UserPublicRpcService>()
+                    ).withService<OnboardingRpcService>()
                 val created = rpc.register(DisplayName("Newbie"))
                 created.shouldBeInstanceOf<RpcResult.Ok<Profile>>()
             }
