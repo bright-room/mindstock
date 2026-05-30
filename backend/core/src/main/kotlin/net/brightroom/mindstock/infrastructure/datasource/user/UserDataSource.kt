@@ -11,18 +11,26 @@ import org.jetbrains.exposed.v1.core.JoinType
 import org.jetbrains.exposed.v1.core.Op
 import org.jetbrains.exposed.v1.core.and
 import org.jetbrains.exposed.v1.core.eq
+import org.jetbrains.exposed.v1.jdbc.Database
 import org.jetbrains.exposed.v1.jdbc.selectAll
+import org.jetbrains.exposed.v1.jdbc.transactions.experimental.newSuspendedTransaction
 import kotlin.uuid.ExperimentalUuidApi
 
 @OptIn(ExperimentalUuidApi::class)
-class UserDataSource : UserRepository {
-    override fun findProfileByAuthIdentity(identity: AuthIdentity): Profile =
-        queryLatest { UsersTable.zitadel_sub eq identity.subject() }
-            ?: throw ResourceNotFoundException("user not found")
+class UserDataSource(
+    private val database: Database,
+) : UserRepository {
+    override suspend fun findProfileByAuthIdentity(identity: AuthIdentity): Profile =
+        newSuspendedTransaction(db = database) {
+            queryLatest { UsersTable.zitadel_sub eq identity.subject() }
+                ?: throw ResourceNotFoundException("user not found")
+        }
 
-    override fun findProfileById(id: UserId): Profile =
-        queryLatest { UsersTable.id eq id() }
-            ?: throw ResourceNotFoundException("user not found")
+    override suspend fun findProfileById(id: UserId): Profile =
+        newSuspendedTransaction(db = database) {
+            queryLatest { UsersTable.id eq id() }
+                ?: throw ResourceNotFoundException("user not found")
+        }
 
     private fun queryLatest(where: () -> Op<Boolean>): Profile? {
         val latest = latestDisplayNames()

@@ -6,31 +6,39 @@ import net.brightroom.mindstock.domain.model.stock.movement.Note
 import net.brightroom.mindstock.domain.model.stock.movement.OccurredAt
 import net.brightroom.mindstock.domain.model.stock.movement.Quantity
 import net.brightroom.mindstock.domain.model.user.UserId
+import org.jetbrains.exposed.v1.jdbc.Database
 import org.jetbrains.exposed.v1.jdbc.insert
+import org.jetbrains.exposed.v1.jdbc.transactions.experimental.newSuspendedTransaction
 import java.time.ZoneOffset
 import kotlin.time.toJavaInstant
 import kotlin.uuid.ExperimentalUuidApi
 
 @OptIn(ExperimentalUuidApi::class)
-class StockRegisterDataSource : StockRegisterRepository {
-    override fun replenish(
+class StockRegisterDataSource(
+    private val database: Database,
+) : StockRegisterRepository {
+    override suspend fun replenish(
         product: Product,
         quantity: Quantity,
         occurredAt: OccurredAt,
         by: UserId,
         note: Note,
     ) {
-        insertMovement(product, quantity, occurredAt, by, note, StockMovementType.REPLENISHMENT)
+        newSuspendedTransaction(db = database) {
+            insertMovement(product, quantity, occurredAt, by, note, StockMovementType.REPLENISHMENT)
+        }
     }
 
-    override fun consume(
+    override suspend fun consume(
         product: Product,
         quantity: Quantity,
         occurredAt: OccurredAt,
         by: UserId,
         note: Note,
     ) {
-        insertMovement(product, quantity, occurredAt, by, note, StockMovementType.CONSUMPTION)
+        newSuspendedTransaction(db = database) {
+            insertMovement(product, quantity, occurredAt, by, note, StockMovementType.CONSUMPTION)
+        }
     }
 
     private fun insertMovement(

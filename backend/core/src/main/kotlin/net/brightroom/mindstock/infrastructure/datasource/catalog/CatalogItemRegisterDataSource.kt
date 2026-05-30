@@ -5,46 +5,53 @@ import net.brightroom.mindstock.domain.model.catalog.CatalogItem
 import net.brightroom.mindstock.domain.model.catalog.CatalogItemName
 import net.brightroom.mindstock.domain.model.catalog.CatalogItemUnit
 import net.brightroom.mindstock.domain.model.user.UserId
+import org.jetbrains.exposed.v1.jdbc.Database
 import org.jetbrains.exposed.v1.jdbc.insert
+import org.jetbrains.exposed.v1.jdbc.transactions.experimental.newSuspendedTransaction
 import kotlin.uuid.ExperimentalUuidApi
 
 @OptIn(ExperimentalUuidApi::class)
-class CatalogItemRegisterDataSource : CatalogItemRegisterRepository {
-    override fun register(
+class CatalogItemRegisterDataSource(
+    private val database: Database,
+) : CatalogItemRegisterRepository {
+    override suspend fun register(
         name: CatalogItemName,
         unit: CatalogItemUnit,
         createdBy: UserId,
-    ): CatalogItem {
-        val insertedId =
-            CatalogItemsTable.insert {
-                it[created_by] = createdBy()
-            } get CatalogItemsTable.id
+    ): CatalogItem =
+        newSuspendedTransaction(db = database) {
+            val insertedId =
+                CatalogItemsTable.insert {
+                    it[created_by] = createdBy()
+                } get CatalogItemsTable.id
 
-        CatalogItemRevisionsTable.insert {
-            it[catalog_item_id] = insertedId
-            it[this.name] = name()
-            it[this.unit] = unit()
-            it[edited_by] = createdBy()
+            CatalogItemRevisionsTable.insert {
+                it[catalog_item_id] = insertedId
+                it[this.name] = name()
+                it[this.unit] = unit()
+                it[edited_by] = createdBy()
+            }
+
+            hydrateCatalogItem(
+                id = insertedId,
+                name = name(),
+                unit = unit(),
+            )
         }
 
-        return hydrateCatalogItem(
-            id = insertedId,
-            name = name(),
-            unit = unit(),
-        )
-    }
-
-    override fun revise(
+    override suspend fun revise(
         catalogItem: CatalogItem,
         newName: CatalogItemName,
         newUnit: CatalogItemUnit,
         editedBy: UserId,
     ) {
-        CatalogItemRevisionsTable.insert {
-            it[catalog_item_id] = catalogItem.id()
-            it[name] = newName()
-            it[unit] = newUnit()
-            it[edited_by] = editedBy()
+        newSuspendedTransaction(db = database) {
+            CatalogItemRevisionsTable.insert {
+                it[catalog_item_id] = catalogItem.id()
+                it[name] = newName()
+                it[unit] = newUnit()
+                it[edited_by] = editedBy()
+            }
         }
     }
 }

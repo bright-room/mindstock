@@ -17,7 +17,9 @@ import org.jetbrains.exposed.v1.core.SortOrder
 import org.jetbrains.exposed.v1.core.and
 import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.core.inList
+import org.jetbrains.exposed.v1.jdbc.Database
 import org.jetbrains.exposed.v1.jdbc.selectAll
+import org.jetbrains.exposed.v1.jdbc.transactions.experimental.newSuspendedTransaction
 import kotlin.time.toKotlinInstant
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
@@ -25,54 +27,61 @@ import kotlin.uuid.Uuid
 @OptIn(ExperimentalUuidApi::class)
 class StockDataSource(
     private val productRepository: ProductRepository,
+    private val database: Database,
 ) : StockRepository {
-    override fun stockOf(product: Product): Stock {
-        val movements = loadMovementsFor(listOf(product))[product.id()] ?: emptyList()
-        return Stock(product, StockMovements(movements))
-    }
+    override suspend fun stockOf(product: Product): Stock =
+        newSuspendedTransaction(db = database) {
+            val movements = loadMovementsFor(listOf(product))[product.id()] ?: emptyList()
+            Stock(product, StockMovements(movements))
+        }
 
-    override fun stocksOf(household: Household): Stocks {
-        val products = productRepository.listOf(household).list
-        if (products.isEmpty()) return Stocks(emptyList())
-        val byProductId = loadMovementsFor(products)
-        return Stocks(
-            products.map { p ->
-                Stock(p, StockMovements(byProductId[p.id()] ?: emptyList()))
-            },
-        )
-    }
+    override suspend fun stocksOf(household: Household): Stocks =
+        newSuspendedTransaction(db = database) {
+            val products = productRepository.listOf(household).list
+            if (products.isEmpty()) {
+                Stocks(emptyList())
+            } else {
+                val byProductId = loadMovementsFor(products)
+                Stocks(
+                    products.map { p ->
+                        Stock(p, StockMovements(byProductId[p.id()] ?: emptyList()))
+                    },
+                )
+            }
+        }
 
-    override fun movementHistory(
+    override suspend fun movementHistory(
         product: Product,
         limit: Int,
-    ): StockMovements {
-        require(limit > 0) { "limit must be > 0" }
-        val latest = latestDisplayNames()
+    ): StockMovements =
+        newSuspendedTransaction(db = database) {
+            require(limit > 0) { "limit must be > 0" }
+            val latest = latestDisplayNames()
 
-        val rows =
-            StockMovementsTable
-                .join(UsersTable, JoinType.INNER, onColumn = StockMovementsTable.acted_by, otherColumn = UsersTable.id)
-                .join(latest.alias, JoinType.INNER, onColumn = UsersTable.id, otherColumn = latest.userId)
-                .join(UserDisplayNamesTable, JoinType.INNER) {
-                    (UserDisplayNamesTable.user_id eq latest.userId) and
-                        (UserDisplayNamesTable.id eq latest.maxId)
-                }.selectAll()
-                .where { StockMovementsTable.product_id eq product.id() }
-                .orderBy(
-                    StockMovementsTable.occurred_at to SortOrder.DESC,
-                    StockMovementsTable.id to SortOrder.DESC,
-                ).limit(limit)
-                .map { row ->
-                    toStockMovement(
-                        actor = row.toProfile(),
-                        type = row[StockMovementsTable.type],
-                        quantity = row[StockMovementsTable.quantity],
-                        occurredAt = row[StockMovementsTable.occurred_at].toInstant().toKotlinInstant(),
-                        note = row[StockMovementsTable.note],
-                    )
-                }
-        return StockMovements(rows)
-    }
+            val rows =
+                StockMovementsTable
+                    .join(UsersTable, JoinType.INNER, onColumn = StockMovementsTable.acted_by, otherColumn = UsersTable.id)
+                    .join(latest.alias, JoinType.INNER, onColumn = UsersTable.id, otherColumn = latest.userId)
+                    .join(UserDisplayNamesTable, JoinType.INNER) {
+                        (UserDisplayNamesTable.user_id eq latest.userId) and
+                            (UserDisplayNamesTable.id eq latest.maxId)
+                    }.selectAll()
+                    .where { StockMovementsTable.product_id eq product.id() }
+                    .orderBy(
+                        StockMovementsTable.occurred_at to SortOrder.DESC,
+                        StockMovementsTable.id to SortOrder.DESC,
+                    ).limit(limit)
+                    .map { row ->
+                        toStockMovement(
+                            actor = row.toProfile(),
+                            type = row[StockMovementsTable.type],
+                            quantity = row[StockMovementsTable.quantity],
+                            occurredAt = row[StockMovementsTable.occurred_at].toInstant().toKotlinInstant(),
+                            note = row[StockMovementsTable.note],
+                        )
+                    }
+            StockMovements(rows)
+        }
 
     /** product 群に対する全 movement を 1 クエリで取得し、productId UUID ごとにグルーピング。 */
     private fun loadMovementsFor(products: List<Product>): Map<Uuid, List<StockMovement>> {

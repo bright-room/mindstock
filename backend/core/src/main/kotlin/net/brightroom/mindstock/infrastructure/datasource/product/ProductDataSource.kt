@@ -22,13 +22,17 @@ import org.jetbrains.exposed.v1.core.alias
 import org.jetbrains.exposed.v1.core.and
 import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.core.max
+import org.jetbrains.exposed.v1.jdbc.Database
 import org.jetbrains.exposed.v1.jdbc.select
 import org.jetbrains.exposed.v1.jdbc.selectAll
+import org.jetbrains.exposed.v1.jdbc.transactions.experimental.newSuspendedTransaction
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
 @OptIn(ExperimentalUuidApi::class)
-class ProductDataSource : ProductRepository {
+class ProductDataSource(
+    private val database: Database,
+) : ProductRepository {
     private data class LatestRevsAlias(
         val alias: QueryAlias,
         val catalogItemId: Column<Uuid>,
@@ -100,37 +104,42 @@ class ProductDataSource : ProductRepository {
                 }
         }
 
-    override fun listOf(household: Household): Products {
-        val results =
-            buildJoinedQuery()
-                .selectAll()
-                .where { ProductsTable.household_id eq household.id() }
-                .map { it.toProduct() }
-        return Products(results)
-    }
+    override suspend fun listOf(household: Household): Products =
+        newSuspendedTransaction(db = database) {
+            val results =
+                buildJoinedQuery()
+                    .selectAll()
+                    .where { ProductsTable.household_id eq household.id() }
+                    .map { it.toProduct() }
+            Products(results)
+        }
 
-    override fun find(
+    override suspend fun find(
         household: Household,
         catalogItem: CatalogItem,
     ): Product =
-        buildJoinedQuery()
-            .selectAll()
-            .where {
-                (ProductsTable.household_id eq household.id()) and
-                    (ProductsTable.catalog_item_id eq catalogItem.id())
-            }.singleOrNull()
-            ?.toProduct()
-            ?: throw ResourceNotFoundException(
-                "product not found: household=${household.id()}, catalog_item=${catalogItem.id()}",
-            )
+        newSuspendedTransaction(db = database) {
+            buildJoinedQuery()
+                .selectAll()
+                .where {
+                    (ProductsTable.household_id eq household.id()) and
+                        (ProductsTable.catalog_item_id eq catalogItem.id())
+                }.singleOrNull()
+                ?.toProduct()
+                ?: throw ResourceNotFoundException(
+                    "product not found: household=${household.id()}, catalog_item=${catalogItem.id()}",
+                )
+        }
 
-    override fun findById(id: ProductId): Product =
-        buildJoinedQuery()
-            .selectAll()
-            .where { ProductsTable.id eq id() }
-            .singleOrNull()
-            ?.toProduct()
-            ?: throw ResourceNotFoundException("product not found: $id")
+    override suspend fun findById(id: ProductId): Product =
+        newSuspendedTransaction(db = database) {
+            buildJoinedQuery()
+                .selectAll()
+                .where { ProductsTable.id eq id() }
+                .singleOrNull()
+                ?.toProduct()
+                ?: throw ResourceNotFoundException("product not found: $id")
+        }
 
     private fun ResultRow.toProduct(): Product =
         hydrateProduct(

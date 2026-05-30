@@ -14,14 +14,20 @@ import org.jetbrains.exposed.v1.core.SortOrder
 import org.jetbrains.exposed.v1.core.and
 import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.core.isNull
+import org.jetbrains.exposed.v1.jdbc.Database
 import org.jetbrains.exposed.v1.jdbc.insert
 import org.jetbrains.exposed.v1.jdbc.select
 import org.jetbrains.exposed.v1.jdbc.selectAll
+import org.jetbrains.exposed.v1.jdbc.transactions.experimental.newSuspendedTransaction
 import kotlin.uuid.ExperimentalUuidApi
 
 @OptIn(ExperimentalUuidApi::class)
-class HouseholdRegisterDataSource : HouseholdRegisterRepository {
-    override fun create(ownerId: UserId): Household {
+class HouseholdRegisterDataSource(
+    private val database: Database,
+) : HouseholdRegisterRepository {
+    override suspend fun create(ownerId: UserId): Household = newSuspendedTransaction(db = database) { insertHousehold(ownerId) }
+
+    private fun insertHousehold(ownerId: UserId): Household {
         val newHouseholdId =
             HouseholdsTable.insert {
                 // id は default uuidv7()
@@ -51,43 +57,47 @@ class HouseholdRegisterDataSource : HouseholdRegisterRepository {
         )
     }
 
-    override fun invite(
+    override suspend fun invite(
         household: Household,
         userId: UserId,
         role: HouseholdMemberRole,
     ) {
-        HouseholdMembershipsTable.insert {
-            it[household_id] = household.id()
-            it[user_id] = userId()
-            it[this.role] = role
+        newSuspendedTransaction(db = database) {
+            HouseholdMembershipsTable.insert {
+                it[household_id] = household.id()
+                it[user_id] = userId()
+                it[this.role] = role
+            }
         }
     }
 
-    override fun revoke(
+    override suspend fun revoke(
         household: Household,
         userId: UserId,
     ) {
-        val activeMembershipId =
-            HouseholdMembershipsTable
-                .join(
-                    HouseholdMembershipRevocationsTable,
-                    JoinType.LEFT,
-                    additionalConstraint = {
-                        HouseholdMembershipRevocationsTable.membership_id eq HouseholdMembershipsTable.id
-                    },
-                ).select(HouseholdMembershipsTable.id)
-                .where {
-                    (HouseholdMembershipsTable.household_id eq household.id()) and
-                        (HouseholdMembershipsTable.user_id eq userId()) and
-                        HouseholdMembershipRevocationsTable.id.isNull()
-                }.orderBy(HouseholdMembershipsTable.id, SortOrder.DESC)
-                .limit(1)
-                .singleOrNull()
-                ?.get(HouseholdMembershipsTable.id)
-                ?: error("no active membership for user $userId in household ${household.id}")
+        newSuspendedTransaction(db = database) {
+            val activeMembershipId =
+                HouseholdMembershipsTable
+                    .join(
+                        HouseholdMembershipRevocationsTable,
+                        JoinType.LEFT,
+                        additionalConstraint = {
+                            HouseholdMembershipRevocationsTable.membership_id eq HouseholdMembershipsTable.id
+                        },
+                    ).select(HouseholdMembershipsTable.id)
+                    .where {
+                        (HouseholdMembershipsTable.household_id eq household.id()) and
+                            (HouseholdMembershipsTable.user_id eq userId()) and
+                            HouseholdMembershipRevocationsTable.id.isNull()
+                    }.orderBy(HouseholdMembershipsTable.id, SortOrder.DESC)
+                    .limit(1)
+                    .singleOrNull()
+                    ?.get(HouseholdMembershipsTable.id)
+                    ?: error("no active membership for user $userId in household ${household.id}")
 
-        HouseholdMembershipRevocationsTable.insert {
-            it[membership_id] = activeMembershipId
+            HouseholdMembershipRevocationsTable.insert {
+                it[membership_id] = activeMembershipId
+            }
         }
     }
 }

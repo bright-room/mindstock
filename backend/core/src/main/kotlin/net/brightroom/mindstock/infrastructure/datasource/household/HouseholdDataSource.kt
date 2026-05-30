@@ -18,13 +18,19 @@ import org.jetbrains.exposed.v1.core.and
 import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.core.isNull
 import org.jetbrains.exposed.v1.core.max
+import org.jetbrains.exposed.v1.jdbc.Database
 import org.jetbrains.exposed.v1.jdbc.select
 import org.jetbrains.exposed.v1.jdbc.selectAll
+import org.jetbrains.exposed.v1.jdbc.transactions.experimental.newSuspendedTransaction
 import kotlin.uuid.ExperimentalUuidApi
 
 @OptIn(ExperimentalUuidApi::class)
-class HouseholdDataSource : HouseholdRepository {
-    override fun findOf(userId: UserId): Household {
+class HouseholdDataSource(
+    private val database: Database,
+) : HouseholdRepository {
+    override suspend fun findOf(userId: UserId): Household = newSuspendedTransaction(db = database) { queryHouseholdOf(userId) }
+
+    private fun queryHouseholdOf(userId: UserId): Household {
         val latest = latestDisplayNames()
 
         // --- target household: most recent active membership's household for this user ---
@@ -81,7 +87,9 @@ class HouseholdDataSource : HouseholdRepository {
         return hydrateHousehold(householdId, members)
     }
 
-    override fun findById(id: HouseholdId): Household {
+    override suspend fun findById(id: HouseholdId): Household = newSuspendedTransaction(db = database) { queryHouseholdById(id) }
+
+    private fun queryHouseholdById(id: HouseholdId): Household {
         // --- household existence check (returns even if all memberships are revoked) ---
         val householdExists =
             HouseholdsTable

@@ -18,13 +18,17 @@ import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.core.like
 import org.jetbrains.exposed.v1.core.max
 import org.jetbrains.exposed.v1.core.upperCase
+import org.jetbrains.exposed.v1.jdbc.Database
 import org.jetbrains.exposed.v1.jdbc.select
 import org.jetbrains.exposed.v1.jdbc.selectAll
+import org.jetbrains.exposed.v1.jdbc.transactions.experimental.newSuspendedTransaction
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
 @OptIn(ExperimentalUuidApi::class)
-class CatalogItemDataSource : CatalogItemRepository {
+class CatalogItemDataSource(
+    private val database: Database,
+) : CatalogItemRepository {
     private data class LatestRevs(
         val alias: QueryAlias,
         val catalogItemId: Column<Uuid>,
@@ -41,7 +45,12 @@ class CatalogItemDataSource : CatalogItemRepository {
         return LatestRevs(alias, alias[CatalogItemRevisionsTable.catalog_item_id], alias[maxRevIdAlias])
     }
 
-    override fun search(
+    override suspend fun search(
+        query: String,
+        limit: Int,
+    ): CatalogItems = newSuspendedTransaction(db = database) { querySearch(query, limit) }
+
+    private fun querySearch(
         query: String,
         limit: Int,
     ): CatalogItems {
@@ -70,7 +79,9 @@ class CatalogItemDataSource : CatalogItemRepository {
         return CatalogItems(items)
     }
 
-    override fun findById(id: CatalogItemId): CatalogItem {
+    override suspend fun findById(id: CatalogItemId): CatalogItem = newSuspendedTransaction(db = database) { queryById(id) }
+
+    private fun queryById(id: CatalogItemId): CatalogItem {
         val latestRevs = buildLatestRevs()
 
         return CatalogItemsTable
