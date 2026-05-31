@@ -186,7 +186,7 @@ flowchart TB
 
 > `auth` は `identity` の内側に**型として**置くが集約は持たない(境界 VO)。**パッケージは内包するが集約は分離**: `Resident`(id + 表示)を読んでも `auth`(OIDC sub)は付いてこない。世帯メンバー・在庫変動の操作者が参照するのは `Resident` のみ。
 
-> 実装上の型名(構造型は英語、**区分は日本語**): resident=集約ルート `Resident`(= `ResidentId` + `Profile`)/`profile`(`Profile` = `DisplayName`)/`identity`(`ResidentId`)/`auth` 境界VO(`AuthIdentity` = `AuthProvider` + `AuthSubject`)、世帯=`Household`(= `HouseholdId` + `Profile` + `Members`)、世帯プロフィール=`Profile`/`HouseholdName`、世帯メンバー=`HouseholdMember`/区分 `世帯での役割`、招待=**別集約** `Invitation`(`InvitationCode` + `世帯での役割` + 区分 `招待コード有効性`)、大元商品マスタ=`CatalogItem`(`CatalogContent` + `Barcode` + 区分 `仕入元`)/`CatalogItemId`/`CatalogItemName`/`CatalogItemUnit`/`Jan`、商品=`Product`(`StockingPolicy` + `ProductImage` + 区分 `商品状態`)/`ProductId`/`ProductUnit`/`MinimumStock`、在庫=`Stock`(区分 `在庫状態`/`買い物要否`/`アーカイブ可否`)、在庫変動=`StockMovement`/`MovementId`/`Quantity`/`Note`/`OccurredAt`/`Reason`。詳細は [03-domain-detail.md](03-domain-detail.md)。
+> 実装上の型名(構造型・区分の型名は英語、**区分の値は日本語**): resident=集約ルート `Resident`(= `ResidentId` + `Profile`)/`profile`(`Profile` = `DisplayName`)/`identity`(`ResidentId`)/`auth` 境界VO(`AuthIdentity` = `AuthProvider` + `AuthSubject`)、世帯=`Household`(= `HouseholdId` + `Profile` + `Members`)、世帯プロフィール=`Profile`/`HouseholdName`、世帯メンバー=`HouseholdMember`/区分 `HouseholdMemberRole`、招待=**別集約** `Invitation`(`InvitationCode` + `HouseholdMemberRole` + 区分 `InvitationValidity`)、大元商品マスタ=`CatalogItem`(`CatalogContent` + `Barcode` + 区分 `CatalogOrigin`)/`CatalogItemId`/`CatalogItemName`/`CatalogItemUnit`/`Jan`、商品=`Product`(`StockingPolicy` + `ProductImage` + 区分 `ProductStatus`)/`ProductId`/`ProductUnit`/`MinimumStock`、在庫=`Stock`(区分 `StockStatus`/`ShoppingNeed`/`Archivability`)、在庫変動=`StockMovement`/`MovementId`/`Quantity`/`Note`/`OccurredAt`/`Reason`。詳細は [03-domain-detail.md](03-domain-detail.md)。
 
 ### 集約と不変条件
 
@@ -197,14 +197,14 @@ flowchart TB
   - 1 住人は 0..N 世帯に所属。世帯参加で役割を持つ **世帯メンバー** になる。
 - **Household 集約**: `Profile`(世帯名)+ `Members`(1 以上・必ず 1 人の世帯主)。**招待は別集約 `Invitation`**(0..1 有効・期限なし・1 コードで複数参加可・有効/無効)。脱退/除外は append-only な revocation として残し、domain は active のみ読み込む。
 - **Stock 集約(在庫操作のルート)**: `Product`(採用) + `StockMovements`(台帳) + 手動買い物フラグ。
-  - 派生(区分): `currentQuantity = movements.netQuantity()`、`在庫状態 = 在庫切れ/残りわずか/十分`、`onShoppingList = 買い物要否 ∈ {在庫不足, 手動希望}`。
+  - 派生(区分): `currentQuantity = movements.netQuantity()`、`StockStatus = 在庫切れ/残りわずか/十分`、`onShoppingList = ShoppingNeed ∈ {在庫不足, 手動希望}`。
   - 不変条件: 数量は負にしない(消費/訂正で負 → 例外)。`archive` は数量 0 のときのみ。`manualWanted` は補充/アーカイブで false。
   - 重複防止: 同一世帯で同一 JAN(`Barcode.Linked`)の Product は採用不可。
-- **CatalogItem(商品の素性・全世帯共有)**: `CatalogContent`(名前・推奨単位)・`Barcode`・区分 `仕入元`(大元マスタ / 外部取得=API キャッシュ / 世帯独自)。マスタ未存在 JAN は外部 API 取得を `外部取得` として保存。
+- **CatalogItem(商品の素性・全世帯共有)**: `CatalogContent`(名前・推奨単位)・`Barcode`・区分 `CatalogOrigin`(大元マスタ / 外部取得=API キャッシュ / 世帯独自)。マスタ未存在 JAN は外部 API 取得を `外部取得` として保存。
 
 ### 値オブジェクト(VO)
 
-`ResidentId` / `DisplayName`(<=100) / `AuthIdentity`(`AuthProvider`/`AuthSubject`) / `HouseholdId` / `HouseholdName`(<=30) / `ProductId` / `ProductUnit`(<=10、プリセットは UI 側) / `MinimumStock`(>=0) / `ProductImage`(None/Stored) / `CatalogItemId` / `CatalogItemName`(<=60) / `CatalogItemUnit`(<=10) / `Barcode`(Unlinked/Linked) / `Jan`(13桁 EAN-13) / `MovementId` / `Quantity`(>0) / `Note` / `Reason` / `OccurredAt` / `InvitationCode`(6桁)。**区分(日本語)**: `世帯での役割`(世帯主/メンバー/閲覧者)/ `世帯での操作` / `世帯主変更可否` / `招待コード有効性`(有効/無効)/ `仕入元`(大元マスタ/外部取得/世帯独自)/ `商品状態`(採用中/アーカイブ済)/ `在庫状態`(在庫切れ/残りわずか/十分)/ `買い物要否`(在庫不足/手動希望/不要)。詳細・制約は [03-domain-detail.md](03-domain-detail.md)。
+`ResidentId` / `DisplayName`(<=100) / `AuthIdentity`(`AuthProvider`/`AuthSubject`) / `HouseholdId` / `HouseholdName`(<=30) / `ProductId` / `ProductUnit`(<=10、プリセットは UI 側) / `MinimumStock`(>=0) / `ProductImage`(None/Stored) / `CatalogItemId` / `CatalogItemName`(<=60) / `CatalogItemUnit`(<=10) / `Barcode`(Unlinked/Linked) / `Jan`(13桁 EAN-13) / `MovementId` / `Quantity`(>0) / `Note` / `Reason` / `OccurredAt` / `InvitationCode`(6桁)。**区分(型名=英語・値=日本語)**: `HouseholdMemberRole`(世帯主/メンバー/閲覧者)/ `HouseholdCapability` / `OwnerChangeability` / `InvitationValidity`(有効/無効)/ `CatalogOrigin`(大元マスタ/外部取得/世帯独自)/ `ProductStatus`(採用中/アーカイブ済)/ `StockStatus`(在庫切れ/残りわずか/十分)/ `ShoppingNeed`(在庫不足/手動希望/不要)。詳細・制約は [03-domain-detail.md](03-domain-detail.md)。
 
 ---
 

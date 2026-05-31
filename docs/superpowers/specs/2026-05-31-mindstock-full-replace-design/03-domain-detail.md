@@ -19,8 +19,8 @@
 
 ビジネスルールは集約メソッドに埋め込まず、**区分 / 区分使用 / 判定・状況クラス**へ外出しする(masuda「現場で役立つシステム設計の原則」スタイル)。集約は薄く保ち、区分/判定を呼ぶ。命名は英語、不変・`@Serializable`・例外の規約は維持する。
 
-- **区分(enum with behavior)**: 取りうる状態を enum で表し、状態は静的 `judge(...)` / `of(...)` ファクトリで**算出**する(可否フラグ等を enum に持たせる)。**区分名・値は日本語**(ユビキタス言語)、構造型(集約/VO/ID)は英語。例: `在庫状態.of(current, minimum)`(参照実装の `DelayStatus.level()` / `ItemLoanability.貸出可能かどうか()` に対応)。
-- **区分使用(rule table)**: 「区分 → ルール/上限/許可」の対応を Map 表として `object` に外出しする(条件表)。表自体は永続化しない(`@Serializable` 不要)。例: `RolePermissions`(`世帯での役割 → 世帯での操作` 表。参照実装の `RestrictionOfQuantityMap`)。
+- **区分(enum with behavior)**: 取りうる状態を enum で表し、状態は静的 `judge(...)` / `of(...)` ファクトリで**算出**する(可否フラグ等を enum に持たせる)。**区分の値は日本語**(ユビキタス言語)、区分の型名と構造型(集約/VO/ID)は英語。例: `StockStatus.of(current, minimum)`(参照実装の `DelayStatus.level()` / `ItemLoanability.貸出可能かどうか()` に対応)。
+- **区分使用(rule table)**: 「区分 → ルール/上限/許可」の対応を Map 表として `object` に外出しする(条件表)。表自体は永続化しない(`@Serializable` 不要)。例: `RolePermissions`(`HouseholdMemberRole → HouseholdCapability` 表。参照実装の `RestrictionOfQuantityMap`)。
 - **判定/状況クラス**: 複数モデルを合成して区分を返す専用クラス(参照実装の `LoanStatus` / `Restriction`)。
 - **共存ルール**: UI 向けの**可否照会は区分を返す**メソッド、状態を変える**コマンドは前提崩れ時に例外**を throw(区分で `when` 分岐して翻訳)。これで error-handling 規約(前提崩れ=例外)と区分判定は両立する。
 
@@ -159,7 +159,7 @@ data class Resident(val id: ResidentId, val profile: Profile)
 
 ## Household 集約
 
-集約は `(id, profile, members)` のみ(**招待は別集約 `Invitation`**)。認可は `RolePermissions`(区分使用)、最後の世帯主判定は `世帯主変更可否`(区分)に委ねる薄い集約。
+集約は `(id, profile, members)` のみ(**招待は別集約 `Invitation`**)。認可は `RolePermissions`(区分使用)、最後の世帯主判定は `OwnerChangeability`(区分)に委ねる薄い集約。
 
 ```kotlin
 data class Household(val id: HouseholdId, val profile: Profile, val members: Members) {
@@ -170,39 +170,39 @@ data class Household(val id: HouseholdId, val profile: Profile, val members: Mem
 
     fun rename(name: HouseholdName, by: ResidentId): Household
         // RolePermissions.allows(members.roleOf(by), 世帯管理) 違反 → OwnerRequiredException
-    fun join(resident: Resident, grantedRole: 世帯での役割): Household
+    fun join(resident: Resident, grantedRole: HouseholdMemberRole): Household
         // member 追加のみ。「どの世帯か/コード有効か」は別集約 Invitation を application が解決済み
-    fun changeRole(target: ResidentId, role: 世帯での役割, by: ResidentId): Household
-        // 認可違反 → OwnerRequiredException、世帯主変更可否.on(members, target) 不可 → LastOwnerException
-    fun removeMember(target: ResidentId, by: ResidentId): Household   // 認可 + 世帯主変更可否
-    fun leave(by: ResidentId): Household                              // 本人。世帯主変更可否で最後の世帯主退出を拒否
+    fun changeRole(target: ResidentId, role: HouseholdMemberRole, by: ResidentId): Household
+        // 認可違反 → OwnerRequiredException、OwnerChangeability.on(members, target) 不可 → LastOwnerException
+    fun removeMember(target: ResidentId, by: ResidentId): Household   // 認可 + OwnerChangeability
+    fun leave(by: ResidentId): Household                              // 本人。OwnerChangeabilityで最後の世帯主退出を拒否
 }
 ```
 
 - `Profile(name: HouseholdName)` — 世帯の表示文脈(将来のアイコン等)。`household` パッケージ。住人の `Profile` と同名だが**パッケージが別なので衝突しない**。
 - `HouseholdName` — value class(String)、trim 後 非空・最大 30 文字。
-- `HouseholdMember(resident: Resident, role: 世帯での役割)` — **active のみ**。`Resident`(id + 表示)を内包(認証は載らない)。
-- `Members(val list)` — `owner(): Resident` / `activeMembers(): List<Resident>` / `contains(ResidentId): Boolean` / `roleOf(ResidentId): 世帯での役割`(非メンバーは `ResourceNotFoundException`)/ `size(): Int`。不変条件: **世帯主を 1 人以上含む**ため `owner()` は **非 null**。認可は集約が `roleOf(by)` を引いて `RolePermissions.allows(...)` で判定。
+- `HouseholdMember(resident: Resident, role: HouseholdMemberRole)` — **active のみ**。`Resident`(id + 表示)を内包(認証は載らない)。
+- `Members(val list)` — `owner(): Resident` / `activeMembers(): List<Resident>` / `contains(ResidentId): Boolean` / `roleOf(ResidentId): HouseholdMemberRole`(非メンバーは `ResourceNotFoundException`)/ `size(): Int`。不変条件: **世帯主を 1 人以上含む**ため `owner()` は **非 null**。認可は集約が `roleOf(by)` を引いて `RolePermissions.allows(...)` で判定。
 - `rename/changeRole/removeMember/leave` の actor/target は `ResidentId`(コマンド引数として「誰が/誰を」を指定)。
 - **脱退/除外の表現**: 退会は append-only な revocation fact として永続化(`household_membership_revocations`)。domain は active のみ読み込む(Repository が revoked を除外)。
 
 ### 役割と権限(区分 + 区分使用)
 
-役割は区分 `世帯での役割`、権限の有無は **区分使用(Map ルール表)** `RolePermissions` に外出しする(区分は日本語、構造型は英語)。集約や application はこの表を引いて認可する(`canXxx()` を集約に散らさない)。
+役割は区分 `HouseholdMemberRole`、権限の有無は **区分使用(Map ルール表)** `RolePermissions` に外出しする(区分の値は日本語、型名・構造型は英語)。集約や application はこの表を引いて認可する(`canXxx()` を集約に散らさない)。
 
 ```kotlin
 // 区分
-enum class 世帯での役割 { 世帯主, メンバー, 閲覧者 }
-enum class 世帯での操作 { 在庫編集, マスタ管理, 世帯管理 }
+enum class HouseholdMemberRole { 世帯主, メンバー, 閲覧者 }
+enum class HouseholdCapability { 在庫編集, マスタ管理, 世帯管理 }
 
 // 区分使用: 役割 → 許可される操作の表(永続化しない rule table)
 object RolePermissions {
-    private val table: Map<世帯での役割, Set<世帯での操作>> = mapOf(
-        世帯での役割.世帯主  to 世帯での操作.entries.toSet(),
-        世帯での役割.メンバー to setOf(世帯での操作.在庫編集),
-        世帯での役割.閲覧者  to emptySet(),
+    private val table: Map<HouseholdMemberRole, Set<HouseholdCapability>> = mapOf(
+        HouseholdMemberRole.世帯主  to HouseholdCapability.entries.toSet(),
+        HouseholdMemberRole.メンバー to setOf(HouseholdCapability.在庫編集),
+        HouseholdMemberRole.閲覧者  to emptySet(),
     )
-    fun allows(役割: 世帯での役割, 操作: 世帯での操作): Boolean = table.getValue(役割).contains(操作)
+    fun allows(役割: HouseholdMemberRole, 操作: HouseholdCapability): Boolean = table.getValue(役割).contains(操作)
 }
 ```
 
@@ -213,19 +213,19 @@ object RolePermissions {
 降格・除外・退出で「最後の世帯主が居なくなる」かを区分で判定。集約は区分を見て `LastOwnerException` を throw する。
 
 ```kotlin
-enum class 世帯主変更可否(val allowed: Boolean) {
+enum class OwnerChangeability(val allowed: Boolean) {
     可能(true),
     最後の世帯主(false);   // target を世帯主から外す/退出させると世帯主が 0 人になる
 
     companion object {
-        fun on(members: Members, target: ResidentId): 世帯主変更可否
+        fun on(members: Members, target: ResidentId): OwnerChangeability
     }
 }
 ```
 
 ### Invitation(別集約・コードで join 解決)
 
-招待は **`Household` とは別の集約**。世帯に属し(`householdId`)、`code` で「どの世帯への参加か」を解決する。**1 コード → 複数参加可。世帯主が再発行/取消するまで有効(有効期限なし)**。状態は区分 `招待コード有効性`(有効/無効)。
+招待は **`Household` とは別の集約**。世帯に属し(`householdId`)、`code` で「どの世帯への参加か」を解決する。**1 コード → 複数参加可。世帯主が再発行/取消するまで有効(有効期限なし)**。状態は区分 `InvitationValidity`(有効/無効)。
 
 ```mermaid
 stateDiagram-v2
@@ -242,15 +242,15 @@ stateDiagram-v2
 data class Invitation(
     private val householdId: HouseholdId,
     val code: InvitationCode,
-    val grantedRole: 世帯での役割,
-    val 有効性: 招待コード有効性,
+    val grantedRole: HouseholdMemberRole,
+    val validity: InvitationValidity,
 ) {
-    fun usable(): Boolean = 有効性 == 招待コード有効性.有効
+    fun usable(): Boolean = validity == InvitationValidity.有効
     internal fun householdId(): HouseholdId = householdId
 }
 
 // 区分
-enum class 招待コード有効性 { 有効, 無効 }
+enum class InvitationValidity { 有効, 無効 }
 ```
 
 - `InvitationCode` — value class(String)、6 文字・英数字(曖昧字 `0/O/1/I` 除外)。
@@ -266,7 +266,7 @@ enum class 招待コード有効性 { 有効, 無効 }
 
 ### CatalogItem(商品の素性・全世帯共有)
 
-プロパティを概念で小分けする(`content`=内容、`barcode`=JAN 連携、`origin`=仕入元)。サブパッケージ `catalog/item` `catalog/content` `catalog/barcode` `catalog/origin`。
+プロパティを概念で小分けする(`content`=内容、`barcode`=JAN 連携、`origin`=CatalogOrigin)。サブパッケージ `catalog/item` `catalog/content` `catalog/barcode` `catalog/origin`。
 
 ```kotlin
 // catalog/item
@@ -274,7 +274,7 @@ data class CatalogItem(
     val id: CatalogItemId,
     val content: CatalogContent,   // 名前 + 推奨単位
     val barcode: Barcode,
-    val origin: 仕入元,
+    val origin: CatalogOrigin,
 )
 
 // catalog/content
@@ -284,7 +284,7 @@ data class CatalogContent(val name: CatalogItemName, val defaultUnit: CatalogIte
 sealed interface Barcode { object Unlinked; data class Linked(val jan: Jan) }
 
 // catalog/origin — 区分(大元マスタ=CURATED / 外部取得=楽天・Yahoo キャッシュ / 世帯独自=CUSTOM)
-enum class 仕入元 { 大元マスタ, 外部取得, 世帯独自 }
+enum class CatalogOrigin { 大元マスタ, 外部取得, 世帯独自 }
 ```
 
 - `CatalogItemName` — 非空・最大 60 文字。`CatalogItemUnit` — 非空・最大 10 文字。`content.defaultUnit` は採用画面の**推奨単位**。
@@ -303,7 +303,7 @@ data class Product(
     val catalogItem: CatalogItem,
     val setting: StockingPolicy,   // 世帯固有: 単位 + 最低在庫
     val image: ProductImage,
-    val status: 商品状態,
+    val status: ProductStatus,
 )
 
 // product/setting
@@ -313,36 +313,36 @@ data class StockingPolicy(val unit: ProductUnit, val minimumStock: MinimumStock)
 sealed interface ProductImage { object None; data class Stored(val ref: ImageRef) }
 
 // product — 区分(archived: Boolean を区分化)
-enum class 商品状態 { 採用中, アーカイブ済 }
+enum class ProductStatus { 採用中, アーカイブ済 }
 ```
 
 - `ProductUnit` — 世帯固有の数える単位(非空・最大 10 文字)。採用時に選択、`CatalogContent.defaultUnit` がデフォルト。プリセット(個・本・袋・パック・箱・ロール・缶・枚・セット)は**フロントの選択肢**で、ドメインは自由文字列 VO。
 - `MinimumStock` — `>= 0`。`isBelow(qty)` / `shortage(qty)` を持つ(既存踏襲)。
-- 単位・最低在庫・画像・状態の編集は `世帯での操作.マスタ管理`(認可は application 層)。
+- 単位・最低在庫・画像・状態の編集は `HouseholdCapability.マスタ管理`(認可は application 層)。
 
 ### Stock 集約(在庫操作のルート)
 
-集約は薄く、在庫状態・買い物要否・アーカイブ可否は区分(`在庫状態`/`買い物要否`/`アーカイブ可否`)へ外出しする。
+集約は薄く、StockStatus・ShoppingNeed・Archivabilityは区分(`StockStatus`/`ShoppingNeed`/`Archivability`)へ外出しする。
 
 ```kotlin
 data class Stock(val product: Product, val movements: StockMovements, val manualWanted: Boolean) {
     fun currentQuantity(): Int = movements.netQuantity()
-    fun status(): 在庫状態 = 在庫状態.of(currentQuantity(), product.setting.minimumStock)
-    fun shoppingNeed(): 買い物要否 = 買い物要否.judge(status(), manualWanted)
-    fun onShoppingList(): Boolean = shoppingNeed().買い物リスト対象
+    fun status(): StockStatus = StockStatus.of(currentQuantity(), product.setting.minimumStock)
+    fun shoppingNeed(): ShoppingNeed = ShoppingNeed.judge(status(), manualWanted)
+    fun onShoppingList(): Boolean = shoppingNeed().onShoppingList
 
     fun replenish(qty, at, actor: Resident, note): Stock   // manualWanted=false に戻す
     fun consume(qty, at, actor: Resident, note): Stock      // 数量不足 → InsufficientStockException
     fun correct(target: MovementId, correctedQty, reason, actor: Resident, at): Stock  // append-only 訂正(下記)
     fun want(): Stock / fun unwant(): Stock
-    fun archive(): Stock      // アーカイブ可否.of(currentQuantity()) が不可 → CannotArchiveWithStockException
+    fun archive(): Stock      // Archivability.of(currentQuantity()) が不可 → CannotArchiveWithStockException
     fun unarchive(): Stock
 }
 
-// 在庫状態(区分)
-enum class 在庫状態 { 在庫切れ, 残りわずか, 十分;
+// StockStatus(区分)
+enum class StockStatus { 在庫切れ, 残りわずか, 十分;
     companion object {
-        fun of(current: Int, minimum: MinimumStock): 在庫状態 = when {
+        fun of(current: Int, minimum: MinimumStock): StockStatus = when {
             current <= 0             -> 在庫切れ
             minimum.isBelow(current) -> 残りわずか   // current <= min
             else                     -> 十分
@@ -350,26 +350,26 @@ enum class 在庫状態 { 在庫切れ, 残りわずか, 十分;
     }
 }
 
-// 買い物要否(区分)
-enum class 買い物要否(val 買い物リスト対象: Boolean) {
+// ShoppingNeed(区分)
+enum class ShoppingNeed(val onShoppingList: Boolean) {
     在庫不足(true),   // status != 十分
     手動希望(true),   // 在庫は足りるが手動で希望
     不要(false);
     companion object {
-        fun judge(status: 在庫状態, manualWanted: Boolean): 買い物要否 = when {
-            status != 在庫状態.十分 -> 在庫不足
+        fun judge(status: StockStatus, manualWanted: Boolean): ShoppingNeed = when {
+            status != StockStatus.十分 -> 在庫不足
             manualWanted          -> 手動希望
             else                  -> 不要
         }
     }
 }
 
-// アーカイブ可否(区分)
-enum class アーカイブ可否(val archivable: Boolean) {
+// Archivability(区分)
+enum class Archivability(val archivable: Boolean) {
     可能(true),
     在庫あり(false);   // 在庫 != 0
     companion object {
-        fun of(currentQuantity: Int): アーカイブ可否 =
+        fun of(currentQuantity: Int): Archivability =
             if (currentQuantity == 0) 可能 else 在庫あり
     }
 }
@@ -456,12 +456,12 @@ flowchart TD
 @Serializable
 data class ShoppingList(val list: List<Stock>) {
     fun size(): Int = list.size
-    fun autoItems(): ShoppingList    // = list.filter { it.shoppingNeed() == 買い物要否.在庫不足 }
-    fun manualItems(): ShoppingList  // = list.filter { it.shoppingNeed() == 買い物要否.手動希望 }
+    fun autoItems(): ShoppingList    // = list.filter { it.shoppingNeed() == ShoppingNeed.在庫不足 }
+    fun manualItems(): ShoppingList  // = list.filter { it.shoppingNeed() == ShoppingNeed.手動希望 }
 }
 ```
 
-- メンバーシップは `Stock.onShoppingList()`(= `shoppingNeed().買い物リスト対象`)の純粋関数。Repository が世帯の `Stocks` から `onShoppingList()` で絞って hydrate する。
+- メンバーシップは `Stock.onShoppingList()`(= `shoppingNeed().onShoppingList`)の純粋関数。Repository が世帯の `Stocks` から `onShoppingList()` で絞って hydrate する。
 - 永続「買い物リスト」テーブルは作らない。手動追加品は `Stock.manualWanted`(将来 fact 化)で表現。
 
 ---

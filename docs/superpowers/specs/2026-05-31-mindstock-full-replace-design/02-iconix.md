@@ -184,8 +184,8 @@ classDiagram
     }
     class Invitation {
         +code: InvitationCode
-        +grantedRole: 世帯での役割
-        +有効性: 招待コード有効性
+        +grantedRole: HouseholdMemberRole
+        +validity: InvitationValidity
         +usable() Boolean
     }
     class Stock {
@@ -197,14 +197,14 @@ classDiagram
         +want() Stock
         +unwant() Stock
         +currentQuantity() Int
-        +status() 在庫状態
+        +status() StockStatus
         +onShoppingList() Boolean
     }
     class Product {
         +catalogItem: CatalogItem
         +setting: StockingPolicy
         +image: ProductImage
-        +status: 商品状態
+        +status: ProductStatus
     }
     class StockMovement {
         <<sealed>>
@@ -213,7 +213,7 @@ classDiagram
     class CatalogItem {
         +content: CatalogContent
         +barcode: Barcode
-        +origin: 仕入元
+        +origin: CatalogOrigin
     }
     StockMovement <|-- Replenishment
     StockMovement <|-- Consumption
