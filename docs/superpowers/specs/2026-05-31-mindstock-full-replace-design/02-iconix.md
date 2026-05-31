@@ -179,7 +179,7 @@ classDiagram
         +rename(name, by)
         +issueInvitation(role, by, now) Invitation
         +revokeInvitation(by)
-        +join(userId, displayName, code, now)
+        +join(resident, code, now)
         +changeRole(target, role, by)
         +removeMember(target, by)
         +leave(member)
@@ -203,7 +203,7 @@ classDiagram
     }
     class StockMovement {
         <<sealed>>
-        +actor: Profile
+        +actor: Resident
     }
     class CatalogItem {
         +barcode: Barcode
@@ -216,7 +216,7 @@ classDiagram
     Household *-- HouseholdProfile
     Household *-- HouseholdMember
     Household o-- Invitation
-    HouseholdMember --> Profile
+    HouseholdMember --> Resident
     Stock --> Product
     Product --> CatalogItem
     Stock *-- StockMovement
@@ -229,7 +229,7 @@ classDiagram
 ## B-5. モジュール / レイヤマッピング
 
 ```
-:domain     resident{profile(Profile/DisplayName), identity(UserId), identity/auth(AuthIdentity)}・household・catalog・inventory(Stock/Product/StockMovement) 各コンテキスト + VO + 専用例外
+:domain     resident{Resident(id+profile), profile(Profile/DisplayName), identity(ResidentId), identity/auth(AuthIdentity=境界VO)}・household・catalog・inventory(Stock/Product/StockMovement/ShoppingList) 各コンテキスト + VO + 専用例外
 :rpc        @Rpc service interface, RpcResult, RpcError, DTO
 :shared     既存維持(KrpcJson, datetime/serialization 拡張)
 :backend:core
@@ -244,7 +244,7 @@ classDiagram
 
 | サービス | 主メソッド | 対応 UC |
 |---|---|---|
-| `UserRpcService` | `registerDisplayName`, `me` | 2 |
+| `ResidentRpcService` | `registerDisplayName`, `me` | 2 |
 | `HouseholdRpcService` | `create`, `rename`, `leave`, `list`, `changeRole`, `removeMember`, `createInvite`, `revokeInvite`, `join`, `previewInvite` | 3,5–9 |
 | `CatalogRpcService` | `search`, `lookupByJan` | 11,12 |
 | `ProductRpcService` | `adopt`, `addCustom`, `list`, `listArchived`, `changeUnit/Image/Minimum`, `archive`, `unarchive`, `setWanted` | 10,13,16,19,20,22,23 |

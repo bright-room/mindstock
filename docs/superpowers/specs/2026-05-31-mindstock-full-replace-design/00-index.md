@@ -28,7 +28,7 @@
 
 実装の形は捨てるが、過去に合意したドメイン標準は踏襲する(`domain-refactor-policy-2026-05`):
 
-- `User` クラスは作らない。利用者 =「**住人(resident コンテキスト)**」。内部を `profile`(`Profile`/`DisplayName`)・`identity`(`UserId`)・`identity/auth`(`AuthIdentity`)に入れ子。パッケージは内包・**集約は分離**(`Profile` に認証を埋め込まない=漏洩防止)。公開アグリゲートは `Profile`。
+- `User` クラスは作らない。利用者 =「**住人(resident コンテキスト)**」。集約ルートは `Resident`(`id: ResidentId` + `profile: Profile(DisplayName)`)。`identity/auth` の `AuthIdentity` は登録/認証の**境界 VO**で集約に持たない(=漏洩防止)。公開アグリゲートは `Resident`。append-only 前提で表示名変更は Insert。
 - `DomainException` の sealed 階層は作らない(VO 違反は IAE、前提崩れのみ専用例外)。
 - 集合型は `val list` 公開 + ドメイン操作のみメソッド。`@JvmInline value class` を sealed variant にしない。
 - 商品/在庫は `CatalogItem`(素性)/ `Product`(世帯の採用)/ `Stock`(数量・台帳)に分解。`StockMovement.actor` は住人の公開アグリゲート `Profile` 埋め込み(脱退後も履歴解決可・認証は漏れない)。
