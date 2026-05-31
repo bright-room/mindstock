@@ -4,22 +4,4 @@ ktor:
     port: "$PORT:8080"
   application:
     modules:
-      - "net.brightroom.mindstock.configuration.di.DependenciesConfigurationKt.dependenciesConfigure"
-      - "net.brightroom.mindstock.configuration.migration.MigrationConfigurationKt.migrationConfigure"
-      - "net.brightroom.mindstock.configuration.external.exposed.ExposedConfigurationKt.exposedConfigure"
       - "net.brightroom.mindstock.configuration.routing.RoutingConfigurationKt.routingConfigure"
-
-external:
-  datasource:
-    database:
-      driver-class-name: "org.postgresql.Driver"
-      jdbc-url: "$DATABASE_URL:jdbc:postgresql://localhost:5432/mindstock"
-      username: "$DATABASE_USERNAME:mindstock"
-      password: "$DATABASE_PASSWORD:mindstock"
-      maximum-pool-size: 10
-      auto-commit: false
-      transaction-isolation: "TRANSACTION_REPEATABLE_READ"
-  auth:
-    issuer: "$AUTH_ISSUER:http://localhost:8081"
-    audience: "$AUTH_AUDIENCE:mindstock-backend"
-    jwks-url: "$AUTH_JWKS_URL:http://localhost:8081/oauth/v2/keys"

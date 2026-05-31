@@ -1,3 +1,0 @@
-CREATE TABLE IF NOT EXISTS household_names (id BIGSERIAL PRIMARY KEY, household_id uuid NOT NULL, "name" VARCHAR(100) NOT NULL, created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL, CONSTRAINT fk_household_names_household_id__id FOREIGN KEY (household_id) REFERENCES households(id) ON DELETE RESTRICT ON UPDATE RESTRICT);
-CREATE INDEX household_names_household_id_id ON household_names (household_id, id);
-CREATE SEQUENCE IF NOT EXISTS household_names_id_seq START WITH 1 MINVALUE 1 MAXVALUE 9223372036854775807;
