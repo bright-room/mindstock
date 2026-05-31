@@ -6,7 +6,9 @@
 
 **Architecture:** 既存の KMP マルチモジュール構成・gradle・build-logic・CI・settings は維持。`:domain`/`:rpc`/`:backend:core` は中身を空にして以降のプランで再構築する。`:backend:api` は `application.yaml` 依存(EngineMain + config モジュール)をやめ、`embeddedServer` で最小起動する。`:frontend` は `ComposeViewport { App() }` の `App` を空スタブに置換する。
 
-**Tech Stack:** Kotlin Multiplatform / Ktor(CIO)/ Compose Multiplatform(Wasm)/ Gradle。
+**Tech Stack:** Kotlin Multiplatform / Ktor / Compose Multiplatform(Wasm)/ Gradle。
+
+> **注(実行後の移設):** P0 実行後、設計と本プランを superpowers 構成へ移設した(設計 = [`../specs/2026-05-31-mindstock-full-replace-design/`](../specs/2026-05-31-mindstock-full-replace-design/00-index.md)、本プラン = `docs/superpowers/plans/`)。本文中 Task 1 の `docs/design/...` は **P0 実行当時のパス**(当時はこの設計が `docs/design/` 配下に存在した)であり記録として残す。
 
 > **実装ロードマップ(本プランは 1/7)**
 > 1. **P0 解体と土台**(本プラン)
@@ -17,7 +19,7 @@
 > 6. P5 `:backend:api` + `:backend:core` — application service + presentation `@Rpc` controller + Zitadel 認証配線
 > 7. P6 `:frontend` — Compose 画面(ログイン/オンボーディング/在庫/買い物/履歴/設定/商品追加/招待)
 >
-> 設計の真実は [`../00-index.md`](../00-index.md)(01 sudo / 02 ICONIX / 03 詳細ドメイン)。
+> 設計の真実は [`../specs/2026-05-31-mindstock-full-replace-design/00-index.md`](../specs/2026-05-31-mindstock-full-replace-design/00-index.md)(01 sudo / 02 ICONIX / 03 詳細ドメイン)。
 
 ---
 
@@ -301,4 +303,4 @@ git commit -m "chore: フルリプレイス土台のビルド緑化を確認"
 - `./gradlew build -x :frontend:wasmJsBrowserDistribution -x :frontend:wasmJsBrowserProductionWebpack` が緑。
 - `:backend:api:run` が起動し `GET /health` が `OK` を返す。
 - `:frontend:compileKotlinWasmJs` が緑(空画面 `mindstock` を描画するスタブ)。
-- `docs/design/2026-05-31-mindstock-full-replace/` は保持されている。
+- 設計ドキュメントが保持されている(P0 実行後 `docs/superpowers/specs/2026-05-31-mindstock-full-replace-design/` へ移設)。
