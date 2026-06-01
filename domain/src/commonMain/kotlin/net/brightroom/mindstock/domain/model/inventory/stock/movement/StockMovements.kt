@@ -10,11 +10,15 @@ data class StockMovements(
 
     fun add(movement: StockMovement): StockMovements = StockMovements(list + movement)
 
+    fun hasBaseMovement(id: MovementId): Boolean =
+        list.any { (it is Replenishment || it is Consumption) && it.identity == MovementIdentity.Persisted(id) }
+
     fun netQuantity(): Int {
         val latestCorrection: Map<MovementId, Correction> =
             list
                 .filterIsInstance<Correction>()
                 .groupBy { it.target }
+                // 同一 target に同 occurredAt の訂正が複数ある場合は list 出現順で最初の最大値を採用(実運用では Instant 衝突は起きない前提)
                 .mapValues { (_, corrections) -> corrections.maxBy { it.occurredAt() } }
         return list.sumOf { movement ->
             when (movement) {

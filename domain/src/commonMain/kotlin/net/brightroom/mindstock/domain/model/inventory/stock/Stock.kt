@@ -52,11 +52,7 @@ data class Stock(
         actor: Resident,
         occurredAt: OccurredAt,
     ): Stock {
-        val targetExists =
-            movements.list.any {
-                (it is Replenishment || it is Consumption) && it.identity == MovementIdentity.Persisted(target)
-            }
-        if (!targetExists) {
+        if (!movements.hasBaseMovement(target)) {
             throw ResourceNotFoundException("movement not found: $target")
         }
         val corrected =

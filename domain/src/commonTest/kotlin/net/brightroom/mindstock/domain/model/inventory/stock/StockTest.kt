@@ -130,4 +130,13 @@ class StockTest {
             stock.correct(MovementId(999), Quantity(1), Reason("対象なし"), actor(), OccurredAt.now())
         }
     }
+
+    @Test
+    fun correct_replenishment_down_into_negative_is_rejected() {
+        // 補充5(id=10) − 消費4 → 現在1。補充を2に訂正 → +2 − 4 = −2 で拒否
+        val stock = stockWith(persistedReplenishment(10, 5), persistedConsumption(20, 4))
+        shouldThrow<InsufficientStockException> {
+            stock.correct(MovementId(10), Quantity(2), Reason("数え直し"), actor(), OccurredAt.now())
+        }
+    }
 }
