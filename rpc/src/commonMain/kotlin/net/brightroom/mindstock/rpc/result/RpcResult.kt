@@ -9,14 +9,14 @@ import kotlinx.serialization.Serializable
  * `T` は non-null(`T?` 禁止)。「不在」は [Err] の [RpcError.NotFound] で表す。
  */
 @Serializable
-sealed interface RpcResult<out T, out E> {
+sealed interface RpcResult<out T : Any, out E : Any> {
     @Serializable
-    data class Ok<T>(
+    data class Ok<T : Any>(
         val value: T,
     ) : RpcResult<T, Nothing>
 
     @Serializable
-    data class Err<E>(
+    data class Err<E : Any>(
         val error: E,
     ) : RpcResult<Nothing, E>
 }
