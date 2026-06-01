@@ -4,6 +4,7 @@ import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.matchers.shouldBe
 import net.brightroom.mindstock.domain.exception.LastOwnerException
 import net.brightroom.mindstock.domain.exception.OwnerRequiredException
+import net.brightroom.mindstock.domain.exception.ResourceNotFoundException
 import net.brightroom.mindstock.domain.model.household.member.HouseholdMemberRole
 import net.brightroom.mindstock.domain.model.resident.Resident
 import net.brightroom.mindstock.domain.model.resident.identity.ResidentId
@@ -72,5 +73,27 @@ class HouseholdMembershipTest {
         val owner = resident("おや")
         val household = Household.create(HouseholdName("我が家"), owner)
         shouldThrow<LastOwnerException> { household.leave(owner.id) }
+    }
+
+    @Test
+    fun changeRole_on_non_member_target_throws() {
+        val (household, owner, _) = householdWithMember()
+        shouldThrow<ResourceNotFoundException> {
+            household.changeRole(ResidentId.create(), HouseholdMemberRole.閲覧者, owner.id)
+        }
+    }
+
+    @Test
+    fun removeMember_on_non_member_target_throws() {
+        val (household, owner, _) = householdWithMember()
+        shouldThrow<ResourceNotFoundException> {
+            household.removeMember(ResidentId.create(), owner.id)
+        }
+    }
+
+    @Test
+    fun leave_by_non_member_throws() {
+        val (household, _, _) = householdWithMember()
+        shouldThrow<ResourceNotFoundException> { household.leave(ResidentId.create()) }
     }
 }

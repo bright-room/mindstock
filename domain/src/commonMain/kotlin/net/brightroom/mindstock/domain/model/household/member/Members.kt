@@ -26,4 +26,13 @@ data class Members(
     fun roleOf(residentId: ResidentId): HouseholdMemberRole =
         list.firstOrNull { it.resident.id == residentId }?.role
             ?: throw ResourceNotFoundException("member not found: $residentId")
+
+    fun add(member: HouseholdMember): Members = Members(list + member)
+
+    fun changeRole(
+        target: ResidentId,
+        role: HouseholdMemberRole,
+    ): Members = Members(list.map { if (it.resident.id == target) it.copy(role = role) else it })
+
+    fun remove(target: ResidentId): Members = Members(list.filterNot { it.resident.id == target })
 }

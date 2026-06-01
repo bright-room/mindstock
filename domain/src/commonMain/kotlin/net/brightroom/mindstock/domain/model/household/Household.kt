@@ -3,6 +3,7 @@ package net.brightroom.mindstock.domain.model.household
 import kotlinx.serialization.Serializable
 import net.brightroom.mindstock.domain.exception.LastOwnerException
 import net.brightroom.mindstock.domain.exception.OwnerRequiredException
+import net.brightroom.mindstock.domain.exception.ResourceNotFoundException
 import net.brightroom.mindstock.domain.model.household.member.HouseholdCapability
 import net.brightroom.mindstock.domain.model.household.member.HouseholdMember
 import net.brightroom.mindstock.domain.model.household.member.HouseholdMemberRole
@@ -29,7 +30,7 @@ data class Household(
     fun join(
         resident: Resident,
         grantedRole: HouseholdMemberRole,
-    ): Household = copy(members = Members(members.list + HouseholdMember(resident, grantedRole)))
+    ): Household = copy(members = members.add(HouseholdMember(resident, grantedRole)))
 
     fun changeRole(
         target: ResidentId,
@@ -37,15 +38,13 @@ data class Household(
         by: ResidentId,
     ): Household {
         requireCapability(by, HouseholdCapability.世帯管理)
+        if (!members.contains(target)) {
+            throw ResourceNotFoundException("member not found: $target")
+        }
         if (role != HouseholdMemberRole.世帯主 && !OwnerChangeability.on(members, target).allowed) {
             throw LastOwnerException("cannot demote last owner: $target")
         }
-        return copy(
-            members =
-                Members(
-                    members.list.map { if (it.resident.id == target) it.copy(role = role) else it },
-                ),
-        )
+        return copy(members = members.changeRole(target, role))
     }
 
     fun removeMember(
@@ -53,17 +52,23 @@ data class Household(
         by: ResidentId,
     ): Household {
         requireCapability(by, HouseholdCapability.世帯管理)
+        if (!members.contains(target)) {
+            throw ResourceNotFoundException("member not found: $target")
+        }
         if (!OwnerChangeability.on(members, target).allowed) {
             throw LastOwnerException("cannot remove last owner: $target")
         }
-        return copy(members = Members(members.list.filterNot { it.resident.id == target }))
+        return copy(members = members.remove(target))
     }
 
     fun leave(by: ResidentId): Household {
+        if (!members.contains(by)) {
+            throw ResourceNotFoundException("member not found: $by")
+        }
         if (!OwnerChangeability.on(members, by).allowed) {
             throw LastOwnerException("last owner cannot leave: $by")
         }
-        return copy(members = Members(members.list.filterNot { it.resident.id == by }))
+        return copy(members = members.remove(by))
     }
 
     private fun requireCapability(
