@@ -20,10 +20,10 @@ value class InvitationCode(
     override fun toString(): String = value
 
     companion object {
-        const val LENGTH = 6
+        private const val LENGTH = 6
 
         // 曖昧字 0 / O / 1 / I を除外した英数字
-        const val ALPHABET = "23456789ABCDEFGHJKLMNPQRSTUVWXYZ"
+        private const val ALPHABET = "23456789ABCDEFGHJKLMNPQRSTUVWXYZ"
 
         fun generate(): InvitationCode {
             // ALPHABET.length(32) は 256 を割り切るので (byte % 32) は不偏

@@ -46,7 +46,8 @@ data class Household(
         if (!members.contains(target)) {
             throw ResourceNotFoundException("member not found: $target")
         }
-        if (role != HouseholdMemberRole.世帯主 && !OwnerChangeability.on(members, target).allowed) {
+        val changeability = OwnerChangeability.on(members, target)
+        if (!role.is世帯主() && !changeability.allowed) {
             throw LastOwnerException("cannot demote last owner: $target")
         }
         return Household(id, profile, members.changeRole(target, role))
@@ -60,7 +61,8 @@ data class Household(
         if (!members.contains(target)) {
             throw ResourceNotFoundException("member not found: $target")
         }
-        if (!OwnerChangeability.on(members, target).allowed) {
+        val changeability = OwnerChangeability.on(members, target)
+        if (!changeability.allowed) {
             throw LastOwnerException("cannot remove last owner: $target")
         }
         return Household(id, profile, members.remove(target))
@@ -70,7 +72,8 @@ data class Household(
         if (!members.contains(by)) {
             throw ResourceNotFoundException("member not found: $by")
         }
-        if (!OwnerChangeability.on(members, by).allowed) {
+        val changeability = OwnerChangeability.on(members, by)
+        if (!changeability.allowed) {
             throw LastOwnerException("last owner cannot leave: $by")
         }
         return Household(id, profile, members.remove(by))

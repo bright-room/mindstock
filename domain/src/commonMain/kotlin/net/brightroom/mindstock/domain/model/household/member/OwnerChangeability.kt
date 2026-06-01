@@ -14,7 +14,7 @@ enum class OwnerChangeability(
             members: Members,
             target: ResidentId,
         ): OwnerChangeability {
-            val owners = members.list.filter { it.role == HouseholdMemberRole.世帯主 }
+            val owners = members.list.filter { it.role.is世帯主() }
             val targetIsSoleOwner = owners.size == 1 && owners.first().resident.id == target
             return if (targetIsSoleOwner) 最後の世帯主 else 可能
         }

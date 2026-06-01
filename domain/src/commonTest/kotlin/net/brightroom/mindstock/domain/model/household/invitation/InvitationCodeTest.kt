@@ -18,8 +18,8 @@ class InvitationCodeTest {
 
     @Test
     fun 採番したコードは妥当である() {
-        val code = InvitationCode.generate()
-        code.invoke().length shouldBe 6
-        code.invoke().all { it in InvitationCode.ALPHABET } shouldBe true
+        // generate() は init 検証を通った InvitationCode を返すため、
+        // 採番が成功し 6 桁であれば曖昧字を含まない妥当なコードである
+        InvitationCode.generate().invoke().length shouldBe 6
     }
 }

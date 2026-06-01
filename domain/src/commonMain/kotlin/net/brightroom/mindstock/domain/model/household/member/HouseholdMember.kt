@@ -7,4 +7,6 @@ import net.brightroom.mindstock.domain.model.resident.Resident
 data class HouseholdMember(
     val resident: Resident,
     val role: HouseholdMemberRole,
-)
+) {
+    fun withRole(newRole: HouseholdMemberRole): HouseholdMember = HouseholdMember(resident, newRole)
+}
