@@ -37,6 +37,7 @@ spec-03 が「P2 で確定する」と明記した 2 点を、ユーザ合意の
 - ID 採番: `companion object { fun create() = XxxId(Uuid.generateV7()) }`。`Uuid` は experimental なので **Uuid を使うファイルにだけ `@file:OptIn(ExperimentalUuidApi::class)` を明示**する(gradle 全体 opt-in はしない)。
 - 時刻: `OccurredAt.now()` は `kotlin.time.Clock.System.now()`(stdlib・guideline 許容)を wrap し `kotlin.time.Instant` を保持する。**検証済み**: 本リポジトリ(Kotlin 2.3.21 / kotlinx-serialization 1.11.0)では `kotlin.time.Clock` / `Instant` は opt-in 不要・stable で、`@Serializable value class OccurredAt(val value: kotlin.time.Instant)` は組み込みシリアライザで `:domain:compileKotlinJvm` が通る(コンパイルプローブで確認済)。`kotlinx.datetime.Instant` ではなく `kotlin.time.Instant` を使う(既存 `shared/.../datetime/LocalDateTime.kt` も `kotlin.time.Clock` 採用)。
 - 区分(enum): **型名は英語、entry は日本語**。`enum-entry-name-case` は P1 の Task 1 で root `.editorconfig` 無効化済み(本プランでは追加設定不要)。区分は 1 型 1 ファイル(P1 の landed 慣行に合わせる)。
+- **不変更新は `.copy()` 禁止・コンストラクタ明示構築**([immutable-construction](../../../.claude/rules/immutable-construction.md)、`domain/**/*.kt` 適用): 集約/エンティティの状態更新メソッドは `.copy(field = ...)` ではなく `Stock(product, newMovements)` のように**全フィールドをコンストラクタで明示**して返す(フィールド追加時の設定漏れをコンパイルエラーで検出)。VO(単一フィールド value class)は対象外。本プランの `Product.archive/unarchive`・`Stock.replenish/consume/correct/archive/unarchive` が該当。
 - sealed: `Barcode` / `ProductImage` / `StockMovement` / `MovementIdentity` は sealed interface + `@Serializable`。**variant に `@JvmInline value class` を使わない**(polymorphic deserialize 破壊の gotcha 回避)。variant は `data object` か `data class`。
 - **テストは「意味のあるもの」だけ書く([.claude/rules/testing.md](../../../.claude/rules/testing.md))。** バリデーション・判定・計算・抽出・状態遷移・前提崩れの例外のみ。コンストラクタ/保持/単純なアクセサ/equals は書かない。
 - テスト実行: `./gradlew :domain:jvmTest --tests "<FQCN>" --console=plain`(KMP commonTest は jvmTest で走る)。
@@ -1010,9 +1011,9 @@ data class Product(
     val image: ProductImage,
     val status: ProductStatus,
 ) {
-    fun archive(): Product = copy(status = ProductStatus.アーカイブ済)
+    fun archive(): Product = Product(id, catalogItem, setting, image, ProductStatus.アーカイブ済)
 
-    fun unarchive(): Product = copy(status = ProductStatus.採用中)
+    fun unarchive(): Product = Product(id, catalogItem, setting, image, ProductStatus.採用中)
 }
 ```
 
@@ -1704,7 +1705,7 @@ data class Stock(
         occurredAt: OccurredAt,
         actor: Resident,
         note: Note,
-    ): Stock = copy(movements = movements.add(Replenishment(MovementIdentity.Pending, quantity, occurredAt, actor, note)))
+    ): Stock = Stock(product, movements.add(Replenishment(MovementIdentity.Pending, quantity, occurredAt, actor, note)))
 
     fun consume(
         quantity: Quantity,
@@ -1715,7 +1716,7 @@ data class Stock(
         if (currentQuantity() < quantity()) {
             throw InsufficientStockException("cannot consume $quantity from stock of ${currentQuantity()}")
         }
-        return copy(movements = movements.add(Consumption(MovementIdentity.Pending, quantity, occurredAt, actor, note)))
+        return Stock(product, movements.add(Consumption(MovementIdentity.Pending, quantity, occurredAt, actor, note)))
     }
 
     fun correct(
@@ -1747,20 +1748,20 @@ data class Stock(
         if (corrected.netQuantity() < 0) {
             throw InsufficientStockException("correction would make stock negative: ${corrected.netQuantity()}")
         }
-        return copy(movements = corrected)
+        return Stock(product, corrected)
     }
 
     fun archive(): Stock {
         if (!Archivability.of(currentQuantity()).archivable) {
             throw CannotArchiveWithStockException("cannot archive with stock: ${currentQuantity()}")
         }
-        return copy(product = product.archive())
+        return Stock(product.archive(), movements)
     }
 
-    fun unarchive(): Stock = copy(product = product.unarchive())
+    fun unarchive(): Stock = Stock(product.unarchive(), movements)
 }
 ```
-> 注: `quantity()` は `Quantity.invoke()`(同一モジュール `internal`)で Int を取り出す。`correct` は対象が `Persisted(target)` の base movement として存在しなければ `ResourceNotFoundException`、訂正後の総量が負なら `InsufficientStockException`。`Correction.note` は訂正コマンドに note 引数が無いため空(理由は `reason` が持つ)。
+> 注: `quantity()` は `Quantity.invoke()`(同一モジュール `internal`)で Int を取り出す。**集約の不変更新は `.copy()` ではなくコンストラクタ明示構築**([immutable-construction](../../../.claude/rules/immutable-construction.md))。`correct` は対象が `Persisted(target)` の base movement として存在しなければ `ResourceNotFoundException`、訂正後の総量が負なら `InsufficientStockException`。`Correction.note` は訂正コマンドに note 引数が無いため空(理由は `reason` が持つ)。
 
 - [ ] **Step 4: テストが通ることを確認**
 
