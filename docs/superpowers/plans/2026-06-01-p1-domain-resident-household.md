@@ -14,6 +14,7 @@
 
 - パッケージルート: `net.brightroom.mindstock.domain`。ソースは `domain/src/commonMain/kotlin/...`、テストは `domain/src/commonTest/kotlin/...`(同一パッケージ。`internal` メンバはテストから参照可)。
 - VO 規約([domain-guideline](../../../.claude/rules/domain-guideline.md)): `@Serializable @JvmInline value class`、バッキングは `private val value`、`internal operator fun invoke(): T`、`override fun toString()`、バリデーションは `init { require(...) }`(IAE)。
+  - **重要(KMP)**: `@JvmInline value class` の各ファイルに `import kotlin.jvm.JvmInline` を**明示的に書く**。JVM コンパイラは `kotlin.jvm.*` を自動解決するが、JS/Wasm/metadata コンパイラはしない。`:domain:jvmTest` だけでは気付けず、`:domain:build`(全ターゲット)で初めて落ちる。
 - ID 採番: `companion object { fun create() = XxxId(Uuid.generateV7()) }`。`Uuid` は experimental なので、**Uuid を使うファイルにだけ `@file:OptIn(ExperimentalUuidApi::class)` を明示**する(gradle 全体 opt-in はしない)。
 - 区分(enum): **型名は英語、entry は日本語**。`enum-entry-name-case` は **root `.editorconfig` で無効化**する(Task 1)。
 - **テストは「意味のあるもの」だけ書く([.claude/rules/testing.md](../../../.claude/rules/testing.md))。** バリデーション・判定・計算・抽出・状態遷移・前提崩れの例外のみ。コンストラクタ/保持/単純なアクセサ/equals 等は書かない。ロジックの無い VO/集約はテスト無し(コンパイルが通れば足りる)。
