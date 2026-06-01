@@ -20,14 +20,14 @@ import net.brightroom.mindstock.domain.model.inventory.product.setting.MinimumSt
 import net.brightroom.mindstock.domain.model.inventory.product.setting.ProductUnit
 import net.brightroom.mindstock.domain.model.inventory.product.setting.StockingPolicy
 import net.brightroom.mindstock.domain.model.inventory.quantity.Quantity
-import net.brightroom.mindstock.domain.model.inventory.stock.movement.Consumption
 import net.brightroom.mindstock.domain.model.inventory.stock.movement.MovementId
 import net.brightroom.mindstock.domain.model.inventory.stock.movement.MovementIdentity
 import net.brightroom.mindstock.domain.model.inventory.stock.movement.Note
 import net.brightroom.mindstock.domain.model.inventory.stock.movement.OccurredAt
 import net.brightroom.mindstock.domain.model.inventory.stock.movement.Reason
-import net.brightroom.mindstock.domain.model.inventory.stock.movement.Replenishment
 import net.brightroom.mindstock.domain.model.inventory.stock.movement.StockMovement
+import net.brightroom.mindstock.domain.model.inventory.stock.movement.StockMovement.Consumption
+import net.brightroom.mindstock.domain.model.inventory.stock.movement.StockMovement.Replenishment
 import net.brightroom.mindstock.domain.model.inventory.stock.movement.StockMovements
 import net.brightroom.mindstock.domain.model.resident.Resident
 import net.brightroom.mindstock.domain.model.resident.identity.ResidentId

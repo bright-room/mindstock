@@ -2,6 +2,9 @@ package net.brightroom.mindstock.domain.model.inventory.stock.movement
 
 import io.kotest.matchers.shouldBe
 import net.brightroom.mindstock.domain.model.inventory.quantity.Quantity
+import net.brightroom.mindstock.domain.model.inventory.stock.movement.StockMovement.Consumption
+import net.brightroom.mindstock.domain.model.inventory.stock.movement.StockMovement.Correction
+import net.brightroom.mindstock.domain.model.inventory.stock.movement.StockMovement.Replenishment
 import net.brightroom.mindstock.domain.model.resident.Resident
 import net.brightroom.mindstock.domain.model.resident.identity.ResidentId
 import net.brightroom.mindstock.domain.model.resident.profile.DisplayName

@@ -10,6 +10,10 @@ enum class ShoppingNeed(
     不要(false),
     ;
 
+    fun is在庫不足(): Boolean = this == 在庫不足
+
+    fun is手動希望(): Boolean = this == 手動希望
+
     companion object {
         fun judge(
             status: StockStatus,

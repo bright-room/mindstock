@@ -4,7 +4,6 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 enum class CatalogOrigin {
-    大元マスタ,
-    外部取得,
+    マスタ,
     世帯独自,
 }

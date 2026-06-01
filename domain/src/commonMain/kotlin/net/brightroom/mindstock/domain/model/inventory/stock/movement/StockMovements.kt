@@ -1,6 +1,9 @@
 package net.brightroom.mindstock.domain.model.inventory.stock.movement
 
 import kotlinx.serialization.Serializable
+import net.brightroom.mindstock.domain.model.inventory.stock.movement.StockMovement.Consumption
+import net.brightroom.mindstock.domain.model.inventory.stock.movement.StockMovement.Correction
+import net.brightroom.mindstock.domain.model.inventory.stock.movement.StockMovement.Replenishment
 
 @Serializable
 data class StockMovements(

@@ -11,33 +11,33 @@ sealed interface StockMovement {
     val occurredAt: OccurredAt
     val actor: Resident
     val note: Note
+
+    @Serializable
+    data class Replenishment(
+        override val identity: MovementIdentity,
+        override val quantity: Quantity,
+        override val occurredAt: OccurredAt,
+        override val actor: Resident,
+        override val note: Note,
+    ) : StockMovement
+
+    @Serializable
+    data class Consumption(
+        override val identity: MovementIdentity,
+        override val quantity: Quantity,
+        override val occurredAt: OccurredAt,
+        override val actor: Resident,
+        override val note: Note,
+    ) : StockMovement
+
+    @Serializable
+    data class Correction(
+        override val identity: MovementIdentity,
+        override val quantity: Quantity,
+        override val occurredAt: OccurredAt,
+        override val actor: Resident,
+        override val note: Note,
+        val target: MovementId,
+        val reason: Reason,
+    ) : StockMovement
 }
-
-@Serializable
-data class Replenishment(
-    override val identity: MovementIdentity,
-    override val quantity: Quantity,
-    override val occurredAt: OccurredAt,
-    override val actor: Resident,
-    override val note: Note,
-) : StockMovement
-
-@Serializable
-data class Consumption(
-    override val identity: MovementIdentity,
-    override val quantity: Quantity,
-    override val occurredAt: OccurredAt,
-    override val actor: Resident,
-    override val note: Note,
-) : StockMovement
-
-@Serializable
-data class Correction(
-    override val identity: MovementIdentity,
-    override val quantity: Quantity,
-    override val occurredAt: OccurredAt,
-    override val actor: Resident,
-    override val note: Note,
-    val target: MovementId,
-    val reason: Reason,
-) : StockMovement

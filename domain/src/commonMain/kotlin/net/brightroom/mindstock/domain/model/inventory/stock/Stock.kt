@@ -6,14 +6,14 @@ import net.brightroom.mindstock.domain.exception.InsufficientStockException
 import net.brightroom.mindstock.domain.exception.ResourceNotFoundException
 import net.brightroom.mindstock.domain.model.inventory.product.Product
 import net.brightroom.mindstock.domain.model.inventory.quantity.Quantity
-import net.brightroom.mindstock.domain.model.inventory.stock.movement.Consumption
-import net.brightroom.mindstock.domain.model.inventory.stock.movement.Correction
 import net.brightroom.mindstock.domain.model.inventory.stock.movement.MovementId
 import net.brightroom.mindstock.domain.model.inventory.stock.movement.MovementIdentity
 import net.brightroom.mindstock.domain.model.inventory.stock.movement.Note
 import net.brightroom.mindstock.domain.model.inventory.stock.movement.OccurredAt
 import net.brightroom.mindstock.domain.model.inventory.stock.movement.Reason
-import net.brightroom.mindstock.domain.model.inventory.stock.movement.Replenishment
+import net.brightroom.mindstock.domain.model.inventory.stock.movement.StockMovement.Consumption
+import net.brightroom.mindstock.domain.model.inventory.stock.movement.StockMovement.Correction
+import net.brightroom.mindstock.domain.model.inventory.stock.movement.StockMovement.Replenishment
 import net.brightroom.mindstock.domain.model.inventory.stock.movement.StockMovements
 import net.brightroom.mindstock.domain.model.resident.Resident
 

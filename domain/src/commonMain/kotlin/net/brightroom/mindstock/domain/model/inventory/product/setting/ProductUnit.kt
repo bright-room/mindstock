@@ -5,21 +5,22 @@ import kotlin.jvm.JvmInline
 
 @Serializable
 @JvmInline
-value class ProductUnit(
+value class ProductUnit private constructor(
     private val value: String,
 ) {
     init {
-        val trimmed = value.trim()
-        require(trimmed.isNotEmpty() && trimmed.length <= MAX_LENGTH) {
-            "ProductUnit must be 1..$MAX_LENGTH chars after trim: '$value'"
+        require(value.isNotEmpty() && value.length <= MAX_LENGTH && value == value.trim()) {
+            "ProductUnit must be 1..$MAX_LENGTH chars after trim"
         }
     }
 
-    internal operator fun invoke(): String = value.trim()
+    internal operator fun invoke(): String = value
 
-    override fun toString(): String = value.trim()
+    override fun toString(): String = value
 
     companion object {
         const val MAX_LENGTH = 10
+
+        operator fun invoke(raw: String): ProductUnit = ProductUnit(raw.trim())
     }
 }
