@@ -96,4 +96,17 @@ class HouseholdMembershipTest {
         val (household, _, _) = householdWithMember()
         shouldThrow<ResourceNotFoundException> { household.leave(ResidentId.create()) }
     }
+
+    @Test
+    fun joining_an_existing_member_does_not_duplicate() {
+        val owner = resident("おや")
+        val member = resident("こ")
+        val household =
+            Household
+                .create(HouseholdName("我が家"), owner)
+                .join(member, HouseholdMemberRole.メンバー)
+                .join(member, HouseholdMemberRole.閲覧者) // 2回目: 何も起きない
+        household.members.size() shouldBe 2
+        household.members.roleOf(member.id) shouldBe HouseholdMemberRole.メンバー // 役割も変わらない
+    }
 }

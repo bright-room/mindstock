@@ -30,7 +30,12 @@ data class Household(
     fun join(
         resident: Resident,
         grantedRole: HouseholdMemberRole,
-    ): Household = copy(members = members.add(HouseholdMember(resident, grantedRole)))
+    ): Household =
+        if (members.contains(resident.id)) {
+            this
+        } else {
+            copy(members = members.add(HouseholdMember(resident, grantedRole)))
+        }
 
     fun changeRole(
         target: ResidentId,
