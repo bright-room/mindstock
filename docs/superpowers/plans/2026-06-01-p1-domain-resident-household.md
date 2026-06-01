@@ -2,11 +2,11 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** `:domain` モジュールに resident / household の集約・VO・区分・区分使用・判定・例外を TDD で実装し、`./gradlew :domain:build` が緑になる状態を作る。
+**Goal:** `:domain` モジュールに resident / household の集約・VO・区分・区分使用・判定・例外を実装し、`./gradlew :domain:build` が緑になる状態を作る。
 
-**Architecture:** 純粋ドメイン(KMP commonMain、外部依存は kotlin stdlib / kotlinx-serialization / kotlinx-datetime のみ)。ビジネスルールは集約に埋めず **区分(behavior 付き enum)/区分使用(Map ルール表 object)/判定クラス** へ外出しし、集約は薄く委譲する([03 詳細ドメイン](../specs/2026-05-31-mindstock-full-replace-design/03-domain-detail.md))。`Resident` は `id + profile` の薄い集約。`Household` は `(id, profile, members)`、招待は別集約 `Invitation`。**区分はクラス名=英語・値=日本語(ユビキタス言語)**。
+**Architecture:** 純粋ドメイン(KMP commonMain、外部依存は kotlin stdlib / kotlinx-serialization / kotlinx-datetime のみ)。ビジネスルールは集約に埋めず **区分(behavior 付き enum)/区分使用(Map ルール表 object)/判定クラス** へ外出しし、集約は薄く委譲する([03 詳細ドメイン](../specs/2026-05-31-mindstock-full-replace-design/03-domain-detail.md))。`Resident` は `id + profile` の薄い集約。`Household` は `(id, profile, members)`、招待は別集約 `Invitation`。**区分は型名=英語・値=日本語(ユビキタス言語)**。
 
-**Tech Stack:** Kotlin 2.3.21 Multiplatform / kotlinx-serialization / `kotlin.uuid.Uuid`(`generateV7()`)/ テストは `kotlin.test` + Kotest assertions(`io.kotest.matchers.*` / `io.kotest.assertions.throwables.shouldThrow`)。
+**Tech Stack:** Kotlin 2.3.21 Multiplatform / kotlinx-serialization / `kotlin.uuid.Uuid`(`generateV7()`)/ テストは `kotlin.test` + Kotest assertions。
 
 ---
 
@@ -14,108 +14,64 @@
 
 - パッケージルート: `net.brightroom.mindstock.domain`。ソースは `domain/src/commonMain/kotlin/...`、テストは `domain/src/commonTest/kotlin/...`(同一パッケージ。`internal` メンバはテストから参照可)。
 - VO 規約([domain-guideline](../../../.claude/rules/domain-guideline.md)): `@Serializable @JvmInline value class`、バッキングは `private val value`、`internal operator fun invoke(): T`、`override fun toString()`、バリデーションは `init { require(...) }`(IAE)。
-- ID 採番: `companion object { fun create() = XxxId(Uuid.generateV7()) }`。`Uuid` は experimental のため **Task 1 でモジュール単位 opt-in** を設定する(各ファイルに `@OptIn` は書かない)。
-- 区分(enum): **型名は英語、entry は日本語**。`domain/.editorconfig` で `enum-entry-name-case` を無効化する(Task 1)。
+- ID 採番: `companion object { fun create() = XxxId(Uuid.generateV7()) }`。`Uuid` は experimental なので、**Uuid を使うファイルにだけ `@file:OptIn(ExperimentalUuidApi::class)` を明示**する(gradle 全体 opt-in はしない)。
+- 区分(enum): **型名は英語、entry は日本語**。`enum-entry-name-case` は **root `.editorconfig` で無効化**する(Task 1)。
+- **テストは「意味のあるもの」だけ書く([.claude/rules/testing.md](../../../.claude/rules/testing.md))。** バリデーション・判定・計算・抽出・状態遷移・前提崩れの例外のみ。コンストラクタ/保持/単純なアクセサ/equals 等は書かない。ロジックの無い VO/集約はテスト無し(コンパイルが通れば足りる)。
 - テスト実行: `./gradlew :domain:jvmTest --tests "<FQCN>" --console=plain`(KMP の commonTest は jvmTest で走る)。
+- テスト不要タスクの検証: `./gradlew :domain:compileKotlinJvm --console=plain`(緑=実装 OK)。
 - コミット前に必ず整形: `./gradlew :domain:spotlessApply`(各 Commit ステップに含む)。
 
-## ファイル構成(このプランで作成するもの)
+## ファイル構成(このプランで作成・変更するもの)
 
 ```
-domain/.editorconfig                                                    新規(Task 1)
-domain/build.gradle.kts                                                 変更(Task 1: Uuid opt-in)
+.editorconfig                                                           変更(Task 1: enum-entry-name-case 無効）
 domain/src/commonMain/kotlin/net/brightroom/mindstock/domain/
-  exception/ResourceNotFoundException.kt                               Task 2
-  exception/OwnerRequiredException.kt                                  Task 2
-  exception/LastOwnerException.kt                                      Task 2
-  exception/InvitationInvalidException.kt                              Task 2
-  model/resident/identity/ResidentId.kt                               Task 1
-  model/resident/identity/auth/AuthIdentity.kt                        Task 5（AuthProvider/AuthSubject/AuthIdentity）
-  model/resident/profile/DisplayName.kt                               Task 3
-  model/resident/profile/Profile.kt                                   Task 4
-  model/resident/Resident.kt                                          Task 4
-  model/household/HouseholdId.kt                                      Task 6
-  model/household/HouseholdName.kt                                    Task 6
-  model/household/Profile.kt                                          Task 7
-  model/household/Household.kt                                        Task 11, 12
-  model/household/member/RolePermissions.kt                          Task 8（HouseholdMemberRole/HouseholdCapability/RolePermissions）
-  model/household/member/Members.kt                                  Task 9（HouseholdMember/Members）
-  model/household/member/OwnerChangeability.kt                       Task 10
-  model/household/invitation/InvitationCode.kt                       Task 13
-  model/household/invitation/Invitation.kt                           Task 14（InvitationValidity/Invitation）
-（commonTest 側に各 *Test.kt を同パッケージで作成）
+  exception/ResourceNotFoundException.kt                               Task 2（テスト無し）
+  exception/OwnerRequiredException.kt                                  Task 2（テスト無し）
+  exception/LastOwnerException.kt                                      Task 2（テスト無し）
+  exception/InvitationInvalidException.kt                              Task 2（テスト無し）
+  model/resident/identity/ResidentId.kt                               Task 1（テスト無し）
+  model/resident/identity/auth/AuthIdentity.kt                        Task 5（AuthSubject 値域のみテスト）
+  model/resident/profile/DisplayName.kt                               Task 3（値域テスト）
+  model/resident/profile/Profile.kt                                   Task 4（テスト無し）
+  model/resident/Resident.kt                                          Task 4（テスト無し）
+  model/household/HouseholdId.kt                                      Task 6（テスト無し）
+  model/household/HouseholdName.kt                                    Task 6（値域テスト）
+  model/household/Profile.kt                                          Task 7（テスト無し）
+  model/household/Household.kt                                        Task 11, 12（認可・前提崩れテスト）
+  model/household/member/RolePermissions.kt                          Task 8（区分使用テスト）
+  model/household/member/Members.kt                                  Task 9（抽出テスト）
+  model/household/member/OwnerChangeability.kt                       Task 10（判定テスト）
+  model/household/invitation/InvitationCode.kt                       Task 13（値域 + 生成テスト）
+  model/household/invitation/Invitation.kt                           Task 14（状態遷移テスト）
 ```
 
 ---
 
 ## Task 1: ビルド土台 + ResidentId
 
-ツールチェーン(Uuid opt-in / 日本語 enum entry / kotest 配線)を最初の VO で検証する。
+`.editorconfig`(日本語 enum 値)と Uuid opt-in 方針を整え、最初の VO を置く。ResidentId は値域・ロジックを持たないので**テストは書かない**(コンパイル緑で足りる)。
 
 **Files:**
-- Create: `domain/.editorconfig`
-- Modify: `domain/build.gradle.kts`
+- Modify: `.editorconfig`
 - Create: `domain/src/commonMain/kotlin/net/brightroom/mindstock/domain/model/resident/identity/ResidentId.kt`
-- Test: `domain/src/commonTest/kotlin/net/brightroom/mindstock/domain/model/resident/identity/ResidentIdTest.kt`
 
-- [ ] **Step 1: `.editorconfig` を作成(日本語 enum entry を許可)**
+- [ ] **Step 1: root `.editorconfig` に日本語 enum 値を許可する設定を追加**
 
-`domain/.editorconfig`:
+`.editorconfig` の `[{*.kt,*.kts}]` セクション末尾(既存の `ktlint_standard_property-naming = disabled` の下)に 1 行追加:
 ```ini
-[*.kt]
 ktlint_standard_enum-entry-name-case = disabled
 ```
 
-- [ ] **Step 2: `build.gradle.kts` に Uuid opt-in を追加**
-
-`domain/build.gradle.kts` の `kotlin { ... }` ブロック先頭(`sourceSets` の前)に追記:
-```kotlin
-kotlin {
-    compilerOptions {
-        optIn.add("kotlin.uuid.ExperimentalUuidApi")
-    }
-
-    sourceSets {
-        // ...既存のまま...
-    }
-}
-```
-
-- [ ] **Step 3: 失敗するテストを書く**
-
-`ResidentIdTest.kt`:
-```kotlin
-package net.brightroom.mindstock.domain.model.resident.identity
-
-import io.kotest.matchers.shouldBe
-import kotlin.test.Test
-import kotlin.uuid.Uuid
-
-class ResidentIdTest {
-    @Test
-    fun create_generates_distinct_ids() {
-        (ResidentId.create() == ResidentId.create()) shouldBe false
-    }
-
-    @Test
-    fun wraps_uuid_value() {
-        val uuid = Uuid.parse("0192f0c1-2345-7654-89ab-cdef01234567")
-        ResidentId(uuid).toString() shouldBe uuid.toString()
-    }
-}
-```
-
-- [ ] **Step 4: テストが失敗することを確認**
-
-Run: `./gradlew :domain:jvmTest --tests "net.brightroom.mindstock.domain.model.resident.identity.ResidentIdTest" --console=plain`
-Expected: FAIL(`Unresolved reference: ResidentId` のコンパイルエラー)
-
-- [ ] **Step 5: 実装を書く**
+- [ ] **Step 2: ResidentId を実装(Uuid opt-in はファイル単位アノテーション)**
 
 `ResidentId.kt`:
 ```kotlin
+@file:OptIn(ExperimentalUuidApi::class)
+
 package net.brightroom.mindstock.domain.model.resident.identity
 
+import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 import kotlinx.serialization.Serializable
 
@@ -132,58 +88,32 @@ value class ResidentId(private val value: Uuid) {
 }
 ```
 
-- [ ] **Step 6: テストが通ることを確認**
+- [ ] **Step 3: コンパイルが通ることを確認**
 
-Run: `./gradlew :domain:jvmTest --tests "net.brightroom.mindstock.domain.model.resident.identity.ResidentIdTest" --console=plain`
-Expected: PASS
+Run: `./gradlew :domain:compileKotlinJvm --console=plain`
+Expected: `BUILD SUCCESSFUL`
 
-- [ ] **Step 7: 整形してコミット**
+- [ ] **Step 4: 整形してコミット**
 
 ```bash
 ./gradlew :domain:spotlessApply
-git add domain/.editorconfig domain/build.gradle.kts domain/src/commonMain domain/src/commonTest
-git commit -m "feat(domain): ResidentId と Uuid opt-in / 日本語 enum 許可の土台"
+git add .editorconfig domain/src
+git commit -m "feat(domain): ResidentId と日本語 enum 値の許可(.editorconfig)"
 ```
 
 ---
 
 ## Task 2: ドメイン例外
 
-P1 で使う前提崩れ系の専用例外を定義する(`ResourceNotFoundException` は既存方針どおり)。
+P1 で使う前提崩れ系の専用例外を定義する。例外は「メッセージを保持するだけ」なので**テストは書かない**(testing ルール)。
 
 **Files:**
 - Create: `domain/src/commonMain/kotlin/net/brightroom/mindstock/domain/exception/ResourceNotFoundException.kt`
 - Create: `.../exception/OwnerRequiredException.kt`
 - Create: `.../exception/LastOwnerException.kt`
 - Create: `.../exception/InvitationInvalidException.kt`
-- Test: `domain/src/commonTest/kotlin/net/brightroom/mindstock/domain/exception/DomainExceptionTest.kt`
 
-- [ ] **Step 1: 失敗するテストを書く**
-
-`DomainExceptionTest.kt`:
-```kotlin
-package net.brightroom.mindstock.domain.exception
-
-import io.kotest.matchers.shouldBe
-import kotlin.test.Test
-
-class DomainExceptionTest {
-    @Test
-    fun exceptions_carry_message() {
-        ResourceNotFoundException("not found: x").message shouldBe "not found: x"
-        OwnerRequiredException("owner required").message shouldBe "owner required"
-        LastOwnerException("last owner").message shouldBe "last owner"
-        InvitationInvalidException("invalid").message shouldBe "invalid"
-    }
-}
-```
-
-- [ ] **Step 2: テストが失敗することを確認**
-
-Run: `./gradlew :domain:jvmTest --tests "net.brightroom.mindstock.domain.exception.DomainExceptionTest" --console=plain`
-Expected: FAIL(`Unresolved reference`)
-
-- [ ] **Step 3: 4 つの例外を実装**
+- [ ] **Step 1: 4 つの例外を実装**
 
 `ResourceNotFoundException.kt`:
 ```kotlin
@@ -210,12 +140,12 @@ package net.brightroom.mindstock.domain.exception
 class InvitationInvalidException(reason: String) : RuntimeException(reason)
 ```
 
-- [ ] **Step 4: テストが通ることを確認**
+- [ ] **Step 2: コンパイルが通ることを確認**
 
-Run: `./gradlew :domain:jvmTest --tests "net.brightroom.mindstock.domain.exception.DomainExceptionTest" --console=plain`
-Expected: PASS
+Run: `./gradlew :domain:compileKotlinJvm --console=plain`
+Expected: `BUILD SUCCESSFUL`
 
-- [ ] **Step 5: 整形してコミット**
+- [ ] **Step 3: 整形してコミット**
 
 ```bash
 ./gradlew :domain:spotlessApply
@@ -225,13 +155,13 @@ git commit -m "feat(domain): 前提崩れ系のドメイン例外 4 種を定義
 
 ---
 
-## Task 3: DisplayName VO
+## Task 3: DisplayName VO(値域バリデーション)
 
 **Files:**
 - Create: `domain/src/commonMain/kotlin/net/brightroom/mindstock/domain/model/resident/profile/DisplayName.kt`
 - Test: `domain/src/commonTest/kotlin/net/brightroom/mindstock/domain/model/resident/profile/DisplayNameTest.kt`
 
-- [ ] **Step 1: 失敗するテストを書く**
+- [ ] **Step 1: 失敗するテストを書く(値域 + 正規化のみ)**
 
 `DisplayNameTest.kt`:
 ```kotlin
@@ -243,7 +173,7 @@ import kotlin.test.Test
 
 class DisplayNameTest {
     @Test
-    fun accepts_and_trims() {
+    fun trims_surrounding_whitespace() {
         DisplayName("  たろう  ").invoke() shouldBe "たろう"
     }
 
@@ -255,11 +185,6 @@ class DisplayNameTest {
     @Test
     fun rejects_over_100_chars() {
         shouldThrow<IllegalArgumentException> { DisplayName("あ".repeat(101)) }
-    }
-
-    @Test
-    fun accepts_exactly_100_chars() {
-        DisplayName("あ".repeat(100)).invoke().length shouldBe 100
     }
 }
 ```
@@ -314,40 +239,13 @@ git commit -m "feat(domain): DisplayName VO（trim 後 1..100）"
 
 ## Task 4: Profile + Resident(resident 集約)
 
+値を保持するだけの集約なので**テストは書かない**。
+
 **Files:**
 - Create: `domain/src/commonMain/kotlin/net/brightroom/mindstock/domain/model/resident/profile/Profile.kt`
 - Create: `domain/src/commonMain/kotlin/net/brightroom/mindstock/domain/model/resident/Resident.kt`
-- Test: `domain/src/commonTest/kotlin/net/brightroom/mindstock/domain/model/resident/ResidentTest.kt`
 
-- [ ] **Step 1: 失敗するテストを書く**
-
-`ResidentTest.kt`:
-```kotlin
-package net.brightroom.mindstock.domain.model.resident
-
-import io.kotest.matchers.shouldBe
-import net.brightroom.mindstock.domain.model.resident.identity.ResidentId
-import net.brightroom.mindstock.domain.model.resident.profile.DisplayName
-import net.brightroom.mindstock.domain.model.resident.profile.Profile
-import kotlin.test.Test
-
-class ResidentTest {
-    @Test
-    fun holds_id_and_profile() {
-        val id = ResidentId.create()
-        val resident = Resident(id, Profile(DisplayName("たろう")))
-        resident.id shouldBe id
-        resident.profile.displayName.invoke() shouldBe "たろう"
-    }
-}
-```
-
-- [ ] **Step 2: テストが失敗することを確認**
-
-Run: `./gradlew :domain:jvmTest --tests "net.brightroom.mindstock.domain.model.resident.ResidentTest" --console=plain`
-Expected: FAIL
-
-- [ ] **Step 3: 実装を書く**
+- [ ] **Step 1: 実装を書く**
 
 `Profile.kt`:
 ```kotlin
@@ -370,12 +268,12 @@ import kotlinx.serialization.Serializable
 data class Resident(val id: ResidentId, val profile: Profile)
 ```
 
-- [ ] **Step 4: テストが通ることを確認**
+- [ ] **Step 2: コンパイルが通ることを確認**
 
-Run: `./gradlew :domain:jvmTest --tests "net.brightroom.mindstock.domain.model.resident.ResidentTest" --console=plain`
-Expected: PASS
+Run: `./gradlew :domain:compileKotlinJvm --console=plain`
+Expected: `BUILD SUCCESSFUL`
 
-- [ ] **Step 5: 整形してコミット**
+- [ ] **Step 3: 整形してコミット**
 
 ```bash
 ./gradlew :domain:spotlessApply
@@ -387,28 +285,22 @@ git commit -m "feat(domain): resident 集約（Profile + Resident）"
 
 ## Task 5: AuthIdentity(境界 VO)
 
+`AuthSubject` の値域だけ意味があるのでテストする。`AuthProvider` / `AuthIdentity` は保持のみ(テスト無し)。
+
 **Files:**
 - Create: `domain/src/commonMain/kotlin/net/brightroom/mindstock/domain/model/resident/identity/auth/AuthIdentity.kt`
-- Test: `domain/src/commonTest/kotlin/net/brightroom/mindstock/domain/model/resident/identity/auth/AuthIdentityTest.kt`
+- Test: `domain/src/commonTest/kotlin/net/brightroom/mindstock/domain/model/resident/identity/auth/AuthSubjectTest.kt`
 
-- [ ] **Step 1: 失敗するテストを書く**
+- [ ] **Step 1: 失敗するテストを書く(AuthSubject の値域のみ)**
 
-`AuthIdentityTest.kt`:
+`AuthSubjectTest.kt`:
 ```kotlin
 package net.brightroom.mindstock.domain.model.resident.identity.auth
 
 import io.kotest.assertions.throwables.shouldThrow
-import io.kotest.matchers.shouldBe
 import kotlin.test.Test
 
-class AuthIdentityTest {
-    @Test
-    fun builds_from_provider_and_subject() {
-        val auth = AuthIdentity(AuthProvider.ZITADEL, AuthSubject("sub-123"))
-        auth.provider shouldBe AuthProvider.ZITADEL
-        auth.subject.invoke() shouldBe "sub-123"
-    }
-
+class AuthSubjectTest {
     @Test
     fun rejects_blank_subject() {
         shouldThrow<IllegalArgumentException> { AuthSubject(" ") }
@@ -418,7 +310,7 @@ class AuthIdentityTest {
 
 - [ ] **Step 2: テストが失敗することを確認**
 
-Run: `./gradlew :domain:jvmTest --tests "net.brightroom.mindstock.domain.model.resident.identity.auth.AuthIdentityTest" --console=plain`
+Run: `./gradlew :domain:jvmTest --tests "net.brightroom.mindstock.domain.model.resident.identity.auth.AuthSubjectTest" --console=plain`
 Expected: FAIL
 
 - [ ] **Step 3: 実装を書く**
@@ -450,7 +342,7 @@ data class AuthIdentity(val provider: AuthProvider, val subject: AuthSubject)
 
 - [ ] **Step 4: テストが通ることを確認**
 
-Run: `./gradlew :domain:jvmTest --tests "net.brightroom.mindstock.domain.model.resident.identity.auth.AuthIdentityTest" --console=plain`
+Run: `./gradlew :domain:jvmTest --tests "net.brightroom.mindstock.domain.model.resident.identity.auth.AuthSubjectTest" --console=plain`
 Expected: PASS
 
 - [ ] **Step 5: 整形してコミット**
@@ -465,14 +357,16 @@ git commit -m "feat(domain): AuthIdentity 境界 VO（AuthProvider/AuthSubject�
 
 ## Task 6: HouseholdId + HouseholdName
 
+`HouseholdName` の値域だけテストする。`HouseholdId` は生成のみ(テスト無し)。
+
 **Files:**
 - Create: `domain/src/commonMain/kotlin/net/brightroom/mindstock/domain/model/household/HouseholdId.kt`
 - Create: `domain/src/commonMain/kotlin/net/brightroom/mindstock/domain/model/household/HouseholdName.kt`
-- Test: `domain/src/commonTest/kotlin/net/brightroom/mindstock/domain/model/household/HouseholdIdNameTest.kt`
+- Test: `domain/src/commonTest/kotlin/net/brightroom/mindstock/domain/model/household/HouseholdNameTest.kt`
 
-- [ ] **Step 1: 失敗するテストを書く**
+- [ ] **Step 1: 失敗するテストを書く(HouseholdName の値域のみ)**
 
-`HouseholdIdNameTest.kt`:
+`HouseholdNameTest.kt`:
 ```kotlin
 package net.brightroom.mindstock.domain.model.household
 
@@ -480,24 +374,19 @@ import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.matchers.shouldBe
 import kotlin.test.Test
 
-class HouseholdIdNameTest {
+class HouseholdNameTest {
     @Test
-    fun id_create_is_distinct() {
-        (HouseholdId.create() == HouseholdId.create()) shouldBe false
-    }
-
-    @Test
-    fun name_accepts_and_trims() {
+    fun trims_and_accepts() {
         HouseholdName("  我が家  ").invoke() shouldBe "我が家"
     }
 
     @Test
-    fun name_rejects_blank() {
+    fun rejects_blank() {
         shouldThrow<IllegalArgumentException> { HouseholdName("  ") }
     }
 
     @Test
-    fun name_rejects_over_30_chars() {
+    fun rejects_over_30_chars() {
         shouldThrow<IllegalArgumentException> { HouseholdName("あ".repeat(31)) }
     }
 }
@@ -505,15 +394,18 @@ class HouseholdIdNameTest {
 
 - [ ] **Step 2: テストが失敗することを確認**
 
-Run: `./gradlew :domain:jvmTest --tests "net.brightroom.mindstock.domain.model.household.HouseholdIdNameTest" --console=plain`
+Run: `./gradlew :domain:jvmTest --tests "net.brightroom.mindstock.domain.model.household.HouseholdNameTest" --console=plain`
 Expected: FAIL
 
 - [ ] **Step 3: 実装を書く**
 
 `HouseholdId.kt`:
 ```kotlin
+@file:OptIn(ExperimentalUuidApi::class)
+
 package net.brightroom.mindstock.domain.model.household
 
+import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 import kotlinx.serialization.Serializable
 
@@ -557,7 +449,7 @@ value class HouseholdName(private val value: String) {
 
 - [ ] **Step 4: テストが通ることを確認**
 
-Run: `./gradlew :domain:jvmTest --tests "net.brightroom.mindstock.domain.model.household.HouseholdIdNameTest" --console=plain`
+Run: `./gradlew :domain:jvmTest --tests "net.brightroom.mindstock.domain.model.household.HouseholdNameTest" --console=plain`
 Expected: PASS
 
 - [ ] **Step 5: 整形してコミット**
@@ -572,35 +464,12 @@ git commit -m "feat(domain): HouseholdId / HouseholdName VO"
 
 ## Task 7: household Profile
 
-resident の `Profile` とは別パッケージ(`...household.Profile`)。
+resident の `Profile` とは別パッケージ(`...household.Profile`)。保持のみなので**テスト無し**。
 
 **Files:**
 - Create: `domain/src/commonMain/kotlin/net/brightroom/mindstock/domain/model/household/Profile.kt`
-- Test: `domain/src/commonTest/kotlin/net/brightroom/mindstock/domain/model/household/HouseholdProfileTest.kt`
 
-- [ ] **Step 1: 失敗するテストを書く**
-
-`HouseholdProfileTest.kt`:
-```kotlin
-package net.brightroom.mindstock.domain.model.household
-
-import io.kotest.matchers.shouldBe
-import kotlin.test.Test
-
-class HouseholdProfileTest {
-    @Test
-    fun holds_name() {
-        Profile(HouseholdName("我が家")).name.invoke() shouldBe "我が家"
-    }
-}
-```
-
-- [ ] **Step 2: テストが失敗することを確認**
-
-Run: `./gradlew :domain:jvmTest --tests "net.brightroom.mindstock.domain.model.household.HouseholdProfileTest" --console=plain`
-Expected: FAIL
-
-- [ ] **Step 3: 実装を書く**
+- [ ] **Step 1: 実装を書く**
 
 `Profile.kt`:
 ```kotlin
@@ -612,12 +481,12 @@ import kotlinx.serialization.Serializable
 data class Profile(val name: HouseholdName)
 ```
 
-- [ ] **Step 4: テストが通ることを確認**
+- [ ] **Step 2: コンパイルが通ることを確認**
 
-Run: `./gradlew :domain:jvmTest --tests "net.brightroom.mindstock.domain.model.household.HouseholdProfileTest" --console=plain`
-Expected: PASS
+Run: `./gradlew :domain:compileKotlinJvm --console=plain`
+Expected: `BUILD SUCCESSFUL`
 
-- [ ] **Step 5: 整形してコミット**
+- [ ] **Step 3: 整形してコミット**
 
 ```bash
 ./gradlew :domain:spotlessApply
@@ -629,7 +498,7 @@ git commit -m "feat(domain): household Profile（世帯名）"
 
 ## Task 8: 役割と権限(区分 + 区分使用)
 
-`HouseholdMemberRole`(区分)と `HouseholdCapability`(区分)、`RolePermissions`(区分使用 Map 表)。enum 型名は英語・値は日本語。
+`HouseholdMemberRole`(区分)・`HouseholdCapability`(区分)・`RolePermissions`(区分使用 Map 表)。型名は英語・値は日本語。`RolePermissions.allows` は区分使用の判定なのでテストする。
 
 **Files:**
 - Create: `domain/src/commonMain/kotlin/net/brightroom/mindstock/domain/model/household/member/RolePermissions.kt`
@@ -646,14 +515,12 @@ import kotlin.test.Test
 
 class RolePermissionsTest {
     @Test
-    fun owner_can_do_everything() {
+    fun owner_can_manage_household() {
         RolePermissions.allows(HouseholdMemberRole.世帯主, HouseholdCapability.世帯管理) shouldBe true
-        RolePermissions.allows(HouseholdMemberRole.世帯主, HouseholdCapability.マスタ管理) shouldBe true
-        RolePermissions.allows(HouseholdMemberRole.世帯主, HouseholdCapability.在庫編集) shouldBe true
     }
 
     @Test
-    fun member_can_only_edit_inventory() {
+    fun member_can_edit_inventory_but_not_manage_household() {
         RolePermissions.allows(HouseholdMemberRole.メンバー, HouseholdCapability.在庫編集) shouldBe true
         RolePermissions.allows(HouseholdMemberRole.メンバー, HouseholdCapability.世帯管理) shouldBe false
     }
@@ -715,6 +582,8 @@ git commit -m "feat(domain): 役割と権限（区分 HouseholdMemberRole/Capabi
 
 ## Task 9: HouseholdMember + Members(ファーストクラスコレクション)
 
+`owner()`(抽出)と `roleOf()`(抽出 + 不在で例外)をテストする。`contains`/`size`/`activeMembers` は単純な転送なのでテスト無し。
+
 **Files:**
 - Create: `domain/src/commonMain/kotlin/net/brightroom/mindstock/domain/model/household/member/Members.kt`
 - Test: `domain/src/commonTest/kotlin/net/brightroom/mindstock/domain/model/household/member/MembersTest.kt`
@@ -747,11 +616,10 @@ class MembersTest {
             ),
         )
         members.owner() shouldBe owner
-        members.size() shouldBe 2
     }
 
     @Test
-    fun roleOf_returns_role_or_throws() {
+    fun roleOf_returns_role_for_member() {
         val member = resident("こ")
         val members = Members(
             listOf(
@@ -760,7 +628,11 @@ class MembersTest {
             ),
         )
         members.roleOf(member.id) shouldBe HouseholdMemberRole.閲覧者
-        members.contains(member.id) shouldBe true
+    }
+
+    @Test
+    fun roleOf_throws_for_non_member() {
+        val members = Members(listOf(HouseholdMember(resident("おや"), HouseholdMemberRole.世帯主)))
         shouldThrow<ResourceNotFoundException> { members.roleOf(ResidentId.create()) }
     }
 }
@@ -811,12 +683,14 @@ Expected: PASS
 ```bash
 ./gradlew :domain:spotlessApply
 git add domain/src
-git commit -m "feat(domain): HouseholdMember + Members（owner/roleOf/contains/size）"
+git commit -m "feat(domain): HouseholdMember + Members（owner/roleOf）"
 ```
 
 ---
 
 ## Task 10: OwnerChangeability(最後の世帯主 判定・区分)
+
+判定ロジックなのでテストする。
 
 **Files:**
 - Create: `domain/src/commonMain/kotlin/net/brightroom/mindstock/domain/model/household/member/OwnerChangeability.kt`
@@ -926,53 +800,35 @@ git commit -m "feat(domain): OwnerChangeability（最後の世帯主 判定・�
 
 ## Task 11: Household 集約 — create / rename
 
+`create` は構築のみだが、`rename` の認可(区分使用 + roleOf 不在例外)がビジネスロジックなのでテストする。
+
 **Files:**
 - Create: `domain/src/commonMain/kotlin/net/brightroom/mindstock/domain/model/household/Household.kt`
-- Test: `domain/src/commonTest/kotlin/net/brightroom/mindstock/domain/model/household/HouseholdTest.kt`
+- Test: `domain/src/commonTest/kotlin/net/brightroom/mindstock/domain/model/household/HouseholdRenameTest.kt`
 
 - [ ] **Step 1: 失敗するテストを書く**
 
-`HouseholdTest.kt`:
+`HouseholdRenameTest.kt`:
 ```kotlin
 package net.brightroom.mindstock.domain.model.household
 
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.matchers.shouldBe
-import net.brightroom.mindstock.domain.exception.OwnerRequiredException
 import net.brightroom.mindstock.domain.exception.ResourceNotFoundException
-import net.brightroom.mindstock.domain.model.household.member.HouseholdMember
-import net.brightroom.mindstock.domain.model.household.member.HouseholdMemberRole
 import net.brightroom.mindstock.domain.model.resident.Resident
 import net.brightroom.mindstock.domain.model.resident.identity.ResidentId
 import net.brightroom.mindstock.domain.model.resident.profile.DisplayName
 import net.brightroom.mindstock.domain.model.resident.profile.Profile as ResidentProfile
 import kotlin.test.Test
 
-class HouseholdTest {
+class HouseholdRenameTest {
     private fun resident(name: String) = Resident(ResidentId.create(), ResidentProfile(DisplayName(name)))
-
-    @Test
-    fun create_starts_with_single_owner() {
-        val owner = resident("おや")
-        val household = Household.create(HouseholdName("我が家"), owner)
-        household.members.owner() shouldBe owner
-        household.profile.name.invoke() shouldBe "我が家"
-    }
 
     @Test
     fun owner_can_rename() {
         val owner = resident("おや")
         val household = Household.create(HouseholdName("我が家"), owner)
         household.rename(HouseholdName("新居"), owner.id).profile.name.invoke() shouldBe "新居"
-    }
-
-    @Test
-    fun non_owner_cannot_rename() {
-        val owner = resident("おや")
-        val member = resident("こ")
-        val household = Household.create(HouseholdName("我が家"), owner)
-            .join(member, HouseholdMemberRole.メンバー)
-        shouldThrow<OwnerRequiredException> { household.rename(HouseholdName("新居"), member.id) }
     }
 
     @Test
@@ -984,11 +840,9 @@ class HouseholdTest {
 }
 ```
 
-> 注: `join` は Task 12 で実装する。このテストは `non_owner_cannot_rename` で `join` を使うため、Task 12 完了までその 1 ケースは赤のまま許容するか、Task 11 では `join` を使わない形(`Household` を直接 `copy` してメンバー追加)に書き換えてよい。サブエージェント実行では **Task 11 では `create`/`rename` の 3 ケース**(`create_starts_with_single_owner` / `owner_can_rename` / `stranger_cannot_rename`)を緑にし、`non_owner_cannot_rename` は Task 12 で緑化する。
-
 - [ ] **Step 2: テストが失敗することを確認**
 
-Run: `./gradlew :domain:jvmTest --tests "net.brightroom.mindstock.domain.model.household.HouseholdTest" --console=plain`
+Run: `./gradlew :domain:jvmTest --tests "net.brightroom.mindstock.domain.model.household.HouseholdRenameTest" --console=plain`
 Expected: FAIL
 
 - [ ] **Step 3: 実装を書く(create / rename / 認可ヘルパー)**
@@ -1035,10 +889,10 @@ data class Household(
 }
 ```
 
-- [ ] **Step 4: create / rename のテストが通ることを確認**
+- [ ] **Step 4: テストが通ることを確認**
 
-Run: `./gradlew :domain:jvmTest --tests "net.brightroom.mindstock.domain.model.household.HouseholdTest" --console=plain`
-Expected: `non_owner_cannot_rename` 以外 PASS(`join` 未実装による 1 件 FAIL は Task 12 で解消)
+Run: `./gradlew :domain:jvmTest --tests "net.brightroom.mindstock.domain.model.household.HouseholdRenameTest" --console=plain`
+Expected: PASS
 
 - [ ] **Step 5: 整形してコミット**
 
@@ -1051,6 +905,8 @@ git commit -m "feat(domain): Household.create / rename（区分使用で認可�
 ---
 
 ## Task 12: Household 集約 — join / changeRole / removeMember / leave
+
+メンバーシップの規則(役割変更・最後の世帯主保護・認可)がビジネスロジックなのでテストする。
 
 **Files:**
 - Modify: `domain/src/commonMain/kotlin/net/brightroom/mindstock/domain/model/household/Household.kt`
@@ -1076,24 +932,33 @@ import kotlin.test.Test
 class HouseholdMembershipTest {
     private fun resident(name: String) = Resident(ResidentId.create(), ResidentProfile(DisplayName(name)))
 
-    @Test
-    fun join_adds_member_with_role() {
+    private fun householdWithMember(): Triple<Household, Resident, Resident> {
         val owner = resident("おや")
-        val newcomer = resident("こ")
+        val member = resident("こ")
         val household = Household.create(HouseholdName("我が家"), owner)
-            .join(newcomer, HouseholdMemberRole.メンバー)
-        household.members.contains(newcomer.id) shouldBe true
-        household.members.roleOf(newcomer.id) shouldBe HouseholdMemberRole.メンバー
+            .join(member, HouseholdMemberRole.メンバー)
+        return Triple(household, owner, member)
+    }
+
+    @Test
+    fun join_applies_granted_role() {
+        val (household, _, member) = householdWithMember()
+        household.members.roleOf(member.id) shouldBe HouseholdMemberRole.メンバー
     }
 
     @Test
     fun owner_can_change_member_role() {
-        val owner = resident("おや")
-        val member = resident("こ")
-        val household = Household.create(HouseholdName("我が家"), owner)
-            .join(member, HouseholdMemberRole.閲覧者)
-            .changeRole(member.id, HouseholdMemberRole.メンバー, owner.id)
-        household.members.roleOf(member.id) shouldBe HouseholdMemberRole.メンバー
+        val (household, owner, member) = householdWithMember()
+        val updated = household.changeRole(member.id, HouseholdMemberRole.閲覧者, owner.id)
+        updated.members.roleOf(member.id) shouldBe HouseholdMemberRole.閲覧者
+    }
+
+    @Test
+    fun non_owner_cannot_change_role() {
+        val (household, owner, member) = householdWithMember()
+        shouldThrow<OwnerRequiredException> {
+            household.changeRole(owner.id, HouseholdMemberRole.閲覧者, member.id)
+        }
     }
 
     @Test
@@ -1106,27 +971,6 @@ class HouseholdMembershipTest {
     }
 
     @Test
-    fun non_owner_cannot_change_role() {
-        val owner = resident("おや")
-        val member = resident("こ")
-        val household = Household.create(HouseholdName("我が家"), owner)
-            .join(member, HouseholdMemberRole.メンバー)
-        shouldThrow<OwnerRequiredException> {
-            household.changeRole(owner.id, HouseholdMemberRole.閲覧者, member.id)
-        }
-    }
-
-    @Test
-    fun owner_can_remove_member() {
-        val owner = resident("おや")
-        val member = resident("こ")
-        val household = Household.create(HouseholdName("我が家"), owner)
-            .join(member, HouseholdMemberRole.メンバー)
-            .removeMember(member.id, owner.id)
-        household.members.contains(member.id) shouldBe false
-    }
-
-    @Test
     fun removing_last_owner_is_rejected() {
         val owner = resident("おや")
         val household = Household.create(HouseholdName("我が家"), owner)
@@ -1135,12 +979,8 @@ class HouseholdMembershipTest {
 
     @Test
     fun member_can_leave() {
-        val owner = resident("おや")
-        val member = resident("こ")
-        val household = Household.create(HouseholdName("我が家"), owner)
-            .join(member, HouseholdMemberRole.メンバー)
-            .leave(member.id)
-        household.members.contains(member.id) shouldBe false
+        val (household, _, member) = householdWithMember()
+        household.leave(member.id).members.contains(member.id) shouldBe false
     }
 
     @Test
@@ -1164,7 +1004,7 @@ Expected: FAIL
 import net.brightroom.mindstock.domain.exception.LastOwnerException
 import net.brightroom.mindstock.domain.model.household.member.OwnerChangeability
 ```
-`rename(...)` の下に以下のメソッドを追加:
+`rename(...)` の下に以下を追加:
 ```kotlin
     fun join(resident: Resident, grantedRole: HouseholdMemberRole): Household =
         copy(members = Members(members.list + HouseholdMember(resident, grantedRole)))
@@ -1197,10 +1037,10 @@ import net.brightroom.mindstock.domain.model.household.member.OwnerChangeability
     }
 ```
 
-- [ ] **Step 4: 両テストクラスが通ることを確認(Task 11 の保留分も緑化)**
+- [ ] **Step 4: テストが通ることを確認**
 
-Run: `./gradlew :domain:jvmTest --tests "net.brightroom.mindstock.domain.model.household.*" --console=plain`
-Expected: PASS（`HouseholdTest` の `non_owner_cannot_rename` 含め全緑）
+Run: `./gradlew :domain:jvmTest --tests "net.brightroom.mindstock.domain.model.household.HouseholdMembershipTest" --console=plain`
+Expected: PASS
 
 - [ ] **Step 5: 整形してコミット**
 
@@ -1212,7 +1052,9 @@ git commit -m "feat(domain): Household.join/changeRole/removeMember/leave（最�
 
 ---
 
-## Task 13: InvitationCode VO(生成つき)
+## Task 13: InvitationCode VO(値域 + 生成)
+
+値域バリデーションと `generate()`(ランダム生成が値域を満たすか)をテストする。
 
 **Files:**
 - Create: `domain/src/commonMain/kotlin/net/brightroom/mindstock/domain/model/household/invitation/InvitationCode.kt`
@@ -1229,11 +1071,6 @@ import io.kotest.matchers.shouldBe
 import kotlin.test.Test
 
 class InvitationCodeTest {
-    @Test
-    fun accepts_valid_code() {
-        InvitationCode("ABC234").invoke() shouldBe "ABC234"
-    }
-
     @Test
     fun rejects_wrong_length() {
         shouldThrow<IllegalArgumentException> { InvitationCode("ABC23") }
@@ -1314,13 +1151,13 @@ git commit -m "feat(domain): InvitationCode VO（6 桁・曖昧字除外・gener
 
 ## Task 14: Invitation 集約(別集約)
 
-`InvitationValidity`(区分)と `Invitation`(別集約。`householdId` 保持、`code` で解決、有効/無効のみ)。
+`InvitationValidity`(区分)と `Invitation`(別集約)。意味があるのは **`revoke()` で `usable()` が false になる状態遷移**のみ。それだけテストする(issue/usable/householdId の単純アクセサはテスト無し)。
 
 **Files:**
 - Create: `domain/src/commonMain/kotlin/net/brightroom/mindstock/domain/model/household/invitation/Invitation.kt`
 - Test: `domain/src/commonTest/kotlin/net/brightroom/mindstock/domain/model/household/invitation/InvitationTest.kt`
 
-- [ ] **Step 1: 失敗するテストを書く**
+- [ ] **Step 1: 失敗するテストを書く(状態遷移のみ)**
 
 `InvitationTest.kt`:
 ```kotlin
@@ -1333,29 +1170,13 @@ import kotlin.test.Test
 
 class InvitationTest {
     @Test
-    fun issued_invitation_is_usable() {
-        val invitation = Invitation.issue(HouseholdId.create(), HouseholdMemberRole.メンバー)
-        invitation.usable() shouldBe true
-        invitation.validity shouldBe InvitationValidity.有効
-        invitation.grantedRole shouldBe HouseholdMemberRole.メンバー
-    }
-
-    @Test
     fun revoked_invitation_is_not_usable() {
         val invitation = Invitation.issue(HouseholdId.create(), HouseholdMemberRole.メンバー)
+        invitation.usable() shouldBe true
         invitation.revoke().usable() shouldBe false
-    }
-
-    @Test
-    fun keeps_its_household() {
-        val householdId = HouseholdId.create()
-        val invitation = Invitation.issue(householdId, HouseholdMemberRole.閲覧者)
-        invitation.householdId() shouldBe householdId
     }
 }
 ```
-
-> `householdId()` は `internal`。テストは同一モジュール(commonTest)なので参照できる。
 
 - [ ] **Step 2: テストが失敗することを確認**
 
@@ -1430,9 +1251,10 @@ git commit -m "chore(domain): P1（resident/household）ドメインのビルド
 
 ## 完了条件(Definition of Done)
 
-- resident(`Resident`/`Profile`/`DisplayName`/`ResidentId`/`AuthIdentity`/`AuthProvider`/`AuthSubject`)が実装され、値域違反は IAE。
-- household(`Household`/`Profile`/`HouseholdName`/`HouseholdId`/`HouseholdMember`/`Members`/`HouseholdMemberRole`/`HouseholdCapability`/`RolePermissions`/`OwnerChangeability`)が実装され、認可は区分使用、最後の世帯主保護は区分判定で `LastOwnerException`。
-- invitation(`Invitation`/`InvitationCode`/`InvitationValidity`)が別集約として実装(issue/revoke/usable、有効/無効)。
-- 例外(`ResourceNotFoundException`/`OwnerRequiredException`/`LastOwnerException`/`InvitationInvalidException`)が定義済み。
+- resident(`Resident`/`Profile`/`DisplayName`/`ResidentId`/`AuthIdentity`/`AuthProvider`/`AuthSubject`)実装、値域違反は IAE。
+- household(`Household`/`Profile`/`HouseholdName`/`HouseholdId`/`HouseholdMember`/`Members`/`HouseholdMemberRole`/`HouseholdCapability`/`RolePermissions`/`OwnerChangeability`)実装。認可は区分使用、最後の世帯主保護は区分判定で `LastOwnerException`。
+- invitation(`Invitation`/`InvitationCode`/`InvitationValidity`)別集約。
+- 例外 4 種定義済み。
+- **テストは意味のあるもの(値域・判定・抽出・状態遷移・前提崩れ)のみ**。保持/アクセサ/equals 等のテストは無い。
+- `Uuid` 使用ファイルに `@file:OptIn(ExperimentalUuidApi::class)`、`enum-entry-name-case` は root `.editorconfig` で無効化。
 - `./gradlew :domain:build` が緑。
-- 区分はクラス名英語・値日本語、`domain/.editorconfig` で `enum-entry-name-case` を無効化済み。
