@@ -1,8 +1,8 @@
 package net.brightroom.mindstock.domain.model.household.invitation
 
 import kotlinx.serialization.Serializable
+import org.kotlincrypto.random.CryptoRand
 import kotlin.jvm.JvmInline
-import kotlin.random.Random
 
 @Serializable
 @JvmInline
@@ -25,11 +25,12 @@ value class InvitationCode(
         // 曖昧字 0 / O / 1 / I を除外した英数字
         const val ALPHABET = "23456789ABCDEFGHJKLMNPQRSTUVWXYZ"
 
-        fun generate(): InvitationCode =
-            InvitationCode(
-                buildString {
-                    repeat(LENGTH) { append(ALPHABET[Random.nextInt(ALPHABET.length)]) }
-                },
+        fun generate(): InvitationCode {
+            // ALPHABET.length(32) は 256 を割り切るので (byte % 32) は不偏
+            val bytes = CryptoRand.Default.nextBytes(ByteArray(LENGTH))
+            return InvitationCode(
+                bytes.joinToString("") { ALPHABET[(it.toInt() and 0xFF) % ALPHABET.length].toString() },
             )
+        }
     }
 }
