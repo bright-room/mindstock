@@ -43,12 +43,12 @@ ICONIX: ドメインモデル(01 の A-3)→ ユースケース記述 → ロバ
 ### UC4: 招待リンク/コードで世帯に参加する
 1. 招待リンク(`mindstock.app/join/CODE`)を開く → 参加ランディング(誰が・どの世帯に・付与権限)。
 2. ログイン(未ログイン時)→ 表示名(初回のみ)→ 参加確認。
-3. システムが InviteCode を検証(有効・未期限切れ)し、付与 role で HouseholdMember を追加。
-**例外:** コードが無効/期限切れ → エラー画面。
+3. システムが InviteCode を検証(有効)し、付与 role で HouseholdMember を追加(1 コードで複数人が参加可)。
+**例外:** コードが無効(取消/再発行で失効)→ エラー画面。
 
 ### UC8: 招待を発行する(owner)
 1. owner が付与 role(編集/閲覧)を選び発行。
-2. システムが 6 桁コード・リンク・有効期限(発行+7日)を生成。世帯の有効招待は 0..1(再発行で置換)。
+2. システムが 6 桁コード・リンクを生成(**有効期限なし・1 コードで複数参加可**)。世帯の有効招待は 0..1(再発行で旧コードを無効化)。
 
 ---
 
@@ -177,12 +177,16 @@ sequenceDiagram
 classDiagram
     class Household {
         +rename(name, by)
-        +issueInvitation(role, by, now) Invitation
-        +revokeInvitation(by)
-        +join(userId, displayName, code, now)
+        +join(resident, grantedRole)
         +changeRole(target, role, by)
         +removeMember(target, by)
-        +leave(member)
+        +leave(by)
+    }
+    class Invitation {
+        +code: InvitationCode
+        +grantedRole: HouseholdMemberRole
+        +validity: InvitationValidity
+        +usable() Boolean
     }
     class Stock {
         +replenish(qty, at, actor, note) Stock
@@ -197,26 +201,27 @@ classDiagram
         +onShoppingList() Boolean
     }
     class Product {
-        +changeUnit(unit) Product
-        +changeMinimum(min) Product
-        +setImage(img) Product
+        +catalogItem: CatalogItem
+        +setting: StockingPolicy
+        +image: ProductImage
+        +status: ProductStatus
     }
     class StockMovement {
         <<sealed>>
-        +actor: Profile
+        +actor: Resident
     }
     class CatalogItem {
+        +content: CatalogContent
         +barcode: Barcode
-        +defaultUnit: CatalogItemUnit
         +origin: CatalogOrigin
     }
     StockMovement <|-- Replenishment
     StockMovement <|-- Consumption
     StockMovement <|-- Correction
-    Household *-- HouseholdProfile
+    Household *-- Profile
     Household *-- HouseholdMember
-    Household o-- Invitation
-    HouseholdMember --> Profile
+    Invitation ..> Household : householdId 参照
+    HouseholdMember --> Resident
     Stock --> Product
     Product --> CatalogItem
     Stock *-- StockMovement
@@ -229,14 +234,14 @@ classDiagram
 ## B-5. モジュール / レイヤマッピング
 
 ```
-:domain     resident{profile(Profile/DisplayName), identity(UserId), identity/auth(AuthIdentity)}・household・catalog・inventory(Stock/Product/StockMovement) 各コンテキスト + VO + 専用例外
+:domain     resident{Resident(id+profile), profile(Profile/DisplayName), identity(ResidentId), identity/auth(AuthIdentity=境界VO)}・household・catalog・inventory(Stock/Product/StockMovement/ShoppingList) 各コンテキスト + VO + 専用例外
 :rpc        @Rpc service interface, RpcResult, RpcError, DTO
 :shared     既存維持(KrpcJson, datetime/serialization 拡張)
 :backend:core
   application/   Service interface + Repository interface(control)
   infrastructure/ Exposed DataSource, ExternalProductGateway(楽天/Yahoo)(entity I/O)
 :backend:api    Ktor 起動 + presentation/rpc Controller(@Rpc 実装) + auth(Zitadel)
-:backend:schedules バッチ(招待期限切れ掃除等・将来)
+:backend:schedules バッチ(将来・通知等。招待は無期限のため期限掃除は不要)
 :frontend   Compose 画面 + per-screen 状態 + RpcClient
 ```
 
@@ -244,7 +249,7 @@ classDiagram
 
 | サービス | 主メソッド | 対応 UC |
 |---|---|---|
-| `UserRpcService` | `registerDisplayName`, `me` | 2 |
+| `ResidentRpcService` | `registerDisplayName`, `me` | 2 |
 | `HouseholdRpcService` | `create`, `rename`, `leave`, `list`, `changeRole`, `removeMember`, `createInvite`, `revokeInvite`, `join`, `previewInvite` | 3,5–9 |
 | `CatalogRpcService` | `search`, `lookupByJan` | 11,12 |
 | `ProductRpcService` | `adopt`, `addCustom`, `list`, `listArchived`, `changeUnit/Image/Minimum`, `archive`, `unarchive`, `setWanted` | 10,13,16,19,20,22,23 |

@@ -8,6 +8,7 @@ kotlin {
         commonMain.dependencies {
             implementation(libs.kotlinx.serialization.json)
             implementation(libs.kotlinx.datetime)
+            implementation(libs.kotlincrypto.crypto.rand)
         }
         commonTest.dependencies {
             implementation(libs.kotest.assertions.core)

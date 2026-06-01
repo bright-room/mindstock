@@ -50,7 +50,7 @@ graph LR
 | 5 | 世帯を切り替える | ◎ | ◎ | ◎ | 世帯 |
 | 6 | 世帯名を変更する | ◎ | − | − | 世帯 |
 | 7 | 世帯から退出する | ◎ | ◎ | ◎ | 世帯 |
-| 8 | 招待を発行/再発行/失効する(role指定・7日) | ◎ | − | − | 招待 |
+| 8 | 招待を発行/再発行/失効する(role指定・期限なし・1コードで複数参加可) | ◎ | − | − | 招待 |
 | 9 | メンバーの権限変更/除外 | ◎ | − | − | メンバー |
 | 10 | マスタから商品を採用する(単位・最低在庫) | ◎ | ◎ | − | 商品追加 |
 | 11 | JANで商品を検索する(マスタ→外部API→手入力) | ◎ | ◎ | − | 商品追加 |
@@ -112,7 +112,7 @@ graph LR
 
 > **ユビキタス言語: 利用者 =「住人 (Resident)」**。投資サービスの「投資家」、受験システムの「受験者」に相当する、このドメインの主役名。家(世帯)に暮らし、その在庫を管理する人。
 >
-> ただし **集約としては分離**する。`profile`(表示名)集約に `identity`/`auth` を埋め込むと OIDC sub などがダダ漏れするため、**埋め込まず `userId` で参照するだけ**にする(パッケージは内包・集約は分離)。
+> ただし集約ルート `Resident`(`id` + `profile`)に **認証(`auth`)を埋め込まない**。OIDC sub などがダダ漏れするため、`AuthIdentity` は登録/認証の**境界 VO** に留める(パッケージは内包・集約は持たない)。
 
 ### コンテキストマップ
 
@@ -137,19 +137,19 @@ flowchart LR
 
 ### パッケージ関連図(モデルと依存)
 
-`resident` コンテキストの中を `profile` / `identity`(さらに内側に `auth`)の入れ子パッケージに分ける。各パッケージは独立した**集約**で、互いに `userId` 参照のみ(埋め込まない)。
+`resident` コンテキストの集約ルートは `Resident`(`id` + `profile`)。`identity` / `profile` / `auth` の入れ子パッケージに分けるが、**認証(`auth`)は集約に持たず境界 VO**(`AuthIdentity`)として置く。
 
 ```mermaid
 flowchart TB
     subgraph resident["住人 / resident"]
-        subgraph profile["profile（集約）"]
+        Resident["住人 resident<br/>id + profile（集約ルート）"]
+        subgraph profile["profile"]
             DisplayName["表示名<br/>displayName"]
         end
-        subgraph identity["identity（集約）"]
-            UserId["ユーザーID<br/>id"]
-            subgraph auth["auth（集約）"]
-                Provider["プロバイダ<br/>provider"]
-                Subject["サブジェクト<br/>subject"]
+        subgraph identity["identity"]
+            ResidentId["ResidentId<br/>本人鍵"]
+            subgraph auth["auth（境界VO・集約外）"]
+                AuthV["AuthIdentity<br/>provider / subject"]
             end
         end
     end
@@ -157,7 +157,7 @@ flowchart TB
         HH["世帯<br/>household"]
         HProfile["世帯プロフィール<br/>householdProfile"]
         Member["世帯メンバー<br/>member"]
-        Invitation["招待<br/>invitation"]
+        Invitation["招待<br/>invitation（別集約）"]
     end
     subgraph catalog["商品カタログ / catalog"]
         CatItem["大元商品マスタ<br/>catalogItem"]
@@ -170,40 +170,41 @@ flowchart TB
         Shopping["買い物リスト<br/>shoppingList"]
     end
 
-    profile -.->|userId 参照| UserId
+    Resident --> profile
+    Resident --> ResidentId
     HH --> HProfile
     HH --> Member
-    HH --> Invitation
-    Member --> profile
+    Invitation -.->|householdId 参照| HH
+    Member -.->|resident を内包| Resident
     CatItem --> Barcode
     Product --> CatItem
     Stock --> Product
     Stock --> Movement
-    Movement --> profile
+    Movement -.->|actor: Resident| Resident
     Shopping --> Stock
 ```
 
-> `auth` は `identity` の内側、`identity` と `profile` は同じ `resident` 内。**パッケージは内包するが集約は分離**: `profile` を読んでも `identity`/`auth`(OIDC sub)は付いてこない。世帯メンバー・在庫変動の操作者が参照するのは `profile` のみ。
+> `auth` は `identity` の内側に**型として**置くが集約は持たない(境界 VO)。**パッケージは内包するが集約は分離**: `Resident`(id + 表示)を読んでも `auth`(OIDC sub)は付いてこない。世帯メンバー・在庫変動の操作者が参照するのは `Resident` のみ。
 
-> 実装上の型名: resident コンテキスト=`profile`集約(`Profile` = `userId` + `DisplayName`)/`identity`集約(`UserId`)/`auth`集約(`AuthIdentity` = `AuthProvider` + `AuthSubject`)、世帯=`Household`/`HouseholdId`、世帯プロフィール=`HouseholdProfile`/`HouseholdName`、世帯メンバー=`HouseholdMember`/`HouseholdMemberRole`、招待=`Invitation`/`InvitationCode`/`InvitationStatus`、大元商品マスタ=`CatalogItem`/`CatalogItemId`/`CatalogItemName`/`CatalogItemUnit`/`Barcode`/`Jan`/`CatalogOrigin`、商品=`Product`/`ProductId`/`ProductUnit`/`MinimumStock`/`ProductImage`、在庫=`Stock`、在庫変動=`StockMovement`/`MovementId`/`Quantity`/`Note`/`OccurredAt`/`Reason`。詳細は [03-domain-detail.md](03-domain-detail.md)。
+> 実装上の型名(構造型・区分の型名は英語、**区分の値は日本語**): resident=集約ルート `Resident`(= `ResidentId` + `Profile`)/`profile`(`Profile` = `DisplayName`)/`identity`(`ResidentId`)/`auth` 境界VO(`AuthIdentity` = `AuthProvider` + `AuthSubject`)、世帯=`Household`(= `HouseholdId` + `Profile` + `Members`)、世帯プロフィール=`Profile`/`HouseholdName`、世帯メンバー=`HouseholdMember`/区分 `HouseholdMemberRole`、招待=**別集約** `Invitation`(`InvitationCode` + `HouseholdMemberRole` + 区分 `InvitationValidity`)、大元商品マスタ=`CatalogItem`(`CatalogContent` + `Barcode` + 区分 `CatalogOrigin`)/`CatalogItemId`/`CatalogItemName`/`CatalogItemUnit`/`Jan`、商品=`Product`(`StockingPolicy` + `ProductImage` + 区分 `ProductStatus`)/`ProductId`/`ProductUnit`/`MinimumStock`、在庫=`Stock`(区分 `StockStatus`/`ShoppingNeed`/`Archivability`)、在庫変動=`StockMovement`/`MovementId`/`Quantity`/`Note`/`OccurredAt`/`Reason`。詳細は [03-domain-detail.md](03-domain-detail.md)。
 
 ### 集約と不変条件
 
-- **住人(resident)コンテキスト**: `User` クラスは作らない。内部を 3 集約に分け、互いに `userId` 参照のみ(埋め込まない=漏洩防止):
-  - `Profile`(`userId`, `displayName`)— 住人の表示情報。世帯メンバー・履歴の操作者として公開されるのはこれだけ。
-  - `Identity`(`userId`)— 本人鍵(`identity` パッケージ)。
-  - `AuthIdentity`(`provider`, `subject`)— OIDC(`auth` パッケージ)。認証時のみ参照、外部に漏らさない。
+- **住人(resident)コンテキスト**: `User` クラスは作らない。集約ルートは `Resident`(`id: ResidentId` + `profile: Profile`)。認証は集約に持たない(=漏洩防止):
+  - `Profile`(`displayName`)— `Resident` 内の表示情報(id 不要)。世帯メンバー・履歴の操作者として公開されるのは `Resident`(id + 表示)。
+  - `ResidentId` — 本人鍵(`identity` パッケージ)。`AuthIdentity`(`provider`, `subject`)は OIDC 資格情報の**境界 VO**(`auth` パッケージ。登録/認証時のみ、集約外)。
+  - append-only 前提。表示名変更は新規 Insert(最新が現在状態)で表し、可変メソッドは持たない。
   - 1 住人は 0..N 世帯に所属。世帯参加で役割を持つ **世帯メンバー** になる。
-- **Household 集約**: `HouseholdProfile`(世帯名)+ メンバー(1 以上・必ず 1 人の OWNER)+ 有効な招待 0..1。脱退/除外は append-only な revocation として残し、domain は active のみ読み込む。
+- **Household 集約**: `Profile`(世帯名)+ `Members`(1 以上・必ず 1 人の世帯主)。**招待は別集約 `Invitation`**(0..1 有効・期限なし・1 コードで複数参加可・有効/無効)。脱退/除外は append-only な revocation として残し、domain は active のみ読み込む。
 - **Stock 集約(在庫操作のルート)**: `Product`(採用) + `StockMovements`(台帳) + 手動買い物フラグ。
-  - 派生: `currentQuantity = movements.netQuantity()`、`status = OUT(<=0)/LOW(<=min)/OK`、`onShoppingList = needsReplenishment() ∪ manualWanted`。
+  - 派生(区分): `currentQuantity = movements.netQuantity()`、`StockStatus = 在庫切れ/残りわずか/十分`、`onShoppingList = ShoppingNeed ∈ {在庫不足, 手動希望}`。
   - 不変条件: 数量は負にしない(消費/訂正で負 → 例外)。`archive` は数量 0 のときのみ。`manualWanted` は補充/アーカイブで false。
   - 重複防止: 同一世帯で同一 JAN(`Barcode.Linked`)の Product は採用不可。
-- **CatalogItem(商品の素性・全世帯共有)**: 名前・推奨単位・`Barcode`・`origin`(CURATED=大元マスタ / EXTERNAL=API取得キャッシュ / CUSTOM=世帯独自)。マスタ未存在 JAN は外部 API 取得を `EXTERNAL` として保存。
+- **CatalogItem(商品の素性・全世帯共有)**: `CatalogContent`(名前・推奨単位)・`Barcode`・区分 `CatalogOrigin`(大元マスタ / 外部取得=API キャッシュ / 世帯独自)。マスタ未存在 JAN は外部 API 取得を `外部取得` として保存。
 
 ### 値オブジェクト(VO)
 
-`UserId` / `DisplayName`(<=100) / `AuthIdentity` / `HouseholdId` / `HouseholdName`(<=30) / `ProductId` / `ProductUnit`(<=10、プリセットは UI 側) / `MinimumStock`(>=0) / `ProductImage`(None/Stored) / `CatalogItemId` / `CatalogItemName`(<=60) / `CatalogItemUnit`(<=10) / `Barcode`(Unlinked/Linked) / `Jan`(13桁 EAN-13) / `CatalogOrigin` / `MovementId` / `Quantity`(>=0) / `Note` / `Reason` / `OccurredAt` / `InvitationCode`(6桁) / `InvitationStatus` / `HouseholdMemberRole`(OWNER/MEMBER/VIEWER)。詳細・制約は [03-domain-detail.md](03-domain-detail.md)。
+`ResidentId` / `DisplayName`(<=100) / `AuthIdentity`(`AuthProvider`/`AuthSubject`) / `HouseholdId` / `HouseholdName`(<=30) / `ProductId` / `ProductUnit`(<=10、プリセットは UI 側) / `MinimumStock`(>=0) / `ProductImage`(None/Stored) / `CatalogItemId` / `CatalogItemName`(<=60) / `CatalogItemUnit`(<=10) / `Barcode`(Unlinked/Linked) / `Jan`(13桁 EAN-13) / `MovementId` / `Quantity`(>0) / `Note` / `Reason` / `OccurredAt` / `InvitationCode`(6桁)。**区分(型名=英語・値=日本語)**: `HouseholdMemberRole`(世帯主/メンバー/閲覧者)/ `HouseholdCapability` / `OwnerChangeability` / `InvitationValidity`(有効/無効)/ `CatalogOrigin`(大元マスタ/外部取得/世帯独自)/ `ProductStatus`(採用中/アーカイブ済)/ `StockStatus`(在庫切れ/残りわずか/十分)/ `ShoppingNeed`(在庫不足/手動希望/不要)。詳細・制約は [03-domain-detail.md](03-domain-detail.md)。
 
 ---
 
