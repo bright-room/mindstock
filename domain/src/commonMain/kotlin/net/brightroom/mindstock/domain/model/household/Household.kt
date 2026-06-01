@@ -24,7 +24,7 @@ data class Household(
         by: ResidentId,
     ): Household {
         requireCapability(by, HouseholdCapability.世帯管理)
-        return copy(profile = Profile(name))
+        return Household(id, Profile(name), members)
     }
 
     fun join(
@@ -34,7 +34,7 @@ data class Household(
         if (members.contains(resident.id)) {
             this
         } else {
-            copy(members = members.add(HouseholdMember(resident, grantedRole)))
+            Household(id, profile, members.add(HouseholdMember(resident, grantedRole)))
         }
 
     fun changeRole(
@@ -49,7 +49,7 @@ data class Household(
         if (role != HouseholdMemberRole.世帯主 && !OwnerChangeability.on(members, target).allowed) {
             throw LastOwnerException("cannot demote last owner: $target")
         }
-        return copy(members = members.changeRole(target, role))
+        return Household(id, profile, members.changeRole(target, role))
     }
 
     fun removeMember(
@@ -63,7 +63,7 @@ data class Household(
         if (!OwnerChangeability.on(members, target).allowed) {
             throw LastOwnerException("cannot remove last owner: $target")
         }
-        return copy(members = members.remove(target))
+        return Household(id, profile, members.remove(target))
     }
 
     fun leave(by: ResidentId): Household {
@@ -73,14 +73,14 @@ data class Household(
         if (!OwnerChangeability.on(members, by).allowed) {
             throw LastOwnerException("last owner cannot leave: $by")
         }
-        return copy(members = members.remove(by))
+        return Household(id, profile, members.remove(by))
     }
 
     private fun requireCapability(
         by: ResidentId,
         capability: HouseholdCapability,
     ) {
-        if (!RolePermissions.allows(members.roleOf(by), capability)) {
+        if (!RolePermissions(members.roleOf(by), capability).isAllowed()) {
             throw OwnerRequiredException("$capability requires owner: $by")
         }
     }

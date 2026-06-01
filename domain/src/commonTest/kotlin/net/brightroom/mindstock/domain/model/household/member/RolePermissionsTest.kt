@@ -5,18 +5,18 @@ import kotlin.test.Test
 
 class RolePermissionsTest {
     @Test
-    fun owner_can_manage_household() {
-        RolePermissions.allows(HouseholdMemberRole.世帯主, HouseholdCapability.世帯管理) shouldBe true
+    fun 世帯主は世帯管理ができる() {
+        RolePermissions(HouseholdMemberRole.世帯主, HouseholdCapability.世帯管理).isAllowed() shouldBe true
     }
 
     @Test
-    fun member_can_edit_inventory_but_not_manage_household() {
-        RolePermissions.allows(HouseholdMemberRole.メンバー, HouseholdCapability.在庫編集) shouldBe true
-        RolePermissions.allows(HouseholdMemberRole.メンバー, HouseholdCapability.世帯管理) shouldBe false
+    fun メンバーは在庫編集できるが世帯管理はできない() {
+        RolePermissions(HouseholdMemberRole.メンバー, HouseholdCapability.在庫編集).isAllowed() shouldBe true
+        RolePermissions(HouseholdMemberRole.メンバー, HouseholdCapability.世帯管理).isAllowed() shouldBe false
     }
 
     @Test
-    fun viewer_can_do_nothing() {
-        RolePermissions.allows(HouseholdMemberRole.閲覧者, HouseholdCapability.在庫編集) shouldBe false
+    fun 閲覧者は何もできない() {
+        RolePermissions(HouseholdMemberRole.閲覧者, HouseholdCapability.在庫編集).isAllowed() shouldBe false
     }
 }

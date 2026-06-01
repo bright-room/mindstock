@@ -5,21 +5,22 @@ import kotlin.jvm.JvmInline
 
 @Serializable
 @JvmInline
-value class HouseholdName(
+value class HouseholdName private constructor(
     private val value: String,
 ) {
-    init {
-        val trimmed = value.trim()
-        require(trimmed.isNotEmpty() && trimmed.length <= MAX_LENGTH) {
-            "HouseholdName must be 1..$MAX_LENGTH chars after trim: '$value'"
-        }
-    }
+    internal operator fun invoke(): String = value
 
-    internal operator fun invoke(): String = value.trim()
-
-    override fun toString(): String = value.trim()
+    override fun toString(): String = value
 
     companion object {
         const val MAX_LENGTH = 30
+
+        operator fun invoke(raw: String): HouseholdName {
+            val trimmed = raw.trim()
+            require(trimmed.isNotEmpty() && trimmed.length <= MAX_LENGTH) {
+                "HouseholdName must be 1..$MAX_LENGTH chars after trim"
+            }
+            return HouseholdName(trimmed)
+        }
     }
 }

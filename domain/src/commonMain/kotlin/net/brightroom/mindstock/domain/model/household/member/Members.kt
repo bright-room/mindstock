@@ -6,20 +6,14 @@ import net.brightroom.mindstock.domain.model.resident.Resident
 import net.brightroom.mindstock.domain.model.resident.identity.ResidentId
 
 @Serializable
-data class HouseholdMember(
-    val resident: Resident,
-    val role: HouseholdMemberRole,
-)
-
-@Serializable
 data class Members(
     val list: List<HouseholdMember>,
 ) {
     fun size(): Int = list.size
 
-    fun owner(): Resident = list.first { it.role == HouseholdMemberRole.世帯主 }.resident
-
-    fun activeMembers(): List<Resident> = list.map { it.resident }
+    fun owner(): Resident =
+        list.firstOrNull { it.role == HouseholdMemberRole.世帯主 }?.resident
+            ?: throw ResourceNotFoundException("owner not found")
 
     fun contains(residentId: ResidentId): Boolean = list.any { it.resident.id == residentId }
 
@@ -32,7 +26,7 @@ data class Members(
     fun changeRole(
         target: ResidentId,
         role: HouseholdMemberRole,
-    ): Members = Members(list.map { if (it.resident.id == target) it.copy(role = role) else it })
+    ): Members = Members(list.map { if (it.resident.id == target) HouseholdMember(it.resident, role) else it })
 
     fun remove(target: ResidentId): Members = Members(list.filterNot { it.resident.id == target })
 }
