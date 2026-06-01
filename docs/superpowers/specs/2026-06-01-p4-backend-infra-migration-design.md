@@ -1,5 +1,7 @@
 # P4: backend infra + migration 設計
 
+> ⚠ **保留(2026-06-02)**: レビューの結果、`Product` が `CatalogItem` を内包する現行ドメインでは世帯独自品が hydrate できないことが判明し、**先に P2 ドメイン改修(`Product` を catalog 非依存に)を独立 spec/plan で固める**方針になった。本 P4 spec の table 割り(特に product/catalog 周辺)・Repository・hydration は**ドメイン改修確定後に改訂**する。確定済みの方針: 推測テーブル(catalog 推奨単位/最小在庫・product 名前リネーム)は defer、`default_unit` は撤廃、最新行取得は Window 関数、DataSource は `transaction(){}` 自前境界、マイグレーションは additive。
+
 `:backend:core` の infrastructure(Exposed テーブル定義 + DataSource 実装)と application 層 Repository interface、および DB マイグレーション(flyway SQL)を整備する。フルリプレイス ロードマップ P4。
 
 - 起点設計: `docs/superpowers/specs/2026-05-31-mindstock-full-replace-design/`(00-03)
