@@ -8,6 +8,12 @@ import kotlin.jvm.JvmInline
 value class HouseholdName private constructor(
     private val value: String,
 ) {
+    init {
+        require(value.isNotEmpty() && value.length <= MAX_LENGTH && value == value.trim()) {
+            "HouseholdName must be 1..$MAX_LENGTH chars after trim"
+        }
+    }
+
     internal operator fun invoke(): String = value
 
     override fun toString(): String = value
@@ -15,12 +21,6 @@ value class HouseholdName private constructor(
     companion object {
         const val MAX_LENGTH = 30
 
-        operator fun invoke(raw: String): HouseholdName {
-            val trimmed = raw.trim()
-            require(trimmed.isNotEmpty() && trimmed.length <= MAX_LENGTH) {
-                "HouseholdName must be 1..$MAX_LENGTH chars after trim"
-            }
-            return HouseholdName(trimmed)
-        }
+        operator fun invoke(raw: String): HouseholdName = HouseholdName(raw.trim())
     }
 }
