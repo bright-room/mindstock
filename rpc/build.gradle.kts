@@ -16,5 +16,16 @@ kotlin {
                 implementation(libs.kotlinx.rpc.serialization.json)
             }
         }
+        commonTest {
+            dependencies {
+                implementation(projects.shared)
+                implementation(libs.kotest.assertions.core)
+            }
+        }
+        jvmTest {
+            dependencies {
+                implementation(libs.kotest.runner.junit5)
+            }
+        }
     }
 }
