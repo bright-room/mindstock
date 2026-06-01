@@ -283,14 +283,16 @@ data class CatalogContent(val name: CatalogItemName, val defaultUnit: CatalogIte
 // catalog/barcode — 任意 JAN(nullable を使わない)
 sealed interface Barcode { object Unlinked; data class Linked(val jan: Jan) }
 
-// catalog/origin — 区分(大元マスタ=CURATED / 外部取得=楽天・Yahoo キャッシュ / 世帯独自=CUSTOM)
-enum class CatalogOrigin { 大元マスタ, 外部取得, 世帯独自 }
+// catalog/origin — 区分(マスタ=公式+外部API取得を統合 / 世帯独自=CUSTOM)
+// ※ PR #93 レビューで 3 区分(大元マスタ/外部取得/世帯独自)→ 2 区分に統合。
+//   全部 DB 保存なら「公式 vs 外部 API キャッシュ」の出所区別の実益が薄いため、外部取得品も origin=マスタ で保存する。
+enum class CatalogOrigin { マスタ, 世帯独自 }
 ```
 
 - `CatalogItemName` — 非空・最大 60 文字。`CatalogItemUnit` — 非空・最大 10 文字。`content.defaultUnit` は採用画面の**推奨単位**。
 - `Jan` — value class(String)、13 桁数字 + EAN-13 チェックディジット検証。
 - 名前/単位は現在値。リビジョン履歴は Repository が hydrate(`catalog_item_revisions` 継続)。
-- 外部 API 取得結果は `origin=外部取得` の CatalogItem として保存(2 回目以降は再利用)。
+- 外部 API 取得結果は `origin=マスタ` の CatalogItem として保存(2 回目以降は再利用)。出所(公式/外部)の区別はモデルに持たない。
 
 ### Product(世帯の採用)
 
