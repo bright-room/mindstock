@@ -24,7 +24,7 @@
 
 ## ファイル構成(このプランで作成・変更するもの)
 
-```
+```text
 .editorconfig                                                           変更(Task 1: enum-entry-name-case 無効）
 domain/src/commonMain/kotlin/net/brightroom/mindstock/domain/
   exception/ResourceNotFoundException.kt                               Task 2（テスト無し）
