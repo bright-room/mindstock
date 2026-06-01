@@ -33,20 +33,33 @@
 
 ## レイヤと依存方向(software-architecture 準拠)
 
-```
-application/repository/<ctx>/    Repository interface(契約のみ)
-        ▲
-        │ implements
-infrastructure/datasource/<ctx>/ DataSource = Repository 実装 + Hydration
-infrastructure/datasource/schemas/ Exposed Table object
-        │
-        ▼
-domain(:domain)                  集約 / VO / 例外(全層が依存)
+```mermaid
+flowchart TD
+    subgraph P5["presentation / application service(P5・本フェーズ対象外)"]
+        SVC["Service / Scenario / Controller"]
+    end
+    subgraph APP["application(:backend:core)"]
+        REPO["Repository interface<br/>application/repository/&lt;ctx&gt;"]
+    end
+    subgraph INFRA["infrastructure(:backend:core)"]
+        DS["DataSource = Repository 実装 + Hydration<br/>infrastructure/datasource/&lt;ctx&gt;"]
+        TBL["Exposed Table object<br/>infrastructure/datasource/schemas"]
+    end
+    DOMAIN["domain(:domain)<br/>集約 / VO / 例外"]
+
+    SVC -->|呼び出し| REPO
+    DS -.->|implements| REPO
+    DS -->|uses| TBL
+    REPO -->|参照| DOMAIN
+    DS -->|参照| DOMAIN
+    TBL -->|column ↔ VO| DOMAIN
+
+    style P5 stroke-dasharray: 5 5
 ```
 
-- application(Repository interface)は infrastructure / presentation に依存しない
-- DataSource 実装内では `transaction {}` を書かない(境界は P5 の `tx()` / Ktor plugin が管理)
-- Repository interface 側で例外 throw を規約化しない(契約だけを示す)
+- application(Repository interface)は infrastructure / presentation に依存しない(`implements` は infrastructure → application の片方向。図の点線矢印)。domain は全層から参照される。
+- DataSource 実装内では `transaction {}` を書かない(境界は P5 の `tx()` / Ktor plugin が管理)。
+- Repository interface 側で例外 throw を規約化しない(契約だけを示す)。
 
 ### パッケージ配置
 
@@ -77,6 +90,80 @@ domain(:domain)                  集約 / VO / 例外(全層が依存)
 ## テーブルスキーマ(V1 greenfield)
 
 全テーブルにマルチテナント scoping のため、集約に存在しなくても必要な箇所に `household_id` 列を持たせる。
+
+```mermaid
+erDiagram
+    residents ||--o{ resident_display_names : "append-only(current=latest)"
+    residents ||--o{ household_members : "所属"
+    households ||--o{ household_members : "メンバー"
+    households ||--o{ invitations : "発行"
+    households ||--o{ catalog_items : "世帯独自(NULL=マスタ)"
+    households ||--o{ products : "保有"
+    catalog_items ||--o{ products : "採用元"
+    products ||--o| product_wanted_flags : "手動希望(0..1)"
+    products ||--o{ stock_movements : "在庫変動"
+    residents ||--o{ stock_movements : "actor"
+    stock_movements ||--o{ stock_movements : "target(訂正・自己参照)"
+
+    residents {
+        uuid id PK
+        varchar auth_provider
+        varchar auth_subject "UNIQUE(provider,subject)"
+    }
+    resident_display_names {
+        uuid id PK
+        uuid resident_id FK
+        varchar display_name
+        timestamptz recorded_at "INDEX(resident_id,recorded_at)"
+    }
+    households {
+        uuid id PK
+        varchar name
+    }
+    household_members {
+        uuid household_id "PK,FK"
+        uuid resident_id "PK,FK"
+        varchar role
+    }
+    invitations {
+        varchar code PK
+        uuid household_id FK
+        varchar granted_role
+        varchar validity
+    }
+    catalog_items {
+        uuid id PK
+        uuid household_id FK "nullable(NULL=マスタ)"
+        varchar name
+        varchar default_unit
+        varchar jan "nullable / partial UNIQUE WHERE household_id IS NULL"
+        varchar origin
+    }
+    products {
+        uuid id PK
+        uuid household_id FK
+        uuid catalog_item_id FK
+        varchar unit
+        integer minimum_stock
+        varchar image_ref "nullable"
+        varchar status
+    }
+    product_wanted_flags {
+        uuid product_id "PK,FK"
+        boolean wanted
+    }
+    stock_movements {
+        bigint id PK "auto-increment"
+        uuid product_id FK
+        varchar kind "REPLENISHMENT/CONSUMPTION/CORRECTION"
+        integer quantity
+        timestamptz occurred_at
+        uuid actor_resident_id FK
+        varchar note
+        bigint target_movement_id FK "nullable(Correction のみ)"
+        varchar reason "nullable(Correction のみ)"
+    }
+```
 
 ### resident コンテキスト
 
@@ -221,6 +308,25 @@ P3 の RPC メソッドが将来呼ぶものだけを定義する。引数・戻
 - 一覧は空でも空 FCC を返す(throw / null 禁止)。
 - **想定外の Exposed/JDBC エラー(接続断・デッドロック・想定外制約違反)はラップせず raw 伝播**。infrastructure の例外翻訳は「不在 → `ResourceNotFoundException`」のみ。想定外は P5 Controller の catch-all が `RpcError.Internal` に翻訳する(error-handling の素通し哲学と一致)。
 - Hydration は `<Aggregate>Hydration.kt` の internal extension に集約(`ResultRow.to<Aggregate>()`)。深い object graph(Stock→Product→CatalogItem、movement→actor Resident)は JOIN + バッチロードで組む。
+
+`Stock` の hydration object graph(最も深い例):
+
+```mermaid
+flowchart LR
+    STOCK["Stock"] --> PRODUCT["Product"]
+    STOCK --> MOVEMENTS["StockMovements"]
+    PRODUCT --> CATALOG["CatalogItem"]
+    PRODUCT --> POLICY["StockingPolicy / ProductImage / ProductStatus"]
+    MOVEMENTS --> MV["StockMovement(sealed)"]
+    MV --> ACTOR["actor: Resident"]
+    ACTOR --> DN["DisplayName(最新)"]
+
+    PRODUCT -. "products JOIN catalog_items" .-> CATALOG
+    MV -. "stock_movements" .-> MOVEMENTS
+    ACTOR -. "resident_id IN (...) バッチロード" .-> DN
+```
+
+`activity` / `listByHousehold` では movement ごとに actor を引くと N+1 になるため、`actor_resident_id` を集めて `residents`(+ 最新 `resident_display_names`)を一括ロードする。
 
 ## 変換層
 
