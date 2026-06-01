@@ -1952,11 +1952,13 @@ class ShoppingListTest {
     fun partitions_auto_and_manual_items() {
         val shortage = ShoppingEntry(stock("米", minimum = 3, quantity = 1), manuallyWanted = false) // 在庫不足
         val manual = ShoppingEntry(stock("醤油", minimum = 1, quantity = 5), manuallyWanted = true) // 十分だが手動
-        val list = ShoppingList(listOf(shortage, manual))
+        val neither = ShoppingEntry(stock("お茶", minimum = 1, quantity = 5), manuallyWanted = false) // 十分・不要
+        val list = ShoppingList(listOf(shortage, manual, neither))
 
+        // exact-list 一致で 不要 entry がどちらの partition にも入らないことを保証
         list.autoItems().list shouldBe listOf(shortage)
         list.manualItems().list shouldBe listOf(manual)
-        list.size() shouldBe 2
+        list.size() shouldBe 3
     }
 
     @Test
