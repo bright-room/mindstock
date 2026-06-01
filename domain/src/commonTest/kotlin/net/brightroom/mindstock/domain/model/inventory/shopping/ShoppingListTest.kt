@@ -53,7 +53,7 @@ class ShoppingListTest {
     }
 
     @Test
-    fun partitions_auto_and_manual_items() {
+    fun 自動アイテムと手動アイテムを正しく分類する() {
         val shortage = ShoppingEntry(stock("米", minimum = 3, quantity = 1), manuallyWanted = false) // 在庫不足
         val manual = ShoppingEntry(stock("醤油", minimum = 1, quantity = 5), manuallyWanted = true) // 十分だが手動
         val neither = ShoppingEntry(stock("お茶", minimum = 1, quantity = 5), manuallyWanted = false) // 十分・不要
@@ -65,7 +65,7 @@ class ShoppingListTest {
     }
 
     @Test
-    fun entry_need_and_onList() {
+    fun エントリの必要度とリスト掲載フラグを返す() {
         val entry = ShoppingEntry(stock("米", minimum = 3, quantity = 1), manuallyWanted = false)
         entry.need() shouldBe ShoppingNeed.在庫不足
         entry.onList() shouldBe true

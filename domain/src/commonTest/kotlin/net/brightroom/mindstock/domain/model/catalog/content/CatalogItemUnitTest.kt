@@ -6,17 +6,17 @@ import kotlin.test.Test
 
 class CatalogItemUnitTest {
     @Test
-    fun trims_and_accepts() {
+    fun 前後の空白をトリムして受理する() {
         CatalogItemUnit("  ロール  ").invoke() shouldBe "ロール"
     }
 
     @Test
-    fun rejects_blank() {
+    fun 空白のみは拒否する() {
         shouldThrow<IllegalArgumentException> { CatalogItemUnit("  ") }
     }
 
     @Test
-    fun rejects_over_10_chars() {
+    fun 最大長を超える単位名は拒否する() {
         shouldThrow<IllegalArgumentException> { CatalogItemUnit("あ".repeat(11)) }
     }
 }

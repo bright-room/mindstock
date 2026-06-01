@@ -5,7 +5,7 @@ import kotlin.test.Test
 
 class ImageRefTest {
     @Test
-    fun rejects_blank() {
+    fun 空白のみは拒否する() {
         shouldThrow<IllegalArgumentException> { ImageRef("  ") }
     }
 }

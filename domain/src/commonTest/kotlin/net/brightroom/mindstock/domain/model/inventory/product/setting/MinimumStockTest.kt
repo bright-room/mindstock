@@ -6,23 +6,23 @@ import kotlin.test.Test
 
 class MinimumStockTest {
     @Test
-    fun rejects_negative() {
+    fun 負の値は拒否する() {
         shouldThrow<IllegalArgumentException> { MinimumStock(-1) }
     }
 
     @Test
-    fun isBelow_is_true_when_current_at_or_under_minimum() {
+    fun 現在数が最低在庫数以下なら閾値を下回っている() {
         MinimumStock(3).isBelow(3) shouldBe true
         MinimumStock(3).isBelow(2) shouldBe true
     }
 
     @Test
-    fun isBelow_is_false_when_current_above_minimum() {
+    fun 現在数が最低在庫数を超えていれば閾値を下回っていない() {
         MinimumStock(3).isBelow(4) shouldBe false
     }
 
     @Test
-    fun shortage_is_gap_to_minimum_clamped_at_zero() {
+    fun 不足数は最低在庫数との差でゼロ未満はゼロに丸める() {
         MinimumStock(3).shortage(1) shouldBe 2
         MinimumStock(3).shortage(5) shouldBe 0
     }

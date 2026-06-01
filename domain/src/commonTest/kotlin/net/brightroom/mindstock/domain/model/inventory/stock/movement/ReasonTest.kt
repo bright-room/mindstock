@@ -6,17 +6,17 @@ import kotlin.test.Test
 
 class ReasonTest {
     @Test
-    fun trims_and_accepts() {
+    fun 前後の空白をトリムして受理する() {
         Reason("  数え直し  ").invoke() shouldBe "数え直し"
     }
 
     @Test
-    fun rejects_blank() {
+    fun 空白のみは拒否する() {
         shouldThrow<IllegalArgumentException> { Reason("  ") }
     }
 
     @Test
-    fun rejects_over_255_chars() {
+    fun 最大長を超える理由は拒否する() {
         shouldThrow<IllegalArgumentException> { Reason("あ".repeat(256)) }
     }
 }

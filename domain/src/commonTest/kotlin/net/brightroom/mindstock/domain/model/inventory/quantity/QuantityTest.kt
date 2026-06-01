@@ -6,17 +6,17 @@ import kotlin.test.Test
 
 class QuantityTest {
     @Test
-    fun accepts_positive() {
+    fun 正の値を受理する() {
         Quantity(1).invoke() shouldBe 1
     }
 
     @Test
-    fun rejects_zero() {
+    fun ゼロは拒否する() {
         shouldThrow<IllegalArgumentException> { Quantity(0) }
     }
 
     @Test
-    fun rejects_negative() {
+    fun 負の値は拒否する() {
         shouldThrow<IllegalArgumentException> { Quantity(-1) }
     }
 }

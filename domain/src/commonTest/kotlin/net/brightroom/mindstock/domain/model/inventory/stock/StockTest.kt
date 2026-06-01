@@ -72,7 +72,7 @@ class StockTest {
     ) = Stock(product(minimum), StockMovements(movements.toList()))
 
     @Test
-    fun replenish_then_consume_tracks_quantity() {
+    fun 補充後に消費すると純量が追跡される() {
         val stock =
             emptyStock()
                 .replenish(Quantity(5), OccurredAt.now(), actor(), Note(""))
@@ -81,7 +81,7 @@ class StockTest {
     }
 
     @Test
-    fun consume_beyond_stock_is_rejected() {
+    fun 在庫を超える消費は拒否される() {
         val stock = emptyStock().replenish(Quantity(2), OccurredAt.now(), actor(), Note(""))
         shouldThrow<InsufficientStockException> {
             stock.consume(Quantity(3), OccurredAt.now(), actor(), Note(""))
@@ -89,24 +89,24 @@ class StockTest {
     }
 
     @Test
-    fun status_reflects_current_quantity() {
+    fun ステータスは現在の純量を反映する() {
         val stock = emptyStock(minimum = 3).replenish(Quantity(2), OccurredAt.now(), actor(), Note(""))
         stock.status() shouldBe StockStatus.残りわずか
     }
 
     @Test
-    fun archive_is_rejected_when_stock_remains() {
+    fun 在庫が残っていればアーカイブは拒否される() {
         val stock = emptyStock().replenish(Quantity(1), OccurredAt.now(), actor(), Note(""))
         shouldThrow<CannotArchiveWithStockException> { stock.archive() }
     }
 
     @Test
-    fun archive_succeeds_when_empty() {
+    fun 在庫がゼロならアーカイブできる() {
         emptyStock().archive().product.status shouldBe ProductStatus.アーカイブ済
     }
 
     @Test
-    fun correct_overwrites_target_quantity() {
+    fun 訂正は対象変動の数量を上書きする() {
         // 補充5、消費3(id=10)→ 現在2。消費を1に訂正 → +5 - 1 = 4
         val stock = stockWith(persistedReplenishment(1, 5), persistedConsumption(10, 3))
         stock.currentQuantity() shouldBe 2
@@ -115,7 +115,7 @@ class StockTest {
     }
 
     @Test
-    fun correct_to_negative_total_is_rejected() {
+    fun 総量が負になる訂正は拒否される() {
         // 補充2、消費2(id=10)→ 現在0。消費を5に訂正 → +2 - 5 = -3 で拒否
         val stock = stockWith(persistedReplenishment(1, 2), persistedConsumption(10, 2))
         shouldThrow<InsufficientStockException> {
@@ -124,7 +124,7 @@ class StockTest {
     }
 
     @Test
-    fun correct_unknown_target_is_not_found() {
+    fun 存在しない変動への訂正は例外を投げる() {
         val stock = stockWith(persistedReplenishment(1, 2))
         shouldThrow<ResourceNotFoundException> {
             stock.correct(MovementId(999), Quantity(1), Reason("対象なし"), actor(), OccurredAt.now())
@@ -132,7 +132,7 @@ class StockTest {
     }
 
     @Test
-    fun correct_replenishment_down_into_negative_is_rejected() {
+    fun 補充を下方訂正して純量が負になる場合も拒否される() {
         // 補充5(id=10) − 消費4 → 現在1。補充を2に訂正 → +2 − 4 = −2 で拒否
         val stock = stockWith(persistedReplenishment(10, 5), persistedConsumption(20, 4))
         shouldThrow<InsufficientStockException> {

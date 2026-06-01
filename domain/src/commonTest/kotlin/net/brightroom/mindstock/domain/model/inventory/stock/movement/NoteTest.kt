@@ -6,17 +6,17 @@ import kotlin.test.Test
 
 class NoteTest {
     @Test
-    fun allows_empty_note() {
+    fun 空文字のメモを受理する() {
         Note("").invoke() shouldBe ""
     }
 
     @Test
-    fun trims_surrounding_whitespace() {
+    fun 前後の空白をトリムする() {
         Note("  まとめ買い  ").invoke() shouldBe "まとめ買い"
     }
 
     @Test
-    fun rejects_over_255_chars() {
+    fun 最大長を超えるメモは拒否する() {
         shouldThrow<IllegalArgumentException> { Note("あ".repeat(256)) }
     }
 }
