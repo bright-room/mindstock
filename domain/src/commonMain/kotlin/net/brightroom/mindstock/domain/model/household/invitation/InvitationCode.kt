@@ -1,6 +1,7 @@
 package net.brightroom.mindstock.domain.model.household.invitation
 
 import kotlinx.serialization.Serializable
+import kotlin.jvm.JvmInline
 import kotlin.random.Random
 
 @Serializable

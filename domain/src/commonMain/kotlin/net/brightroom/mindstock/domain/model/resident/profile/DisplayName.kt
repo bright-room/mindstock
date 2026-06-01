@@ -1,6 +1,7 @@
 package net.brightroom.mindstock.domain.model.resident.profile
 
 import kotlinx.serialization.Serializable
+import kotlin.jvm.JvmInline
 
 @Serializable
 @JvmInline
