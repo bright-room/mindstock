@@ -28,6 +28,17 @@ spec-03 が「P2 で確定する」と明記した 2 点を、ユーザ合意の
 
 ---
 
+## PR #93 レビュー反映(以下が確定仕様。本文の一部コードブロックより優先)
+
+実装後の PR #93 レビューで以下を確定(commit `53cb993`)。本文中の該当コードは旧版なので、ここを正とする:
+
+1. **正規化 string VO は P1 パターン**(`CatalogItemName` / `CatalogItemUnit` / `ProductUnit` / `Note` / `Reason`): **trimmed 値を保持**し `private constructor` + `init { require(... && value == value.trim()) }`(deserialize でも不変条件)+ companion `operator fun invoke(raw) = X(raw.trim())`。`invoke()`/`toString()` は保持値をそのまま返す(trim しない)。「init で trim・access で trim」の簡易版は使わない。
+2. **CatalogOrigin は2区分**: `enum class CatalogOrigin { マスタ, 世帯独自 }`(`大元マスタ`/`外部取得` 廃止。外部 API 取得品も `マスタ`)。
+3. **1クラス1ファイル**(`.claude/rules/one-class-per-file.md` 新設): 1ファイル=1トップレベル型、独立型は分割。**sealed 階層は variant をネストして1ファイル**。→ `StockMovement` の variant をネスト、`ShoppingEntry`/`ShoppingList` を別ファイルに分割。
+4. **区分は判定メソッド**: `ShoppingNeed` に `is在庫不足()`/`is手動希望()` を持たせ、`autoItems()`/`manualItems()` の生比較を置換(`ProductStatus.isアーカイブ済()` と統一)。
+
+---
+
 ## 前提・規約(全タスク共通)
 
 - パッケージルート: `net.brightroom.mindstock.domain`。ソースは `domain/src/commonMain/kotlin/...`、テストは `domain/src/commonTest/kotlin/...`(同一パッケージ。`internal` メンバはテストから参照可)。
@@ -648,8 +659,7 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 enum class CatalogOrigin {
-    大元マスタ,
-    外部取得,
+    マスタ,
     世帯独自,
 }
 ```
