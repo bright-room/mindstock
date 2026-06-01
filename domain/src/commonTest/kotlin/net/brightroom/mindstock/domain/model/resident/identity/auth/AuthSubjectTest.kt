@@ -5,7 +5,7 @@ import kotlin.test.Test
 
 class AuthSubjectTest {
     @Test
-    fun rejects_blank_subject() {
+    fun 空白のsubjectは拒否する() {
         shouldThrow<IllegalArgumentException> { AuthSubject(" ") }
     }
 }

@@ -7,7 +7,7 @@ import kotlin.test.Test
 
 class InvitationTest {
     @Test
-    fun revoked_invitation_is_not_usable() {
+    fun 取消した招待は使用不可になる() {
         val invitation = Invitation.issue(HouseholdId.create(), HouseholdMemberRole.メンバー)
         invitation.usable() shouldBe true
         invitation.revoke().usable() shouldBe false

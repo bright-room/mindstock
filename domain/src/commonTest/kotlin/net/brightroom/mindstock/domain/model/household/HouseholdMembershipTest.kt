@@ -26,20 +26,20 @@ class HouseholdMembershipTest {
     }
 
     @Test
-    fun join_applies_granted_role() {
+    fun 参加時に付与された役割が適用される() {
         val (household, _, member) = householdWithMember()
         household.members.roleOf(member.id) shouldBe HouseholdMemberRole.メンバー
     }
 
     @Test
-    fun owner_can_change_member_role() {
+    fun 世帯主はメンバーの役割を変更できる() {
         val (household, owner, member) = householdWithMember()
         val updated = household.changeRole(member.id, HouseholdMemberRole.閲覧者, owner.id)
         updated.members.roleOf(member.id) shouldBe HouseholdMemberRole.閲覧者
     }
 
     @Test
-    fun non_owner_cannot_change_role() {
+    fun 非世帯主は役割を変更できない() {
         val (household, owner, member) = householdWithMember()
         shouldThrow<OwnerRequiredException> {
             household.changeRole(owner.id, HouseholdMemberRole.閲覧者, member.id)
@@ -47,7 +47,7 @@ class HouseholdMembershipTest {
     }
 
     @Test
-    fun demoting_last_owner_is_rejected() {
+    fun 最後の世帯主の降格は拒否される() {
         val owner = resident("おや")
         val household = Household.create(HouseholdName("我が家"), owner)
         shouldThrow<LastOwnerException> {
@@ -56,27 +56,27 @@ class HouseholdMembershipTest {
     }
 
     @Test
-    fun removing_last_owner_is_rejected() {
+    fun 最後の世帯主の削除は拒否される() {
         val owner = resident("おや")
         val household = Household.create(HouseholdName("我が家"), owner)
         shouldThrow<LastOwnerException> { household.removeMember(owner.id, owner.id) }
     }
 
     @Test
-    fun member_can_leave() {
+    fun メンバーは退出できる() {
         val (household, _, member) = householdWithMember()
         household.leave(member.id).members.contains(member.id) shouldBe false
     }
 
     @Test
-    fun last_owner_cannot_leave() {
+    fun 最後の世帯主は退出できない() {
         val owner = resident("おや")
         val household = Household.create(HouseholdName("我が家"), owner)
         shouldThrow<LastOwnerException> { household.leave(owner.id) }
     }
 
     @Test
-    fun changeRole_on_non_member_target_throws() {
+    fun 非メンバーへの役割変更は例外を投げる() {
         val (household, owner, _) = householdWithMember()
         shouldThrow<ResourceNotFoundException> {
             household.changeRole(ResidentId.create(), HouseholdMemberRole.閲覧者, owner.id)
@@ -84,7 +84,7 @@ class HouseholdMembershipTest {
     }
 
     @Test
-    fun removeMember_on_non_member_target_throws() {
+    fun 非メンバーの削除は例外を投げる() {
         val (household, owner, _) = householdWithMember()
         shouldThrow<ResourceNotFoundException> {
             household.removeMember(ResidentId.create(), owner.id)
@@ -92,13 +92,13 @@ class HouseholdMembershipTest {
     }
 
     @Test
-    fun leave_by_non_member_throws() {
+    fun 非メンバーの退出は例外を投げる() {
         val (household, _, _) = householdWithMember()
         shouldThrow<ResourceNotFoundException> { household.leave(ResidentId.create()) }
     }
 
     @Test
-    fun joining_an_existing_member_does_not_duplicate() {
+    fun 既存メンバーの再参加は重複しない() {
         val owner = resident("おや")
         val member = resident("こ")
         val household =

@@ -6,17 +6,17 @@ import kotlin.test.Test
 
 class DisplayNameTest {
     @Test
-    fun trims_surrounding_whitespace() {
+    fun 前後の空白をトリムする() {
         DisplayName("  たろう  ").invoke() shouldBe "たろう"
     }
 
     @Test
-    fun rejects_blank() {
+    fun 空文字は拒否する() {
         shouldThrow<IllegalArgumentException> { DisplayName("   ") }
     }
 
     @Test
-    fun rejects_over_100_chars() {
+    fun 最大長を超える名前は拒否する() {
         shouldThrow<IllegalArgumentException> { DisplayName("あ".repeat(101)) }
     }
 }

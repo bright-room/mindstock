@@ -13,7 +13,7 @@ class HouseholdRenameTest {
     private fun resident(name: String) = Resident(ResidentId.create(), ResidentProfile(DisplayName(name)))
 
     @Test
-    fun owner_can_rename() {
+    fun 世帯主は世帯名を変更できる() {
         val owner = resident("おや")
         val household = Household.create(HouseholdName("我が家"), owner)
         household
@@ -23,7 +23,7 @@ class HouseholdRenameTest {
     }
 
     @Test
-    fun stranger_cannot_rename() {
+    fun 部外者は世帯名を変更できない() {
         val owner = resident("おや")
         val household = Household.create(HouseholdName("我が家"), owner)
         shouldThrow<ResourceNotFoundException> { household.rename(HouseholdName("新居"), ResidentId.create()) }

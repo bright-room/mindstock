@@ -6,18 +6,18 @@ import kotlin.test.Test
 
 class InvitationCodeTest {
     @Test
-    fun rejects_wrong_length() {
+    fun 桁数が不正なコードは拒否する() {
         shouldThrow<IllegalArgumentException> { InvitationCode("ABC23") }
     }
 
     @Test
-    fun rejects_ambiguous_chars() {
+    fun 曖昧な文字を含むコードは拒否する() {
         shouldThrow<IllegalArgumentException> { InvitationCode("ABC230") } // 0 は除外
         shouldThrow<IllegalArgumentException> { InvitationCode("ABCO23") } // O は除外
     }
 
     @Test
-    fun generate_produces_valid_code() {
+    fun 採番したコードは妥当である() {
         val code = InvitationCode.generate()
         code.invoke().length shouldBe 6
         code.invoke().all { it in InvitationCode.ALPHABET } shouldBe true

@@ -6,17 +6,17 @@ import kotlin.test.Test
 
 class HouseholdNameTest {
     @Test
-    fun trims_and_accepts() {
+    fun 前後の空白をトリムして受理する() {
         HouseholdName("  我が家  ").invoke() shouldBe "我が家"
     }
 
     @Test
-    fun rejects_blank() {
+    fun 空文字は拒否する() {
         shouldThrow<IllegalArgumentException> { HouseholdName("  ") }
     }
 
     @Test
-    fun rejects_over_30_chars() {
+    fun 最大長を超える世帯名は拒否する() {
         shouldThrow<IllegalArgumentException> { HouseholdName("あ".repeat(31)) }
     }
 }

@@ -11,7 +11,7 @@ class OwnerChangeabilityTest {
     private fun resident(name: String) = Resident(ResidentId.create(), Profile(DisplayName(name)))
 
     @Test
-    fun sole_owner_is_not_changeable() {
+    fun 唯一の世帯主は変更不可() {
         val owner = resident("おや")
         val members =
             Members(
@@ -24,7 +24,7 @@ class OwnerChangeabilityTest {
     }
 
     @Test
-    fun one_of_two_owners_is_changeable() {
+    fun 世帯主が2人いれば片方は変更可() {
         val owner1 = resident("おや1")
         val owner2 = resident("おや2")
         val members =
@@ -38,7 +38,7 @@ class OwnerChangeabilityTest {
     }
 
     @Test
-    fun non_owner_is_changeable() {
+    fun 非世帯主は変更可() {
         val owner = resident("おや")
         val member = resident("こ")
         val members =

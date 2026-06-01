@@ -13,7 +13,7 @@ class MembersTest {
     private fun resident(name: String) = Resident(ResidentId.create(), Profile(DisplayName(name)))
 
     @Test
-    fun owner_returns_the_owner_resident() {
+    fun ownerは世帯主の住人を返す() {
         val owner = resident("おや")
         val members =
             Members(
@@ -26,7 +26,7 @@ class MembersTest {
     }
 
     @Test
-    fun roleOf_returns_role_for_member() {
+    fun roleOfはメンバーの役割を返す() {
         val member = resident("こ")
         val members =
             Members(
@@ -39,7 +39,7 @@ class MembersTest {
     }
 
     @Test
-    fun roleOf_throws_for_non_member() {
+    fun roleOfは非メンバーで例外を投げる() {
         val members = Members(listOf(HouseholdMember(resident("おや"), HouseholdMemberRole.世帯主)))
         shouldThrow<ResourceNotFoundException> { members.roleOf(ResidentId.create()) }
     }
