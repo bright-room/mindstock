@@ -1479,10 +1479,15 @@ data class StockMovements(val list: List<StockMovement>) {
 
     fun add(movement: StockMovement): StockMovements = StockMovements(list + movement)
 
+    // 訂正対象(永続化済み base movement)の存在判定はこの集合の責務(Stock からは委譲)
+    fun hasBaseMovement(id: MovementId): Boolean =
+        list.any { (it is Replenishment || it is Consumption) && it.identity == MovementIdentity.Persisted(id) }
+
     fun netQuantity(): Int {
         val latestCorrection: Map<MovementId, Correction> =
             list.filterIsInstance<Correction>()
                 .groupBy { it.target }
+                // 同一 target に同 occurredAt の訂正が複数ある場合は list 出現順で最初の最大値を採用(実運用では Instant 衝突は起きない前提)
                 .mapValues { (_, corrections) -> corrections.maxBy { it.occurredAt() } }
         return list.sumOf { movement ->
             when (movement) {
@@ -1660,6 +1665,15 @@ class StockTest {
             stock.correct(MovementId(999), Quantity(1), Reason("対象なし"), actor(), OccurredAt.now())
         }
     }
+
+    @Test
+    fun correct_replenishment_down_into_negative_is_rejected() {
+        // 補充5(id=10) − 消費4 → 現在1。補充を2に訂正 → +2 − 4 = −2 で拒否（+ 側の負総量ガード）
+        val stock = stockWith(persistedReplenishment(10, 5), persistedConsumption(20, 4))
+        shouldThrow<InsufficientStockException> {
+            stock.correct(MovementId(10), Quantity(2), Reason("数え直し"), actor(), OccurredAt.now())
+        }
+    }
 }
 ```
 
@@ -1726,11 +1740,7 @@ data class Stock(
         actor: Resident,
         occurredAt: OccurredAt,
     ): Stock {
-        val targetExists =
-            movements.list.any {
-                (it is Replenishment || it is Consumption) && it.identity == MovementIdentity.Persisted(target)
-            }
-        if (!targetExists) {
+        if (!movements.hasBaseMovement(target)) {
             throw ResourceNotFoundException("movement not found: $target")
         }
         val corrected =
