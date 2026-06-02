@@ -11,6 +11,10 @@ kotlin {
             implementation(libs.kotlinx.datetime)
         }
 
+        jsMain.dependencies {
+            implementation(npm("@js-joda/timezone", "2.3.0"))
+        }
+
         wasmJsMain.dependencies {
             implementation(npm("@js-joda/timezone", "2.3.0"))
         }
