@@ -1,20 +1,20 @@
 package net.brightroom.mindstock.domain.model.inventory.stock.movement
 
+import kotlinx.datetime.LocalDateTime
 import kotlinx.serialization.Serializable
+import net.brightroom.mindstock.extensions.kotlinx.datetime.now
 import kotlin.jvm.JvmInline
-import kotlin.time.Clock
-import kotlin.time.Instant
 
 @Serializable
 @JvmInline
 value class OccurredAt(
-    private val value: Instant,
+    private val value: LocalDateTime,
 ) {
-    internal operator fun invoke(): Instant = value
+    operator fun invoke(): LocalDateTime = value
 
     override fun toString(): String = value.toString()
 
     companion object {
-        fun now(): OccurredAt = OccurredAt(Clock.System.now())
+        fun now(): OccurredAt = OccurredAt(LocalDateTime.now())
     }
 }

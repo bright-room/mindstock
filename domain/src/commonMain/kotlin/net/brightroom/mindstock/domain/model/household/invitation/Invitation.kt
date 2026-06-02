@@ -6,7 +6,7 @@ import net.brightroom.mindstock.domain.model.household.member.HouseholdMemberRol
 
 @Serializable
 data class Invitation(
-    internal val householdId: HouseholdId,
+    val householdId: HouseholdId,
     val code: InvitationCode,
     val grantedRole: HouseholdMemberRole,
     val validity: InvitationValidity,

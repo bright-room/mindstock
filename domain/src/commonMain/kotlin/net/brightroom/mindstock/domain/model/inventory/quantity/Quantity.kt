@@ -12,7 +12,7 @@ value class Quantity(
         require(value > 0) { "Quantity must be positive: $value" }
     }
 
-    internal operator fun invoke(): Int = value
+    operator fun invoke(): Int = value
 
     override fun toString(): String = value.toString()
 }

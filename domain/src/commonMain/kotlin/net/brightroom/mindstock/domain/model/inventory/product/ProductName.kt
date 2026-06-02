@@ -14,7 +14,7 @@ value class ProductName private constructor(
         }
     }
 
-    internal operator fun invoke(): String = value
+    operator fun invoke(): String = value
 
     override fun toString(): String = value
 

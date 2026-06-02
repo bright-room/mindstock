@@ -5,6 +5,7 @@ plugins {
 }
 
 dependencies {
+    implementation(projects.shared)
     implementation(projects.domain)
 
     implementation(libs.exposed.core)
@@ -30,7 +31,7 @@ dependencies {
 
 exposed {
     migrations {
-        tablesPackage.set("net.brightroom.mindstock.infrastructure.datasource")
+        tablesPackage.set("net.brightroom.mindstock.infrastructure.datasource.schemas")
         fileDirectory.set(
             layout.projectDirectory.dir("src/main/resources/db/migration").asFile,
         )

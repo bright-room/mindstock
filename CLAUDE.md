@@ -16,7 +16,7 @@
 
 ## モジュール構成
 
-- `:domain` — 純粋なドメインモデル(集約・VO・例外)。KMP common。外部依存は kotlin stdlib / kotlinx-serialization / kotlinx-datetime のみ
+- `:domain` — 純粋なドメインモデル(集約・VO・例外)。KMP common。外部依存は kotlin stdlib / kotlinx-serialization / kotlinx-datetime + `:shared`(共通の日時/シリアライズ ext。`:shared` は `:domain` に依存しないので循環しない)
 - `:rpc` — RPC interface 定義(`@Rpc` service interface、`RpcError`、`RpcResult`)。KMP common
 - `:shared` — frontend と backend 双方で使う薄い共通ロジック(`KrpcJson` / `CustomJson` 等)。KMP common + wasmJs
 - `:backend:core` — application 層 interface(Repository / Service interface)+ infrastructure DataSource 実装(Exposed)。JVM

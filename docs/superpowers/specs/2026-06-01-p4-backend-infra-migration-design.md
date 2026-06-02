@@ -1,6 +1,16 @@
 # P4: backend infra + migration 設計
 
-> ⚠ **保留(2026-06-02)**: レビューの結果、`Product` が `CatalogItem` を内包する現行ドメインでは世帯独自品が hydrate できないことが判明し、**先に P2 ドメイン改修(`Product` を catalog 非依存に)を独立 spec/plan で固める**方針になった。本 P4 spec の table 割り(特に product/catalog 周辺)・Repository・hydration は**ドメイン改修確定後に改訂**する。確定済みの方針: 推測テーブル(catalog 推奨単位/最小在庫・product 名前リネーム)は defer、`default_unit` は撤廃、最新行取得は Window 関数、DataSource は `transaction(){}` 自前境界、マイグレーションは additive。
+> ✅ **改訂2(2026-06-03, PR #96 レビュー反映)**: 実装 PR レビュー(kukv)で以下の設計変更が確定し、コードは反映済み。本文の旧記述(timestamptz/`instantTz`、基底テーブル、`products.jan` nullable、書き込み系の戻り値、kind/status の文字列定数)より**こちらが優先**:
+> 1. **日時は kotlinx-datetime `LocalDateTime`(TZ無)**。ドメイン `OccurredAt` も `LocalDateTime`、列は Exposed `datetime()`(SQL `TIMESTAMP`)。`kotlin.time.Instant`/timestamptz/`instantTz` は廃止(本文「型マッピング」「変換層」の Instant 記述は無効)。
+> 2. **テーブル基底クラス廃止**。`AggregateRootTable`/`HistoryTable` は作らず各テーブルが `id`/`primaryKey` を直書き。
+> 3. **判別子は schema パッケージの enum + `enumerationByName<E>`**。`kind`→`MovementKind`、membership `status`→`MembershipStatus`(永続専用 enum)。既存 enum 列も reified `enumerationByName<E>(name,len)` に統一。
+> 4. **`products.jan`(nullable)を `product_barcodes` side-table 化**(行有無で Linked/Unlinked。`product_catalog_links` と同じ idiom)。`products` から jan 列を除去。
+> 5. **書き込み系 Repository は原則 `Unit`**。戻り値を残すのは `registerResident`→Resident・`issue`→Invitation・`appendMovement`→StockMovement の 3 つだけ(サーバ採番の新規情報があるもの)。
+> 6. **`search` は `(name: CatalogItemName, limit: Int)`**(プリミティブ `query: String` 廃止、:rpc も追従)。DataSource は LIKE メタ文字をエスケープ。`limit(1)` は PK/UNIQUE 取得では冗長なので除去。
+>
+> ✅ **改訂(2026-06-02)**: 保留要因だった P2 ドメイン改修(`Product` を catalog 非依存・自己完結に / `CatalogItem` を lookup 集約へ縮小)が main マージ済みのため、確定ドメインに合わせて本 spec を改訂した。主な反映: `products`/`catalog_items` から `default_unit` を撤廃、`Product` は `CatalogItem` を内包せず `name: ProductName` + `barcode: Barcode` を直持ち、`CatalogItemUnit`/`CatalogOrigin` 廃止、product register を採用/独自で 2 メソッドに分割(下記「revision decision」)。確定済みの基盤方針は不変: 最新行取得は Window 関数、DataSource は `transaction(){}` 自前境界、マイグレーションは additive。
+>
+> **revision decision(2026-06-02)**: `Product` が `CatalogItemId` を持たなくなったため、product の Writer を `registerAdopted(product, householdId, catalogItemId)` と `registerCustom(product, householdId)` の 2 本に分割した(旧 `register(Product, HouseholdId)` + nullable `catalogItemId` を回避。nullable 禁止原則・domain の `Product.adopt`/`Product.custom` 2 ファクトリ・RPC の `adopt`/`addCustom` 2 メソッドと対称)。採用は products 行 + 初回 revision + `product_catalog_links` を 1 トランザクションで張る。
 
 `:backend:core` の infrastructure(Exposed テーブル定義 + DataSource 実装)と application 層 Repository interface、および DB マイグレーション(flyway SQL)を整備する。フルリプレイス ロードマップ P4。
 
@@ -98,7 +108,7 @@ flowchart TD
 - **集約ルート ID(`ResidentId`/`HouseholdId`/`ProductId`/`CatalogItemId`)** は `kotlin.uuid.Uuid` を内包。Exposed 1.3.0 の `Table.uuid(name): Column<kotlin.uuid.Uuid>`(`UuidColumnType` がネイティブ対応)をそのまま使う。java.util.UUID 変換は不要。
 - **履歴/イベント行の PK は `bigint` auto-increment**(`resident_display_names` / `household_names` / `household_membership_events` / `invitation_validity_events` / `product_revisions` / `product_wanted_events` / `stock_movements`)。追記順 + Window の ORDER キー。`MovementId`(`Long`)= `stock_movements.id`、`MovementIdentity.Persisted(id)` = その行 PK。`target_movement_id` は nullable `bigint` self-FK。
 - **enum(`HouseholdMemberRole`/`ProductStatus`/`InvitationValidity`/`AuthProvider`)** は `.name`(日本語含む)を `varchar` 保存(Exposed `enumerationByName`)。`CatalogOrigin` は**列として保存しない**(中間テーブルのリンク有無で導出)。
-- **正規化済 VO(String 系)** は `varchar(MAX_LENGTH)`(DisplayName 100 / HouseholdName 30 / CatalogItemName 60 / CatalogItemUnit 10 / ProductUnit 10 / Reason 255 / Note 255 / Jan 13 / AuthSubject 非空 `varchar(255)`)。
+- **正規化済 VO(String 系)** は `varchar(MAX_LENGTH)`(DisplayName 100 / HouseholdName 30 / CatalogItemName 60 / ProductName 60 / ProductUnit 10 / Reason 255 / Note 255 / Jan 13 / AuthSubject 非空 `varchar(255)`)。`ProductName`(`products.name`)と `CatalogItemName`(`catalog_items.name`)は値域同一(非空・最大60)だが別 VO・別テーブル。`CatalogItemUnit` は P2 で廃止。
 - **`Quantity`/`MinimumStock`** は `integer`。
 - **`OccurredAt` / `recorded_at` / `created_at` / `linked_at`(`kotlin.time.Instant`)** は `timestamp with time zone`。**変換層が必要**(下記 要解決)。
 - **`Barcode`(sealed)** は `jan varchar(13)` nullable に潰す。null = `Unlinked` / 値あり = `Linked(Jan)`。
@@ -177,15 +187,13 @@ erDiagram
         uuid id PK
         varchar jan "NOT NULL / UNIQUE(barcode キャッシュ)"
         varchar name
-        varchar default_unit
         timestamptz created_at
     }
     products {
         uuid id PK
         uuid household_id FK "テナント scoping"
-        varchar name "自己完結(採用時 catalog からコピー / 独自は手入力)"
-        varchar default_unit
-        varchar jan "nullable(独自品の barcode)"
+        varchar name "ProductName(採用時 catalog からコピー / 独自は手入力)"
+        varchar jan "nullable = Barcode(Linked=値 / Unlinked=null。採用品も Linked)"
         timestamptz created_at
     }
     product_catalog_links {
@@ -246,23 +254,24 @@ erDiagram
 
 ### catalog コンテキスト(全世帯共有 barcode キャッシュ)
 
-- `catalog_items`(insert-once。**household_id も origin も持たない**。バーコード読み取り→API 検索結果の入れ物): `id` uuid PK, `jan` varchar(13) **NOT NULL / UNIQUE**, `name` varchar(60), `default_unit` varchar(10), `created_at` timestamptz。
-  - 役割は「毎回 API 検索が走らないようにするキャッシュ」。`findByJan` 不在時に外部 API 取得 → ここに保存し再利用(`jan` UNIQUE が再利用キー)。バーコード前提なので `jan` NOT NULL、`origin` 不要(世帯独自品はそもそもここに入れない)。
+- `catalog_items`(insert-once。**household_id も origin も持たない**。バーコード読み取り→API 検索結果の入れ物): `id` uuid PK, `jan` varchar(13) **NOT NULL / UNIQUE**, `name` varchar(60), `created_at` timestamptz。`CatalogItem` = (`id`, `Jan`, `CatalogItemName`)。
+  - 役割は「毎回 API 検索が走らないようにするキャッシュ」。`findByJan` 不在時に外部 API 取得 → ここに保存し再利用(`jan` UNIQUE が再利用キー)。バーコード前提なので `jan` NOT NULL、`origin` 不要(世帯独自品はそもそもここに入れない)。`default_unit` は P2 で廃止(採用時の推奨単位という用途自体が消滅。単位は採用後 `StockingPolicy` で持つ)。
   - 世帯独自/バーコード無し/未ヒット品は **catalog_items に入れない**(重複・空 JAN で汚れるのを防ぐ)。
 
 ### product コンテキスト
 
 世帯は **products だけ見れば在庫が完結する** 状態にする。catalog は採用時の参照キャッシュであり、product は自分の表示情報を持つ。
 
-- `products`(insert-once 識別子 + 不変な内包内容。**テナント scoping の置き場**): `id` uuid PK, `household_id` uuid FK→households, `name` varchar(60), `default_unit` varchar(10), `jan` varchar(13) nullable, `created_at` timestamptz。INDEX(`household_id`)。
-  - `name`/`default_unit`/`jan` は内包する `CatalogItem` の内容。①マスタ採用品は採用時に `catalog_items` からコピー、②世帯独自品は手入力値(`jan` は任意 → nullable)。**`catalog_items.id` は持たない**(リンクは中間テーブル)。
+- `products`(insert-once 識別子 + 不変な素性。**テナント scoping の置き場**): `id` uuid PK, `household_id` uuid FK→households, `name` varchar(60), `jan` varchar(13) nullable, `created_at` timestamptz。INDEX(`household_id`)。
+  - `name` は `ProductName`(catalog 非依存。①マスタ採用品は採用時に `catalog_items.name` をコピー、②世帯独自品は手入力)。`jan` は `Barcode` を潰したもの(null=`Unlinked` / 値=`Linked(Jan)`)。**採用品も `Barcode.Linked(catalog.jan)` を持つため `jan` が入る**(独自品のみが値を持つわけではない)。**`catalog_items.id` は products には持たない**(由来リンクは中間テーブル `product_catalog_links`)。
+  - P2 改修で `Product` は `CatalogItem` を内包しなくなり、`default_unit` 列も撤廃した(単位は `product_revisions` の `StockingPolicy.unit` のみ)。
 - `product_catalog_links`(マスタ採用品のみ存在する由来リンク): `product_id` uuid PK/FK→products, `catalog_item_id` uuid FK→catalog_items。INDEX(`catalog_item_id`)。
   - 用途: ① **採用済み判定**(JAN → `catalog_items` → `product_catalog_links` → 自世帯 `products` の有無)、② **利用世帯把握**(`catalog_item` → links → products → households)。
   - **行が無い products = 世帯独自**。`CatalogOrigin` はこのリンク有無で導出(マスタ=リンク有 / 世帯独自=リンク無)。
 - `product_revisions`(append-only。可変設定の全体スナップショット): `id` bigint PK, `product_id` uuid FK→products, `unit` varchar(10), `minimum_stock` integer, `image_ref` varchar nullable, `status` varchar, `recorded_at` timestamptz。INDEX(`product_id`, `id`)。current = partition 最新。
-  - adopt/addCustom=初回 revision append / changeUnit・changeMinimum・changeImage・archive・unarchive=変更後の `Product` 全状態を 1 行 append。
+  - adopt/addCustom=初回 revision append / changeUnit・changeMinimum・changeImage・archive・unarchive=変更後の `Product` 全状態を 1 行 append。`unit` は `StockingPolicy.unit`(`ProductUnit`)。
 - `product_wanted_events`(append-only): `id` bigint PK, `product_id` uuid FK→products, `wanted` boolean, `recorded_at` timestamptz。INDEX(`product_id`, `id`)。current = partition 最新。setWanted=append。
-- `Product` = (`id`, `CatalogItem`, `StockingPolicy`, `ProductImage`, `ProductStatus`)。hydration = `products`(name/default_unit/jan)× 最新 `product_revisions`(unit/min/image/status)、`origin` は `product_catalog_links` 有無で導出。内包 `CatalogItem.id`(`CatalogItemId`)の扱いは domain 小調整(下記 要解決)。manualWanted は `product_wanted_events` の current を P5 の `ShoppingList` 合成で使う(Product 集約には hydrate しない)。
+- `Product` = (`id`, `ProductName name`, `Barcode barcode`, `StockingPolicy setting`, `ProductImage image`, `ProductStatus status`)。hydration = `products`(name → `ProductName` / jan → `Barcode`(null=Unlinked / 値=Linked))× 最新 `product_revisions`(unit/min/image/status)。`origin` はドメインに無い(P5 read-model が `product_catalog_links` 有無で導出)。`Product` は `CatalogItemId` を持たないため、由来 catalog の解決は不要(採用時のリンク張りは Writer の `registerAdopted` が引数で受ける)。manualWanted は `product_wanted_events` の current を P5 の `ShoppingList` 合成で使う(Product 集約には hydrate しない)。
 
 ### stock コンテキスト
 
@@ -301,14 +310,15 @@ P3 の RPC メソッドが将来呼ぶものだけを定義。引数・戻り値
 | invitation | `issue(Invitation): Invitation` | invitations(衝突時 code 再生成リトライ)+ `有効` event |
 | | `revoke(InvitationCode)` | `無効` event |
 | catalog | `register(CatalogItem): CatalogItem` | catalog_items(外部 API 取得品の保存) |
-| product | `register(Product, HouseholdId): Product` | products + 初回 product_revision(+ マスタ採用時 product_catalog_links) |
+| product | `registerAdopted(Product, HouseholdId, CatalogItemId): Product` | products + 初回 product_revision + product_catalog_links(マスタ採用) |
+| | `registerCustom(Product, HouseholdId): Product` | products + 初回 product_revision(世帯独自。リンク無し) |
 | | `appendRevision(Product): Product` | product_revisions(changeUnit/changeMinimum/changeImage/archive/unarchive を Product スナップショットで append) |
 | | `setWanted(ProductId, Boolean)` | product_wanted_events |
 | stock | `appendMovement(ProductId, StockMovement): StockMovement` | stock_movements(replenish/consume/correct) |
 
 注:
-- catalog の write は `CatalogRegisterRepository.register` で独立。P5 の ProductRegisterService が catalog 採用(`product_catalog_links`)と product を orchestrate。
-- `register(Product, HouseholdId)` はマスタ採用なら `product_catalog_links` も張る(由来 catalog_item_id を Product 経由で知る手段は domain 小調整で確定 → 要解決)。
+- catalog の write は `CatalogRegisterRepository.register` で独立。P5 の ProductRegisterService が catalog 採用(`registerAdopted`)と独自追加(`registerCustom`)を振り分ける。
+- `Product` が `CatalogItemId` を持たなくなったため、由来リンクは `registerAdopted` が `catalogItemId` を引数で受け、products + 初回 revision + `product_catalog_links` を 1 トランザクションで張る(P2 改修で解決済み・旧「Product 経由で catalog_item_id を知る」要解決は消滅)。`registerCustom` はリンクを張らない(= `product_catalog_links` 行が無い = 世帯独自)。
 - 採用済み判定(同一世帯同一 JAN → `DuplicateJanException`)用の reader の要否・形は P5 着手時に確定(`catalog_items` × `product_catalog_links` × 自世帯 `products` で表現可能)。P4 では先取り実装しない。
 - `activity(householdId)` 用の専用 Reader は作らない。`StockRepository.listByHousehold` で足り、`ActivityFeed` 組み立ては P5。
 
@@ -328,9 +338,8 @@ P3 の RPC メソッドが将来呼ぶものだけを定義。引数・戻り値
 flowchart LR
     STOCK["Stock"] --> PRODUCT["Product"]
     STOCK --> MOVEMENTS["StockMovements"]
-    PRODUCT --> CONTENT["CatalogItem<br/>(products: name/default_unit/jan)"]
+    PRODUCT --> CONTENT["name: ProductName / barcode: Barcode<br/>(products: name / jan)"]
     PRODUCT --> POLICY["StockingPolicy / ProductImage / ProductStatus<br/>(最新 product_revisions)"]
-    PRODUCT --> ORIGIN["origin<br/>(product_catalog_links 有無で導出)"]
     MOVEMENTS --> MV["StockMovement(sealed)"]
     MV --> ACTOR["actor: Resident"]
     ACTOR --> DN["DisplayName(最新)"]
@@ -357,8 +366,8 @@ flowchart LR
 
 ## 要解決(plan で詰める)
 
-- 内包 `CatalogItem.id`(`CatalogItemId`)の domain 小調整: マスタ採用品は `catalog_items.id`(リンク経由)、世帯独自品は共有 id を持たない。`Product`/`CatalogItem`/`CatalogOrigin` をどう調整するか(origin の列廃止 → リンク導出、custom の CatalogItemId 流用/不要化)。
-- `register(Product, HouseholdId)` が由来 `catalog_item_id` を受け取る経路(Product 内包 CatalogItem からか、別引数か)。
+> 旧「内包 `CatalogItem.id` の domain 小調整」「`register` が `catalog_item_id` を受け取る経路」は P2 改修で解消(`Product` は catalog 非依存・`registerAdopted` が `catalogItemId` を引数で受ける)。
+
 - `kotlin.time.Instant` ↔ Exposed カラム型の具体変換。
 - `generateMigrations` の生成物・ファイル名規約と FK 順序(self-FK `stock_movements`、`product_catalog_links`→`products`/`catalog_items`)が正しく出るかの確認。
 - 採用済み判定用 reader の要否・形(P5 着手時)。

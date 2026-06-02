@@ -86,4 +86,4 @@ class StockService(private val repo: StockRepository) {
 
 - spec: [docs/superpowers/specs/2026-05-30-coding-conventions-design.md](../../docs/superpowers/specs/2026-05-30-coding-conventions-design.md)
 - rule: [software-architecture](software-architecture.md) — 層責務との関係
-- rule: [rpc-and-transactions](rpc-and-transactions.md) — `tx()` ヘルパー(transaction 用)の詳細
+- rule: [rpc-and-transactions](rpc-and-transactions.md) — トランザクション境界(DataSource 自前)の詳細

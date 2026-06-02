@@ -15,7 +15,7 @@ value class AuthSubject(
         require(value.isNotBlank()) { "AuthSubject must not be blank" }
     }
 
-    internal operator fun invoke(): String = value
+    operator fun invoke(): String = value
 
     override fun toString(): String = value
 }

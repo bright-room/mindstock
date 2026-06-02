@@ -1,0 +1,24 @@
+@file:OptIn(kotlin.uuid.ExperimentalUuidApi::class)
+
+package net.brightroom.mindstock.infrastructure.datasource.schemas
+
+import net.brightroom.mindstock.domain.model.resident.identity.auth.AuthProvider
+import org.jetbrains.exposed.v1.core.ReferenceOption
+import org.jetbrains.exposed.v1.core.Table
+import org.jetbrains.exposed.v1.datetime.CurrentDateTime
+import org.jetbrains.exposed.v1.datetime.datetime
+
+object ResidentAuthIdentitiesTable : Table("resident_auth_identities") {
+    val id = long("id").autoIncrement()
+    override val primaryKey = PrimaryKey(id)
+
+    val residentId = reference("resident_id", ResidentsTable.id, onDelete = ReferenceOption.RESTRICT)
+    val provider = enumerationByName<AuthProvider>("provider", 20)
+    val subject = varchar("subject", 255)
+    val linkedAt = datetime("linked_at").defaultExpression(CurrentDateTime)
+
+    init {
+        uniqueIndex(provider, subject)
+        index(false, residentId)
+    }
+}

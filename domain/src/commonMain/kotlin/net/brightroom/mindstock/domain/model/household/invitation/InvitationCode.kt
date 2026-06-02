@@ -15,7 +15,7 @@ value class InvitationCode(
         }
     }
 
-    internal operator fun invoke(): String = value
+    operator fun invoke(): String = value
 
     override fun toString(): String = value
 

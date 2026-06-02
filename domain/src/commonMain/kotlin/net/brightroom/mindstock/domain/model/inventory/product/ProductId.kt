@@ -12,7 +12,7 @@ import kotlin.uuid.Uuid
 value class ProductId(
     private val value: Uuid,
 ) {
-    internal operator fun invoke(): Uuid = value
+    operator fun invoke(): Uuid = value
 
     override fun toString(): String = value.toString()
 

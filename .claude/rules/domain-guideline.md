@@ -16,8 +16,9 @@ mindstock のドメインモデルはリッチドメインモデル指向。テ�
 - `kotlin` stdlib(`kotlin.time.Clock` 含む)
 - `kotlinx-serialization`(`@Serializable`, `@SerialName`)
 - `kotlinx-datetime`
+- `:shared` モジュール(共通の日時/シリアライズ ext。例: `LocalDateTime.now()`。`:shared` は `:domain` に依存しないため循環しない)
 
-新規依存が必要に思えた時は「外して複雑化しないか / 取り込んでも品質を保てるか」で個別判断。ユーザに事前確認する。
+新規依存(サードパーティ)が必要に思えた時は「外して複雑化しないか / 取り込んでも品質を保てるか」で個別判断。ユーザに事前確認する。
 
 ### リッチドメイン 7 原則
 
@@ -34,7 +35,7 @@ mindstock のドメインモデルはリッチドメインモデル指向。テ�
 - `@Serializable @JvmInline value class` 形式
 - バッキングフィールドは統一して `value`、可視性 `private`
 - バリデーションは `init { require(...) }` で `IllegalArgumentException` を throw(stdlib)
-- `internal operator fun invoke(): T = value`(内部/infrastructure から値を取り出す)
+- `operator fun invoke(): T = value`(public。別モジュール(infrastructure/永続層)が VO の生値を取り出すため。`internal` だと別 Gradle モジュールから呼べない)
 - `override fun toString(): String = value.toString()`
 
 ```kotlin
@@ -42,7 +43,7 @@ mindstock のドメインモデルはリッチドメインモデル指向。テ�
 @JvmInline
 value class Quantity(private val value: Int) {
     init { require(value > 0) { "Quantity must be positive: $value" } }
-    internal operator fun invoke(): Int = value
+    operator fun invoke(): Int = value
     override fun toString(): String = value.toString()
 }
 ```
@@ -51,7 +52,7 @@ value class Quantity(private val value: Int) {
 
 - **意味のあるファクトリは持ってよい**。クロック呼び出し・UUID 生成のような **副作用を伴う / コンストラクタだけでは作れない** 生成ロジックを wrap する目的のものが該当
   - 例: `UserId.create()` が `Uuid.uuidv7()` を呼んで生成
-  - 例: `OccurredAt.now()` が `Clock.System.now()` を呼ぶ
+  - 例: `OccurredAt.now()` が `:shared` の `LocalDateTime.now()` を呼ぶ
 - **意味のないファクトリは NG**。`Quantity.of(123)` のような、コンストラクタ `Quantity(123)` と等価なものを別名で持たない(API の二重化になる)
 
 ### ID 型規約
@@ -80,7 +81,7 @@ data class Stocks(val list: List<Stock>) {
 
 ### 時間
 
-- VO 内で `kotlin.time.Clock.System.now()` の呼び出し許容
+- 「現在時刻」の生成は **`:shared` の `LocalDateTime.now()`(既定 `TimeZone.JST`)を使う**。`Clock.System.now().toLocalDateTime(...)` を VO 内で手書きしない(タイムゾーン/wasmJs の IANA 対応を `:shared` に一元化)
 - 値域に「未来日不許容」等の制約があれば `init { require(...) }` で検証する
 
 ### sealed interface でポリモフィズム
@@ -124,7 +125,7 @@ data class Stock(
 ```kotlin
 @Serializable @JvmInline
 value class UserId(private val value: Uuid) {
-    internal operator fun invoke(): Uuid = value
+    operator fun invoke(): Uuid = value
     override fun toString(): String = value.toString()
 
     companion object {
