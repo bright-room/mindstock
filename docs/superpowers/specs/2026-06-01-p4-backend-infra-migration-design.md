@@ -1,5 +1,13 @@
 # P4: backend infra + migration 設計
 
+> ✅ **改訂2(2026-06-03, PR #96 レビュー反映)**: 実装 PR レビュー(kukv)で以下の設計変更が確定し、コードは反映済み。本文の旧記述(timestamptz/`instantTz`、基底テーブル、`products.jan` nullable、書き込み系の戻り値、kind/status の文字列定数)より**こちらが優先**:
+> 1. **日時は kotlinx-datetime `LocalDateTime`(TZ無)**。ドメイン `OccurredAt` も `LocalDateTime`、列は Exposed `datetime()`(SQL `TIMESTAMP`)。`kotlin.time.Instant`/timestamptz/`instantTz` は廃止(本文「型マッピング」「変換層」の Instant 記述は無効)。
+> 2. **テーブル基底クラス廃止**。`AggregateRootTable`/`HistoryTable` は作らず各テーブルが `id`/`primaryKey` を直書き。
+> 3. **判別子は schema パッケージの enum + `enumerationByName<E>`**。`kind`→`MovementKind`、membership `status`→`MembershipStatus`(永続専用 enum)。既存 enum 列も reified `enumerationByName<E>(name,len)` に統一。
+> 4. **`products.jan`(nullable)を `product_barcodes` side-table 化**(行有無で Linked/Unlinked。`product_catalog_links` と同じ idiom)。`products` から jan 列を除去。
+> 5. **書き込み系 Repository は原則 `Unit`**。戻り値を残すのは `registerResident`→Resident・`issue`→Invitation・`appendMovement`→StockMovement の 3 つだけ(サーバ採番の新規情報があるもの)。
+> 6. **`search` は `(name: CatalogItemName, limit: Int)`**(プリミティブ `query: String` 廃止、:rpc も追従)。DataSource は LIKE メタ文字をエスケープ。`limit(1)` は PK/UNIQUE 取得では冗長なので除去。
+>
 > ✅ **改訂(2026-06-02)**: 保留要因だった P2 ドメイン改修(`Product` を catalog 非依存・自己完結に / `CatalogItem` を lookup 集約へ縮小)が main マージ済みのため、確定ドメインに合わせて本 spec を改訂した。主な反映: `products`/`catalog_items` から `default_unit` を撤廃、`Product` は `CatalogItem` を内包せず `name: ProductName` + `barcode: Barcode` を直持ち、`CatalogItemUnit`/`CatalogOrigin` 廃止、product register を採用/独自で 2 メソッドに分割(下記「revision decision」)。確定済みの基盤方針は不変: 最新行取得は Window 関数、DataSource は `transaction(){}` 自前境界、マイグレーションは additive。
 >
 > **revision decision(2026-06-02)**: `Product` が `CatalogItemId` を持たなくなったため、product の Writer を `registerAdopted(product, householdId, catalogItemId)` と `registerCustom(product, householdId)` の 2 本に分割した(旧 `register(Product, HouseholdId)` + nullable `catalogItemId` を回避。nullable 禁止原則・domain の `Product.adopt`/`Product.custom` 2 ファクトリ・RPC の `adopt`/`addCustom` 2 メソッドと対称)。採用は products 行 + 初回 revision + `product_catalog_links` を 1 トランザクションで張る。
