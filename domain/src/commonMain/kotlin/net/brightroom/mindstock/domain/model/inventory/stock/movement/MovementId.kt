@@ -12,7 +12,7 @@ value class MovementId(
         require(value >= 0) { "MovementId must be >= 0: $value" }
     }
 
-    internal operator fun invoke(): Long = value
+    operator fun invoke(): Long = value
 
     override fun toString(): String = value.toString()
 }

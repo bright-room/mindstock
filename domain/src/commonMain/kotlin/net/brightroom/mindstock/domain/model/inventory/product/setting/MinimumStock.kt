@@ -16,7 +16,7 @@ value class MinimumStock(
 
     fun shortage(current: Int): Int = (value - current).coerceAtLeast(0)
 
-    internal operator fun invoke(): Int = value
+    operator fun invoke(): Int = value
 
     override fun toString(): String = value.toString()
 }

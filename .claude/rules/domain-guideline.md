@@ -34,7 +34,7 @@ mindstock のドメインモデルはリッチドメインモデル指向。テ�
 - `@Serializable @JvmInline value class` 形式
 - バッキングフィールドは統一して `value`、可視性 `private`
 - バリデーションは `init { require(...) }` で `IllegalArgumentException` を throw(stdlib)
-- `internal operator fun invoke(): T = value`(内部/infrastructure から値を取り出す)
+- `operator fun invoke(): T = value`(public。別モジュール(infrastructure/永続層)が VO の生値を取り出すため。`internal` だと別 Gradle モジュールから呼べない)
 - `override fun toString(): String = value.toString()`
 
 ```kotlin
@@ -42,7 +42,7 @@ mindstock のドメインモデルはリッチドメインモデル指向。テ�
 @JvmInline
 value class Quantity(private val value: Int) {
     init { require(value > 0) { "Quantity must be positive: $value" } }
-    internal operator fun invoke(): Int = value
+    operator fun invoke(): Int = value
     override fun toString(): String = value.toString()
 }
 ```
@@ -124,7 +124,7 @@ data class Stock(
 ```kotlin
 @Serializable @JvmInline
 value class UserId(private val value: Uuid) {
-    internal operator fun invoke(): Uuid = value
+    operator fun invoke(): Uuid = value
     override fun toString(): String = value.toString()
 
     companion object {

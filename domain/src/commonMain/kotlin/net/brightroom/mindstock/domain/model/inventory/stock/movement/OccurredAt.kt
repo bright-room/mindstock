@@ -10,7 +10,7 @@ import kotlin.time.Instant
 value class OccurredAt(
     private val value: Instant,
 ) {
-    internal operator fun invoke(): Instant = value
+    operator fun invoke(): Instant = value
 
     override fun toString(): String = value.toString()
 
