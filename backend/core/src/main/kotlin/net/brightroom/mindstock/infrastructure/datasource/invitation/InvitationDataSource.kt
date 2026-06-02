@@ -47,7 +47,9 @@ class InvitationDataSource(
                     .selectAll()
                     .where { vSub[rnAlias] eq 1L }
                     .limit(1)
-                    .first()[vSub[InvitationValidityEventsTable.validity]]
+                    .firstOrNull()
+                    ?.get(vSub[InvitationValidityEventsTable.validity])
+                    ?: throw ResourceNotFoundException("invitation validity not found: $code")
 
             assembleInvitation(
                 householdId = HouseholdId(base[InvitationsTable.householdId]),

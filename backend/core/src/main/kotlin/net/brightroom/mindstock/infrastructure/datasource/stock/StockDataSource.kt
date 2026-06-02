@@ -2,6 +2,7 @@
 
 package net.brightroom.mindstock.infrastructure.datasource.stock
 
+import net.brightroom.mindstock.application.repository.product.ProductRepository
 import net.brightroom.mindstock.application.repository.stock.StockRepository
 import net.brightroom.mindstock.domain.exception.ResourceNotFoundException
 import net.brightroom.mindstock.domain.model.household.HouseholdId
@@ -13,7 +14,6 @@ import net.brightroom.mindstock.domain.model.resident.Resident
 import net.brightroom.mindstock.domain.model.resident.identity.ResidentId
 import net.brightroom.mindstock.domain.model.resident.profile.DisplayName
 import net.brightroom.mindstock.domain.model.resident.profile.Profile
-import net.brightroom.mindstock.infrastructure.datasource.product.ProductDataSource
 import net.brightroom.mindstock.infrastructure.datasource.resident.latestResidentDisplayNames
 import net.brightroom.mindstock.infrastructure.datasource.schemas.ResidentDisplayNamesTable
 import net.brightroom.mindstock.infrastructure.datasource.schemas.ResidentsTable
@@ -30,7 +30,7 @@ import kotlin.uuid.Uuid
 
 class StockDataSource(
     private val database: Database,
-    private val productDataSource: ProductDataSource,
+    private val productDataSource: ProductRepository,
 ) : StockRepository {
     override fun findByProduct(productId: ProductId): Stock =
         transaction(database) {
