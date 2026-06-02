@@ -3,8 +3,8 @@ package net.brightroom.mindstock.rpc.stock
 import io.kotest.matchers.shouldBe
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
-import net.brightroom.mindstock.domain.model.catalog.barcode.Barcode
-import net.brightroom.mindstock.domain.model.catalog.barcode.Jan
+import net.brightroom.mindstock.domain.model.barcode.Barcode
+import net.brightroom.mindstock.domain.model.barcode.Jan
 import net.brightroom.mindstock.domain.model.catalog.content.CatalogContent
 import net.brightroom.mindstock.domain.model.catalog.content.CatalogItemName
 import net.brightroom.mindstock.domain.model.catalog.content.CatalogItemUnit

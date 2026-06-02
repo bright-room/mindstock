@@ -5,7 +5,7 @@ import io.kotest.matchers.shouldBe
 import net.brightroom.mindstock.domain.exception.CannotArchiveWithStockException
 import net.brightroom.mindstock.domain.exception.InsufficientStockException
 import net.brightroom.mindstock.domain.exception.ResourceNotFoundException
-import net.brightroom.mindstock.domain.model.catalog.barcode.Barcode
+import net.brightroom.mindstock.domain.model.barcode.Barcode
 import net.brightroom.mindstock.domain.model.catalog.content.CatalogContent
 import net.brightroom.mindstock.domain.model.catalog.content.CatalogItemName
 import net.brightroom.mindstock.domain.model.catalog.content.CatalogItemUnit

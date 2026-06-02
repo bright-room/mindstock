@@ -1,7 +1,7 @@
 package net.brightroom.mindstock.domain.model.inventory.shopping
 
 import io.kotest.matchers.shouldBe
-import net.brightroom.mindstock.domain.model.catalog.barcode.Barcode
+import net.brightroom.mindstock.domain.model.barcode.Barcode
 import net.brightroom.mindstock.domain.model.catalog.content.CatalogContent
 import net.brightroom.mindstock.domain.model.catalog.content.CatalogItemName
 import net.brightroom.mindstock.domain.model.catalog.content.CatalogItemUnit

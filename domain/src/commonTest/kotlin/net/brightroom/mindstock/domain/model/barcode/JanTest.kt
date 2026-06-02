@@ -1,4 +1,4 @@
-package net.brightroom.mindstock.domain.model.catalog.barcode
+package net.brightroom.mindstock.domain.model.barcode
 
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.matchers.shouldBe

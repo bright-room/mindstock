@@ -1,7 +1,7 @@
 package net.brightroom.mindstock.rpc.catalog
 
 import kotlinx.rpc.annotations.Rpc
-import net.brightroom.mindstock.domain.model.catalog.barcode.Jan
+import net.brightroom.mindstock.domain.model.barcode.Jan
 import net.brightroom.mindstock.domain.model.catalog.item.CatalogItem
 import net.brightroom.mindstock.domain.model.catalog.item.CatalogItems
 import net.brightroom.mindstock.rpc.result.RpcError

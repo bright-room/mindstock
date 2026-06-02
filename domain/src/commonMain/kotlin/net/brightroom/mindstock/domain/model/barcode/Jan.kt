@@ -1,4 +1,4 @@
-package net.brightroom.mindstock.domain.model.catalog.barcode
+package net.brightroom.mindstock.domain.model.barcode
 
 import kotlinx.serialization.Serializable
 import kotlin.jvm.JvmInline
