@@ -30,7 +30,7 @@ dependencies {
 
 exposed {
     migrations {
-        tablesPackage.set("net.brightroom.mindstock.infrastructure.datasource")
+        tablesPackage.set("net.brightroom.mindstock.infrastructure.datasource.schemas")
         fileDirectory.set(
             layout.projectDirectory.dir("src/main/resources/db/migration").asFile,
         )
