@@ -23,26 +23,26 @@ class ProductRegisterDataSource(
         product: Product,
         householdId: HouseholdId,
         catalogItemId: CatalogItemId,
-    ): Product =
+    ) {
         transaction(database) {
             insertProductAndRevision(product, householdId)
             ProductCatalogLinksTable.insert {
                 it[productId] = product.id()
                 it[ProductCatalogLinksTable.catalogItemId] = catalogItemId()
             }
-            product
         }
+    }
 
     override fun registerCustom(
         product: Product,
         householdId: HouseholdId,
-    ): Product =
+    ) {
         transaction(database) {
             insertProductAndRevision(product, householdId)
-            product
         }
+    }
 
-    override fun appendRevision(product: Product): Product =
+    override fun appendRevision(product: Product) {
         transaction(database) {
             ProductRevisionsTable.insert {
                 it[productId] = product.id()
@@ -51,8 +51,8 @@ class ProductRegisterDataSource(
                 it[imageRef] = product.image.toImageRefColumn()
                 it[status] = product.status
             }
-            product
         }
+    }
 
     override fun setWanted(
         productId: ProductId,

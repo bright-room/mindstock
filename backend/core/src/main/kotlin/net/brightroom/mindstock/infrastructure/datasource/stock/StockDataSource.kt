@@ -55,6 +55,7 @@ class StockDataSource(
             StockMovementsTable
                 .selectAll()
                 .where { StockMovementsTable.productId eq productId() }
+                // id 昇順 = 追記順。netQuantity の訂正畳み込みは順序非依存だが履歴表示は追記順で安定。
                 .orderBy(StockMovementsTable.id to SortOrder.ASC)
                 .toList()
         if (rows.isEmpty()) return StockMovements(emptyList())

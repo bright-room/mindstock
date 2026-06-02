@@ -27,7 +27,6 @@ class InvitationDataSource(
                 InvitationsTable
                     .selectAll()
                     .where { InvitationsTable.code eq code() }
-                    .limit(1)
                     .firstOrNull()
                     ?: throw ResourceNotFoundException("invitation not found: $code")
 

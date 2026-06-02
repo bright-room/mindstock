@@ -20,7 +20,7 @@ import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 class HouseholdRegisterDataSource(
     private val database: Database,
 ) : HouseholdRegisterRepository {
-    override fun registerHousehold(household: Household): Household =
+    override fun registerHousehold(household: Household) {
         transaction(database) {
             HouseholdsTable.insert { it[id] = household.id() }
             HouseholdNamesTable.insert {
@@ -35,8 +35,8 @@ class HouseholdRegisterDataSource(
                     it[status] = MembershipStatus.所属
                 }
             }
-            household
         }
+    }
 
     override fun appendHouseholdName(
         householdId: HouseholdId,

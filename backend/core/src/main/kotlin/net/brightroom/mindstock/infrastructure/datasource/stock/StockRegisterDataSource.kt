@@ -20,8 +20,7 @@ class StockRegisterDataSource(
         movement: StockMovement,
     ): StockMovement =
         transaction(database) {
-            // HistoryTable は素の Table(IdTable ではない)。insertAndGetId は使えないため
-            // `insert { } get id` で採番された Long を読み戻す。
+            // id は plain Long 列(IdTable ではない)。insertAndGetId は使えないため insert{} get id で採番値を読む。
             val newId: Long =
                 StockMovementsTable.insert {
                     it[StockMovementsTable.productId] = productId()

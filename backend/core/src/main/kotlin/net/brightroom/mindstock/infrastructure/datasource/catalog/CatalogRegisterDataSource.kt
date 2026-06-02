@@ -12,13 +12,13 @@ import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 class CatalogRegisterDataSource(
     private val database: Database,
 ) : CatalogRegisterRepository {
-    override fun register(catalogItem: CatalogItem): CatalogItem =
+    override fun register(catalogItem: CatalogItem) {
         transaction(database) {
             CatalogItemsTable.insert {
                 it[id] = catalogItem.id()
                 it[jan] = catalogItem.jan()
                 it[name] = catalogItem.name()
             }
-            catalogItem
         }
+    }
 }

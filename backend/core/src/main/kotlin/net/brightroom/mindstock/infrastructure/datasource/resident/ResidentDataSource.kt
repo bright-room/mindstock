@@ -29,8 +29,7 @@ class ResidentDataSource(
                     .where {
                         (ResidentAuthIdentitiesTable.provider eq authIdentity.provider) and
                             (ResidentAuthIdentitiesTable.subject eq authIdentity.subject())
-                    }.limit(1)
-                    .firstOrNull()
+                    }.firstOrNull()
                     ?.get(ResidentAuthIdentitiesTable.residentId)
                     ?: throw ResourceNotFoundException("resident not found for auth: ${authIdentity.provider}")
             hydrate(ResidentId(residentId))
@@ -45,7 +44,6 @@ class ResidentDataSource(
                 .join(sub, JoinType.INNER, onColumn = ResidentsTable.id, otherColumn = sub[ResidentDisplayNamesTable.residentId])
                 .selectAll()
                 .where { (ResidentsTable.id eq id()) and (sub[refs.rn] eq 1L) }
-                .limit(1)
                 .firstOrNull()
                 ?: throw ResourceNotFoundException("resident not found: $id")
         return row.toResident(sub)

@@ -1,14 +1,15 @@
 package net.brightroom.mindstock.application.repository.catalog
 
 import net.brightroom.mindstock.domain.model.barcode.Jan
+import net.brightroom.mindstock.domain.model.catalog.content.CatalogItemName
 import net.brightroom.mindstock.domain.model.catalog.item.CatalogItem
 import net.brightroom.mindstock.domain.model.catalog.item.CatalogItemId
 import net.brightroom.mindstock.domain.model.catalog.item.CatalogItems
 
 interface CatalogRepository {
-    /** 名前 LIKE 検索(空なら空 CatalogItems)。 */
+    /** 名前 LIKE 検索。 */
     fun search(
-        query: String,
+        name: CatalogItemName,
         limit: Int,
     ): CatalogItems
 

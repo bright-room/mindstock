@@ -40,12 +40,12 @@ class ResidentRegisterDataSource(
     override fun appendDisplayName(
         residentId: ResidentId,
         displayName: DisplayName,
-    ): Resident =
+    ) {
         transaction(database) {
             ResidentDisplayNamesTable.insert {
                 it[ResidentDisplayNamesTable.residentId] = residentId()
                 it[ResidentDisplayNamesTable.displayName] = displayName()
             }
-            Resident(residentId, Profile(displayName))
         }
+    }
 }

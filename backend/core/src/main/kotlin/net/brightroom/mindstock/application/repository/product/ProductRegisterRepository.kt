@@ -11,16 +11,16 @@ interface ProductRegisterRepository {
         product: Product,
         householdId: HouseholdId,
         catalogItemId: CatalogItemId,
-    ): Product
+    )
 
     /** 世帯独自: products + 初回 revision を INSERT(リンク無し)。 */
     fun registerCustom(
         product: Product,
         householdId: HouseholdId,
-    ): Product
+    )
 
     /** 変更後の Product 全状態を product_revisions に 1 行 append(changeUnit/changeMinimum/changeImage/archive/unarchive)。 */
-    fun appendRevision(product: Product): Product
+    fun appendRevision(product: Product)
 
     /** 手動希望フラグを product_wanted_events に append。 */
     fun setWanted(

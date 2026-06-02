@@ -9,7 +9,7 @@ import net.brightroom.mindstock.domain.model.resident.identity.ResidentId
 
 interface HouseholdRegisterRepository {
     /** households + 初回 household_name + owner の 所属 event を INSERT(Household.create 相当の永続化)。 */
-    fun registerHousehold(household: Household): Household
+    fun registerHousehold(household: Household)
 
     /** household_name を 1 行 append(rename)。 */
     fun appendHouseholdName(
