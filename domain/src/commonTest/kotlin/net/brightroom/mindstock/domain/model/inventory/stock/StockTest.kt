@@ -6,14 +6,9 @@ import net.brightroom.mindstock.domain.exception.CannotArchiveWithStockException
 import net.brightroom.mindstock.domain.exception.InsufficientStockException
 import net.brightroom.mindstock.domain.exception.ResourceNotFoundException
 import net.brightroom.mindstock.domain.model.barcode.Barcode
-import net.brightroom.mindstock.domain.model.catalog.content.CatalogContent
-import net.brightroom.mindstock.domain.model.catalog.content.CatalogItemName
-import net.brightroom.mindstock.domain.model.catalog.content.CatalogItemUnit
-import net.brightroom.mindstock.domain.model.catalog.item.CatalogItem
-import net.brightroom.mindstock.domain.model.catalog.item.CatalogItemId
-import net.brightroom.mindstock.domain.model.catalog.origin.CatalogOrigin
 import net.brightroom.mindstock.domain.model.inventory.product.Product
 import net.brightroom.mindstock.domain.model.inventory.product.ProductId
+import net.brightroom.mindstock.domain.model.inventory.product.ProductName
 import net.brightroom.mindstock.domain.model.inventory.product.ProductStatus
 import net.brightroom.mindstock.domain.model.inventory.product.image.ProductImage
 import net.brightroom.mindstock.domain.model.inventory.product.setting.MinimumStock
@@ -41,13 +36,8 @@ class StockTest {
     private fun product(minimum: Int = 1) =
         Product(
             id = ProductId.create(),
-            catalogItem =
-                CatalogItem(
-                    id = CatalogItemId.create(),
-                    content = CatalogContent(CatalogItemName("米"), CatalogItemUnit("袋")),
-                    barcode = Barcode.Unlinked,
-                    origin = CatalogOrigin.世帯独自,
-                ),
+            name = ProductName("米"),
+            barcode = Barcode.Unlinked,
             setting = StockingPolicy(ProductUnit("袋"), MinimumStock(minimum)),
             image = ProductImage.None,
             status = ProductStatus.採用中,
