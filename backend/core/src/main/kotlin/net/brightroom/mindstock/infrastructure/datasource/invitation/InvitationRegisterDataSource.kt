@@ -4,6 +4,7 @@ import net.brightroom.mindstock.application.repository.invitation.InvitationRegi
 import net.brightroom.mindstock.domain.model.household.invitation.Invitation
 import net.brightroom.mindstock.domain.model.household.invitation.InvitationCode
 import net.brightroom.mindstock.domain.model.household.invitation.InvitationValidity
+import net.brightroom.mindstock.infrastructure.datasource.Created
 import net.brightroom.mindstock.infrastructure.datasource.schemas.InvitationValidityEventsTable
 import net.brightroom.mindstock.infrastructure.datasource.schemas.InvitationsTable
 import org.jetbrains.exposed.v1.jdbc.Database
@@ -20,6 +21,7 @@ class InvitationRegisterDataSource(
         // PK(code) 衝突は unique violation。各試行は独立した transaction で実行し、
         // 衝突時のみ code を再生成して最大 3 回リトライする
         // (1 つの transaction 内で再試行すると aborted state になり 2 回目以降が失敗するため)。
+        val createdTime = Created.now()
         var current = invitation
         repeat(MAX_RETRY) { attempt ->
             try {
@@ -32,6 +34,7 @@ class InvitationRegisterDataSource(
                     InvitationValidityEventsTable.insert {
                         it[invitationCode] = current.code()
                         it[validity] = InvitationValidity.有効
+                        it[recordedAt] = createdTime()
                     }
                     current
                 }
@@ -49,9 +52,11 @@ class InvitationRegisterDataSource(
 
     override fun revoke(code: InvitationCode) {
         transaction(database) {
+            val createdTime = Created.now()
             InvitationValidityEventsTable.insert {
                 it[invitationCode] = code()
                 it[validity] = InvitationValidity.無効
+                it[recordedAt] = createdTime()
             }
         }
     }

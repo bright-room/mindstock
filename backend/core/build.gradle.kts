@@ -5,6 +5,7 @@ plugins {
 }
 
 dependencies {
+    implementation(projects.shared)
     implementation(projects.domain)
 
     implementation(libs.exposed.core)

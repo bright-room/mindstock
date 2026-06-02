@@ -8,6 +8,7 @@ import net.brightroom.mindstock.domain.model.resident.identity.ResidentId
 import net.brightroom.mindstock.domain.model.resident.identity.auth.AuthIdentity
 import net.brightroom.mindstock.domain.model.resident.profile.DisplayName
 import net.brightroom.mindstock.domain.model.resident.profile.Profile
+import net.brightroom.mindstock.infrastructure.datasource.Created
 import net.brightroom.mindstock.infrastructure.datasource.schemas.ResidentAuthIdentitiesTable
 import net.brightroom.mindstock.infrastructure.datasource.schemas.ResidentDisplayNamesTable
 import net.brightroom.mindstock.infrastructure.datasource.schemas.ResidentsTable
@@ -24,15 +25,21 @@ class ResidentRegisterDataSource(
     ): Resident =
         transaction(database) {
             val residentId = ResidentId.create()
-            ResidentsTable.insert { it[id] = residentId() }
+            val createdTime = Created.now()
+            ResidentsTable.insert {
+                it[id] = residentId()
+                it[createdAt] = createdTime()
+            }
             ResidentAuthIdentitiesTable.insert {
                 it[ResidentAuthIdentitiesTable.residentId] = residentId()
                 it[provider] = authIdentity.provider
                 it[subject] = authIdentity.subject()
+                it[linkedAt] = createdTime()
             }
             ResidentDisplayNamesTable.insert {
                 it[ResidentDisplayNamesTable.residentId] = residentId()
                 it[ResidentDisplayNamesTable.displayName] = displayName()
+                it[recordedAt] = createdTime()
             }
             Resident(residentId, Profile(displayName))
         }
@@ -42,9 +49,11 @@ class ResidentRegisterDataSource(
         displayName: DisplayName,
     ) {
         transaction(database) {
+            val createdTime = Created.now()
             ResidentDisplayNamesTable.insert {
                 it[ResidentDisplayNamesTable.residentId] = residentId()
                 it[ResidentDisplayNamesTable.displayName] = displayName()
+                it[recordedAt] = createdTime()
             }
         }
     }

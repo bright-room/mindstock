@@ -7,6 +7,7 @@ import net.brightroom.mindstock.domain.model.catalog.item.CatalogItemId
 import net.brightroom.mindstock.domain.model.household.HouseholdId
 import net.brightroom.mindstock.domain.model.inventory.product.Product
 import net.brightroom.mindstock.domain.model.inventory.product.ProductId
+import net.brightroom.mindstock.infrastructure.datasource.Created
 import net.brightroom.mindstock.infrastructure.datasource.schemas.ProductBarcodesTable
 import net.brightroom.mindstock.infrastructure.datasource.schemas.ProductCatalogLinksTable
 import net.brightroom.mindstock.infrastructure.datasource.schemas.ProductRevisionsTable
@@ -44,12 +45,14 @@ class ProductRegisterDataSource(
 
     override fun appendRevision(product: Product) {
         transaction(database) {
+            val createdTime = Created.now()
             ProductRevisionsTable.insert {
                 it[productId] = product.id()
                 it[unit] = product.setting.unit()
                 it[minimumStock] = product.setting.minimumStock()
                 it[imageRef] = product.image.toImageRefColumn()
                 it[status] = product.status
+                it[recordedAt] = createdTime()
             }
         }
     }
@@ -59,9 +62,11 @@ class ProductRegisterDataSource(
         wanted: Boolean,
     ) {
         transaction(database) {
+            val createdTime = Created.now()
             ProductWantedEventsTable.insert {
                 it[ProductWantedEventsTable.productId] = productId()
                 it[ProductWantedEventsTable.wanted] = wanted
+                it[recordedAt] = createdTime()
             }
         }
     }
@@ -70,10 +75,12 @@ class ProductRegisterDataSource(
         product: Product,
         householdId: HouseholdId,
     ) {
+        val createdTime = Created.now()
         ProductsTable.insert {
             it[id] = product.id()
             it[ProductsTable.householdId] = householdId()
             it[name] = product.name()
+            it[createdAt] = createdTime()
         }
         val janValue = product.barcode.toJanColumn()
         if (janValue != null) {
@@ -88,6 +95,7 @@ class ProductRegisterDataSource(
             it[minimumStock] = product.setting.minimumStock()
             it[imageRef] = product.image.toImageRefColumn()
             it[status] = product.status
+            it[recordedAt] = createdTime()
         }
     }
 }
