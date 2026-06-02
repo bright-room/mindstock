@@ -13,7 +13,7 @@ object ResidentAuthIdentitiesTable : Table("resident_auth_identities") {
     override val primaryKey = PrimaryKey(id)
 
     val residentId = reference("resident_id", ResidentsTable.id, onDelete = ReferenceOption.RESTRICT)
-    val provider = enumerationByName("provider", 20, AuthProvider::class)
+    val provider = enumerationByName<AuthProvider>("provider", 20)
     val subject = varchar("subject", 255)
     val linkedAt = datetime("linked_at").defaultExpression(CurrentDateTime)
 

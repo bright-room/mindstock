@@ -16,7 +16,7 @@ object ProductRevisionsTable : Table("product_revisions") {
     val unit = varchar("unit", 10)
     val minimumStock = integer("minimum_stock")
     val imageRef = varchar("image_ref", 512).nullable() // null = ProductImage.None
-    val status = enumerationByName("status", 20, ProductStatus::class)
+    val status = enumerationByName<ProductStatus>("status", 20)
     val recordedAt = datetime("recorded_at").defaultExpression(CurrentDateTime)
 
     init {

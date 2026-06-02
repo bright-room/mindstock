@@ -12,6 +12,7 @@ import net.brightroom.mindstock.domain.model.resident.identity.ResidentId
 import net.brightroom.mindstock.infrastructure.datasource.schemas.HouseholdMembershipEventsTable
 import net.brightroom.mindstock.infrastructure.datasource.schemas.HouseholdNamesTable
 import net.brightroom.mindstock.infrastructure.datasource.schemas.HouseholdsTable
+import net.brightroom.mindstock.infrastructure.datasource.schemas.MembershipStatus
 import org.jetbrains.exposed.v1.jdbc.Database
 import org.jetbrains.exposed.v1.jdbc.insert
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
@@ -31,7 +32,7 @@ class HouseholdRegisterDataSource(
                     it[householdId] = household.id()
                     it[residentId] = m.resident.id()
                     it[role] = m.role
-                    it[status] = HouseholdMembershipEventsTable.STATUS_ACTIVE
+                    it[status] = MembershipStatus.所属
                 }
             }
             household
@@ -59,7 +60,7 @@ class HouseholdRegisterDataSource(
                 it[HouseholdMembershipEventsTable.householdId] = householdId()
                 it[residentId] = resident.id()
                 it[HouseholdMembershipEventsTable.role] = role
-                it[status] = HouseholdMembershipEventsTable.STATUS_ACTIVE
+                it[status] = MembershipStatus.所属
             }
         }
     }
@@ -74,7 +75,7 @@ class HouseholdRegisterDataSource(
                 it[HouseholdMembershipEventsTable.householdId] = householdId()
                 it[HouseholdMembershipEventsTable.residentId] = residentId()
                 it[HouseholdMembershipEventsTable.role] = role
-                it[status] = HouseholdMembershipEventsTable.STATUS_ACTIVE
+                it[status] = MembershipStatus.所属
             }
         }
     }
@@ -89,7 +90,7 @@ class HouseholdRegisterDataSource(
                 it[HouseholdMembershipEventsTable.householdId] = householdId()
                 it[HouseholdMembershipEventsTable.residentId] = residentId()
                 it[role] = HouseholdMemberRole.閲覧者
-                it[status] = HouseholdMembershipEventsTable.STATUS_REMOVED
+                it[status] = MembershipStatus.除外
             }
         }
     }

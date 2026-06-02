@@ -15,6 +15,7 @@ import net.brightroom.mindstock.domain.model.resident.profile.DisplayName
 import net.brightroom.mindstock.infrastructure.datasource.resident.latestResidentDisplayNames
 import net.brightroom.mindstock.infrastructure.datasource.schemas.HouseholdMembershipEventsTable
 import net.brightroom.mindstock.infrastructure.datasource.schemas.HouseholdNamesTable
+import net.brightroom.mindstock.infrastructure.datasource.schemas.MembershipStatus
 import net.brightroom.mindstock.infrastructure.datasource.schemas.ResidentDisplayNamesTable
 import net.brightroom.mindstock.infrastructure.datasource.schemas.ResidentsTable
 import org.jetbrains.exposed.v1.core.JoinType
@@ -64,7 +65,7 @@ class HouseholdDataSource(
             .selectAll()
             .where {
                 (sub[rnAlias] eq 1L) and
-                    (sub[HouseholdMembershipEventsTable.status] eq HouseholdMembershipEventsTable.STATUS_ACTIVE)
+                    (sub[HouseholdMembershipEventsTable.status] eq MembershipStatus.所属)
             }.map { HouseholdId(it[sub[HouseholdMembershipEventsTable.householdId]]) }
     }
 
@@ -119,7 +120,7 @@ class HouseholdDataSource(
                 .selectAll()
                 .where {
                     (mSub[rnAlias] eq 1L) and
-                        (mSub[HouseholdMembershipEventsTable.status] eq HouseholdMembershipEventsTable.STATUS_ACTIVE)
+                        (mSub[HouseholdMembershipEventsTable.status] eq MembershipStatus.所属)
                 }.orderBy(mSub[HouseholdMembershipEventsTable.residentId] to SortOrder.ASC)
                 .map { row ->
                     Pair(

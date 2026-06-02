@@ -14,15 +14,12 @@ object HouseholdMembershipEventsTable : Table("household_membership_events") {
 
     val householdId = reference("household_id", HouseholdsTable.id, onDelete = ReferenceOption.RESTRICT)
     val residentId = reference("resident_id", ResidentsTable.id, onDelete = ReferenceOption.RESTRICT)
-    val role = enumerationByName("role", 20, HouseholdMemberRole::class)
-    val status = varchar("status", 10) // 永続専用: 所属 / 除外(tombstone)
+    val role = enumerationByName<HouseholdMemberRole>("role", 20)
+    val status = enumerationByName<MembershipStatus>("status", 10)
     val recordedAt = datetime("recorded_at").defaultExpression(CurrentDateTime)
 
     init {
         index(false, householdId, residentId, id)
         index(false, residentId, householdId, id)
     }
-
-    const val STATUS_ACTIVE = "所属"
-    const val STATUS_REMOVED = "除外"
 }

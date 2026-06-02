@@ -10,6 +10,7 @@ import net.brightroom.mindstock.domain.model.inventory.stock.movement.OccurredAt
 import net.brightroom.mindstock.domain.model.inventory.stock.movement.Reason
 import net.brightroom.mindstock.domain.model.inventory.stock.movement.StockMovement
 import net.brightroom.mindstock.domain.model.resident.Resident
+import net.brightroom.mindstock.infrastructure.datasource.schemas.MovementKind
 import net.brightroom.mindstock.infrastructure.datasource.schemas.StockMovementsTable
 import org.jetbrains.exposed.v1.core.ResultRow
 
@@ -20,15 +21,15 @@ internal fun ResultRow.toStockMovement(actor: Resident): StockMovement {
     val occurredAt = OccurredAt(this[StockMovementsTable.occurredAt])
     val note = Note(this[StockMovementsTable.note])
     return when (this[StockMovementsTable.kind]) {
-        StockMovementsTable.KIND_REPLENISHMENT -> {
+        MovementKind.REPLENISHMENT -> {
             StockMovement.Replenishment(identity, quantity, occurredAt, actor, note)
         }
 
-        StockMovementsTable.KIND_CONSUMPTION -> {
+        MovementKind.CONSUMPTION -> {
             StockMovement.Consumption(identity, quantity, occurredAt, actor, note)
         }
 
-        StockMovementsTable.KIND_CORRECTION -> {
+        MovementKind.CORRECTION -> {
             StockMovement.Correction(
                 identity,
                 quantity,
@@ -39,17 +40,13 @@ internal fun ResultRow.toStockMovement(actor: Resident): StockMovement {
                 reason = Reason(this[StockMovementsTable.reason]!!),
             )
         }
-
-        else -> {
-            error("unknown movement kind: ${this[StockMovementsTable.kind]}")
-        }
     }
 }
 
-/** StockMovement → kind リテラル。 */
-internal fun StockMovement.kindColumn(): String =
+/** StockMovement → kind 列値。 */
+internal fun StockMovement.kindColumn(): MovementKind =
     when (this) {
-        is StockMovement.Replenishment -> StockMovementsTable.KIND_REPLENISHMENT
-        is StockMovement.Consumption -> StockMovementsTable.KIND_CONSUMPTION
-        is StockMovement.Correction -> StockMovementsTable.KIND_CORRECTION
+        is StockMovement.Replenishment -> MovementKind.REPLENISHMENT
+        is StockMovement.Consumption -> MovementKind.CONSUMPTION
+        is StockMovement.Correction -> MovementKind.CORRECTION
     }

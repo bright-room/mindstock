@@ -9,7 +9,7 @@ import org.jetbrains.exposed.v1.core.Table
 object InvitationsTable : Table("invitations") {
     val code = varchar("code", 6)
     val householdId = reference("household_id", HouseholdsTable.id, onDelete = ReferenceOption.RESTRICT)
-    val grantedRole = enumerationByName("granted_role", 20, HouseholdMemberRole::class)
+    val grantedRole = enumerationByName<HouseholdMemberRole>("granted_role", 20)
     override val primaryKey = PrimaryKey(code)
 
     init {

@@ -11,7 +11,7 @@ object InvitationValidityEventsTable : Table("invitation_validity_events") {
     override val primaryKey = PrimaryKey(id)
 
     val invitationCode = reference("invitation_code", InvitationsTable.code, onDelete = ReferenceOption.RESTRICT)
-    val validity = enumerationByName("validity", 10, InvitationValidity::class)
+    val validity = enumerationByName<InvitationValidity>("validity", 10)
     val recordedAt = datetime("recorded_at").defaultExpression(CurrentDateTime)
 
     init {

@@ -11,7 +11,7 @@ object StockMovementsTable : Table("stock_movements") {
     override val primaryKey = PrimaryKey(id)
 
     val productId = reference("product_id", ProductsTable.id, onDelete = ReferenceOption.RESTRICT)
-    val kind = varchar("kind", 20) // REPLENISHMENT / CONSUMPTION / CORRECTION
+    val kind = enumerationByName<MovementKind>("kind", 20)
     val quantity = integer("quantity")
     val occurredAt = datetime("occurred_at")
     val actorResidentId = reference("actor_resident_id", ResidentsTable.id, onDelete = ReferenceOption.RESTRICT)
@@ -22,8 +22,4 @@ object StockMovementsTable : Table("stock_movements") {
     init {
         index(false, productId, id)
     }
-
-    const val KIND_REPLENISHMENT = "REPLENISHMENT"
-    const val KIND_CONSUMPTION = "CONSUMPTION"
-    const val KIND_CORRECTION = "CORRECTION"
 }
