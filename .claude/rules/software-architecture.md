@@ -69,7 +69,7 @@ mindstock の層責務と依存方向。Controller / Scenario / Service / Reposi
 
 ### DataSource(infrastructure)
 
-- 実装内では `transaction {}` を書かない(Ktor plugin または `tx()` で境界管理)
+- 各メソッドは `transaction(database) { }` で自前にトランザクション境界を張る(`tx()` ヘルパー / `ExposedTransactionPlugin` は廃止。取り回しの煩雑さ回避)。`Database` はコンストラクタ注入する
 - INSERT 後は RETURNING 相当(`insertAndGetId` + hydration)で読み戻して domain object を返す
 - 行が無かった場合は `ResourceNotFoundException` を throw する(Service / Scenario は素通しの前提)
 

@@ -7,7 +7,7 @@ paths:
 
 # RPC and Transactions
 
-kotlinx-rpc 0.10.x と Ktor WebSocket を組み合わせた RPC 層の規約。`@Rpc` annotation、Json 分離、`tx()` ヘルパー、Request / Response 型の扱いを含む。
+kotlinx-rpc 0.10.x と Ktor WebSocket を組み合わせた RPC 層の規約。`@Rpc` annotation、Json 分離、トランザクション境界(DataSource 自前)、Request / Response 型の扱いを含む。
 
 ## Rule
 
@@ -32,13 +32,12 @@ kotlinx-rpc 0.10.x と Ktor WebSocket を組み合わせた RPC 層の規約。`
 - HTTP の `ContentNegotiation` は **`CustomJson`(`NONE`)** を使う
 - `RoutingConfiguration` の `install(Krpc) { serialization { json(KrpcJson) } }` と HTTP `install(ContentNegotiation) { json(CustomJson) }` を **使い分ける**
 
-### `tx()` ヘルパー
+### トランザクション境界(DataSource 自前)
 
-- 場所: `backend/api/src/main/kotlin/net/brightroom/mindstock/configuration/transaction/Transaction.kt`
-- 役割: `supervisorScope { newSuspendedTransaction(db) { ... } }` を 1 行で書けるようにする transaction ヘルパー
-- **DB を触る RPC method は `tx(database) { ... }` で包む**。`ExposedTransactionPlugin` は WS upgrade 時 1 回しか張らないため、RPC method ごとに transaction を張り直す必要がある
-- `supervisorScope` で包むのは、`newSuspendedTransaction` の cancellation が Ktor scope を倒すのを防ぐため
-- **DB を触らない RPC method**(S3 upload だけ、外部 HTTP を叩くだけ、in-memory 処理だけ、等)は `tx()` を使わなくてよい
+- トランザクションは DataSource 実装内で `transaction(database) { }` を張る(`backend/core` の各 DataSource メソッド)。`tx()` ヘルパーと `ExposedTransactionPlugin` は廃止した
+- Controller / Service は transaction を意識しない(DataSource が境界を持つ)
+- `Database` は起動配線(P5)で生成し DataSource にコンストラクタ注入する
+- 旧 `tx()` / plugin 方式は P4 で撤廃(WS upgrade 時 1 回しか張れない plugin 制約と、RPC method ごとに張り直す煩雑さを DataSource 自前境界で解消)
 
 ### RPC 戻り値
 
@@ -66,32 +65,32 @@ kotlinx-serialization の標準 deserialize は `data class` / `@JvmInline value
 
 - `@Rpc` annotation を強制することで、`RemoteService` 継承 → 0.10.x で ERROR の罠を避ける
 - Json の `ClassDiscriminatorMode` を間違えると Krpc envelope を decode できず **静かに失敗する**(ログにも出にくい)ため、Json を 2 つに物理分離する
-- `tx()` を「DB を触る RPC method のみ必須」とすることで、不必要な `newSuspendedTransaction` を張らずに済む
-- `supervisorScope` なしの `newSuspendedTransaction` は失敗時に親 scope を巻き込んで Ktor server まで倒してしまう
+- トランザクション境界を DataSource に持たせることで、Controller / Service は DB の意識を持たず純粋な orchestration に徹せる
+- `ExposedTransactionPlugin` は WS upgrade 時 1 回しか張れないため RPC method ごとに再利用できず、`tx()` ヘルパーによる method 単位の張り直しも呼び出し側の煩雑さを増やした。DataSource 自前境界でこれらを解消する
 - Request / Response 型は「腐敗防止層」が必要な時のみ作るべきで、内部表現と API 仕様が一致するなら中間 DTO は冗長な詰め替えコードを増やすだけ
 
 ## How to apply
 
-### ✅ RPC method を tx() で包む(DB を触る場合)
+### ✅ RPC method(トランザクションは DataSource に任せる)
 
 ```kotlin
 class StockController(
     private val stockService: StockService,
     private val session: MindstockSession,
-    private val database: Database,
 ) : StockRpcService {
     override suspend fun replenish(
         stockId: StockId,
         quantity: Quantity,
         note: Note,
-    ): RpcResult<Unit, RpcError> = tx(database) {
+    ): RpcResult<Unit, RpcError> {
+        // tx() 不要 — transaction は StockDataSource 内で transaction(database){} として張られる
         stockService.replenish(stockId, quantity, note, requireNotNull(session.userId))
-        RpcResult.Ok(Unit)
+        return RpcResult.Ok(Unit)
     }
 }
 ```
 
-### ✅ DB を触らない RPC(tx() 不要)
+### ✅ DB を触らない RPC
 
 ```kotlin
 class AttachmentController(
@@ -107,13 +106,12 @@ class AttachmentController(
 ```kotlin
 fun Application.routingConfigure() {
     val stockService by dependencies   // ← suspend 解決を先取り
-    val database by dependencies
 
     routing {
         authenticate("user") {
             rpc("/api/v1/stock") {
                 registerService<StockRpcService> {
-                    StockController(stockService, session = sessionOf(applicationCall), database)
+                    StockController(stockService, session = sessionOf(applicationCall))
                 }
             }
         }
