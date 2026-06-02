@@ -3,16 +3,11 @@ package net.brightroom.mindstock.rpc.stock
 import io.kotest.matchers.shouldBe
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
-import net.brightroom.mindstock.domain.model.catalog.barcode.Barcode
-import net.brightroom.mindstock.domain.model.catalog.barcode.Jan
-import net.brightroom.mindstock.domain.model.catalog.content.CatalogContent
-import net.brightroom.mindstock.domain.model.catalog.content.CatalogItemName
-import net.brightroom.mindstock.domain.model.catalog.content.CatalogItemUnit
-import net.brightroom.mindstock.domain.model.catalog.item.CatalogItem
-import net.brightroom.mindstock.domain.model.catalog.item.CatalogItemId
-import net.brightroom.mindstock.domain.model.catalog.origin.CatalogOrigin
+import net.brightroom.mindstock.domain.model.barcode.Barcode
+import net.brightroom.mindstock.domain.model.barcode.Jan
 import net.brightroom.mindstock.domain.model.inventory.product.Product
 import net.brightroom.mindstock.domain.model.inventory.product.ProductId
+import net.brightroom.mindstock.domain.model.inventory.product.ProductName
 import net.brightroom.mindstock.domain.model.inventory.product.ProductStatus
 import net.brightroom.mindstock.domain.model.inventory.product.image.ImageRef
 import net.brightroom.mindstock.domain.model.inventory.product.image.ProductImage
@@ -39,13 +34,8 @@ class ActivityFeedSerializationTest {
         val product =
             Product(
                 id = ProductId.create(),
-                catalogItem =
-                    CatalogItem(
-                        id = CatalogItemId.create(),
-                        content = CatalogContent(CatalogItemName("シャンプー"), CatalogItemUnit("本")),
-                        barcode = Barcode.Linked(Jan("4901234567894")),
-                        origin = CatalogOrigin.世帯独自,
-                    ),
+                name = ProductName("シャンプー"),
+                barcode = Barcode.Linked(Jan("4901234567894")),
                 setting = StockingPolicy(ProductUnit("本"), MinimumStock(2)),
                 image = ProductImage.Stored(ImageRef("https://example.com/images/shampoo.jpg")),
                 status = ProductStatus.採用中,
@@ -60,13 +50,8 @@ class ActivityFeedSerializationTest {
         val product =
             Product(
                 id = ProductId.create(),
-                catalogItem =
-                    CatalogItem(
-                        id = CatalogItemId.create(),
-                        content = CatalogContent(CatalogItemName("牛乳"), CatalogItemUnit("本")),
-                        barcode = Barcode.Linked(Jan("4901234567894")),
-                        origin = CatalogOrigin.世帯独自,
-                    ),
+                name = ProductName("牛乳"),
+                barcode = Barcode.Linked(Jan("4901234567894")),
                 setting = StockingPolicy(ProductUnit("本"), MinimumStock(1)),
                 image = ProductImage.None,
                 status = ProductStatus.採用中,

@@ -1,16 +1,16 @@
-package net.brightroom.mindstock.domain.model.catalog.content
+package net.brightroom.mindstock.domain.model.inventory.product
 
 import kotlinx.serialization.Serializable
 import kotlin.jvm.JvmInline
 
 @Serializable
 @JvmInline
-value class CatalogItemUnit private constructor(
+value class ProductName private constructor(
     private val value: String,
 ) {
     init {
         require(value.isNotEmpty() && value.length <= MAX_LENGTH && value == value.trim()) {
-            "CatalogItemUnit must be 1..$MAX_LENGTH chars after trim"
+            "ProductName must be 1..$MAX_LENGTH chars after trim"
         }
     }
 
@@ -19,8 +19,8 @@ value class CatalogItemUnit private constructor(
     override fun toString(): String = value
 
     companion object {
-        const val MAX_LENGTH = 10
+        const val MAX_LENGTH = 60
 
-        operator fun invoke(raw: String): CatalogItemUnit = CatalogItemUnit(raw.trim())
+        operator fun invoke(raw: String): ProductName = ProductName(raw.trim())
     }
 }
