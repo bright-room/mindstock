@@ -13,7 +13,6 @@ object ProductsTable : Table("products") {
 
     val householdId = reference("household_id", HouseholdsTable.id, onDelete = ReferenceOption.RESTRICT)
     val name = varchar("name", 60)
-    val jan = varchar("jan", 13).nullable() // null = Barcode.Unlinked / 値 = Barcode.Linked
     val createdAt = datetime("created_at").defaultExpression(CurrentDateTime)
 
     init {

@@ -7,6 +7,7 @@ import net.brightroom.mindstock.domain.model.catalog.item.CatalogItemId
 import net.brightroom.mindstock.domain.model.household.HouseholdId
 import net.brightroom.mindstock.domain.model.inventory.product.Product
 import net.brightroom.mindstock.domain.model.inventory.product.ProductId
+import net.brightroom.mindstock.infrastructure.datasource.schemas.ProductBarcodesTable
 import net.brightroom.mindstock.infrastructure.datasource.schemas.ProductCatalogLinksTable
 import net.brightroom.mindstock.infrastructure.datasource.schemas.ProductRevisionsTable
 import net.brightroom.mindstock.infrastructure.datasource.schemas.ProductWantedEventsTable
@@ -73,7 +74,13 @@ class ProductRegisterDataSource(
             it[id] = product.id()
             it[ProductsTable.householdId] = householdId()
             it[name] = product.name()
-            it[jan] = product.barcode.toJanColumn()
+        }
+        val janValue = product.barcode.toJanColumn()
+        if (janValue != null) {
+            ProductBarcodesTable.insert {
+                it[productId] = product.id()
+                it[jan] = janValue
+            }
         }
         ProductRevisionsTable.insert {
             it[productId] = product.id()

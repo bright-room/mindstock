@@ -12,6 +12,7 @@ import net.brightroom.mindstock.domain.model.inventory.product.image.ProductImag
 import net.brightroom.mindstock.domain.model.inventory.product.setting.MinimumStock
 import net.brightroom.mindstock.domain.model.inventory.product.setting.ProductUnit
 import net.brightroom.mindstock.domain.model.inventory.product.setting.StockingPolicy
+import net.brightroom.mindstock.infrastructure.datasource.schemas.ProductBarcodesTable
 import net.brightroom.mindstock.infrastructure.datasource.schemas.ProductRevisionsTable
 import net.brightroom.mindstock.infrastructure.datasource.schemas.ProductsTable
 import org.jetbrains.exposed.v1.core.QueryAlias
@@ -19,13 +20,13 @@ import org.jetbrains.exposed.v1.core.ResultRow
 
 /**
  * products 行 + 最新 product_revisions 行(revSub alias)から Product を組み立てる。
- * jan(nullable)→ Barcode、image_ref(nullable)→ ProductImage を導出。
+ * product_barcodes LEFT JOIN の jan(LEFT JOIN 未マッチで null)→ Barcode、image_ref(nullable)→ ProductImage を導出。
  */
 internal fun ResultRow.toProduct(revSub: QueryAlias): Product =
     Product(
         id = ProductId(this[ProductsTable.id]),
         name = ProductName(this[ProductsTable.name]),
-        barcode = this[ProductsTable.jan]?.let { Barcode.Linked(Jan(it)) } ?: Barcode.Unlinked,
+        barcode = this.getOrNull(ProductBarcodesTable.jan)?.let { Barcode.Linked(Jan(it)) } ?: Barcode.Unlinked,
         setting =
             StockingPolicy(
                 ProductUnit(this[revSub[ProductRevisionsTable.unit]]),

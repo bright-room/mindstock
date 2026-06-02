@@ -9,6 +9,7 @@ import net.brightroom.mindstock.domain.model.inventory.product.Product
 import net.brightroom.mindstock.domain.model.inventory.product.ProductId
 import net.brightroom.mindstock.domain.model.inventory.product.ProductStatus
 import net.brightroom.mindstock.domain.model.inventory.product.Products
+import net.brightroom.mindstock.infrastructure.datasource.schemas.ProductBarcodesTable
 import net.brightroom.mindstock.infrastructure.datasource.schemas.ProductRevisionsTable
 import net.brightroom.mindstock.infrastructure.datasource.schemas.ProductsTable
 import org.jetbrains.exposed.v1.core.JoinType
@@ -78,6 +79,7 @@ class ProductDataSource(
 
         return ProductsTable
             .join(revSub, JoinType.INNER, onColumn = ProductsTable.id, otherColumn = revSub[ProductRevisionsTable.productId])
+            .join(ProductBarcodesTable, JoinType.LEFT, onColumn = ProductsTable.id, otherColumn = ProductBarcodesTable.productId)
             .selectAll()
             .where { (revSub[rnAlias] eq 1L) and where(revSub) }
             .map { row -> row.toProduct(revSub) }
