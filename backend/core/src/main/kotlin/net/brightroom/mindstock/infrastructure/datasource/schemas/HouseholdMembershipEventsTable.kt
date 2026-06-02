@@ -4,15 +4,15 @@ package net.brightroom.mindstock.infrastructure.datasource.schemas
 
 import net.brightroom.mindstock.domain.model.household.member.HouseholdMemberRole
 import org.jetbrains.exposed.v1.core.ReferenceOption
-import org.jetbrains.exposed.v1.datetime.CurrentTimestampWithTimeZone
-import org.jetbrains.exposed.v1.datetime.timestampWithTimeZone
+import org.jetbrains.exposed.v1.datetime.CurrentDateTime
+import org.jetbrains.exposed.v1.datetime.datetime
 
 object HouseholdMembershipEventsTable : HistoryTable("household_membership_events") {
     val householdId = reference("household_id", HouseholdsTable.id, onDelete = ReferenceOption.RESTRICT)
     val residentId = reference("resident_id", ResidentsTable.id, onDelete = ReferenceOption.RESTRICT)
     val role = enumerationByName("role", 20, HouseholdMemberRole::class)
     val status = varchar("status", 10) // 永続専用: 所属 / 除外(tombstone)
-    val recordedAt = timestampWithTimeZone("recorded_at").defaultExpression(CurrentTimestampWithTimeZone)
+    val recordedAt = datetime("recorded_at").defaultExpression(CurrentDateTime)
 
     init {
         index(false, householdId, residentId, id)

@@ -1,6 +1,7 @@
 package net.brightroom.mindstock.domain.model.inventory.stock.movement
 
 import io.kotest.matchers.shouldBe
+import kotlinx.datetime.LocalDateTime
 import net.brightroom.mindstock.domain.model.inventory.quantity.Quantity
 import net.brightroom.mindstock.domain.model.inventory.stock.movement.StockMovement.Consumption
 import net.brightroom.mindstock.domain.model.inventory.stock.movement.StockMovement.Correction
@@ -10,12 +11,21 @@ import net.brightroom.mindstock.domain.model.resident.identity.ResidentId
 import net.brightroom.mindstock.domain.model.resident.profile.DisplayName
 import net.brightroom.mindstock.domain.model.resident.profile.Profile
 import kotlin.test.Test
-import kotlin.time.Instant
 
 class StockMovementsTest {
     private fun actor() = Resident(ResidentId.create(), Profile(DisplayName("おや")))
 
-    private fun at(epochSeconds: Long) = OccurredAt(Instant.fromEpochSeconds(epochSeconds))
+    private fun at(epochSeconds: Long) =
+        OccurredAt(
+            LocalDateTime(
+                2026,
+                1,
+                1,
+                (epochSeconds / 3600).toInt(),
+                ((epochSeconds % 3600) / 60).toInt(),
+                (epochSeconds % 60).toInt(),
+            ),
+        )
 
     private fun persisted(id: Long) = MovementIdentity.Persisted(MovementId(id))
 

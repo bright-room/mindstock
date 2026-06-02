@@ -4,8 +4,8 @@ package net.brightroom.mindstock.infrastructure.datasource.schemas
 
 import net.brightroom.mindstock.domain.model.inventory.product.ProductStatus
 import org.jetbrains.exposed.v1.core.ReferenceOption
-import org.jetbrains.exposed.v1.datetime.CurrentTimestampWithTimeZone
-import org.jetbrains.exposed.v1.datetime.timestampWithTimeZone
+import org.jetbrains.exposed.v1.datetime.CurrentDateTime
+import org.jetbrains.exposed.v1.datetime.datetime
 
 object ProductRevisionsTable : HistoryTable("product_revisions") {
     val productId = reference("product_id", ProductsTable.id, onDelete = ReferenceOption.RESTRICT)
@@ -13,7 +13,7 @@ object ProductRevisionsTable : HistoryTable("product_revisions") {
     val minimumStock = integer("minimum_stock")
     val imageRef = varchar("image_ref", 512).nullable() // null = ProductImage.None
     val status = enumerationByName("status", 20, ProductStatus::class)
-    val recordedAt = timestampWithTimeZone("recorded_at").defaultExpression(CurrentTimestampWithTimeZone)
+    val recordedAt = datetime("recorded_at").defaultExpression(CurrentDateTime)
 
     init {
         index(false, productId, id)

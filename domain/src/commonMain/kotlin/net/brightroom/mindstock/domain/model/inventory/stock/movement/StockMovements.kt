@@ -21,7 +21,7 @@ data class StockMovements(
             list
                 .filterIsInstance<Correction>()
                 .groupBy { it.target }
-                // 同一 target に同 occurredAt の訂正が複数ある場合は list 出現順で最初の最大値を採用(実運用では Instant 衝突は起きない前提)
+                // 同一 target に同 occurredAt の訂正が複数ある場合は list 出現順で最初の最大値を採用(実運用では LocalDateTime(同時刻)衝突は起きない前提)
                 .mapValues { (_, corrections) -> corrections.maxBy { it.occurredAt() } }
         return list.sumOf { movement ->
             when (movement) {

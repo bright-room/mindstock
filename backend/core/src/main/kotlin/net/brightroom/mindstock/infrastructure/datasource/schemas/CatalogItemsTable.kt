@@ -2,13 +2,13 @@
 
 package net.brightroom.mindstock.infrastructure.datasource.schemas
 
-import org.jetbrains.exposed.v1.datetime.CurrentTimestampWithTimeZone
-import org.jetbrains.exposed.v1.datetime.timestampWithTimeZone
+import org.jetbrains.exposed.v1.datetime.CurrentDateTime
+import org.jetbrains.exposed.v1.datetime.datetime
 
 object CatalogItemsTable : AggregateRootTable("catalog_items") {
     val jan = varchar("jan", 13)
     val name = varchar("name", 60)
-    val createdAt = timestampWithTimeZone("created_at").defaultExpression(CurrentTimestampWithTimeZone)
+    val createdAt = datetime("created_at").defaultExpression(CurrentDateTime)
 
     init {
         uniqueIndex(jan)
