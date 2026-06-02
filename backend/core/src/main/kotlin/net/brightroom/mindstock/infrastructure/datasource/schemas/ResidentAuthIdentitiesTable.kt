@@ -4,10 +4,14 @@ package net.brightroom.mindstock.infrastructure.datasource.schemas
 
 import net.brightroom.mindstock.domain.model.resident.identity.auth.AuthProvider
 import org.jetbrains.exposed.v1.core.ReferenceOption
+import org.jetbrains.exposed.v1.core.Table
 import org.jetbrains.exposed.v1.datetime.CurrentDateTime
 import org.jetbrains.exposed.v1.datetime.datetime
 
-object ResidentAuthIdentitiesTable : HistoryTable("resident_auth_identities") {
+object ResidentAuthIdentitiesTable : Table("resident_auth_identities") {
+    val id = long("id").autoIncrement()
+    override val primaryKey = PrimaryKey(id)
+
     val residentId = reference("resident_id", ResidentsTable.id, onDelete = ReferenceOption.RESTRICT)
     val provider = enumerationByName("provider", 20, AuthProvider::class)
     val subject = varchar("subject", 255)

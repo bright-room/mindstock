@@ -4,10 +4,14 @@ package net.brightroom.mindstock.infrastructure.datasource.schemas
 
 import net.brightroom.mindstock.domain.model.household.member.HouseholdMemberRole
 import org.jetbrains.exposed.v1.core.ReferenceOption
+import org.jetbrains.exposed.v1.core.Table
 import org.jetbrains.exposed.v1.datetime.CurrentDateTime
 import org.jetbrains.exposed.v1.datetime.datetime
 
-object HouseholdMembershipEventsTable : HistoryTable("household_membership_events") {
+object HouseholdMembershipEventsTable : Table("household_membership_events") {
+    val id = long("id").autoIncrement()
+    override val primaryKey = PrimaryKey(id)
+
     val householdId = reference("household_id", HouseholdsTable.id, onDelete = ReferenceOption.RESTRICT)
     val residentId = reference("resident_id", ResidentsTable.id, onDelete = ReferenceOption.RESTRICT)
     val role = enumerationByName("role", 20, HouseholdMemberRole::class)
@@ -16,6 +20,7 @@ object HouseholdMembershipEventsTable : HistoryTable("household_membership_event
 
     init {
         index(false, householdId, residentId, id)
+        index(false, residentId, householdId, id)
     }
 
     const val STATUS_ACTIVE = "所属"

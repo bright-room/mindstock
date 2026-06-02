@@ -3,10 +3,14 @@
 package net.brightroom.mindstock.infrastructure.datasource.schemas
 
 import org.jetbrains.exposed.v1.core.ReferenceOption
+import org.jetbrains.exposed.v1.core.Table
 import org.jetbrains.exposed.v1.datetime.CurrentDateTime
 import org.jetbrains.exposed.v1.datetime.datetime
 
-object ResidentDisplayNamesTable : HistoryTable("resident_display_names") {
+object ResidentDisplayNamesTable : Table("resident_display_names") {
+    val id = long("id").autoIncrement()
+    override val primaryKey = PrimaryKey(id)
+
     val residentId = reference("resident_id", ResidentsTable.id, onDelete = ReferenceOption.RESTRICT)
     val displayName = varchar("display_name", 100)
     val recordedAt = datetime("recorded_at").defaultExpression(CurrentDateTime)

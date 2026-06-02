@@ -3,9 +3,13 @@
 package net.brightroom.mindstock.infrastructure.datasource.schemas
 
 import org.jetbrains.exposed.v1.core.ReferenceOption
+import org.jetbrains.exposed.v1.core.Table
 import org.jetbrains.exposed.v1.datetime.datetime
 
-object StockMovementsTable : HistoryTable("stock_movements") {
+object StockMovementsTable : Table("stock_movements") {
+    val id = long("id").autoIncrement()
+    override val primaryKey = PrimaryKey(id)
+
     val productId = reference("product_id", ProductsTable.id, onDelete = ReferenceOption.RESTRICT)
     val kind = varchar("kind", 20) // REPLENISHMENT / CONSUMPTION / CORRECTION
     val quantity = integer("quantity")

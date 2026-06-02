@@ -3,10 +3,14 @@
 package net.brightroom.mindstock.infrastructure.datasource.schemas
 
 import org.jetbrains.exposed.v1.core.ReferenceOption
+import org.jetbrains.exposed.v1.core.Table
 import org.jetbrains.exposed.v1.datetime.CurrentDateTime
 import org.jetbrains.exposed.v1.datetime.datetime
 
-object ProductWantedEventsTable : HistoryTable("product_wanted_events") {
+object ProductWantedEventsTable : Table("product_wanted_events") {
+    val id = long("id").autoIncrement()
+    override val primaryKey = PrimaryKey(id)
+
     val productId = reference("product_id", ProductsTable.id, onDelete = ReferenceOption.RESTRICT)
     val wanted = bool("wanted")
     val recordedAt = datetime("recorded_at").defaultExpression(CurrentDateTime)
