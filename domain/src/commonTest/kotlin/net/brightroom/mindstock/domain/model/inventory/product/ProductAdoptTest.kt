@@ -23,7 +23,7 @@ class ProductAdoptTest {
 
         val product = Product.adopt(catalogItem, ProductUnit("本"), MinimumStock(2))
 
-        product.name.invoke() shouldBe "明治おいしい牛乳"
+        product.name() shouldBe "明治おいしい牛乳"
         product.barcode shouldBe Barcode.Linked(Jan("4901234567894"))
         product.status shouldBe ProductStatus.採用中
         product.image shouldBe ProductImage.None

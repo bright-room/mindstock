@@ -19,4 +19,10 @@ class ProductNameTest {
     fun 最大長を超えると拒否する() {
         shouldThrow<IllegalArgumentException> { ProductName("あ".repeat(ProductName.MAX_LENGTH + 1)) }
     }
+
+    @Test
+    fun 最大長ちょうどは許容する() {
+        val name = "あ".repeat(ProductName.MAX_LENGTH)
+        ProductName(name).invoke() shouldBe name
+    }
 }
