@@ -21,6 +21,13 @@ data class Product(
 
     fun unarchive(): Product = Product(id, name, barcode, setting, image, ProductStatus.採用中)
 
+    fun changeUnit(unit: ProductUnit): Product = Product(id, name, barcode, StockingPolicy(unit, setting.minimumStock), image, status)
+
+    fun changeMinimum(minimumStock: MinimumStock): Product =
+        Product(id, name, barcode, StockingPolicy(setting.unit, minimumStock), image, status)
+
+    fun changeImage(image: ProductImage): Product = Product(id, name, barcode, setting, image, status)
+
     companion object {
         fun adopt(
             catalogItem: CatalogItem,
