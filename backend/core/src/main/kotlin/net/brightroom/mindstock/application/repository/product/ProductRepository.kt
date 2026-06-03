@@ -20,4 +20,7 @@ interface ProductRepository {
         householdId: HouseholdId,
         jan: Jan,
     ): Boolean
+
+    /** 現在手動希望中(最新 wanted イベントが true)の Product 一覧。空なら空 Products。 */
+    fun listWanted(householdId: HouseholdId): Products
 }
