@@ -14,7 +14,9 @@
   - `MindstockSession`(sealed。接続単位 immutable な認証セッション)
   - `MindstockAuthPlugin`(JWT 検証 → session 組み立て → `call.attributes` 格納)
   - `JwksKeyProvider`(`JwkProvider` → java-jwt `RSAKeyProvider` 橋渡し)
-  - `WsBearerTokenExtractor`(`Authorization` ヘッダ / `Sec-WebSocket-Protocol` から生 JWT 抽出)
+  - `AuthorizationHeader`(value class。`Authorization` ヘッダの Bearer 抽出を閉じ込め)
+  - `WebSocketProtocols`(value class。`Sec-WebSocket-Protocol` のエントリ判定 / bearer 抽出を閉じ込め、extractor と echo plugin で共用)
+  - `WsBearerTokenExtractor`(上記 value class への薄い委譲で生 JWT 抽出)
   - `WsSubprotocolEchoPlugin`(受理サブプロトコルの echo。bearer は echo しない)
   - `RequireRegisteredUserPlugin`(route subtree 境界。未登録 session を 401)
 - 上記の単体テスト(`testApplication` + テスト用 JWT 発行ヘルパー `TestKeyPair` / `TestJwks` / `TestJwtIssuer`)
@@ -45,19 +47,23 @@ backend/api/src/main/kotlin/net/brightroom/mindstock/configuration/auth/
   MindstockSession.kt          [新] sealed: Unregistered / Registered
   MindstockAuthPlugin.kt       [新] createApplicationPlugin。JWT 検証 + session 組み立て
   JwksKeyProvider.kt           [新] JwkProvider -> RSAKeyProvider 橋渡し
-  WsBearerTokenExtractor.kt    [新] Authorization / Sec-WebSocket-Protocol から token 抽出
-  WsSubprotocolEchoPlugin.kt   [新] mindstock.v1 のみ echo(bearer は echo しない)
+  AuthorizationHeader.kt       [新] value class。Bearer <token> 解析を閉じ込め
+  WebSocketProtocols.kt        [新] value class。has()/bearerToken()。extractor と echo plugin で共用
+  WsBearerTokenExtractor.kt    [新] value class への薄い委譲(Authorization 優先 -> WS protocol)
+  WsSubprotocolEchoPlugin.kt   [新] mindstock.v1 のみ echo(bearer は echo しない)。WebSocketProtocols 共用
   RequireRegisteredUserPlugin.kt [新] route subtree 境界。Unregistered を 401
 
 backend/api/src/test/kotlin/net/brightroom/mindstock/
   configuration/auth/
+    AuthorizationHeaderTest.kt     （純粋・Ktor 不要）
+    WebSocketProtocolsTest.kt      （純粋・Ktor 不要）
     MindstockAuthPluginTest.kt
     WsBearerTokenExtractorTest.kt
     WsSubprotocolEchoPluginTest.kt
     RequireRegisteredUserPluginTest.kt
   e2e/auth/                    （テスト用 JWT 基盤。e2e 通しは P5c だが基盤は P5b で用意）
     TestKeyPair.kt             [新] テスト用 RSA 鍵ペア
-    TestJwks.kt                [新] 鍵から JWKS JSON を生成し testApplication 内で host
+    TestJwks.kt                [新] 鍵から JWKS JSON を生成(P5c の e2e 用)
     TestJwtIssuer.kt           [新] sub / aud / iss / exp 指定で JWT 発行
 ```
 
@@ -263,20 +269,38 @@ val MindstockAuthPlugin =
 
 java-jwt の `Algorithm.RSA256(...)` が要求する `RSAKeyProvider` を、`auth0/jwk` の `JwkProvider` から橋渡しする。検証専用なので秘密鍵は返さない。旧実装をそのまま移植。
 
+### `AuthorizationHeader` / `WebSocketProtocols`(value class)
+
+ヘッダ解析ロジックを value class に閉じ込め、plugin / extractor 本体をメソッドチェーンから解放してレビューしやすく保つ(本書の改善点。旧 extractor は手続きが 1 メソッドに詰まっていた)。
+
+- `AuthorizationHeader(raw).bearerToken()`: `Bearer <token>` 形式なら token、それ以外は null(早期リターン)。
+- `WebSocketProtocols.from(call)` / `.from(rawHeaders)`: `Sec-WebSocket-Protocol` をカンマ分割・trim したエントリ集合にし、`has(protocol)`(echo 判定)と `bearerToken()`(`mindstock.bearer.<b64url>` を decode)を提供。`APP_PROTOCOL = "mindstock.v1"` / bearer prefix を内包し、**extractor と echo plugin で共用**(解析の二重実装を排除)。`from(List<String>)` 公開で純粋に単体検証可能。
+
 ### `WsBearerTokenExtractor`
 
-ブラウザの WebSocket API は `Authorization` ヘッダを設定できないため、`Sec-WebSocket-Protocol` のカスタムサブプロトコル `mindstock.bearer.<base64url(jwt)>` で token を運ぶ。テスト容易性と REST 互換のため `Authorization: Bearer <jwt>` も対応(優先)。旧実装をそのまま移植。
+ブラウザの WebSocket API は `Authorization` ヘッダを設定できないため、`Sec-WebSocket-Protocol` のカスタムサブプロトコル `mindstock.bearer.<base64url(jwt)>` で token を運ぶ。テスト容易性と REST 互換のため `Authorization: Bearer <jwt>` も対応(優先)。本体は value class への薄い委譲のみ:
+
+```kotlin
+fun extractRaw(call): String? = authorizationBearer(call) ?: webSocketProtocolBearer(call)
+```
 
 ```text
 抽出優先順位:
-  1. Authorization: Bearer <jwt>            → <jwt>
-  2. Sec-WebSocket-Protocol に mindstock.bearer.<b64url> → base64url decode した JWT
+  1. Authorization: Bearer <jwt>            → AuthorizationHeader(header).bearerToken()
+  2. Sec-WebSocket-Protocol に mindstock.bearer.<b64url> → WebSocketProtocols.from(call).bearerToken()
   3. どちらも無し                            → null
 ```
 
 ### `WsSubprotocolEchoPlugin`
 
-WHATWG WebSocket 仕様上、client が `Sec-WebSocket-Protocol` を提示したら server は受理した subprotocol を 1 つ echo しないとブラウザが接続を fail させる。`mindstock.v1`(アプリ識別子)のみ echo し、`mindstock.bearer.*`(JWT 含む)は **echo しない**(token を response header / 中間 proxy のログに漏らさない)。kotlinx-rpc の `rpc(path)` builder が subprotocol 応答制御 API を公開しないため、本 plugin が `call.response.header` を上書きする。旧実装をそのまま移植。
+WHATWG WebSocket 仕様上、client が `Sec-WebSocket-Protocol` を提示したら server は受理した subprotocol を 1 つ echo しないとブラウザが接続を fail させる。`mindstock.v1`(アプリ識別子)のみ echo し、`mindstock.bearer.*`(JWT 含む)は **echo しない**(token を response header / 中間 proxy のログに漏らさない)。kotlinx-rpc の `rpc(path)` builder が subprotocol 応答制御 API を公開しないため、本 plugin が `call.response.header` を上書きする。判定は早期リターン + `WebSocketProtocols.has(APP_PROTOCOL)` で表す:
+
+```kotlin
+if (!call.isWebSocketUpgrade()) return@onCall
+val protocols = WebSocketProtocols.from(call)
+if (!protocols.has(WebSocketProtocols.APP_PROTOCOL)) return@onCall
+call.response.header(SecWebSocketProtocol, WebSocketProtocols.APP_PROTOCOL)
+```
 
 ### `RequireRegisteredUserPlugin`(`createRouteScopedPlugin`)
 

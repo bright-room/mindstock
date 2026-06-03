@@ -4,9 +4,9 @@
 
 **Goal:** `:backend:api` に Zitadel access_token(JWT)を JWKS 検証して接続単位の認証セッションを組み立てる自作 Ktor plugin 群を新設する(配線は P5c)。
 
-**Architecture:** フルリプレイス前の実装(commit `11c9b31`)を土台に、新アーキへ移植する。`com.auth0:java-jwt` で JWT 検証 → `AuthIdentity` を組み立て → `ResidentRepository.findByAuth` で Resident 解決(not-found=未登録)→ sealed `MindstockSession`(`Registered`/`Unregistered`)を `call.attributes` に格納。WS は `Sec-WebSocket-Protocol: mindstock.bearer.<b64(jwt)>` で token を運ぶ。各部品は配線から独立し `testApplication` で単体検証する。
+**Architecture:** フルリプレイス前の実装(commit `11c9b31`)を土台に、新アーキへ移植する。`com.auth0:java-jwt` で JWT 検証 → `AuthIdentity` を組み立て → `ResidentRepository.findByAuth` で Resident 解決(not-found=未登録)→ sealed `MindstockSession`(`Registered`/`Unregistered`)を `call.attributes` に格納。WS は `Sec-WebSocket-Protocol: mindstock.bearer.<b64(jwt)>` で token を運ぶ。ヘッダ解析は `AuthorizationHeader` / `WebSocketProtocols` の value class に閉じ込め、各部品は薄い委譲 + 早期リターンで保つ。配線から独立し `testApplication`(と value class は純粋関数)で単体検証する。
 
-**Tech Stack:** Kotlin / Ktor server plugin API(`createApplicationPlugin` / `createRouteScopedPlugin`)/ `com.auth0:java-jwt` + `jwks-rsa` / kotlinx-coroutines / Exposed(`ResidentRepository`)/ Kotest FunSpec + `ktor-server-test-host` + mockk。
+**Tech Stack:** Kotlin(`@JvmInline value class`)/ Ktor server plugin API(`createApplicationPlugin` / `createRouteScopedPlugin`)/ `com.auth0:java-jwt` + `jwks-rsa` / kotlinx-coroutines / Exposed(`ResidentRepository`)/ Kotest FunSpec + `ktor-server-test-host` + mockk。
 
 **設計の出典:** `docs/superpowers/specs/2026-06-03-p5b-backend-auth-design.md`
 
@@ -14,22 +14,26 @@
 
 ## ファイル構成
 
-main:
-- Create: `backend/api/src/main/kotlin/net/brightroom/mindstock/configuration/auth/MindstockSession.kt` — sealed セッション + AttributeKey
-- Create: `backend/api/src/main/kotlin/net/brightroom/mindstock/configuration/auth/JwksKeyProvider.kt` — `JwkProvider` → `RSAKeyProvider` 橋渡し
-- Create: `backend/api/src/main/kotlin/net/brightroom/mindstock/configuration/auth/WsBearerTokenExtractor.kt` — token 抽出
-- Create: `backend/api/src/main/kotlin/net/brightroom/mindstock/configuration/auth/WsSubprotocolEchoPlugin.kt` — subprotocol echo
-- Create: `backend/api/src/main/kotlin/net/brightroom/mindstock/configuration/auth/MindstockAuthPlugin.kt` — JWT 検証 + session 組み立て
-- Create: `backend/api/src/main/kotlin/net/brightroom/mindstock/configuration/auth/RequireRegisteredUserPlugin.kt` — 登録済み境界
+main(すべて `backend/api/src/main/kotlin/net/brightroom/mindstock/configuration/auth/` 配下):
+- Create: `MindstockSession.kt` — sealed セッション + AttributeKey
+- Create: `JwksKeyProvider.kt` — `JwkProvider` → `RSAKeyProvider` 橋渡し
+- Create: `AuthorizationHeader.kt` — `Authorization` ヘッダ value class(Bearer 抽出を閉じ込め)
+- Create: `WebSocketProtocols.kt` — `Sec-WebSocket-Protocol` value class(エントリ判定 / bearer 抽出。extractor と echo plugin で共用)
+- Create: `WsBearerTokenExtractor.kt` — token 抽出の薄い委譲
+- Create: `WsSubprotocolEchoPlugin.kt` — subprotocol echo
+- Create: `RequireRegisteredUserPlugin.kt` — 登録済み境界
+- Create: `MindstockAuthPlugin.kt` — JWT 検証 + session 組み立て
 
 test:
-- Create: `backend/api/src/test/kotlin/net/brightroom/mindstock/e2e/auth/TestKeyPair.kt`
-- Create: `backend/api/src/test/kotlin/net/brightroom/mindstock/e2e/auth/TestJwks.kt`
-- Create: `backend/api/src/test/kotlin/net/brightroom/mindstock/e2e/auth/TestJwtIssuer.kt`
+- Create: `backend/api/src/test/kotlin/net/brightroom/mindstock/configuration/auth/AuthorizationHeaderTest.kt`
+- Create: `backend/api/src/test/kotlin/net/brightroom/mindstock/configuration/auth/WebSocketProtocolsTest.kt`
 - Create: `backend/api/src/test/kotlin/net/brightroom/mindstock/configuration/auth/WsBearerTokenExtractorTest.kt`
 - Create: `backend/api/src/test/kotlin/net/brightroom/mindstock/configuration/auth/WsSubprotocolEchoPluginTest.kt`
 - Create: `backend/api/src/test/kotlin/net/brightroom/mindstock/configuration/auth/RequireRegisteredUserPluginTest.kt`
 - Create: `backend/api/src/test/kotlin/net/brightroom/mindstock/configuration/auth/MindstockAuthPluginTest.kt`
+- Create: `backend/api/src/test/kotlin/net/brightroom/mindstock/e2e/auth/TestKeyPair.kt`
+- Create: `backend/api/src/test/kotlin/net/brightroom/mindstock/e2e/auth/TestJwks.kt`
+- Create: `backend/api/src/test/kotlin/net/brightroom/mindstock/e2e/auth/TestJwtIssuer.kt`
 
 `build.gradle.kts` 変更なし(`auth0.java.jwt` / `auth0.jwks.rsa` / `server.websockets` / `client.websockets` / `mockk` / `kotest` は classpath 済)。
 
@@ -112,7 +116,7 @@ git commit -m "feat(api): sealed MindstockSession(Registered/Unregistered)を追
 **Files:**
 - Create: `backend/api/src/main/kotlin/net/brightroom/mindstock/configuration/auth/JwksKeyProvider.kt`
 
-純粋な橋渡し。後続 Task 7 の MindstockAuthPlugin 経由で間接検証するため、本 Task はコンパイルのみ。
+純粋な橋渡し。後続 Task 9 の MindstockAuthPlugin 経由で間接検証するため、本 Task はコンパイルのみ。
 
 - [ ] **Step 1: 実装を書く**
 
@@ -156,11 +160,224 @@ git commit -m "feat(api): JwksKeyProvider(JwkProvider->RSAKeyProvider)を追加"
 
 ---
 
-## Task 3: `WsBearerTokenExtractor`(token 抽出)
+## Task 3: `AuthorizationHeader`(value class)
+
+**Files:**
+- Create: `backend/api/src/main/kotlin/net/brightroom/mindstock/configuration/auth/AuthorizationHeader.kt`
+- Test: `backend/api/src/test/kotlin/net/brightroom/mindstock/configuration/auth/AuthorizationHeaderTest.kt`
+
+`Authorization` ヘッダ生値をラップし `Bearer <token>` の抽出ロジックを閉じ込める。純粋関数なので Ktor 不要で単体検証できる。
+
+- [ ] **Step 1: 失敗するテストを書く**
+
+```kotlin
+package net.brightroom.mindstock.configuration.auth
+
+import io.kotest.core.spec.style.FunSpec
+import io.kotest.matchers.nulls.shouldBeNull
+import io.kotest.matchers.shouldBe
+
+class AuthorizationHeaderTest :
+    FunSpec({
+        test("Bearer <token> → token") {
+            AuthorizationHeader("Bearer abc.def.ghi").bearerToken() shouldBe "abc.def.ghi"
+        }
+
+        test("scheme は大文字小文字を無視") {
+            AuthorizationHeader("bearer abc").bearerToken() shouldBe "abc"
+        }
+
+        test("前後・scheme と credentials 間の余分な空白を trim") {
+            AuthorizationHeader("  Bearer   abc.def  ").bearerToken() shouldBe "abc.def"
+        }
+
+        test("Bearer 以外の scheme → null") {
+            AuthorizationHeader("Basic dXNlcjpwYXNz").bearerToken().shouldBeNull()
+        }
+
+        test("scheme のみ(credentials 無し)→ null") {
+            AuthorizationHeader("Bearer").bearerToken().shouldBeNull()
+        }
+
+        test("空文字 → null") {
+            AuthorizationHeader("").bearerToken().shouldBeNull()
+        }
+    })
+```
+
+- [ ] **Step 2: テストが失敗(コンパイル不可)することを確認**
+
+Run: `./gradlew :backend:api:test --tests "*AuthorizationHeaderTest*"`
+Expected: FAIL(`AuthorizationHeader` 未定義)
+
+- [ ] **Step 3: 実装を書く**
+
+```kotlin
+package net.brightroom.mindstock.configuration.auth
+
+import io.ktor.http.auth.AuthScheme
+import kotlin.jvm.JvmInline
+
+/**
+ * `Authorization` ヘッダの生値をラップし、Bearer token 抽出を閉じ込める。
+ */
+@JvmInline
+value class AuthorizationHeader(
+    private val raw: String,
+) {
+    /** `Bearer <token>` 形式なら token を返す。それ以外は null。 */
+    fun bearerToken(): String? {
+        val parts = raw.trim().split(" ", limit = 2)
+        if (parts.size != 2) return null
+        val (scheme, credentials) = parts
+        if (!scheme.equals(AuthScheme.Bearer, ignoreCase = true)) return null
+        return credentials.trim()
+    }
+}
+```
+
+- [ ] **Step 4: テストが通ることを確認**
+
+Run: `./gradlew :backend:api:test --tests "*AuthorizationHeaderTest*"`
+Expected: PASS(6 tests)
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add backend/api/src/main/kotlin/net/brightroom/mindstock/configuration/auth/AuthorizationHeader.kt \
+        backend/api/src/test/kotlin/net/brightroom/mindstock/configuration/auth/AuthorizationHeaderTest.kt
+git commit -m "feat(api): AuthorizationHeader value class(Bearer 抽出)を追加"
+```
+
+---
+
+## Task 4: `WebSocketProtocols`(value class・extractor と echo plugin で共用)
+
+**Files:**
+- Create: `backend/api/src/main/kotlin/net/brightroom/mindstock/configuration/auth/WebSocketProtocols.kt`
+- Test: `backend/api/src/test/kotlin/net/brightroom/mindstock/configuration/auth/WebSocketProtocolsTest.kt`
+
+`Sec-WebSocket-Protocol` ヘッダ群を「カンマ分割・trim 済みエントリ集合」として扱い、`has()`(echo 判定用)と `bearerToken()`(token 抽出用)を閉じ込める。`from(List<String>)` を公開して純粋に単体検証する。
+
+- [ ] **Step 1: 失敗するテストを書く**
+
+```kotlin
+package net.brightroom.mindstock.configuration.auth
+
+import io.kotest.core.spec.style.FunSpec
+import io.kotest.matchers.nulls.shouldBeNull
+import io.kotest.matchers.shouldBe
+import java.util.Base64
+
+class WebSocketProtocolsTest :
+    FunSpec({
+        fun protocols(vararg raw: String) = WebSocketProtocols.from(raw.toList())
+
+        fun b64(token: String): String = Base64.getUrlEncoder().withoutPadding().encodeToString(token.toByteArray())
+
+        test("has: 提示された protocol を検出") {
+            protocols("mindstock.v1, mindstock.bearer.x").has("mindstock.v1") shouldBe true
+        }
+
+        test("has: 提示されていない protocol は false") {
+            protocols("other.proto").has("mindstock.v1") shouldBe false
+        }
+
+        test("bearerToken: mindstock.bearer.<b64> を decode") {
+            val token = "abc.def.ghi"
+            protocols("mindstock.v1, mindstock.bearer.${b64(token)}").bearerToken() shouldBe token
+        }
+
+        test("bearerToken: bearer entry 無し → null") {
+            protocols("mindstock.v1, other.proto").bearerToken().shouldBeNull()
+        }
+
+        test("複数ヘッダ行・entry 間の空白を trim") {
+            val token = "abc"
+            WebSocketProtocols.from(listOf("mindstock.v1 ", " mindstock.bearer.${b64(token)}")).bearerToken() shouldBe token
+        }
+
+        test("bearerToken: 不正 base64 → null") {
+            protocols("mindstock.bearer.!!!notbase64!!!").bearerToken().shouldBeNull()
+        }
+    })
+```
+
+- [ ] **Step 2: テストが失敗(コンパイル不可)することを確認**
+
+Run: `./gradlew :backend:api:test --tests "*WebSocketProtocolsTest*"`
+Expected: FAIL(`WebSocketProtocols` 未定義)
+
+- [ ] **Step 3: 実装を書く**
+
+```kotlin
+package net.brightroom.mindstock.configuration.auth
+
+import io.ktor.http.HttpHeaders
+import io.ktor.server.application.ApplicationCall
+import java.nio.charset.StandardCharsets
+import java.util.Base64
+import kotlin.jvm.JvmInline
+
+/**
+ * `Sec-WebSocket-Protocol` ヘッダ群を「カンマ分割・trim 済みエントリ集合」として扱う。
+ * アプリプロトコル判定([has])と bearer token 抽出([bearerToken])を閉じ込め、
+ * [WsBearerTokenExtractor] と [WsSubprotocolEchoPlugin] で共用する。
+ */
+@JvmInline
+value class WebSocketProtocols private constructor(
+    private val entries: List<String>,
+) {
+    /** 指定 subprotocol が提示されているか。 */
+    fun has(protocol: String): Boolean = protocol in entries
+
+    /** `mindstock.bearer.<base64url(jwt)>` があれば decode した JWT を返す。無ければ null。 */
+    fun bearerToken(): String? {
+        val entry = entries.firstOrNull { it.startsWith(BEARER_PREFIX) } ?: return null
+        return decodeBase64Url(entry.removePrefix(BEARER_PREFIX))
+    }
+
+    companion object {
+        /** アプリプロトコル識別子(echo 対象)。 */
+        const val APP_PROTOCOL: String = "mindstock.v1"
+
+        /** JWT を運ぶ bearer subprotocol の prefix(echo してはならない)。 */
+        private const val BEARER_PREFIX: String = "mindstock.bearer."
+
+        fun from(call: ApplicationCall): WebSocketProtocols =
+            from(call.request.headers.getAll(HttpHeaders.SecWebSocketProtocol).orEmpty())
+
+        fun from(rawHeaders: List<String>): WebSocketProtocols =
+            WebSocketProtocols(rawHeaders.flatMap { it.split(",") }.map { it.trim() })
+
+        private fun decodeBase64Url(value: String): String? =
+            runCatching { String(Base64.getUrlDecoder().decode(value), StandardCharsets.UTF_8) }.getOrNull()
+    }
+}
+```
+
+- [ ] **Step 4: テストが通ることを確認**
+
+Run: `./gradlew :backend:api:test --tests "*WebSocketProtocolsTest*"`
+Expected: PASS(6 tests)
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add backend/api/src/main/kotlin/net/brightroom/mindstock/configuration/auth/WebSocketProtocols.kt \
+        backend/api/src/test/kotlin/net/brightroom/mindstock/configuration/auth/WebSocketProtocolsTest.kt
+git commit -m "feat(api): WebSocketProtocols value class(has/bearerToken)を追加"
+```
+
+---
+
+## Task 5: `WsBearerTokenExtractor`(薄い委譲)
 
 **Files:**
 - Create: `backend/api/src/main/kotlin/net/brightroom/mindstock/configuration/auth/WsBearerTokenExtractor.kt`
 - Test: `backend/api/src/test/kotlin/net/brightroom/mindstock/configuration/auth/WsBearerTokenExtractorTest.kt`
+
+解析ロジックは Task 3/4 の value class が持つ。本オブジェクトは「Authorization 優先 → WS protocol」の委譲のみ。テストは call からの取り出しと優先順位の結線確認に絞る(細かい解析ケースは value class 側でカバー済)。
 
 - [ ] **Step 1: 失敗するテストを書く**
 
@@ -205,16 +422,16 @@ class WsBearerTokenExtractorTest :
 
         fun b64(token: String): String = Base64.getUrlEncoder().withoutPadding().encodeToString(token.toByteArray())
 
-        test("auth header / Sec-WebSocket-Protocol どちらも無し → null") {
+        test("どちらも無し → null") {
             extractedTokenWith().shouldBeNull()
         }
 
-        test("Authorization: Bearer から token を返す") {
-            extractedTokenWith(authHeader = "Bearer abc.def.ghi") shouldBe "abc.def.ghi"
+        test("Authorization から抽出") {
+            extractedTokenWith(authHeader = "Bearer abc.def") shouldBe "abc.def"
         }
 
-        test("Sec-WebSocket-Protocol の mindstock.bearer から token を返す") {
-            val token = "abc.def.ghi"
+        test("Sec-WebSocket-Protocol から抽出") {
+            val token = "abc.def"
             extractedTokenWith(wsProtocol = "mindstock.v1, mindstock.bearer.${b64(token)}") shouldBe token
         }
 
@@ -224,22 +441,13 @@ class WsBearerTokenExtractorTest :
                 wsProtocol = "mindstock.v1, mindstock.bearer.${b64("ws.token")}",
             ) shouldBe "auth.token"
         }
-
-        test("Sec-WebSocket-Protocol に mindstock.bearer 無し → null") {
-            extractedTokenWith(wsProtocol = "mindstock.v1, other.proto").shouldBeNull()
-        }
-
-        test("entry 間の空白を trim する") {
-            val token = "abc"
-            extractedTokenWith(wsProtocol = "mindstock.v1 ,  mindstock.bearer.${b64(token)}") shouldBe token
-        }
     })
 ```
 
 - [ ] **Step 2: テストが失敗(コンパイル不可)することを確認**
 
 Run: `./gradlew :backend:api:test --tests "*WsBearerTokenExtractorTest*"`
-Expected: FAIL(`WsBearerTokenExtractor` 未定義でコンパイルエラー)
+Expected: FAIL(`WsBearerTokenExtractor` 未定義)
 
 - [ ] **Step 3: 実装を書く**
 
@@ -247,78 +455,56 @@ Expected: FAIL(`WsBearerTokenExtractor` 未定義でコンパイルエラー)
 package net.brightroom.mindstock.configuration.auth
 
 import io.ktor.http.HttpHeaders
-import io.ktor.http.auth.AuthScheme
 import io.ktor.server.application.ApplicationCall
 import io.ktor.server.request.header
-import java.nio.charset.StandardCharsets
-import java.util.Base64
 
 /**
- * RPC は WebSocket トランスポート上で動くが、Browser の WebSocket API は
- * Authorization ヘッダを設定できない。そのため `Sec-WebSocket-Protocol` の
- * カスタムサブプロトコル `mindstock.bearer.<base64url(jwt)>` で token を運ぶ。
- *
- * REST 互換性とテスト容易性のため Authorization ヘッダにも対応する(優先)。
+ * 生の JWT を取り出す。Browser の WebSocket API は Authorization ヘッダを付けられないため
+ * `Sec-WebSocket-Protocol` の `mindstock.bearer.<base64url(jwt)>` でも運ぶ。
+ * Authorization ヘッダを優先(REST 互換 / テスト容易性)。
  */
 object WsBearerTokenExtractor {
-    private const val WS_PROTOCOL_BEARER_PREFIX = "mindstock.bearer."
+    fun extractRaw(call: ApplicationCall): String? = authorizationBearer(call) ?: webSocketProtocolBearer(call)
 
-    /**
-     * Authorization ヘッダまたは Sec-WebSocket-Protocol から
-     * 生の JWT 文字列を取り出す。[MindstockAuthPlugin] 用。
-     */
-    fun extractRaw(call: ApplicationCall): String? {
-        call.request.header(HttpHeaders.Authorization)?.let { value ->
-            val parts = value.trim().split(" ", limit = 2)
-            if (parts.size == 2 && parts[0].equals(AuthScheme.Bearer, ignoreCase = true)) {
-                return parts[1].trim()
-            }
-        }
-        val protocols =
-            call.request.headers
-                .getAll(HttpHeaders.SecWebSocketProtocol)
-                .orEmpty()
-        val entries = protocols.flatMap { it.split(",") }.map { it.trim() }
-        val bearerEntry = entries.firstOrNull { it.startsWith(WS_PROTOCOL_BEARER_PREFIX) } ?: return null
-        val encoded = bearerEntry.removePrefix(WS_PROTOCOL_BEARER_PREFIX)
-        return runCatching {
-            String(Base64.getUrlDecoder().decode(encoded), StandardCharsets.UTF_8)
-        }.getOrNull()
+    private fun authorizationBearer(call: ApplicationCall): String? {
+        val header = call.request.header(HttpHeaders.Authorization) ?: return null
+        return AuthorizationHeader(header).bearerToken()
     }
+
+    private fun webSocketProtocolBearer(call: ApplicationCall): String? = WebSocketProtocols.from(call).bearerToken()
 }
 ```
 
 - [ ] **Step 4: テストが通ることを確認**
 
 Run: `./gradlew :backend:api:test --tests "*WsBearerTokenExtractorTest*"`
-Expected: PASS(6 tests)
+Expected: PASS(4 tests)
 
 - [ ] **Step 5: Commit**
 
 ```bash
 git add backend/api/src/main/kotlin/net/brightroom/mindstock/configuration/auth/WsBearerTokenExtractor.kt \
         backend/api/src/test/kotlin/net/brightroom/mindstock/configuration/auth/WsBearerTokenExtractorTest.kt
-git commit -m "feat(api): WsBearerTokenExtractor(Authorization/Sec-WebSocket-Protocol)を追加"
+git commit -m "feat(api): WsBearerTokenExtractor(value class への委譲)を追加"
 ```
 
 ---
 
-## Task 4: `WsSubprotocolEchoPlugin`(subprotocol echo)
+## Task 6: `WsSubprotocolEchoPlugin`(subprotocol echo)
 
 **Files:**
 - Create: `backend/api/src/main/kotlin/net/brightroom/mindstock/configuration/auth/WsSubprotocolEchoPlugin.kt`
 - Test: `backend/api/src/test/kotlin/net/brightroom/mindstock/configuration/auth/WsSubprotocolEchoPluginTest.kt`
 
-- [ ] **Step 1: 失敗するテストを書く**
+`WebSocketProtocols`(Task 4)を使い、早期リターンで「upgrade でなければ素通し / app protocol 未提示なら素通し / それ以外は echo」を表す。WS upgrade を testApplication で完結させるのは煩雑なため、`Upgrade: websocket` + `Sec-WebSocket-Protocol` ヘッダを付けた通常リクエストで応答ヘッダ書き込みを検証する。
 
-WS upgrade を testApplication で完結させるのは煩雑なため、`Upgrade: websocket` + `Sec-WebSocket-Protocol` ヘッダを手で付けた通常リクエストで onCall の応答ヘッダ書き込みを検証する(plugin は upgrade ヘッダの有無のみ見て response header を上書きする)。
+- [ ] **Step 1: 失敗するテストを書く**
 
 ```kotlin
 package net.brightroom.mindstock.configuration.auth
 
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
-import io.kotest.matchers.string.shouldContain
 import io.kotest.matchers.string.shouldNotContain
 import io.ktor.client.request.get
 import io.ktor.client.request.header
@@ -364,8 +550,7 @@ class WsSubprotocolEchoPluginTest :
 
         test("upgrade でない通常リクエストは素通し(echo しない)") {
             val res = probeWith(wsProtocol = "mindstock.v1")
-            (res.headers[HttpHeaders.SecWebSocketProtocol] ?: "").shouldNotContain("mindstock.v1")
-            res.headers[HttpHeaders.Upgrade] shouldBe null
+            (res.headers[HttpHeaders.SecWebSocketProtocol] ?: "") shouldNotContain "mindstock.v1"
         }
 
         test("mindstock.v1 を提示しない場合は echo しない") {
@@ -386,39 +571,33 @@ Expected: FAIL(`WsSubprotocolEchoPlugin` 未定義)
 package net.brightroom.mindstock.configuration.auth
 
 import io.ktor.http.HttpHeaders
+import io.ktor.server.application.ApplicationCall
 import io.ktor.server.application.createApplicationPlugin
 import io.ktor.server.response.header
 
 /**
- * WebSocket handshake で client が Sec-WebSocket-Protocol を提示してきた場合、
- * 受理した subprotocol を 1 つ response に echo しないと WHATWG WebSocket 仕様により
- * ブラウザは接続を fail させる。
+ * WHATWG WebSocket 仕様上、client が Sec-WebSocket-Protocol を提示したら server は
+ * 受理した subprotocol を 1 つ echo しないとブラウザが接続を fail させる。
  *
- * - `mindstock.v1` (アプリプロトコル識別子) は echo する。
- * - `mindstock.bearer.*` (JWT を含む) は echo しない。token を response header や
- *   中間 proxy のログに漏らさないため。
+ * - [WebSocketProtocols.APP_PROTOCOL] (mindstock.v1) のみ echo する。
+ * - bearer subprotocol (JWT を含む) は echo しない。token を response header や
+ *   中間 proxy のログに漏らさないため([WebSocketProtocols] は bearer を echo 対象に含めない)。
  *
- * kotlinx-rpc-krpc-ktor-server の `rpc(path)` builder は内部で `webSocket(...)` を呼ぶが、
- * subprotocol 応答を制御する API を公開していないため、本 plugin で response header を
- * 上書きする。Ktor の WebSockets plugin は upgrade 応答時に `call.response.headers` を
- * 取り込むので、上書きが Sec-WebSocket-Protocol 値として出力される。
+ * kotlinx-rpc-krpc-ktor-server の `rpc(path)` builder は subprotocol 応答制御 API を
+ * 公開しないため、本 plugin が response header を上書きする。
  */
 val WsSubprotocolEchoPlugin =
     createApplicationPlugin(name = "WsSubprotocolEcho") {
         onCall { call ->
-            val upgrade = call.request.headers[HttpHeaders.Upgrade]
-            if (upgrade == null || !upgrade.equals("websocket", ignoreCase = true)) return@onCall
-            val offered =
-                call.request.headers
-                    .getAll(HttpHeaders.SecWebSocketProtocol)
-                    ?.flatMap { it.split(",") }
-                    ?.map { it.trim() }
-                    .orEmpty()
-            if ("mindstock.v1" in offered) {
-                call.response.header(HttpHeaders.SecWebSocketProtocol, "mindstock.v1")
-            }
+            if (!call.isWebSocketUpgrade()) return@onCall
+            val protocols = WebSocketProtocols.from(call)
+            if (!protocols.has(WebSocketProtocols.APP_PROTOCOL)) return@onCall
+            call.response.header(HttpHeaders.SecWebSocketProtocol, WebSocketProtocols.APP_PROTOCOL)
         }
     }
+
+private fun ApplicationCall.isWebSocketUpgrade(): Boolean =
+    request.headers[HttpHeaders.Upgrade].equals("websocket", ignoreCase = true)
 ```
 
 - [ ] **Step 4: テストが通ることを確認**
@@ -436,7 +615,7 @@ git commit -m "feat(api): WsSubprotocolEchoPlugin(bearer は echo しない)を�
 
 ---
 
-## Task 5: `RequireRegisteredUserPlugin`(登録済み境界)
+## Task 7: `RequireRegisteredUserPlugin`(登録済み境界)
 
 **Files:**
 - Create: `backend/api/src/main/kotlin/net/brightroom/mindstock/configuration/auth/RequireRegisteredUserPlugin.kt`
@@ -478,12 +657,11 @@ class RequireRegisteredUserPluginTest :
         val identity = AuthIdentity(AuthProvider.ZITADEL, AuthSubject("sub"))
         val farFuture = Instant.fromEpochMilliseconds(Long.MAX_VALUE)
 
-        fun registered() =
-            MindstockSession.Registered(identity, ResidentId.create(), farFuture, Uuid.random())
+        fun registered() = MindstockSession.Registered(identity, ResidentId.create(), farFuture, Uuid.random())
 
         fun unregistered() = MindstockSession.Unregistered(identity, farFuture, Uuid.random())
 
-        suspend fun guardedStatusWith(sessionPlugin: (() -> Unit)? = null, session: MindstockSession? = null): HttpStatusCode {
+        suspend fun guardedStatusWith(session: MindstockSession?): HttpStatusCode {
             lateinit var status: HttpStatusCode
             testApplication {
                 application {
@@ -501,15 +679,15 @@ class RequireRegisteredUserPluginTest :
         }
 
         test("Registered → 200") {
-            guardedStatusWith(session = registered()) shouldBe HttpStatusCode.OK
+            guardedStatusWith(registered()) shouldBe HttpStatusCode.OK
         }
 
         test("Unregistered → 401") {
-            guardedStatusWith(session = unregistered()) shouldBe HttpStatusCode.Unauthorized
+            guardedStatusWith(unregistered()) shouldBe HttpStatusCode.Unauthorized
         }
 
         test("session 無し → 401") {
-            guardedStatusWith(session = null) shouldBe HttpStatusCode.Unauthorized
+            guardedStatusWith(null) shouldBe HttpStatusCode.Unauthorized
         }
     })
 ```
@@ -559,14 +737,14 @@ git commit -m "feat(api): RequireRegisteredUserPlugin(Registered のみ通過)�
 
 ---
 
-## Task 6: テスト用 JWT 基盤(TestKeyPair / TestJwks / TestJwtIssuer)
+## Task 8: テスト用 JWT 基盤(TestKeyPair / TestJwks / TestJwtIssuer)
 
 **Files:**
 - Create: `backend/api/src/test/kotlin/net/brightroom/mindstock/e2e/auth/TestKeyPair.kt`
 - Create: `backend/api/src/test/kotlin/net/brightroom/mindstock/e2e/auth/TestJwks.kt`
 - Create: `backend/api/src/test/kotlin/net/brightroom/mindstock/e2e/auth/TestJwtIssuer.kt`
 
-Task 7 が依存する。本 Task はテストヘルパーのみでプロダクションコードを伴わないため、TDD の赤段階は無く、Task 7 のテストで初めて使われる。コンパイル確認のみ。
+Task 9 が `TestKeyPair` / `TestJwtIssuer` を使う(`TestJwks` は P5c の e2e 用に用意)。テストヘルパーのみでプロダクションコードを伴わないため、TDD の赤段階は無くコンパイル確認のみ。
 
 - [ ] **Step 1: `TestKeyPair.kt` を書く**
 
@@ -689,13 +867,13 @@ git commit -m "test(api): テスト用 JWT 基盤(TestKeyPair/TestJwks/TestJwtIs
 
 ---
 
-## Task 7: `MindstockAuthPlugin`(JWT 検証 + session 組み立て)
+## Task 9: `MindstockAuthPlugin`(JWT 検証 + session 組み立て)
 
 **Files:**
 - Create: `backend/api/src/main/kotlin/net/brightroom/mindstock/configuration/auth/MindstockAuthPlugin.kt`
 - Test: `backend/api/src/test/kotlin/net/brightroom/mindstock/configuration/auth/MindstockAuthPluginTest.kt`
 
-Task 1〜6 の全部品を統合する中核。`testApplication` のインメモリエンジンには `JwkProviderBuilder(URL)` の実 HTTP fetch が届かないため、**`JwkProvider` を mockk で差し込む**(`TestKeyPair.publicKey` を返す)。署名・issuer・audience・exp の検証は本物の `verifier` がそのまま評価する。`residentRepository` も mockk。`TestJwks` は P5c の e2e 用に用意済(本 Task では未使用)。
+Task 1〜8 の全部品を統合する中核。`testApplication` のインメモリエンジンには `JwkProviderBuilder(URL)` の実 HTTP fetch が届かないため、**`JwkProvider` を mockk で差し込む**(`TestKeyPair.publicKey` を返す)。署名・issuer・audience・exp の検証は本物の `verifier` がそのまま評価する。`residentRepository` も mockk。
 
 - [ ] **Step 1: 失敗するテストを書く**
 
@@ -747,8 +925,7 @@ class MindstockAuthPluginTest :
                 every { provider.get(any<String>()) } returns jwk
             }
 
-        // capture: probe route で観測した session(または null)
-        // result: probe の HTTP status
+        // Pair<probe の HTTP status, probe route で観測した session(または null)>
         suspend fun runProbe(
             repo: ResidentRepository,
             authHeader: String?,
@@ -780,8 +957,7 @@ class MindstockAuthPluginTest :
 
         fun registeredRepo(residentId: ResidentId): ResidentRepository =
             mockk<ResidentRepository>().also {
-                every { it.findByAuth(any()) } returns
-                    Resident(residentId, Profile(DisplayName("Alice")))
+                every { it.findByAuth(any()) } returns Resident(residentId, Profile(DisplayName("Alice")))
             }
 
         fun unregisteredRepo(): ResidentRepository =
@@ -813,8 +989,7 @@ class MindstockAuthPluginTest :
 
         test("不正署名(別鍵)→ 401") {
             val otherKeys = KeyPairGenerator.getInstance("RSA").apply { initialize(2048) }.generateKeyPair()
-            val wrongAlg =
-                Algorithm.RSA256(otherKeys.public as RSAPublicKey, otherKeys.private as RSAPrivateKey)
+            val wrongAlg = Algorithm.RSA256(otherKeys.public as RSAPublicKey, otherKeys.private as RSAPrivateKey)
             val token = TestJwtIssuer.issue(subject = "sub", signWith = wrongAlg)
             val (status, _) = runProbe(registeredRepo(ResidentId.create()), "Bearer $token")
             status shouldBe HttpStatusCode.Unauthorized
@@ -963,14 +1138,14 @@ git commit -m "feat(api): MindstockAuthPlugin(JWT 検証 + sealed session 組み
 
 ---
 
-## Task 8: 全体検証(完了の定義)
+## Task 10: 全体検証(完了の定義)
 
 **Files:** なし(検証のみ)
 
 - [ ] **Step 1: backend:api の全テストを実行**
 
 Run: `./gradlew :backend:api:test`
-Expected: PASS(本 plan の 4 テストクラス含め全 green)
+Expected: PASS(本 plan の 6 テストクラス含め全 green)
 
 - [ ] **Step 2: spotless / lint(プロジェクト規約)**
 
