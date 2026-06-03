@@ -4,6 +4,7 @@ package net.brightroom.mindstock.infrastructure.datasource.product
 
 import net.brightroom.mindstock.application.repository.product.ProductRepository
 import net.brightroom.mindstock.domain.exception.ResourceNotFoundException
+import net.brightroom.mindstock.domain.model.barcode.Jan
 import net.brightroom.mindstock.domain.model.household.HouseholdId
 import net.brightroom.mindstock.domain.model.inventory.product.Product
 import net.brightroom.mindstock.domain.model.inventory.product.ProductId
@@ -53,6 +54,23 @@ class ProductDataSource(
                         (rev[ProductRevisionsTable.status] eq ProductStatus.アーカイブ済)
                 },
             )
+        }
+
+    override fun existsByJan(
+        householdId: HouseholdId,
+        jan: Jan,
+    ): Boolean =
+        transaction(database) {
+            ProductsTable
+                .join(
+                    ProductBarcodesTable,
+                    JoinType.INNER,
+                    onColumn = ProductsTable.id,
+                    otherColumn = ProductBarcodesTable.productId,
+                ).selectAll()
+                .where { (ProductsTable.householdId eq householdId()) and (ProductBarcodesTable.jan eq jan()) }
+                .empty()
+                .not()
         }
 
     /**
