@@ -25,7 +25,7 @@ class CatalogServiceTest :
         val jan = Jan("4901234567894")
 
         beforeTest {
-            clearMocks(catalogRepository, catalogRegisterRepository, gateway, answers = false)
+            clearMocks(catalogRepository, catalogRegisterRepository, gateway)
         }
 
         test("master にヒットしたら外部 API を呼ばない") {

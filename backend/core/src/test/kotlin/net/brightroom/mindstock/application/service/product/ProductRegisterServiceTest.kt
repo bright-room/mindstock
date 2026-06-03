@@ -30,7 +30,7 @@ class ProductRegisterServiceTest :
         val jan = Jan("4901234567894")
 
         beforeTest {
-            clearMocks(productRepository, productRegisterRepository, stockRepository, answers = false)
+            clearMocks(productRepository, productRegisterRepository, stockRepository)
         }
 
         test("採用済み JAN は DuplicateJanException で採用不可") {

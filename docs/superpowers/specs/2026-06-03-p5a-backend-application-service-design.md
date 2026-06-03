@@ -59,7 +59,7 @@ P4 から P5a に送られた要解決事項と、ブレストで確定した判
 
 ## モジュール / パッケージ構成
 
-```
+```text
 :backend:core
   application/
     service/

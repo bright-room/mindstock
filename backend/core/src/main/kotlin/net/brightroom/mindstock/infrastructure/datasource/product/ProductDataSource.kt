@@ -83,8 +83,10 @@ class ProductDataSource(
                 Products(emptyList())
             } else {
                 Products(
-                    productRows { _ ->
-                        (ProductsTable.householdId eq householdId()) and (ProductsTable.id inList wantedIds)
+                    productRows { rev ->
+                        (ProductsTable.householdId eq householdId()) and
+                            (ProductsTable.id inList wantedIds) and
+                            (rev[ProductRevisionsTable.status] eq ProductStatus.採用中)
                     },
                 )
             }
