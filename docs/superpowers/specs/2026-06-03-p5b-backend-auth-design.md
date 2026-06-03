@@ -67,7 +67,7 @@ backend/api/src/test/kotlin/net/brightroom/mindstock/
     TestJwtIssuer.kt           [新] sub / aud / iss / exp 指定で JWT 発行
 ```
 
-JWT / WS 系依存は classpath 済(`libs.auth0.java.jwt` / `libs.auth0.jwks.rsa` / `ktorLib.server.websockets` / `ktorLib.client.websockets`)。**唯一の `build.gradle.kts` 変更**は `:backend:api` への `implementation(libs.kotlinx.datetime)` 追加(`MindstockSession.exp: LocalDateTime` 用。`:shared` は datetime を `implementation` で持ち推移しないため)。
+依存はすべて classpath 済(`libs.auth0.java.jwt` / `libs.auth0.jwks.rsa` / `ktorLib.server.websockets` / `ktorLib.client.websockets`)。`exp` に使う `kotlin.time.Instant` は stdlib のため追加依存不要。**`build.gradle.kts` の変更は不要**。
 
 ## コンポーネント関連図
 
@@ -165,13 +165,13 @@ sequenceDiagram
 ```kotlin
 sealed interface MindstockSession {
     val identity: AuthIdentity     // JWT 検証成功時の AuthIdentity
-    val exp: LocalDateTime         // JWT の expiresAt を JST に変換。P5c の guard が LocalDateTime.now() と比較
+    val exp: Instant               // JWT の expiresAt。kotlin.time.Instant。P5c の guard が Clock.System.now() と比較
     val callId: Uuid               // 接続単位のトレース ID(構造化ログ用)
 
     /** JWT 有効だが Resident 未登録。register route でのみ通過を許す。 */
     data class Unregistered(
         override val identity: AuthIdentity,
-        override val exp: LocalDateTime,
+        override val exp: Instant,
         override val callId: Uuid,
     ) : MindstockSession
 
@@ -179,7 +179,7 @@ sealed interface MindstockSession {
     data class Registered(
         override val identity: AuthIdentity,
         val residentId: ResidentId,
-        override val exp: LocalDateTime,
+        override val exp: Instant,
         override val callId: Uuid,
     ) : MindstockSession
 }
@@ -231,7 +231,7 @@ val MindstockAuthPlugin =
             val decoded = runCatching { verifier.verify(token) }.getOrNull() ?: return@onCall call.respond(Unauthorized)
             val sub = decoded.subject?.takeIf { it.isNotBlank() } ?: return@onCall call.respond(Unauthorized)
             val expDate = decoded.expiresAt ?: return@onCall call.respond(Unauthorized)
-            val exp = expDate.toJstLocalDateTime()  // epoch millis -> JST LocalDateTime(:shared 慣行に合わせる)
+            val exp = Instant.fromEpochMilliseconds(expDate.time)  // java.util.Date -> kotlin.time.Instant
             val identity = AuthIdentity(AuthProvider.ZITADEL, AuthSubject(sub))
             val callId = Uuid.random()
 
@@ -251,9 +251,9 @@ val MindstockAuthPlugin =
 - `userRepository.findByAuthIdentity(...)?.id`(plugin 内 `newSuspendedTransaction`)→ `residentRepository.findByAuth(identity)` を `withContext(Dispatchers.IO)` で包み `runCatching` で not-found を吸収。
 - 戻り値を `MindstockSession`(nullable userId)から sealed 2 状態へ。
 - `database` 依存を撤去。
-- `exp` を `kotlinx.datetime.Instant`(非推奨)から `kotlinx.datetime.LocalDateTime`(JST)へ。JWT の `expiresAt`(`java.util.Date`)を private 拡張 `Date.toJstLocalDateTime()` で変換する。
+- `exp` を `kotlinx.datetime.Instant`(非推奨)から後継の **`kotlin.time.Instant`**(stdlib)へ。JWT の `expiresAt`(`java.util.Date`)を `Instant.fromEpochMilliseconds(expDate.time)` で変換する。
 
-> 時刻の慣行: 本プロジェクトは時刻を JST の `LocalDateTime` で扱い、現在時刻は `:shared` の `LocalDateTime.now()`(`kotlin.time.Clock.System.now().toLocalDateTime(TimeZone.JST)`)で得る。`kotlinx.datetime.Instant` は使わない。P5c の per-message guard は `LocalDateTime.now() > session.exp` で失効判定する。`Date.toJstLocalDateTime()` は同じ変換経路(`kotlin.time.Instant.fromEpochMilliseconds(...).toLocalDateTime(TimeZone.JST)`)を内部で使う。
+> 時刻型の選定: exp は「時間軸上の一点」なので壁掛け時計(`LocalDateTime`)ではなく `Instant` が適切。`kotlinx.datetime.Instant` は 0.8 で非推奨、後継は stdlib の `kotlin.time.Instant`(`@OptIn(ExperimentalTime::class)` 要)。stdlib なので **追加依存は不要**(`kotlinx-datetime` を backend:api に足す必要はない)。P5c の per-message guard は `kotlin.time.Clock.System.now() > session.exp` で失効判定する。なお壁掛け時刻が要る箇所(表示等)は別途 `:shared` の `LocalDateTime.now()`(JST)を使う。
 
 > 設計判断: `findByAuth` は新 DataSource では blocking な `transaction(database)`(P4 方針)。Ktor の `onCall` は suspend なので、blocking 呼び出しを `Dispatchers.IO` に逃がしてイベントループを塞がない。
 

@@ -35,41 +35,9 @@ test:
 - Create: `backend/api/src/test/kotlin/net/brightroom/mindstock/e2e/auth/TestJwks.kt`
 - Create: `backend/api/src/test/kotlin/net/brightroom/mindstock/e2e/auth/TestJwtIssuer.kt`
 
-build:
-- Modify: `backend/api/build.gradle.kts` — `implementation(libs.kotlinx.datetime)` を追加(`MindstockSession.exp: LocalDateTime` 用。`:shared` は datetime を `implementation` で持ち推移しないため backend:api に直接必要)
-
-その他の依存は classpath 済(`auth0.java.jwt` / `auth0.jwks.rsa` / `server.websockets` / `client.websockets` / `mockk` / `kotest`)。
+`build.gradle.kts` 変更なし(`auth0.java.jwt` / `auth0.jwks.rsa` / `server.websockets` / `client.websockets` / `mockk` / `kotest` は classpath 済。`exp` に使う `kotlin.time.Instant` は stdlib)。
 
 **ビルド確認コマンド:** `./gradlew :backend:api:compileKotlin` / テスト: `./gradlew :backend:api:test`
-
----
-
-## Task 0: `kotlinx-datetime` を `:backend:api` に追加
-
-**Files:**
-- Modify: `backend/api/build.gradle.kts`
-
-`MindstockSession.exp` を `kotlinx.datetime.LocalDateTime` で持つため、backend:api の compile classpath に kotlinx-datetime が要る(`:shared` は `implementation` 依存なので推移しない)。
-
-- [ ] **Step 1: 依存を追加**
-
-`backend/api/build.gradle.kts` の `dependencies { ... }` 内、`implementation(projects.shared)` の直後あたりに 1 行追加する:
-
-```kotlin
-    implementation(libs.kotlinx.datetime)
-```
-
-- [ ] **Step 2: 依存解決を確認**
-
-Run: `./gradlew :backend:api:dependencies --configuration compileClasspath | grep kotlinx-datetime`
-Expected: `org.jetbrains.kotlinx:kotlinx-datetime` が出力される
-
-- [ ] **Step 3: Commit**
-
-```bash
-git add backend/api/build.gradle.kts
-git commit -m "build(api): kotlinx-datetime を追加(MindstockSession.exp 用)"
-```
 
 ---
 
@@ -86,9 +54,10 @@ git commit -m "build(api): kotlinx-datetime を追加(MindstockSession.exp 用)"
 package net.brightroom.mindstock.configuration.auth
 
 import io.ktor.util.AttributeKey
-import kotlinx.datetime.LocalDateTime
 import net.brightroom.mindstock.domain.model.resident.identity.ResidentId
 import net.brightroom.mindstock.domain.model.resident.identity.auth.AuthIdentity
+import kotlin.time.ExperimentalTime
+import kotlin.time.Instant
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
@@ -97,24 +66,24 @@ import kotlin.uuid.Uuid
  * 接続単位で immutable。
  *
  * - [identity]: JWT 検証成功時に組み立てた AuthIdentity
- * - [exp]: JWT の expiresAt を JST に変換した値。P5c の per-message guard が
- *   `LocalDateTime.now()`(:shared 拡張)と比較して失効判定する。
- *   kotlinx.datetime.Instant は非推奨のため LocalDateTime(JST)で保持する。
+ * - [exp]: JWT の expiresAt(時間軸上の一点)。P5c の per-message guard が
+ *   `kotlin.time.Clock.System.now()` と比較して失効判定する。
+ *   kotlinx.datetime.Instant は非推奨のため後継の kotlin.time.Instant を使う。
  * - [callId]: 接続単位のトレース ID。構造化ログに紐付ける
  *
  * 「JWT 有効だが Resident 未登録」を nullable で表さず sealed 2 状態で表現する
  * (nullable 戻り値禁止原則。承認済)。
  */
-@OptIn(ExperimentalUuidApi::class)
+@OptIn(ExperimentalUuidApi::class, ExperimentalTime::class)
 sealed interface MindstockSession {
     val identity: AuthIdentity
-    val exp: LocalDateTime
+    val exp: Instant
     val callId: Uuid
 
     /** JWT 有効だが Resident 未登録。register route でのみ通過を許す。 */
     data class Unregistered(
         override val identity: AuthIdentity,
-        override val exp: LocalDateTime,
+        override val exp: Instant,
         override val callId: Uuid,
     ) : MindstockSession
 
@@ -122,7 +91,7 @@ sealed interface MindstockSession {
     data class Registered(
         override val identity: AuthIdentity,
         val residentId: ResidentId,
-        override val exp: LocalDateTime,
+        override val exp: Instant,
         override val callId: Uuid,
     ) : MindstockSession
 }
@@ -671,11 +640,12 @@ import io.ktor.server.routing.get
 import io.ktor.server.routing.route
 import io.ktor.server.routing.routing
 import io.ktor.server.testing.testApplication
-import kotlinx.datetime.LocalDateTime
 import net.brightroom.mindstock.domain.model.resident.identity.ResidentId
 import net.brightroom.mindstock.domain.model.resident.identity.auth.AuthIdentity
 import net.brightroom.mindstock.domain.model.resident.identity.auth.AuthProvider
 import net.brightroom.mindstock.domain.model.resident.identity.auth.AuthSubject
+import kotlin.time.ExperimentalTime
+import kotlin.time.Instant
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
@@ -685,12 +655,12 @@ private fun stubSessionPlugin(session: MindstockSession) =
         onCall { call -> call.attributes.put(MindstockSessionKey, session) }
     }
 
-@OptIn(ExperimentalUuidApi::class)
+@OptIn(ExperimentalUuidApi::class, ExperimentalTime::class)
 class RequireRegisteredUserPluginTest :
     FunSpec({
         val identity = AuthIdentity(AuthProvider.ZITADEL, AuthSubject("sub"))
         // 本 plugin は exp を見ないため任意の値でよい(失効判定は P5c の guard)。
-        val farFuture = LocalDateTime(9999, 12, 31, 23, 59, 59)
+        val farFuture = Instant.DISTANT_FUTURE
 
         fun registered() = MindstockSession.Registered(identity, ResidentId.create(), farFuture, Uuid.random())
 
@@ -1072,15 +1042,10 @@ import io.ktor.server.application.createApplicationPlugin
 import io.ktor.server.response.respond
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import kotlinx.datetime.LocalDateTime
-import kotlinx.datetime.TimeZone
-import kotlinx.datetime.toLocalDateTime
 import net.brightroom.mindstock.application.repository.resident.ResidentRepository
 import net.brightroom.mindstock.domain.model.resident.identity.auth.AuthIdentity
 import net.brightroom.mindstock.domain.model.resident.identity.auth.AuthProvider
 import net.brightroom.mindstock.domain.model.resident.identity.auth.AuthSubject
-import net.brightroom.mindstock.extensions.kotlinx.datetime.JST
-import java.util.Date
 import kotlin.time.Instant
 import kotlin.uuid.Uuid
 
@@ -1144,7 +1109,7 @@ val MindstockAuthPlugin =
                 call.respond(HttpStatusCode.Unauthorized)
                 return@onCall
             }
-            val exp = expDate.toJstLocalDateTime()
+            val exp = Instant.fromEpochMilliseconds(expDate.time)  // java.util.Date -> kotlin.time.Instant
             val identity = AuthIdentity(AuthProvider.ZITADEL, AuthSubject(sub))
             val callId = Uuid.random()
 
@@ -1161,15 +1126,6 @@ val MindstockAuthPlugin =
             call.attributes.put(MindstockSessionKey, session)
         }
     }
-
-/**
- * JWT の `expiresAt`(epoch millis の [Date])を JST の [LocalDateTime] に変換する。
- * 現在時刻取得([net.brightroom.mindstock.extensions.kotlinx.datetime.now])と同じ
- * 変換経路(kotlin.time.Instant -> JST LocalDateTime)を使い、P5c の `LocalDateTime.now()`
- * との比較が同じ時刻系で行えるようにする。
- */
-private fun Date.toJstLocalDateTime(): LocalDateTime =
-    Instant.fromEpochMilliseconds(time).toLocalDateTime(TimeZone.JST)
 ```
 
 - [ ] **Step 4: テストが通ることを確認**
@@ -1220,5 +1176,5 @@ git commit -m "style(api): spotless apply" || echo "no changes"
 - `JwkProviderBuilder(URL(jwksUrl)).cached(10, 1, HOURS).rateLimited(10, 1, MINUTES).build()` を構築し plugin config に渡す
 - `application.yaml` の `external.auth.{issuer,audience,jwks-url}` 読み込み + `Environment` 連携
 - plugin install 順(`WsSubprotocolEchoPlugin` → `MindstockAuthPlugin`)と Routing(register route は `RequireRegisteredUserPlugin` 非適用)
-- per-message `session.exp` 再チェックガード `tx()`(`RpcError`/`RpcResult` 翻訳込み)
+- per-message `session.exp` 再チェックガード `tx()`(`kotlin.time.Clock.System.now() > session.exp` で失効判定、`RpcError`/`RpcResult` 翻訳込み)
 - Controller での `MindstockSession` 消費(`when` 網羅・`Registered.residentId` を Service へ)
