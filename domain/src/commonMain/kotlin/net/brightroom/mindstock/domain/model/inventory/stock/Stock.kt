@@ -11,6 +11,7 @@ import net.brightroom.mindstock.domain.model.inventory.stock.movement.MovementId
 import net.brightroom.mindstock.domain.model.inventory.stock.movement.Note
 import net.brightroom.mindstock.domain.model.inventory.stock.movement.OccurredAt
 import net.brightroom.mindstock.domain.model.inventory.stock.movement.Reason
+import net.brightroom.mindstock.domain.model.inventory.stock.movement.StockMovement
 import net.brightroom.mindstock.domain.model.inventory.stock.movement.StockMovement.Consumption
 import net.brightroom.mindstock.domain.model.inventory.stock.movement.StockMovement.Correction
 import net.brightroom.mindstock.domain.model.inventory.stock.movement.StockMovement.Replenishment
@@ -81,4 +82,7 @@ data class Stock(
     }
 
     fun unarchive(): Stock = Stock(product.unarchive(), movements)
+
+    /** 直近に追記した movement(replenish/consume/correct 後にこれを永続化する)。movement が無ければ ResourceNotFoundException。 */
+    fun latestMovement(): StockMovement = movements.list.lastOrNull() ?: throw ResourceNotFoundException("no movement")
 }

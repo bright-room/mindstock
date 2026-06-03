@@ -1,5 +1,6 @@
 package net.brightroom.mindstock.application.repository.product
 
+import net.brightroom.mindstock.domain.model.barcode.Jan
 import net.brightroom.mindstock.domain.model.household.HouseholdId
 import net.brightroom.mindstock.domain.model.inventory.product.Product
 import net.brightroom.mindstock.domain.model.inventory.product.ProductId
@@ -13,4 +14,13 @@ interface ProductRepository {
 
     /** アーカイブ済の商品一覧。 */
     fun listArchivedByHousehold(householdId: HouseholdId): Products
+
+    /** 世帯内に当該 JAN を持つ Product が存在するか(採用中+アーカイブ済を対象)。重複登録防止に使う。 */
+    fun existsByJan(
+        householdId: HouseholdId,
+        jan: Jan,
+    ): Boolean
+
+    /** 現在手動希望中(最新 wanted イベントが true)の Product 一覧。空なら空 Products。 */
+    fun listWanted(householdId: HouseholdId): Products
 }

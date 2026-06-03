@@ -79,6 +79,11 @@ data class Household(
         return Household(id, profile, members.remove(by))
     }
 
+    /** 招待発行/失効などの世帯管理操作の認可。世帯管理 capability を持たなければ OwnerRequiredException。 */
+    fun requireCanManage(by: ResidentId) {
+        requireCapability(by, HouseholdCapability.世帯管理)
+    }
+
     private fun requireCapability(
         by: ResidentId,
         capability: HouseholdCapability,

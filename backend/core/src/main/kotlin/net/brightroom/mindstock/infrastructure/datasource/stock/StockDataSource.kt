@@ -9,6 +9,7 @@ import net.brightroom.mindstock.domain.model.household.HouseholdId
 import net.brightroom.mindstock.domain.model.inventory.product.ProductId
 import net.brightroom.mindstock.domain.model.inventory.stock.Stock
 import net.brightroom.mindstock.domain.model.inventory.stock.Stocks
+import net.brightroom.mindstock.domain.model.inventory.stock.movement.MovementId
 import net.brightroom.mindstock.domain.model.inventory.stock.movement.StockMovements
 import net.brightroom.mindstock.domain.model.resident.Resident
 import net.brightroom.mindstock.domain.model.resident.identity.ResidentId
@@ -24,6 +25,7 @@ import org.jetbrains.exposed.v1.core.and
 import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.core.inList
 import org.jetbrains.exposed.v1.jdbc.Database
+import org.jetbrains.exposed.v1.jdbc.select
 import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import kotlin.uuid.Uuid
@@ -36,6 +38,19 @@ class StockDataSource(
         transaction(database) {
             val product = productDataSource.findById(productId)
             Stock(product, loadMovements(productId))
+        }
+
+    override fun findByMovement(movementId: MovementId): Stock =
+        transaction(database) {
+            val productUuid =
+                StockMovementsTable
+                    .select(StockMovementsTable.productId)
+                    .where { StockMovementsTable.id eq movementId() }
+                    .firstOrNull()
+                    ?.get(StockMovementsTable.productId)
+                    ?: throw ResourceNotFoundException("movement not found: $movementId")
+            val productId = ProductId(productUuid)
+            Stock(productDataSource.findById(productId), loadMovements(productId))
         }
 
     override fun listByHousehold(householdId: HouseholdId): Stocks =
