@@ -28,6 +28,10 @@ class WebSocketProtocolsTest :
             protocols("mindstock.v1, other.proto").bearerToken().shouldBeNull()
         }
 
+        test("bearerToken: bearer entry が複数(曖昧)→ null") {
+            protocols("mindstock.bearer.${b64("a")}, mindstock.bearer.${b64("b")}").bearerToken().shouldBeNull()
+        }
+
         test("複数ヘッダ行・entry 間の空白を trim") {
             val token = "abc"
             WebSocketProtocols.from(listOf("mindstock.v1 ", " mindstock.bearer.${b64(token)}")).bearerToken() shouldBe token

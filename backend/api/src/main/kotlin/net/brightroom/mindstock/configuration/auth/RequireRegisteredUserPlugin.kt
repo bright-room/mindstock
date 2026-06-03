@@ -13,8 +13,7 @@ val RequireRegisteredUserPlugin =
     createRouteScopedPlugin(name = "RequireRegisteredUser") {
         onCall { call ->
             val session = call.attributes.getOrNull(MindstockSessionKey)
-            if (session !is MindstockSession.Registered) {
-                call.respond(HttpStatusCode.Unauthorized)
-            }
+            if (session is MindstockSession.Registered) return@onCall
+            call.respond(HttpStatusCode.Unauthorized)
         }
     }

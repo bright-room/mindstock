@@ -149,8 +149,8 @@ class MindstockAuthPluginTest :
 
         test("findByAuth が ResourceNotFoundException 以外を投げたら Unregistered に降格しない(2xx にならない)") {
             val brokenRepo =
-                mockk<net.brightroom.mindstock.application.repository.resident.ResidentRepository>().also {
-                    io.mockk.every { it.findByAuth(any()) } throws RuntimeException("db down")
+                mockk<ResidentRepository>().also {
+                    every { it.findByAuth(any()) } throws RuntimeException("db down")
                 }
             val token = TestJwtIssuer.issue(subject = "sub")
             val (status, session) = runProbe(brokenRepo, "Bearer $token")

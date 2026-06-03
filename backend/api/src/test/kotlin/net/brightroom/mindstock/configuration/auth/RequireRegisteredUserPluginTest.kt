@@ -15,6 +15,7 @@ import net.brightroom.mindstock.domain.model.resident.identity.ResidentId
 import net.brightroom.mindstock.domain.model.resident.identity.auth.AuthIdentity
 import net.brightroom.mindstock.domain.model.resident.identity.auth.AuthProvider
 import net.brightroom.mindstock.domain.model.resident.identity.auth.AuthSubject
+import java.util.concurrent.atomic.AtomicInteger
 import kotlin.time.ExperimentalTime
 import kotlin.time.Instant
 import kotlin.uuid.ExperimentalUuidApi
@@ -67,9 +68,7 @@ class RequireRegisteredUserPluginTest :
         }
 
         test("Unregistered: 保護ルートのハンドラは実行されない(バイパスしない)") {
-            val handlerRuns =
-                java.util.concurrent.atomic
-                    .AtomicInteger(0)
+            val handlerRuns = AtomicInteger(0)
             testApplication {
                 application {
                     install(stubSessionPlugin(unregistered()))

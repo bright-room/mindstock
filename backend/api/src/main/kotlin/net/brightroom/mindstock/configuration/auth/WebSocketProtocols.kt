@@ -18,10 +18,14 @@ value class WebSocketProtocols private constructor(
     /** 指定 subprotocol が提示されているか。 */
     fun has(protocol: String): Boolean = protocol in entries
 
-    /** `mindstock.bearer.<base64url(jwt)>` があれば decode した JWT を返す。無ければ null。 */
+    /**
+     * `mindstock.bearer.<base64url(jwt)>` がちょうど 1 件あれば decode した JWT を返す。
+     * 無い、または複数あって曖昧な場合は null(認証境界では曖昧な資格情報を受理しない)。
+     */
     fun bearerToken(): String? {
-        val entry = entries.firstOrNull { it.startsWith(BEARER_PREFIX) } ?: return null
-        return decodeBase64Url(entry.removePrefix(BEARER_PREFIX))
+        val bearerEntries = entries.filter { it.startsWith(BEARER_PREFIX) }
+        if (bearerEntries.size != 1) return null
+        return decodeBase64Url(bearerEntries.single().removePrefix(BEARER_PREFIX))
     }
 
     companion object {
