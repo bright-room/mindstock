@@ -65,4 +65,26 @@ class RequireRegisteredUserPluginTest :
         test("session 無し → 401") {
             guardedStatusWith(null) shouldBe HttpStatusCode.Unauthorized
         }
+
+        test("Unregistered: 保護ルートのハンドラは実行されない(バイパスしない)") {
+            val handlerRuns =
+                java.util.concurrent.atomic
+                    .AtomicInteger(0)
+            testApplication {
+                application {
+                    install(stubSessionPlugin(unregistered()))
+                    routing {
+                        route("/guarded") {
+                            install(RequireRegisteredUserPlugin)
+                            get {
+                                handlerRuns.incrementAndGet()
+                                call.respondText("ok")
+                            }
+                        }
+                    }
+                }
+                client.get("/guarded").status shouldBe HttpStatusCode.Unauthorized
+            }
+            handlerRuns.get() shouldBe 0
+        }
     })

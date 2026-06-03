@@ -12,6 +12,7 @@ import io.ktor.server.response.respond
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import net.brightroom.mindstock.application.repository.resident.ResidentRepository
+import net.brightroom.mindstock.domain.exception.ResourceNotFoundException
 import net.brightroom.mindstock.domain.model.resident.identity.auth.AuthIdentity
 import net.brightroom.mindstock.domain.model.resident.identity.auth.AuthProvider
 import net.brightroom.mindstock.domain.model.resident.identity.auth.AuthSubject
@@ -38,7 +39,8 @@ class MindstockAuthConfig {
  * 6. token 値を含む `Sec-WebSocket-Protocol` は response header に echo しない([WsSubprotocolEchoPlugin])
  *
  * 「JWT 有効だが Resident 未登録」は [ResidentRepository.findByAuth] の
- * ResourceNotFoundException を runCatching で吸収し [MindstockSession.Unregistered] にする。
+ * [ResourceNotFoundException] のみ吸収し [MindstockSession.Unregistered] にする。
+ * それ以外の例外(インフラ障害等)は握り潰さず伝播させる。
  * findByAuth は blocking JDBC transaction なので Dispatchers.IO に逃がす。
  */
 val MindstockAuthPlugin =
@@ -84,7 +86,11 @@ val MindstockAuthPlugin =
 
             val resident =
                 withContext(Dispatchers.IO) {
-                    runCatching { residentRepository.findByAuth(identity) }.getOrNull()
+                    try {
+                        residentRepository.findByAuth(identity)
+                    } catch (notFound: ResourceNotFoundException) {
+                        null
+                    }
                 }
             val session =
                 if (resident != null) {

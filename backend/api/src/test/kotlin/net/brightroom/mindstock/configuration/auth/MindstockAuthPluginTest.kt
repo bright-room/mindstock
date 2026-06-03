@@ -134,4 +134,28 @@ class MindstockAuthPluginTest :
             val (status, _) = runProbe(registeredRepo(ResidentId.create()), "Bearer $token")
             status shouldBe HttpStatusCode.Unauthorized
         }
+
+        test("sub 空 → 401") {
+            val token = TestJwtIssuer.issue(subject = "")
+            val (status, _) = runProbe(registeredRepo(ResidentId.create()), "Bearer $token")
+            status shouldBe HttpStatusCode.Unauthorized
+        }
+
+        test("exp 欠落 → 401") {
+            val token = TestJwtIssuer.issue(subject = "sub", expiresAt = null)
+            val (status, _) = runProbe(registeredRepo(ResidentId.create()), "Bearer $token")
+            status shouldBe HttpStatusCode.Unauthorized
+        }
+
+        test("findByAuth が ResourceNotFoundException 以外を投げたら Unregistered に降格しない(2xx にならない)") {
+            val brokenRepo =
+                mockk<net.brightroom.mindstock.application.repository.resident.ResidentRepository>().also {
+                    io.mockk.every { it.findByAuth(any()) } throws RuntimeException("db down")
+                }
+            val token = TestJwtIssuer.issue(subject = "sub")
+            val (status, session) = runProbe(brokenRepo, "Bearer $token")
+            // インフラ障害は握り潰さない: Unregistered セッションを作らず、成功応答も返さない。
+            session shouldBe null
+            (status.value >= 500) shouldBe true
+        }
     })

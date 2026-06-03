@@ -18,7 +18,7 @@ object TestJwtIssuer {
         issuer: String = DEFAULT_ISSUER,
         audience: String = DEFAULT_AUDIENCE,
         issuedAt: Instant = Instant.now(),
-        expiresAt: Instant = issuedAt.plusSeconds(3600),
+        expiresAt: Instant? = issuedAt.plusSeconds(3600),
         signWith: Algorithm = Algorithm.RSA256(TestKeyPair.publicKey, TestKeyPair.privateKey),
         kid: String = TestKeyPair.KID,
     ): String =
@@ -29,6 +29,6 @@ object TestJwtIssuer {
             .withAudience(audience)
             .withSubject(subject)
             .withIssuedAt(Date.from(issuedAt))
-            .withExpiresAt(Date.from(expiresAt))
+            .apply { if (expiresAt != null) withExpiresAt(Date.from(expiresAt)) }
             .sign(signWith)
 }
