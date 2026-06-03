@@ -253,7 +253,7 @@ val MindstockAuthPlugin =
 - `database` 依存を撤去。
 - `exp` を `kotlinx.datetime.Instant`(非推奨)から後継の **`kotlin.time.Instant`**(stdlib)へ。JWT の `expiresAt`(`java.util.Date`)を `Instant.fromEpochMilliseconds(expDate.time)` で変換する。
 
-> 時刻型の選定: exp は「時間軸上の一点」なので壁掛け時計(`LocalDateTime`)ではなく `Instant` が適切。`kotlinx.datetime.Instant` は 0.8 で非推奨、後継は stdlib の `kotlin.time.Instant`(`@OptIn(ExperimentalTime::class)` 要)。stdlib なので **追加依存は不要**(`kotlinx-datetime` を backend:api に足す必要はない)。P5c の per-message guard は `kotlin.time.Clock.System.now() > session.exp` で失効判定する。なお壁掛け時刻が要る箇所(表示等)は別途 `:shared` の `LocalDateTime.now()`(JST)を使う。
+> 時刻型の選定: exp は「時間軸上の一点」なので壁掛け時計(`LocalDateTime`)ではなく `Instant` が適切。`kotlinx.datetime.Instant` は 0.8 で非推奨、後継は stdlib の `kotlin.time.Instant`(`@OptIn(ExperimentalTime::class)` 要)。stdlib なので **追加依存は不要**(`kotlinx-datetime` を backend:api に足す必要はない)。P5c の per-message guard は `kotlin.time.Clock.System.now() > session.exp` で失効判定する。
 
 > 設計判断: `findByAuth` は新 DataSource では blocking な `transaction(database)`(P4 方針)。Ktor の `onCall` は suspend なので、blocking 呼び出しを `Dispatchers.IO` に逃がしてイベントループを塞がない。
 
@@ -296,14 +296,15 @@ fun extractRaw(call): String? = authorizationBearer(call) ?: webSocketProtocolBe
 
 ### `WsSubprotocolEchoPlugin`
 
-WHATWG WebSocket 仕様上、client が `Sec-WebSocket-Protocol` を提示したら server は受理した subprotocol を 1 つ echo しないとブラウザが接続を fail させる。`mindstock.v1`(アプリ識別子)のみ echo し、`mindstock.bearer.*`(JWT 含む)は **echo しない**(token を response header / 中間 proxy のログに漏らさない)。kotlinx-rpc の `rpc(path)` builder が subprotocol 応答制御 API を公開しないため、本 plugin が `call.response.header` を上書きする。判定は早期リターン + `WebSocketProtocols.has(APP_PROTOCOL)` で表す:
+WHATWG WebSocket 仕様上、client が `Sec-WebSocket-Protocol` を提示したら server は受理した subprotocol を 1 つ echo しないとブラウザが接続を fail させる。`mindstock.v1`(アプリ識別子)のみ echo し、`mindstock.bearer.*`(JWT 含む)は **echo しない**(token を response header / 中間 proxy のログに漏らさない。常に固定の `APP_PROTOCOL` 定数だけを書き、リクエスト由来の値は response に書かない)。kotlinx-rpc の `rpc(path)` builder が subprotocol 応答制御 API を公開しないため、本 plugin が `call.response.header` を上書きする。判定は「app protocol が提示されたか」のみ(`Sec-WebSocket-Protocol` は WS handshake でしか送られないため `Upgrade` チェックは不要):
 
 ```kotlin
-if (!call.isWebSocketUpgrade()) return@onCall
 val protocols = WebSocketProtocols.from(call)
 if (!protocols.has(WebSocketProtocols.APP_PROTOCOL)) return@onCall
 call.response.header(SecWebSocketProtocol, WebSocketProtocols.APP_PROTOCOL)
 ```
+
+> 設計判断: 当初は `Upgrade: websocket` ヘッダで handshake を判定していたが、(1) Ktor の testApplication クライアントが `Upgrade`(エンジン制御ヘッダ)の送信を拒否し echo 正常系を単体テストできない、(2) `Sec-WebSocket-Protocol` は実トラフィックでは WS handshake でしか送られず `Upgrade` 判定は冗長、という理由で `has(APP_PROTOCOL)` 単独に簡素化した。bearer 不漏洩の不変条件は維持(固定定数のみ書く)。
 
 ### `RequireRegisteredUserPlugin`(`createRouteScopedPlugin`)
 

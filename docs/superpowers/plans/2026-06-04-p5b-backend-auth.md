@@ -499,7 +499,7 @@ git commit -m "feat(api): WsBearerTokenExtractor(value class への委譲)を追
 - Create: `backend/api/src/main/kotlin/net/brightroom/mindstock/configuration/auth/WsSubprotocolEchoPlugin.kt`
 - Test: `backend/api/src/test/kotlin/net/brightroom/mindstock/configuration/auth/WsSubprotocolEchoPluginTest.kt`
 
-`WebSocketProtocols`(Task 4)を使い、早期リターンで「upgrade でなければ素通し / app protocol 未提示なら素通し / それ以外は echo」を表す。WS upgrade を testApplication で完結させるのは煩雑なため、`Upgrade: websocket` + `Sec-WebSocket-Protocol` ヘッダを付けた通常リクエストで応答ヘッダ書き込みを検証する。
+`WebSocketProtocols`(Task 4)を使い、早期リターンで「app protocol 未提示なら素通し / 提示されていれば echo」を表す。`Sec-WebSocket-Protocol` は実トラフィックでは WS handshake でしか送られないため `Upgrade` 判定は不要(かつ Ktor の testApplication クライアントは `Upgrade` をエンジン制御ヘッダとして送信拒否するため、`Upgrade` ゲートだと echo 正常系を単体テストできない)。テストは `Sec-WebSocket-Protocol` のみを付けた通常リクエストで応答ヘッダ書き込みを検証する(response 側の `Sec-WebSocket-Protocol` が testApplication で surface することは実測確認済)。
 
 - [ ] **Step 1: 失敗するテストを書く**
 
@@ -521,10 +521,7 @@ import io.ktor.server.testing.testApplication
 
 class WsSubprotocolEchoPluginTest :
     FunSpec({
-        suspend fun probeWith(
-            upgrade: String? = null,
-            wsProtocol: String? = null,
-        ): HttpResponse {
+        suspend fun probeWith(wsProtocol: String? = null): HttpResponse {
             lateinit var response: HttpResponse
             testApplication {
                 application {
@@ -533,31 +530,30 @@ class WsSubprotocolEchoPluginTest :
                 }
                 response =
                     client.get("/probe") {
-                        if (upgrade != null) header(HttpHeaders.Upgrade, upgrade)
                         if (wsProtocol != null) header(HttpHeaders.SecWebSocketProtocol, wsProtocol)
                     }
             }
             return response
         }
 
-        test("upgrade=websocket + mindstock.v1 提示 → mindstock.v1 を echo") {
-            val res = probeWith(upgrade = "websocket", wsProtocol = "mindstock.v1, mindstock.bearer.xyz")
+        test("mindstock.v1 提示 → mindstock.v1 を echo") {
+            val res = probeWith(wsProtocol = "mindstock.v1, mindstock.bearer.xyz")
             res.headers[HttpHeaders.SecWebSocketProtocol] shouldBe "mindstock.v1"
         }
 
         test("mindstock.bearer.* は response header に echo しない") {
-            val res = probeWith(upgrade = "websocket", wsProtocol = "mindstock.v1, mindstock.bearer.secrettoken")
+            val res = probeWith(wsProtocol = "mindstock.v1, mindstock.bearer.secrettoken")
             (res.headers[HttpHeaders.SecWebSocketProtocol] ?: "") shouldNotContain "bearer"
             (res.headers[HttpHeaders.SecWebSocketProtocol] ?: "") shouldNotContain "secrettoken"
         }
 
-        test("upgrade でない通常リクエストは素通し(echo しない)") {
-            val res = probeWith(wsProtocol = "mindstock.v1")
+        test("Sec-WebSocket-Protocol 無し → echo しない") {
+            val res = probeWith(wsProtocol = null)
             (res.headers[HttpHeaders.SecWebSocketProtocol] ?: "") shouldNotContain "mindstock.v1"
         }
 
         test("mindstock.v1 を提示しない場合は echo しない") {
-            val res = probeWith(upgrade = "websocket", wsProtocol = "other.proto")
+            val res = probeWith(wsProtocol = "other.proto")
             (res.headers[HttpHeaders.SecWebSocketProtocol] ?: "") shouldNotContain "mindstock.v1"
         }
     })
@@ -574,7 +570,6 @@ Expected: FAIL(`WsSubprotocolEchoPlugin` 未定義)
 package net.brightroom.mindstock.configuration.auth
 
 import io.ktor.http.HttpHeaders
-import io.ktor.server.application.ApplicationCall
 import io.ktor.server.application.createApplicationPlugin
 import io.ktor.server.response.header
 
@@ -582,25 +577,22 @@ import io.ktor.server.response.header
  * WHATWG WebSocket 仕様上、client が Sec-WebSocket-Protocol を提示したら server は
  * 受理した subprotocol を 1 つ echo しないとブラウザが接続を fail させる。
  *
- * - [WebSocketProtocols.APP_PROTOCOL] (mindstock.v1) のみ echo する。
+ * - [WebSocketProtocols.APP_PROTOCOL] (mindstock.v1) が提示されていれば、それだけを echo する。
  * - bearer subprotocol (JWT を含む) は echo しない。token を response header や
- *   中間 proxy のログに漏らさないため([WebSocketProtocols] は bearer を echo 対象に含めない)。
+ *   中間 proxy のログに漏らさないため(常に固定の APP_PROTOCOL 定数だけを書き、
+ *   リクエスト由来の値は一切 response に書かない)。
  *
- * kotlinx-rpc-krpc-ktor-server の `rpc(path)` builder は subprotocol 応答制御 API を
- * 公開しないため、本 plugin が response header を上書きする。
+ * 判定は「app protocol が提示されたか」のみ。Sec-WebSocket-Protocol は WS handshake でしか
+ * 送られないため、通常リクエストには影響しない。
  */
 val WsSubprotocolEchoPlugin =
     createApplicationPlugin(name = "WsSubprotocolEcho") {
         onCall { call ->
-            if (!call.isWebSocketUpgrade()) return@onCall
             val protocols = WebSocketProtocols.from(call)
             if (!protocols.has(WebSocketProtocols.APP_PROTOCOL)) return@onCall
             call.response.header(HttpHeaders.SecWebSocketProtocol, WebSocketProtocols.APP_PROTOCOL)
         }
     }
-
-private fun ApplicationCall.isWebSocketUpgrade(): Boolean =
-    request.headers[HttpHeaders.Upgrade].equals("websocket", ignoreCase = true)
 ```
 
 - [ ] **Step 4: テストが通ることを確認**
