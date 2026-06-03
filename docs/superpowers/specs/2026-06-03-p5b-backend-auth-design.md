@@ -236,8 +236,13 @@ val MindstockAuthPlugin =
             val callId = Uuid.random()
 
             // findByAuth は blocking JDBC transaction。suspend 文脈から呼ぶため IO に逃がす。
+            // 未登録(ResourceNotFoundException)のみ null に翻訳し、その他の例外は素通し(→ 500)。
             val resident = withContext(Dispatchers.IO) {
-                runCatching { residentRepository.findByAuth(identity) }.getOrNull()
+                try {
+                    residentRepository.findByAuth(identity)
+                } catch (notFound: ResourceNotFoundException) {
+                    null
+                }
             }
             val session =
                 if (resident != null) MindstockSession.Registered(identity, resident.id, exp, callId)
@@ -248,7 +253,7 @@ val MindstockAuthPlugin =
 ```
 
 主な変更点(旧 → 新):
-- `userRepository.findByAuthIdentity(...)?.id`(plugin 内 `newSuspendedTransaction`)→ `residentRepository.findByAuth(identity)` を `withContext(Dispatchers.IO)` で包み `runCatching` で not-found を吸収。
+- `userRepository.findByAuthIdentity(...)?.id`(plugin 内 `newSuspendedTransaction`)→ `residentRepository.findByAuth(identity)` を `withContext(Dispatchers.IO)` で包み、**`ResourceNotFoundException` のみ** catch して未登録へ翻訳(その他の例外は素通し → 500。インフラ障害を Unregistered に握り潰さない)。
 - 戻り値を `MindstockSession`(nullable userId)から sealed 2 状態へ。
 - `database` 依存を撤去。
 - `exp` を `kotlinx.datetime.Instant`(非推奨)から後継の **`kotlin.time.Instant`**(stdlib)へ。JWT の `expiresAt`(`java.util.Date`)を `Instant.fromEpochMilliseconds(expDate.time)` で変換する。

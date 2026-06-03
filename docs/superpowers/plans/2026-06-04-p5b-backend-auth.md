@@ -1035,6 +1035,7 @@ import io.ktor.server.response.respond
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import net.brightroom.mindstock.application.repository.resident.ResidentRepository
+import net.brightroom.mindstock.domain.exception.ResourceNotFoundException
 import net.brightroom.mindstock.domain.model.resident.identity.auth.AuthIdentity
 import net.brightroom.mindstock.domain.model.resident.identity.auth.AuthProvider
 import net.brightroom.mindstock.domain.model.resident.identity.auth.AuthSubject
@@ -1105,9 +1106,14 @@ val MindstockAuthPlugin =
             val identity = AuthIdentity(AuthProvider.ZITADEL, AuthSubject(sub))
             val callId = Uuid.random()
 
+            // 未登録(ResourceNotFoundException)のみ null へ翻訳。その他の例外は素通し(→ 500)。
             val resident =
                 withContext(Dispatchers.IO) {
-                    runCatching { residentRepository.findByAuth(identity) }.getOrNull()
+                    try {
+                        residentRepository.findByAuth(identity)
+                    } catch (notFound: ResourceNotFoundException) {
+                        null
+                    }
                 }
             val session =
                 if (resident != null) {
@@ -1124,6 +1130,8 @@ val MindstockAuthPlugin =
 
 Run: `./gradlew :backend:api:test --tests "*MindstockAuthPluginTest*"`
 Expected: PASS(7 tests)
+
+> レビュー反映(実装後追加): 上記 7 ケースに加え `sub 空 → 401` / `exp 欠落 → 401` / `findByAuth が ResourceNotFoundException 以外を投げたら降格せず ≥500`(I1/I2)を追加。`exp 欠落` 用に `TestJwtIssuer.issue` の `expiresAt` を `Instant?` 化し null 時は claim 省略。`RequireRegisteredUserPluginTest` には「Unregistered で保護ルートのハンドラが実行されない(バイパス回帰)」を追加。
 
 - [ ] **Step 5: Commit**
 
