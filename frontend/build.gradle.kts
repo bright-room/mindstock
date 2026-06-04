@@ -42,6 +42,7 @@ kotlin {
             implementation(kotlin("test"))
             implementation(ktorLib.client.mock)
             implementation(libs.kotlinx.coroutines.test)
+            implementation(libs.kotest.assertions.core)
         }
     }
 }
