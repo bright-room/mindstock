@@ -1,0 +1,72 @@
+package net.brightroom.mindstock.frontend
+
+import kotlinx.rpc.withService
+import net.brightroom.mindstock.domain.model.resident.Resident
+import net.brightroom.mindstock.frontend.app.AuthDeps
+import net.brightroom.mindstock.frontend.auth.AuthClient
+import net.brightroom.mindstock.frontend.auth.AuthConfig
+import net.brightroom.mindstock.frontend.auth.Pkce
+import net.brightroom.mindstock.frontend.auth.SessionStorage
+import net.brightroom.mindstock.frontend.auth.TokenStore
+import net.brightroom.mindstock.frontend.auth.Tokens
+import net.brightroom.mindstock.frontend.core.auth.BrowserNav
+import net.brightroom.mindstock.frontend.core.rpc.RpcClientProvider
+import net.brightroom.mindstock.frontend.core.session.AppSession
+import net.brightroom.mindstock.rpc.resident.ResidentRpcService
+import net.brightroom.mindstock.rpc.result.RpcResult
+
+private const val STATE_KEY = "mindstock.oauth.state.v1"
+private const val VERIFIER_KEY = "mindstock.oauth.verifier.v1"
+
+class WebAuthDeps(
+    private val authClient: AuthClient,
+    private val rpc: RpcClientProvider,
+    private val session: AppSession,
+) : AuthDeps {
+    override fun currentPath(): String = BrowserNav.currentPath()
+
+    override suspend fun handleCallback() {
+        val savedState = SessionStorage.get(STATE_KEY)
+        val savedVerifier = SessionStorage.get(VERIFIER_KEY) ?: error("no verifier")
+        val receivedState = BrowserNav.currentQueryParam("state") ?: ""
+        require(savedState != null && savedState == receivedState) { "state mismatch" }
+        val code = BrowserNav.currentQueryParam("code") ?: error("no code")
+        val tokens = authClient.exchangeCode(code, savedVerifier)
+        TokenStore.save(tokens)
+        SessionStorage.remove(STATE_KEY)
+        SessionStorage.remove(VERIFIER_KEY)
+        BrowserNav.replace("/")
+    }
+
+    override fun loadValidToken(): Tokens? = TokenStore.load()?.takeUnless { it.willExpireWithin(30) }
+
+    override suspend fun redirectToAuthorize() {
+        val verifier = Pkce.newVerifier()
+        val state = Pkce.newVerifier(length = 43)
+        SessionStorage.set(STATE_KEY, state)
+        SessionStorage.set(VERIFIER_KEY, verifier)
+        val scope = "openid profile offline_access urn:zitadel:iam:org:project:id:${AuthConfig.PROJECT_ID}:aud"
+        val url =
+            AuthClient.buildAuthorizeUrl(
+                issuer = AuthConfig.ISSUER,
+                clientId = AuthConfig.CLIENT_ID,
+                redirectUri = AuthConfig.REDIRECT_URI,
+                scope = scope,
+                state = state,
+                codeChallenge = Pkce.challenge(verifier),
+            )
+        BrowserNav.assign(url)
+    }
+
+    override suspend fun fetchMe(token: Tokens): Resident {
+        val client = rpc.open("resident", token.accessToken)
+        return when (val r = client.withService<ResidentRpcService>().me()) {
+            is RpcResult.Ok -> r.value
+            is RpcResult.Err -> error("me failed: ${r.error}")
+        }
+    }
+
+    override fun onAuthenticated(resident: Resident) {
+        session.setResident(resident.id, resident.profile.displayName)
+    }
+}
