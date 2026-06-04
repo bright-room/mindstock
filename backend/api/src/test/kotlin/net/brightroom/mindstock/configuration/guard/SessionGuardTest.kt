@@ -2,9 +2,11 @@
 
 package net.brightroom.mindstock.configuration.guard
 
+import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.types.shouldBeInstanceOf
+import kotlinx.coroutines.CancellationException
 import net.brightroom.mindstock.configuration.auth.MindstockSession
 import net.brightroom.mindstock.domain.exception.DuplicateJanException
 import net.brightroom.mindstock.domain.exception.MembershipRequiredException
@@ -66,5 +68,11 @@ class SessionGuardTest :
         test("想定外例外は Internal") {
             val r = guarded<Unit>(active()) { throw RuntimeException("boom") }
             (r as RpcResult.Err).error.shouldBeInstanceOf<RpcError.Internal>()
+        }
+
+        test("CancellationException は握り潰さず再 throw する") {
+            shouldThrow<CancellationException> {
+                guarded<Unit>(active()) { throw CancellationException("cancelled") }
+            }
         }
     })
