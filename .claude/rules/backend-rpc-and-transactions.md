@@ -158,5 +158,5 @@ install(Krpc) { serialization { json(CustomJson) } }  // ← envelope decode 失
 
 - spec: [docs/superpowers/specs/2026-05-30-coding-conventions-design.md](../../docs/superpowers/specs/2026-05-30-coding-conventions-design.md)
 - spec(歴史): [docs/superpowers/specs/2026-05-25-rpc-layer-design.md](../../docs/superpowers/specs/2026-05-25-rpc-layer-design.md)
-- rule: [software-architecture](software-architecture.md) — Controller の責務
+- rule: [backend-software-architecture](backend-software-architecture.md) — Controller の責務
 - rule: [error-handling](error-handling.md) — 例外 → RpcError 翻訳の方針

@@ -166,4 +166,4 @@ fun count(householdId: HouseholdId): Int = ...  // ← 専用 VO を返すか、
 - spec: [docs/superpowers/specs/2026-05-30-coding-conventions-design.md](../../docs/superpowers/specs/2026-05-30-coding-conventions-design.md)
 - rule: [domain-guideline](domain-guideline.md) — domain メソッドの詳細
 - rule: [error-handling](error-handling.md) — 例外と nullable の方針
-- rule: [rpc-and-transactions](rpc-and-transactions.md) — Controller の Ktor 部分
+- rule: [backend-rpc-and-transactions](backend-rpc-and-transactions.md) — Controller の Ktor 部分
