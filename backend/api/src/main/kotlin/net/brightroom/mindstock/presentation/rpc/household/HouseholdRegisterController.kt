@@ -1,0 +1,79 @@
+package net.brightroom.mindstock.presentation.rpc.household
+
+import net.brightroom.mindstock.application.scenario.household.JoinHouseholdScenario
+import net.brightroom.mindstock.application.scenario.invitation.CreateInvitationScenario
+import net.brightroom.mindstock.application.scenario.invitation.RevokeInvitationScenario
+import net.brightroom.mindstock.application.service.household.HouseholdRegisterService
+import net.brightroom.mindstock.configuration.auth.MindstockSession
+import net.brightroom.mindstock.configuration.auth.requireResidentId
+import net.brightroom.mindstock.configuration.guard.guarded
+import net.brightroom.mindstock.domain.model.household.Household
+import net.brightroom.mindstock.domain.model.household.HouseholdId
+import net.brightroom.mindstock.domain.model.household.HouseholdName
+import net.brightroom.mindstock.domain.model.household.invitation.Invitation
+import net.brightroom.mindstock.domain.model.household.invitation.InvitationCode
+import net.brightroom.mindstock.domain.model.household.member.HouseholdMemberRole
+import net.brightroom.mindstock.domain.model.resident.identity.ResidentId
+import net.brightroom.mindstock.rpc.household.HouseholdRegisterRpcService
+import net.brightroom.mindstock.rpc.result.RpcError
+import net.brightroom.mindstock.rpc.result.RpcResult
+
+class HouseholdRegisterController(
+    private val householdRegisterService: HouseholdRegisterService,
+    private val createInvitationScenario: CreateInvitationScenario,
+    private val revokeInvitationScenario: RevokeInvitationScenario,
+    private val joinHouseholdScenario: JoinHouseholdScenario,
+    private val session: MindstockSession,
+) : HouseholdRegisterRpcService {
+    override suspend fun create(name: HouseholdName): RpcResult<Household, RpcError> =
+        guarded(session) { RpcResult.Ok(householdRegisterService.create(name, session.requireResidentId())) }
+
+    override suspend fun rename(
+        householdId: HouseholdId,
+        name: HouseholdName,
+    ): RpcResult<Unit, RpcError> =
+        guarded(session) {
+            householdRegisterService.rename(householdId, name, session.requireResidentId())
+            RpcResult.Ok(Unit)
+        }
+
+    override suspend fun leave(householdId: HouseholdId): RpcResult<Unit, RpcError> =
+        guarded(session) {
+            householdRegisterService.leave(householdId, session.requireResidentId())
+            RpcResult.Ok(Unit)
+        }
+
+    override suspend fun changeRole(
+        householdId: HouseholdId,
+        target: ResidentId,
+        role: HouseholdMemberRole,
+    ): RpcResult<Unit, RpcError> =
+        guarded(session) {
+            householdRegisterService.changeRole(householdId, target, role, session.requireResidentId())
+            RpcResult.Ok(Unit)
+        }
+
+    override suspend fun removeMember(
+        householdId: HouseholdId,
+        target: ResidentId,
+    ): RpcResult<Unit, RpcError> =
+        guarded(session) {
+            householdRegisterService.removeMember(householdId, target, session.requireResidentId())
+            RpcResult.Ok(Unit)
+        }
+
+    override suspend fun createInvite(
+        householdId: HouseholdId,
+        role: HouseholdMemberRole,
+    ): RpcResult<Invitation, RpcError> =
+        guarded(session) { RpcResult.Ok(createInvitationScenario.run(householdId, role, session.requireResidentId())) }
+
+    override suspend fun revokeInvite(code: InvitationCode): RpcResult<Unit, RpcError> =
+        guarded(session) {
+            revokeInvitationScenario.run(code, session.requireResidentId())
+            RpcResult.Ok(Unit)
+        }
+
+    override suspend fun join(code: InvitationCode): RpcResult<Household, RpcError> =
+        guarded(session) { RpcResult.Ok(joinHouseholdScenario.run(code, session.requireResidentId())) }
+}

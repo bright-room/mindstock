@@ -1,8 +1,10 @@
 package net.brightroom.mindstock.domain.model.household
 
+import io.kotest.assertions.throwables.shouldNotThrowAny
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.matchers.shouldBe
 import net.brightroom.mindstock.domain.exception.LastOwnerException
+import net.brightroom.mindstock.domain.exception.MembershipRequiredException
 import net.brightroom.mindstock.domain.exception.OwnerRequiredException
 import net.brightroom.mindstock.domain.exception.ResourceNotFoundException
 import net.brightroom.mindstock.domain.model.household.member.HouseholdMemberRole
@@ -108,5 +110,17 @@ class HouseholdMembershipTest {
                 .join(member, HouseholdMemberRole.閲覧者) // 2回目: 何も起きない
         household.members.size() shouldBe 2
         household.members.roleOf(member.id) shouldBe HouseholdMemberRole.メンバー // 役割も変わらない
+    }
+
+    @Test
+    fun requireMember_メンバーは通過する() {
+        val (household, _, member) = householdWithMember()
+        shouldNotThrowAny { household.requireMember(member.id) }
+    }
+
+    @Test
+    fun requireMember_非メンバーはMembershipRequiredExceptionを投げる() {
+        val (household, _, _) = householdWithMember()
+        shouldThrow<MembershipRequiredException> { household.requireMember(ResidentId.create()) }
     }
 }

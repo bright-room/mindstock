@@ -1,14 +1,25 @@
 package net.brightroom.mindstock.application.service.stock
 
+import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.FunSpec
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.slot
 import io.mockk.verify
+import net.brightroom.mindstock.application.repository.household.HouseholdRepository
+import net.brightroom.mindstock.application.repository.product.ProductRepository
 import net.brightroom.mindstock.application.repository.resident.ResidentRepository
 import net.brightroom.mindstock.application.repository.stock.StockRegisterRepository
 import net.brightroom.mindstock.application.repository.stock.StockRepository
+import net.brightroom.mindstock.domain.exception.MembershipRequiredException
 import net.brightroom.mindstock.domain.model.barcode.Barcode
+import net.brightroom.mindstock.domain.model.household.Household
+import net.brightroom.mindstock.domain.model.household.HouseholdId
+import net.brightroom.mindstock.domain.model.household.HouseholdName
+import net.brightroom.mindstock.domain.model.household.Profile
+import net.brightroom.mindstock.domain.model.household.member.HouseholdMember
+import net.brightroom.mindstock.domain.model.household.member.HouseholdMemberRole
+import net.brightroom.mindstock.domain.model.household.member.Members
 import net.brightroom.mindstock.domain.model.inventory.product.Product
 import net.brightroom.mindstock.domain.model.inventory.product.ProductName
 import net.brightroom.mindstock.domain.model.inventory.product.setting.MinimumStock
@@ -25,17 +36,34 @@ import net.brightroom.mindstock.domain.model.inventory.stock.movement.StockMovem
 import net.brightroom.mindstock.domain.model.resident.Resident
 import net.brightroom.mindstock.domain.model.resident.identity.ResidentId
 import net.brightroom.mindstock.domain.model.resident.profile.DisplayName
-import net.brightroom.mindstock.domain.model.resident.profile.Profile
+import net.brightroom.mindstock.domain.model.resident.profile.Profile as ResidentProfile
 
 class StockRegisterServiceTest :
     FunSpec({
         val residentRepository = mockk<ResidentRepository>()
         val stockRepository = mockk<StockRepository>()
         val stockRegisterRepository = mockk<StockRegisterRepository>(relaxed = true)
-        val service = StockRegisterService(residentRepository, stockRepository, stockRegisterRepository)
+        val householdRepository = mockk<HouseholdRepository>()
+        val productRepository = mockk<ProductRepository>()
+        val service =
+            StockRegisterService(
+                residentRepository,
+                stockRepository,
+                stockRegisterRepository,
+                householdRepository,
+                productRepository,
+            )
 
-        val actor = Resident(ResidentId.create(), Profile(DisplayName("たろう")))
+        val actor = Resident(ResidentId.create(), ResidentProfile(DisplayName("たろう")))
         val product = Product.custom(ProductName("水"), Barcode.Unlinked, ProductUnit("本"), MinimumStock(1))
+        val householdId = HouseholdId.create()
+
+        fun householdWithActor(): Household =
+            Household(
+                householdId,
+                Profile(HouseholdName("わが家")),
+                Members(listOf(HouseholdMember(actor, HouseholdMemberRole.世帯主))),
+            )
 
         test("correct は findByMovement で対象を load し訂正 movement を append する") {
             val baseId = MovementId(1L)
@@ -47,6 +75,8 @@ class StockRegisterServiceTest :
                     actor,
                     Note(""),
                 )
+            every { productRepository.householdOf(product.id) } returns householdId
+            every { householdRepository.findById(householdId) } returns householdWithActor()
             every { residentRepository.findById(actor.id) } returns actor
             every { stockRepository.findByMovement(baseId) } returns Stock(product, StockMovements(listOf(base)))
 
@@ -61,6 +91,8 @@ class StockRegisterServiceTest :
 
         test("replenish は findByProduct で対象を load し補充 movement を append する") {
             val appended = slot<StockMovement>()
+            every { productRepository.householdOf(product.id) } returns householdId
+            every { householdRepository.findById(householdId) } returns householdWithActor()
             every { residentRepository.findById(actor.id) } returns actor
             every { stockRepository.findByProduct(product.id) } returns Stock(product, StockMovements(emptyList()))
             every { stockRegisterRepository.appendMovement(product.id, capture(appended)) } returns mockk(relaxed = true)
@@ -81,6 +113,8 @@ class StockRegisterServiceTest :
                     Note(""),
                 )
             val appended = slot<StockMovement>()
+            every { productRepository.householdOf(product.id) } returns householdId
+            every { householdRepository.findById(householdId) } returns householdWithActor()
             every { residentRepository.findById(actor.id) } returns actor
             every { stockRepository.findByProduct(product.id) } returns Stock(product, StockMovements(listOf(seeded)))
             every { stockRegisterRepository.appendMovement(product.id, capture(appended)) } returns mockk(relaxed = true)
@@ -89,5 +123,23 @@ class StockRegisterServiceTest :
 
             verify { stockRepository.findByProduct(product.id) }
             check(appended.captured is StockMovement.Consumption) { "appended movement must be a Consumption" }
+        }
+
+        test("replenish は product の世帯メンバーでなければ MembershipRequiredException") {
+            every { productRepository.householdOf(product.id) } returns householdId
+            every { householdRepository.findById(householdId) } returns
+                Household(
+                    householdId,
+                    Profile(HouseholdName("わが家")),
+                    Members(
+                        listOf(
+                            HouseholdMember(
+                                Resident(ResidentId.create(), ResidentProfile(DisplayName("ほか"))),
+                                HouseholdMemberRole.世帯主,
+                            ),
+                        ),
+                    ),
+                )
+            shouldThrow<MembershipRequiredException> { service.replenish(product.id, Quantity(1), Note(""), actor.id) }
         }
     })

@@ -23,4 +23,7 @@ interface ProductRepository {
 
     /** 現在手動希望中(最新 wanted イベントが true)の Product 一覧。空なら空 Products。 */
     fun listWanted(householdId: HouseholdId): Products
+
+    /** product が属する世帯 id を解決する(認可で使用)。不在は ResourceNotFoundException。 */
+    fun householdOf(productId: ProductId): HouseholdId
 }

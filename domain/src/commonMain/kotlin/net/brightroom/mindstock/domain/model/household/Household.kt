@@ -2,6 +2,7 @@ package net.brightroom.mindstock.domain.model.household
 
 import kotlinx.serialization.Serializable
 import net.brightroom.mindstock.domain.exception.LastOwnerException
+import net.brightroom.mindstock.domain.exception.MembershipRequiredException
 import net.brightroom.mindstock.domain.exception.OwnerRequiredException
 import net.brightroom.mindstock.domain.exception.ResourceNotFoundException
 import net.brightroom.mindstock.domain.model.household.member.HouseholdCapability
@@ -82,6 +83,13 @@ data class Household(
     /** 招待発行/失効などの世帯管理操作の認可。世帯管理 capability を持たなければ OwnerRequiredException。 */
     fun requireCanManage(by: ResidentId) {
         requireCapability(by, HouseholdCapability.世帯管理)
+    }
+
+    /** 世帯メンバーであることの認可(読み書き共通の横方向認可)。非メンバーなら MembershipRequiredException。 */
+    fun requireMember(by: ResidentId) {
+        if (!members.contains(by)) {
+            throw MembershipRequiredException("not a member of household $id: $by")
+        }
     }
 
     private fun requireCapability(

@@ -39,6 +39,16 @@ class ProductDataSource(
                 ?: throw ResourceNotFoundException("product not found: $id")
         }
 
+    override fun householdOf(productId: ProductId): HouseholdId =
+        transaction(database) {
+            ProductsTable
+                .select(ProductsTable.householdId)
+                .where { ProductsTable.id eq productId() }
+                .firstOrNull()
+                ?.let { HouseholdId(it[ProductsTable.householdId]) }
+                ?: throw ResourceNotFoundException("product not found: $productId")
+        }
+
     override fun listByHousehold(householdId: HouseholdId): Products =
         transaction(database) {
             Products(

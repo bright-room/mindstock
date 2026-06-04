@@ -7,6 +7,7 @@ import net.brightroom.mindstock.domain.model.household.HouseholdId
 import net.brightroom.mindstock.domain.model.inventory.product.Product
 import net.brightroom.mindstock.domain.model.inventory.product.setting.MinimumStock
 import net.brightroom.mindstock.domain.model.inventory.product.setting.ProductUnit
+import net.brightroom.mindstock.domain.model.resident.identity.ResidentId
 
 class AdoptProductScenario(
     private val catalogService: CatalogService,
@@ -17,8 +18,9 @@ class AdoptProductScenario(
         catalogItemId: CatalogItemId,
         unit: ProductUnit,
         minimumStock: MinimumStock,
+        actor: ResidentId,
     ): Product {
         val item = catalogService.findById(catalogItemId)
-        return productRegisterService.adopt(item, householdId, unit, minimumStock)
+        return productRegisterService.adopt(item, householdId, unit, minimumStock, actor)
     }
 }
