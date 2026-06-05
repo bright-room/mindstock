@@ -44,6 +44,9 @@ Application `mindstock-frontend` (User Agent / PKCE) に対して、Zitadel 管�
 - Redirect URIs: `http://localhost:8080/auth/callback`
 - Post Logout Redirect URIs: `http://localhost:8080/`
 - **Development Mode: ON**(必須)
+- **Token Settings → Auth Token Type: `JWT`(必須)**
+
+> **Auth Token Type を JWT にしないと** Zitadel は既定で **opaque(暗号化 / JWE)アクセストークン**を発行する。backend は JWKS で **JWT(RS256)** を検証する前提なので、opaque トークンは検証できず WS ハンドシェイクが 401 で弾かれる(frontend はオンボーディング画面に倒れる)。アクセストークンのヘッダが `{"alg":"RS256",...}` になっていれば JWT。`{"alg":"A256GCMKW","enc":"A256GCM",...}` は opaque なので Token Type を JWT に変更して再ログインする。
 
 > **Development Mode を ON にしないと** authorize 時に `invalid_request: This client's redirect_uri is http and is not allowed` で弾かれる。Zitadel は本番安全のため http(非 https)の redirect URI を既定で拒否し、Development Mode 有効時のみ http localhost を許可する。Application の Configuration / Redirect Settings にトグルがある。
 
