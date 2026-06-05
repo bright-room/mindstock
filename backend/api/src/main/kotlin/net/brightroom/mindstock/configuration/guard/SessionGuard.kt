@@ -14,6 +14,7 @@ import net.brightroom.mindstock.domain.exception.LastOwnerException
 import net.brightroom.mindstock.domain.exception.MembershipRequiredException
 import net.brightroom.mindstock.domain.exception.OwnerRequiredException
 import net.brightroom.mindstock.domain.exception.ResourceNotFoundException
+import net.brightroom.mindstock.domain.model.resident.identity.ResidentId
 import net.brightroom.mindstock.rpc.result.RpcError
 import net.brightroom.mindstock.rpc.result.RpcResult
 import kotlin.time.Clock
@@ -21,16 +22,34 @@ import kotlin.time.Clock
 private val logger = KotlinLogging.logger {}
 
 /**
- * RPC message 単位の失効ガード + 例外→RpcError 翻訳。
+ * RPC message 単位の認可ガード + 失効ガード + 例外→RpcError 翻訳。
  *
- * - 接続時に保存した session.exp を現在時刻と比較し、期限切れなら Unauthorized で短絡(L2 失効ガード)。
- *   WS は長時間張りっぱなしのため、upgrade 時の 1 回検証だけでは期限切れを取りこぼす。
- * - supervisorScope で block を実行し、kRPC サーバスコープへの例外 leak を防ぐ。
- * - block 内のドメイン例外を RpcError に翻訳する(DB transaction は張らない。境界は DataSource 自前)。
+ * 認可は 2 つのヘルパーで表す(登録ガードは route ではなくここ=アプリ境界で行う):
+ * - [requireRegistered] 既定。登録済み必須。Unregistered は Unauthorized で短絡(fail-closed)。
+ * - [allowUnregistered] 認証のみ(未登録 OK)。register / whoami だけが使う。
  *
- * IdP 側の即時失効(revocation list)は対象外。守るのは JWT の有効期限切れのみ。
+ * 共通処理([runGuarded]):接続時に保存した session.exp を現在時刻と比較し失効なら短絡(WS は
+ * 張りっぱなしのため upgrade 時の 1 回検証では取りこぼす)。supervisorScope で例外 leak を防ぎ、
+ * ドメイン例外を RpcError に翻訳する(DB transaction は張らない。境界は DataSource 自前)。
+ * IdP 側の即時失効(revocation)は対象外。守るのは JWT の有効期限切れのみ。
  */
-suspend fun <T : Any> guarded(
+suspend fun <T : Any> allowUnregistered(
+    session: MindstockSession,
+    block: suspend () -> RpcResult<T, RpcError>,
+): RpcResult<T, RpcError> = runGuarded(session, block)
+
+suspend fun <T : Any> requireRegistered(
+    session: MindstockSession,
+    block: suspend (ResidentId) -> RpcResult<T, RpcError>,
+): RpcResult<T, RpcError> =
+    runGuarded(session) {
+        when (session) {
+            is MindstockSession.Registered -> block(session.residentId)
+            is MindstockSession.Unregistered -> RpcResult.Err(RpcError.Unauthorized(reason = "registration required"))
+        }
+    }
+
+private suspend fun <T : Any> runGuarded(
     session: MindstockSession,
     block: suspend () -> RpcResult<T, RpcError>,
 ): RpcResult<T, RpcError> {
