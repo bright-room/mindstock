@@ -9,6 +9,7 @@ import net.brightroom.mindstock.domain.model.resident.profile.DisplayName
 import net.brightroom.mindstock.domain.model.resident.profile.Profile
 import net.brightroom.mindstock.frontend.auth.Tokens
 import net.brightroom.mindstock.frontend.core.auth.AuthState
+import net.brightroom.mindstock.rpc.session.SessionStatus
 import kotlin.test.Test
 import kotlin.time.ExperimentalTime
 import kotlin.time.Instant
@@ -17,7 +18,7 @@ import kotlin.time.Instant
 private class FakeAuthDeps(
     private val path: String,
     private val token: String?,
-    private val meSucceeds: Boolean = true,
+    private val status: SessionStatus? = null,
 ) : AuthDeps {
     var redirectCalled = false
     var onAuthenticatedCalled = false
@@ -42,10 +43,7 @@ private class FakeAuthDeps(
         redirectCalled = true
     }
 
-    override suspend fun fetchMe(token: Tokens): Resident {
-        if (!meSucceeds) throw RuntimeException("unregistered")
-        return Resident(ResidentId.create(), Profile(DisplayName("name")))
-    }
+    override suspend fun fetchSessionStatus(token: Tokens): SessionStatus = status ?: throw RuntimeException("boot failed")
 
     override fun onAuthenticated(resident: Resident) {
         onAuthenticatedCalled = true
@@ -64,20 +62,31 @@ class AuthViewModelTest {
         }
 
     @Test
-    fun valid_token_and_me_ok_becomes_ready() =
+    fun registered_becomes_ready() =
         runTest {
-            val deps = FakeAuthDeps(path = "/", token = "tok", meSucceeds = true)
+            val resident = Resident(ResidentId.create(), Profile(DisplayName("name")))
+            val deps = FakeAuthDeps(path = "/", token = "tok", status = SessionStatus.Registered(resident))
             val vm = AuthViewModel(deps)
             vm.boot()
+            deps.onAuthenticatedCalled shouldBe true
             vm.state.value.shouldBeInstanceOf<AuthState.Ready>()
         }
 
     @Test
-    fun valid_token_but_me_throws_becomes_need_onboarding() =
+    fun unregistered_becomes_onboarding() =
         runTest {
-            val deps = FakeAuthDeps(path = "/", token = "tok", meSucceeds = false)
+            val deps = FakeAuthDeps(path = "/", token = "tok", status = SessionStatus.Unregistered)
             val vm = AuthViewModel(deps)
             vm.boot()
             vm.state.value.shouldBeInstanceOf<AuthState.NeedOnboarding>()
+        }
+
+    @Test
+    fun whoami_failure_becomes_failed() =
+        runTest {
+            val deps = FakeAuthDeps(path = "/", token = "tok", status = null)
+            val vm = AuthViewModel(deps)
+            vm.boot()
+            vm.state.value.shouldBeInstanceOf<AuthState.Failed>()
         }
 }
