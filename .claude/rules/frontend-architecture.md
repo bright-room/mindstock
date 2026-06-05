@@ -9,7 +9,7 @@ paths:
 
 ## Rule
 
-- **UI 層**: 画面ごとに `ViewModel`(`org.jetbrains.androidx.lifecycle.ViewModel`)+ `sealed interface XxxUiState`。状態は `StateFlow` で公開。Composable は state を購読しイベントを ViewModel に委譲するだけ(単方向データフロー)。ロジックを Composable に書かない。
+- **UI 層**: 画面ごとに `ViewModel`(`androidx.lifecycle.ViewModel`)+ `sealed interface XxxUiState`。状態は `StateFlow` で公開。Composable は state を購読しイベントを ViewModel に委譲するだけ(単方向データフロー)。ロジックを Composable に書かない。
 - **data 層**: `Repository` が RPC を隠蔽する。**ViewModel / Composable は `*RpcService` を直接呼ばない**。Repository が `RpcClientProvider` 経由でサービスを呼び、結果を返す。
 - パッケージは **feature 単位**(`feature/<ctx>/` に ui / data / viewmodel / uistate を同居)+ 横断基盤(`designsystem/` `core/`)。技術レイヤ別ではなく責務別に切る。
 - `:domain` の集約 / VO、`:rpc` の契約型はそのまま UI 層まで使ってよい(薄いマッピングのみ)。frontend 固有の表示変換が要る箇所だけ feature 内に置く。
