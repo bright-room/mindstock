@@ -47,11 +47,11 @@ fun StockHomeScreen(
                 SegmentedControl(
                     options =
                         listOf(
-                            SegOption("list", stringResource(Res.string.stock_view_list)),
-                            SegOption("grid", stringResource(Res.string.stock_view_grid)),
+                            SegOption(StockView.List.name, stringResource(Res.string.stock_view_list)),
+                            SegOption(StockView.Grid.name, stringResource(Res.string.stock_view_grid)),
                         ),
-                    selectedKey = if (state.view == StockView.List) "list" else "grid",
-                    onSelect = { onSelectView(if (it == "list") StockView.List else StockView.Grid) },
+                    selectedKey = state.view.name,
+                    onSelect = { onSelectView(StockView.valueOf(it)) },
                 )
                 StockList(state)
             }

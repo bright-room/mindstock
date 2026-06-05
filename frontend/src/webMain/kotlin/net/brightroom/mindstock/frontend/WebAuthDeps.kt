@@ -5,6 +5,7 @@ import net.brightroom.mindstock.domain.model.resident.Resident
 import net.brightroom.mindstock.frontend.app.AuthDeps
 import net.brightroom.mindstock.frontend.auth.AuthClient
 import net.brightroom.mindstock.frontend.auth.AuthConfig
+import net.brightroom.mindstock.frontend.auth.OidcException
 import net.brightroom.mindstock.frontend.auth.Pkce
 import net.brightroom.mindstock.frontend.auth.SessionStorage
 import net.brightroom.mindstock.frontend.auth.TokenStore
@@ -26,6 +27,15 @@ class WebAuthDeps(
     override fun currentPath(): String = BrowserNav.currentPath()
 
     override suspend fun handleCallback() {
+        // OAuth 2.0: 認可失敗時は code ではなく error/error_description が返る(同意拒否・認可サーバエラー等)。
+        val oauthError = BrowserNav.currentQueryParam("error")
+        if (oauthError != null) {
+            throw OidcException(
+                oauthError,
+                BrowserNav.currentQueryParam("error_description"),
+                reauthRequired = oauthError == "access_denied",
+            )
+        }
         val savedState = SessionStorage.get(STATE_KEY)
         val savedVerifier = SessionStorage.get(VERIFIER_KEY) ?: error("no verifier")
         val receivedState = BrowserNav.currentQueryParam("state") ?: ""

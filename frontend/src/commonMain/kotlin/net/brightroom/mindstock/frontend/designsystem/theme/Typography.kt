@@ -2,6 +2,7 @@ package net.brightroom.mindstock.frontend.designsystem.theme
 
 import androidx.compose.material3.Typography
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -17,6 +18,8 @@ import mindstock.frontend.generated.resources.NotoSansJP_Thin
 import mindstock.frontend.generated.resources.Res
 import org.jetbrains.compose.resources.Font
 
+// 注: Compose Resources の Font() は @Composable のため remember {} 内では呼べない
+// (androidx の非 Composable Font() とは異なる)。直接構築する。
 @Composable
 fun notoSansJpFamily(): FontFamily =
     FontFamily(
@@ -34,22 +37,24 @@ fun notoSansJpFamily(): FontFamily =
 @Composable
 fun appTypography(): Typography {
     val f = notoSansJpFamily()
-    val d = Typography()
-    return Typography(
-        displayLarge = d.displayLarge.copy(fontFamily = f),
-        displayMedium = d.displayMedium.copy(fontFamily = f),
-        displaySmall = d.displaySmall.copy(fontFamily = f),
-        headlineLarge = d.headlineLarge.copy(fontFamily = f),
-        headlineMedium = d.headlineMedium.copy(fontFamily = f),
-        headlineSmall = d.headlineSmall.copy(fontFamily = f),
-        titleLarge = d.titleLarge.copy(fontFamily = f),
-        titleMedium = d.titleMedium.copy(fontFamily = f),
-        titleSmall = d.titleSmall.copy(fontFamily = f),
-        bodyLarge = d.bodyLarge.copy(fontFamily = f),
-        bodyMedium = d.bodyMedium.copy(fontFamily = f),
-        bodySmall = d.bodySmall.copy(fontFamily = f),
-        labelLarge = d.labelLarge.copy(fontFamily = f),
-        labelMedium = d.labelMedium.copy(fontFamily = f),
-        labelSmall = d.labelSmall.copy(fontFamily = f),
-    )
+    return remember(f) {
+        val d = Typography()
+        Typography(
+            displayLarge = d.displayLarge.copy(fontFamily = f),
+            displayMedium = d.displayMedium.copy(fontFamily = f),
+            displaySmall = d.displaySmall.copy(fontFamily = f),
+            headlineLarge = d.headlineLarge.copy(fontFamily = f),
+            headlineMedium = d.headlineMedium.copy(fontFamily = f),
+            headlineSmall = d.headlineSmall.copy(fontFamily = f),
+            titleLarge = d.titleLarge.copy(fontFamily = f),
+            titleMedium = d.titleMedium.copy(fontFamily = f),
+            titleSmall = d.titleSmall.copy(fontFamily = f),
+            bodyLarge = d.bodyLarge.copy(fontFamily = f),
+            bodyMedium = d.bodyMedium.copy(fontFamily = f),
+            bodySmall = d.bodySmall.copy(fontFamily = f),
+            labelLarge = d.labelLarge.copy(fontFamily = f),
+            labelMedium = d.labelMedium.copy(fontFamily = f),
+            labelSmall = d.labelSmall.copy(fontFamily = f),
+        )
+    }
 }

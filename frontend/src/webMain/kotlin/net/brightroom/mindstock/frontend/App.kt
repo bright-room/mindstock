@@ -1,6 +1,7 @@
 package net.brightroom.mindstock.frontend
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -47,6 +48,9 @@ fun App() {
     val vm = remember { AuthViewModel(WebAuthDeps(authClient, rpc, session)) }
     val state by vm.state.collectAsState()
 
+    DisposableEffect(http) {
+        onDispose { http.close() }
+    }
     LaunchedEffect(Unit) { vm.boot() }
 
     MindstockTheme {

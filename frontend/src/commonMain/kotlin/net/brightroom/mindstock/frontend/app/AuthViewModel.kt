@@ -1,6 +1,7 @@
 package net.brightroom.mindstock.frontend.app
 
 import androidx.lifecycle.ViewModel
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -53,9 +54,13 @@ class AuthViewModel(
             val resident = deps.fetchMe(token)
             deps.onAuthenticated(resident)
             _state.value = AuthState.Ready
-        } catch (_: Throwable) {
+        } catch (cancellation: CancellationException) {
+            // 構造化並行性: キャンセルは握り潰さず伝播させる。
+            throw cancellation
+        } catch (_: Exception) {
             // /resident は登録済み必須ルート。未登録は WS handshake で拒否され throw。
             // ブラウザは 401 を JS に公開しないため、ここは未登録に倒す(前提 #3)。
+            // Error(OOM 等)は捕捉しない(回復不能なのでクラッシュさせる)。
             _state.value = AuthState.NeedOnboarding
         }
     }

@@ -15,19 +15,21 @@ class InventoryViewModel(
 ) : ViewModel() {
     private val _state = MutableStateFlow<InventoryUiState>(InventoryUiState.Loading)
     val state: StateFlow<InventoryUiState> = _state.asStateFlow()
-    private var view = StockView.List
+
+    private val _view = MutableStateFlow(StockView.List)
+    val view: StateFlow<StockView> = _view.asStateFlow()
 
     suspend fun load() {
         _state.value = InventoryUiState.Loading
         _state.value =
             when (val out = loadStocks(householdId)) {
-                is RpcOutcome.Success -> InventoryUiState.Content(out.value, view)
+                is RpcOutcome.Success -> InventoryUiState.Content(out.value, _view.value)
                 is RpcOutcome.Failure -> InventoryUiState.Error(userMessageOf(out.error))
             }
     }
 
     fun setView(v: StockView) {
-        view = v
+        _view.value = v
         val s = _state.value
         if (s is InventoryUiState.Content) _state.value = s.copy(view = v)
     }

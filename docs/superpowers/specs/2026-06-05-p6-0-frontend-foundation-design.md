@@ -67,7 +67,7 @@ Jetpack Compose 推奨に倣う。
 
 ## 2. ソース / パッケージ構成
 
-```
+```text
 frontend/src/
   commonMain/
     kotlin/net/brightroom/mindstock/frontend/
@@ -103,7 +103,7 @@ PKCE は authorize エンドポイントへ **ページごと遷移**し、callb
 
 ### 3.1 起動シーケンス
 
-```
+```text
 App 起動（AppViewModel.boot()）
  └ 現在 URL は /auth/callback か?
      ├ Yes: sessionStorage の code_verifier で token 交換 → token 保存 → "/" へ置換遷移
