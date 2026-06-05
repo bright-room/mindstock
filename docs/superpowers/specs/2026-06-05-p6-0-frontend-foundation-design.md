@@ -213,11 +213,15 @@ App 起動（AppViewModel.boot()）
 
 ## 8. 参照画面（土台の実証）
 
-**在庫一覧（StockHome）** を 1 枚だけ縦に通し、§1〜7 が実際に動くことを確認する:
+**在庫一覧（StockHome）** を参照画面として 1 枚作り、§1〜7 を縦に貫いて土台を実証する:
 
-- `product.list(activeHouseholdId)` → `Stocks` を取得 → grid / list 表示（モックの `Seg` でビュー切替、`StockBar` / `StatusDot` で状態表示）。
-- 補充 / 消費の往復（`stockRegister.replenish` / `consume`）でトースト・再取得まで通す。
-- adaptive 外枠（mobile/desktop）の中で描画されることを確認。
+- `InventoryRepository`（`product.list(householdId)` 隠蔽）→ `InventoryViewModel`（`StockHome 用 UiState`）→ `StockHomeScreen`（designsystem atoms で grid/list 表示）の経路を構築。
+- `product.list` 成功/失敗 → `RpcOutcome` → UiState の分岐、補充/消費（`stockRegister.replenish`/`consume`）を `InventoryRepository` に実装。
+- `StockStatus` → status 色（`LocalMindstockTokens`）のマッピング、`SegmentedControl` でのビュー切替。
+
+**P6-0 における「実証」の範囲（2026-06-05 確定）**: 上記の Repository / ViewModel / atoms / `RpcOutcome` 変換 / PKCE boot シーケンス（callback / token / `me()` の 3 分岐）を **commonTest の単体テスト** で検証し、`App()` の **boot→shell 配線**（`AuthViewModel` → `AppShell`）をコンパイル疎通で実証する。
+
+`App()` が `StockHomeScreen` を**実画面として live レンダリングする配線**（実 `householdId` の取得=`household.list()`/世帯選択を要し、live 検証には backend=Zitadel/Postgres の起動を要する）は **P6-1 の最初のタスク**に送る。P6-0 はこの段階までを土台の完了点とする。
 
 これは**ルールの検証用**であり、ルールの出所ではない（§9）。
 
