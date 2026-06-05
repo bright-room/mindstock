@@ -178,10 +178,11 @@ class RpcClientProvider(http: HttpClient, baseUrl: String) {
 - 認証不要エンドポイント `/api/public`(将来兄弟として追加)。
 - v2 の実装 / 自動再接続 / IdP revocation 追従。
 
-## 9. 未決(実装計画前に確定)
+## 9. 決定済み
 
-1. `ResidentRpcService.me()` を削除してよいか(§3.5、呼び出し元 grep 次第)。
-2. 検証用に local DB へ手挿入した admin の resident 行(display_name=Admin)を残すか消すか。
+1. `ResidentRpcService.me()` は **削除**(boot が whoami に移るため)。実装計画時に呼び出し元を grep し、想定外の参照が無いことだけ確認する。
+2. 検証用に local DB へ手挿入した admin の resident 行は **削除済**。
+3. PR #109(案A 暫定修正)は **close 済**。本再設計のみで対応する(再設計が入るまで `main` には不具合が残る点は許容)。
 
 ## 10. 影響範囲(ファイル目安)
 
