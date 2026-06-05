@@ -13,7 +13,7 @@ postgres-jdbc = "42.7.11"
 logback = "1.5.33"
 kotlin-logging = "8.0.4"
 kotest = "6.1.11"
-mockk = "1.14.9"
+mockk = "1.14.11"
 spotless = "8.5.1"
 material3 = { strictly = "1.10.0-alpha05" }
 lifecycle = { strictly = "2.10.0" }
