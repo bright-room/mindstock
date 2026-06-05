@@ -2,8 +2,7 @@ package net.brightroom.mindstock.presentation.rpc.stock
 
 import net.brightroom.mindstock.application.service.stock.StockService
 import net.brightroom.mindstock.configuration.auth.MindstockSession
-import net.brightroom.mindstock.configuration.auth.requireResidentId
-import net.brightroom.mindstock.configuration.guard.guarded
+import net.brightroom.mindstock.configuration.guard.requireRegistered
 import net.brightroom.mindstock.domain.model.household.HouseholdId
 import net.brightroom.mindstock.domain.model.inventory.product.ProductId
 import net.brightroom.mindstock.domain.model.inventory.stock.movement.StockMovements
@@ -18,11 +17,11 @@ class StockController(
     private val session: MindstockSession,
 ) : StockRpcService {
     override suspend fun history(productId: ProductId): RpcResult<StockMovements, RpcError> =
-        guarded(session) { RpcResult.Ok(stockService.history(productId, session.requireResidentId())) }
+        requireRegistered(session) { residentId -> RpcResult.Ok(stockService.history(productId, residentId)) }
 
     override suspend fun activity(householdId: HouseholdId): RpcResult<ActivityFeed, RpcError> =
-        guarded(session) {
-            val stocks = stockService.activity(householdId, session.requireResidentId())
+        requireRegistered(session) { residentId ->
+            val stocks = stockService.activity(householdId, residentId)
             val entries =
                 stocks.list
                     .flatMap { stock -> stock.movements.list.map { ActivityEntry(stock.product, it) } }

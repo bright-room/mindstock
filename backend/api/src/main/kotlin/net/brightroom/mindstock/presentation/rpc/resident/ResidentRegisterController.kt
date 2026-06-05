@@ -2,7 +2,8 @@ package net.brightroom.mindstock.presentation.rpc.resident
 
 import net.brightroom.mindstock.application.service.resident.ResidentRegisterService
 import net.brightroom.mindstock.configuration.auth.MindstockSession
-import net.brightroom.mindstock.configuration.guard.guarded
+import net.brightroom.mindstock.configuration.guard.allowUnregistered
+import net.brightroom.mindstock.configuration.guard.requireRegistered
 import net.brightroom.mindstock.domain.model.resident.Resident
 import net.brightroom.mindstock.domain.model.resident.profile.DisplayName
 import net.brightroom.mindstock.rpc.resident.ResidentRegisterRpcService
@@ -14,29 +15,16 @@ class ResidentRegisterController(
     private val session: MindstockSession,
 ) : ResidentRegisterRpcService {
     override suspend fun registerDisplayName(displayName: DisplayName): RpcResult<Resident, RpcError> =
-        guarded(session) {
+        allowUnregistered(session) {
             when (session) {
-                is MindstockSession.Registered -> {
-                    RpcResult.Err(RpcError.Conflict(reason = "already registered"))
-                }
-
-                is MindstockSession.Unregistered -> {
-                    RpcResult.Ok(residentRegisterService.register(session.identity, displayName))
-                }
+                is MindstockSession.Registered -> RpcResult.Err(RpcError.Conflict(reason = "already registered"))
+                is MindstockSession.Unregistered -> RpcResult.Ok(residentRegisterService.register(session.identity, displayName))
             }
         }
 
     override suspend fun rename(displayName: DisplayName): RpcResult<Unit, RpcError> =
-        guarded(session) {
-            when (session) {
-                is MindstockSession.Registered -> {
-                    residentRegisterService.rename(session.residentId, displayName)
-                    RpcResult.Ok(Unit)
-                }
-
-                is MindstockSession.Unregistered -> {
-                    RpcResult.Err(RpcError.Unauthorized(reason = "registration required"))
-                }
-            }
+        requireRegistered(session) { residentId ->
+            residentRegisterService.rename(residentId, displayName)
+            RpcResult.Ok(Unit)
         }
 }

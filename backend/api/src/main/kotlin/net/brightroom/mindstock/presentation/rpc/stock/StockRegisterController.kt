@@ -2,8 +2,7 @@ package net.brightroom.mindstock.presentation.rpc.stock
 
 import net.brightroom.mindstock.application.service.stock.StockRegisterService
 import net.brightroom.mindstock.configuration.auth.MindstockSession
-import net.brightroom.mindstock.configuration.auth.requireResidentId
-import net.brightroom.mindstock.configuration.guard.guarded
+import net.brightroom.mindstock.configuration.guard.requireRegistered
 import net.brightroom.mindstock.domain.model.inventory.product.ProductId
 import net.brightroom.mindstock.domain.model.inventory.quantity.Quantity
 import net.brightroom.mindstock.domain.model.inventory.stock.movement.MovementId
@@ -22,8 +21,8 @@ class StockRegisterController(
         quantity: Quantity,
         note: Note,
     ): RpcResult<Unit, RpcError> =
-        guarded(session) {
-            stockRegisterService.replenish(productId, quantity, note, session.requireResidentId())
+        requireRegistered(session) { residentId ->
+            stockRegisterService.replenish(productId, quantity, note, residentId)
             RpcResult.Ok(Unit)
         }
 
@@ -32,8 +31,8 @@ class StockRegisterController(
         quantity: Quantity,
         note: Note,
     ): RpcResult<Unit, RpcError> =
-        guarded(session) {
-            stockRegisterService.consume(productId, quantity, note, session.requireResidentId())
+        requireRegistered(session) { residentId ->
+            stockRegisterService.consume(productId, quantity, note, residentId)
             RpcResult.Ok(Unit)
         }
 
@@ -42,8 +41,8 @@ class StockRegisterController(
         correctedQuantity: Quantity,
         reason: Reason,
     ): RpcResult<Unit, RpcError> =
-        guarded(session) {
-            stockRegisterService.correct(target, correctedQuantity, reason, session.requireResidentId())
+        requireRegistered(session) { residentId ->
+            stockRegisterService.correct(target, correctedQuantity, reason, residentId)
             RpcResult.Ok(Unit)
         }
 }

@@ -2,8 +2,7 @@ package net.brightroom.mindstock.presentation.rpc.product
 
 import net.brightroom.mindstock.application.service.product.ProductService
 import net.brightroom.mindstock.configuration.auth.MindstockSession
-import net.brightroom.mindstock.configuration.auth.requireResidentId
-import net.brightroom.mindstock.configuration.guard.guarded
+import net.brightroom.mindstock.configuration.guard.requireRegistered
 import net.brightroom.mindstock.domain.model.household.HouseholdId
 import net.brightroom.mindstock.domain.model.inventory.product.Products
 import net.brightroom.mindstock.domain.model.inventory.shopping.ShoppingList
@@ -17,11 +16,11 @@ class ProductController(
     private val session: MindstockSession,
 ) : ProductRpcService {
     override suspend fun list(householdId: HouseholdId): RpcResult<Stocks, RpcError> =
-        guarded(session) { RpcResult.Ok(productService.list(householdId, session.requireResidentId())) }
+        requireRegistered(session) { residentId -> RpcResult.Ok(productService.list(householdId, residentId)) }
 
     override suspend fun listArchived(householdId: HouseholdId): RpcResult<Products, RpcError> =
-        guarded(session) { RpcResult.Ok(productService.listArchived(householdId, session.requireResidentId())) }
+        requireRegistered(session) { residentId -> RpcResult.Ok(productService.listArchived(householdId, residentId)) }
 
     override suspend fun shoppingList(householdId: HouseholdId): RpcResult<ShoppingList, RpcError> =
-        guarded(session) { RpcResult.Ok(productService.shoppingList(householdId, session.requireResidentId())) }
+        requireRegistered(session) { residentId -> RpcResult.Ok(productService.shoppingList(householdId, residentId)) }
 }

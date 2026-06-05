@@ -3,8 +3,7 @@ package net.brightroom.mindstock.presentation.rpc.household
 import net.brightroom.mindstock.application.service.household.HouseholdService
 import net.brightroom.mindstock.application.service.invitation.InvitationService
 import net.brightroom.mindstock.configuration.auth.MindstockSession
-import net.brightroom.mindstock.configuration.auth.requireResidentId
-import net.brightroom.mindstock.configuration.guard.guarded
+import net.brightroom.mindstock.configuration.guard.requireRegistered
 import net.brightroom.mindstock.domain.model.household.Households
 import net.brightroom.mindstock.domain.model.household.invitation.InvitationCode
 import net.brightroom.mindstock.rpc.household.HouseholdRpcService
@@ -18,10 +17,10 @@ class HouseholdController(
     private val session: MindstockSession,
 ) : HouseholdRpcService {
     override suspend fun list(): RpcResult<Households, RpcError> =
-        guarded(session) { RpcResult.Ok(householdService.list(session.requireResidentId())) }
+        requireRegistered(session) { residentId -> RpcResult.Ok(householdService.list(residentId)) }
 
     override suspend fun previewInvite(code: InvitationCode): RpcResult<InvitationPreview, RpcError> =
-        guarded(session) {
+        requireRegistered(session) { _ ->
             val invitation = invitationService.findByCode(code)
             val household = householdService.findById(invitation.householdId)
             RpcResult.Ok(InvitationPreview(household.profile.name, invitation.grantedRole))
