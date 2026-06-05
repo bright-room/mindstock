@@ -1,85 +1,64 @@
 # mindstock
 Household consumables inventory manager — keep your home's stock out of your head.
 
-## Zitadel (ローカル認証 IdP)
+## ローカル開発(認証込み)
 
-backend は OIDC access_token (JWT) を Zitadel で検証する。ローカル開発では compose 上に PostgreSQL と Zitadel を起動する(`compose.yml` の `postgres` / `zitadel` 2 サービス。Zitadel も同じ `postgres` を使う)。
+backend は OIDC access_token (JWT) を Zitadel で検証する。**Zitadel のセットアップ(Project / API / PKCE アプリ)は `docker compose up` 時に自動で行われる**(画面操作不要)。
 
-### 起動
+`compose.yml` の 3 サービス:
+
+| サービス | 役割 |
+|---|---|
+| `postgres`(:5432) | アプリ DB + Zitadel DB |
+| `zitadel`(:8081) | OIDC IdP。Login UI は v1 を使用(v4 既定の v2 は別コンテナ要のため無効化)。初回 init で IAM 管理用サービスアカウントの PAT を `docker/machinekey/pat.txt` に発行 |
+| `zitadel-init` | 上記 PAT で Management API を叩き、Project `mindstock` / API `mindstock-backend`(JWT)/ PKCE アプリ `mindstock-frontend`(**Dev Mode + Auth Token Type=JWT** + redirect URI)を**冪等に**作成し、生成された `AUTH_*` を repo ルートの **`.env.zitadel`** に書き出す |
+
+### 1. 起動 + 自動セットアップ
 
 ```sh
-docker compose up -d            # postgres(:5432) + zitadel(:8081)
+docker compose up -d
 ```
 
-http://localhost:8081 が応答するまで 30 秒ほど待つ。`admin@localhost` / `Password1!` でログインする。
-
-> **Login UI について**: Zitadel v4 は新しい Login UI v2(別コンテナ)を既定にするが、本 compose は zitadel 本体のみなので `compose.yml` で `ZITADEL_DEFAULTINSTANCE_FEATURES_LOGINV2_REQUIRED: "false"` を指定し、本体内蔵の Login v1(`/ui/login`)を使う。**この設定はインスタンス生成時のみ反映される**ため、後から変えた/コンソールに入れない場合は `docker compose down -v && docker compose up -d` で再 init する(ボリュームが消えるので Zitadel の Project/Application 設定はやり直し)。
-
-### 初回セットアップ (UI 操作)
-
-1. http://localhost:8081 にブラウザでアクセス
-2. `admin@localhost` / `Password1!` でログイン
-3. Project `mindstock` を作成
-4. Application `mindstock-frontend` を「User Agent (PKCE)」で作成
-5. API `mindstock-backend` を「JWT」で作成。作成後に表示される Resource ID(数値文字列)をコピーして `AUTH_AUDIENCE` に設定する
-
-### backend 用の環境変数
+`zitadel-init` が完走すると `.env.zitadel` が生成される(数十秒)。進捗は `docker compose logs -f zitadel-init`。中身:
 
 ```sh
-AUTH_ISSUER="http://localhost:8081"
-AUTH_AUDIENCE="<API mindstock-backend の Resource ID をここに>"
-AUTH_JWKS_URL="http://localhost:8081/oauth/v2/keys"
-# DB は application.yaml の既定(jdbc:postgresql://localhost:5432/mindstock, mindstock/mindstock)が
-# compose の postgres と一致するため、通常は未設定で可。変えたい場合のみ DB_JDBC_URL / DB_USERNAME / DB_PASSWORD。
+AUTH_ISSUER=http://localhost:8081
+AUTH_JWKS_URL=http://localhost:8081/oauth/v2/keys
+AUTH_PROJECT_ID=<自動採番>
+AUTH_AUDIENCE=<自動採番: API mindstock-backend の clientId>
+AUTH_CLIENT_ID=<自動採番: PKCE アプリの clientId>
+AUTH_REDIRECT_URI=http://localhost:8080/auth/callback
+AUTH_POST_LOGOUT_REDIRECT_URI=http://localhost:8080/
 ```
 
-`AUTH_AUDIENCE` は初回セットアップで Zitadel が割り当てる Resource ID(数値文字列)なので、必ず実際の値で上書きすること(`application.yaml` のデフォルト `mindstock-backend` のままだと、Zitadel access_token の `aud` claim と一致せず検証失敗となる)。
+### 2. 環境変数の読み込み
 
-backend はデフォルト :8080 で起動するが、frontend dev server も :8080 を使い `/api` を **:8090** にプロキシする(`frontend/webpack.config.d/proxy.js`)。そのため backend は **`PORT=8090`** で起動する(下記)。起動時に Flyway migration が `postgres` に対して走る。
-
-### frontend 用の Application 設定
-
-Application `mindstock-frontend` (User Agent / PKCE) に対して、Zitadel 管理 UI で以下も登録しておく:
-
-- Redirect URIs: `http://localhost:8080/auth/callback`
-- Post Logout Redirect URIs: `http://localhost:8080/`
-- **Development Mode: ON**(必須)
-- **Token Settings → Auth Token Type: `JWT`(必須)**
-
-> **Auth Token Type を JWT にしないと** Zitadel は既定で **opaque(暗号化 / JWE)アクセストークン**を発行する。backend は JWKS で **JWT(RS256)** を検証する前提なので、opaque トークンは検証できず WS ハンドシェイクが 401 で弾かれる(frontend はオンボーディング画面に倒れる)。アクセストークンのヘッダが `{"alg":"RS256",...}` になっていれば JWT。`{"alg":"A256GCMKW","enc":"A256GCM",...}` は opaque なので Token Type を JWT に変更して再ログインする。
-
-> **Development Mode を ON にしないと** authorize 時に `invalid_request: This client's redirect_uri is http and is not allowed` で弾かれる。Zitadel は本番安全のため http(非 https)の redirect URI を既定で拒否し、Development Mode 有効時のみ http localhost を許可する。Application の Configuration / Redirect Settings にトグルがある。
-
-控えるべき値:
-
-- **Client ID** (Application 作成後に表示) → `AUTH_CLIENT_ID`
-- **API mindstock-backend の Resource ID**(上記と同じ) → `AUTH_AUDIENCE`
-- **Project mindstock の ID**(URL の `projects/<id>`) → `AUTH_PROJECT_ID`
-
-### frontend 用の環境変数
+backend / frontend の両方が `AUTH_*` を要求する(未設定だと `:frontend:generateAuthConfig` がビルド失敗=意図的)。`.env.zitadel` を読み込む:
 
 ```sh
-AUTH_ISSUER="http://localhost:8081"
-AUTH_CLIENT_ID="<Client ID>"
-AUTH_REDIRECT_URI="http://localhost:8080/auth/callback"
-AUTH_POST_LOGOUT_REDIRECT_URI="http://localhost:8080/"
-AUTH_AUDIENCE="<API mindstock-backend の Resource ID>"
-AUTH_PROJECT_ID="<Project mindstock の ID>"
+set -a; . ./.env.zitadel; set +a      # 各ターミナルで
 ```
 
-`AUTH_CLIENT_ID` / `AUTH_AUDIENCE` / `AUTH_PROJECT_ID` が未設定だと `./gradlew :frontend:generateAuthConfig` がビルド失敗する(意図的)。`mise.toml` の `[env]` セクションや `.envrc` で管理するのが便利。
+`mise` 利用なら `mise.toml` に `[env]` → `_.file = ".env.zitadel"`、direnv なら `.envrc` に `dotenv ./.env.zitadel` でも可。
 
-### 起動(backend + frontend)
+> DB は `application.yaml` の既定(`jdbc:postgresql://localhost:5432/mindstock`, `mindstock`/`mindstock`)が compose の `postgres` と一致するため通常未設定で可。変えたい場合のみ `DB_JDBC_URL` / `DB_USERNAME` / `DB_PASSWORD`。
 
-`AUTH_*` 環境変数(上の backend 用 + frontend 用)は `mise.toml` の `[env]` か `.envrc` でまとめて入れておくと両ターミナルで共有できる。
+### 3. backend + frontend 起動
+
+backend は既定 :8080 だが、frontend dev server も :8080 を使い `/api` を **:8090** にプロキシする(`frontend/webpack.config.d/proxy.js`)。そのため backend は **`PORT=8090`** で起動する。
 
 ```sh
-docker compose up -d                                 # postgres + zitadel
-PORT=8090 ./gradlew :backend:api:run                 # ターミナル A(:8090、frontend proxy 先)
+PORT=8090 ./gradlew :backend:api:run                 # ターミナル A(:8090、frontend proxy 先。Flyway migration が走る)
 ./gradlew :frontend:wasmJsBrowserDevelopmentRun      # ターミナル B(http://localhost:8080)
 ```
 
-ブラウザで http://localhost:8080 を開く。
+ブラウザで http://localhost:8080 を開く → Zitadel ログイン(**`admin@localhost` / `Password1!`**)。
+
+### 再セットアップ / 注意
+
+- Zitadel の設定を作り直したいときは `docker compose down -v && docker compose up -d`(DB ボリュームが消え、`.env.zitadel` も再生成される。生成された ID が変わるので env を読み直す)。
+- `.env.zitadel` と `docker/machinekey/` は生成物(gitignore 済み)。手で編集しない。
+- 自動化前に手動でハマりやすかった 2 点(http redirect 用の **Dev Mode**、opaque ではなく **JWT アクセストークン**)は `zitadel-init` が自動設定するので、コンソールでの手作業は不要。
 
 ### live 疎通で確認できること(P6-0 時点)
 
