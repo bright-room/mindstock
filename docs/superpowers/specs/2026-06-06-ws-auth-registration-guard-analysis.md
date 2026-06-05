@@ -29,7 +29,7 @@ mindstock の RPC 層は **kotlinx-rpc(kRPC)** を使い、**トランスポー�
 - サーバ(Ktor)側は `rpc("/resident") { registerService<...>() }` で、その**パスごとに WebSocket ルート**を張る(`KrpcRoute` は `DefaultWebSocketServerSession` を実装)。
 - **1 つの RPC メソッド呼び出しも、suspend の戻り値も、Flow のストリームも、確立した 1 本の WS 上をフレームで多重化して**やり取りする。HTTP の「1 リクエスト = 1 レスポンス」ではない。
 
-```
+```text
 frontend                         backend (Ktor + kRPC)
   │   ws://.../api/v1/resident      │
   ├───────── WS handshake ─────────►│  ← 認証はここで効く(後述)
@@ -52,7 +52,7 @@ WebSocket は 2 フェーズある。
 
 クライアントはまず**通常の HTTP GET リクエスト**を送る:
 
-```
+```http
 GET /api/v1/resident HTTP/1.1
 Host: ...
 Upgrade: websocket
@@ -65,7 +65,7 @@ Authorization: Bearer <jwt>                                    ← 任意(ヘッ
 
 サーバが受理すると:
 
-```
+```http
 HTTP/1.1 101 Switching Protocols
 Upgrade: websocket
 Connection: Upgrade
@@ -99,7 +99,7 @@ WS でクライアントを認証する代表的なやり方:
 | **サブプロトコル smuggling** | `Sec-WebSocket-Protocol` にトークンを忍ばせる(`new WebSocket(url, [proto])`) | **ブラウザで唯一ヘッダ的にトークンを運べる** | トークンが中間 proxy のログに残りうる/server は echo しないなど配慮要・長さ制約 |
 | **Cookie(HttpOnly)** | ハンドシェイクに自動付与される Cookie | ブラウザネイティブ・JS から触れない | CSRF/クロスサイト考慮・SPA とドメイン構成に依存 |
 | **クエリパラメータ** | `ws://...?token=...` | 最も簡単 | **URL がアクセスログ/履歴/Referer に残る → 漏洩**。非推奨 |
-| **接続後メッセージ認証** | まず未認証で接続し、最初のフレームでトークンを送る。サーバはそれまでゲート | ヘッダ制約を回避・失効を都度判定しやすい | プロトコルを自前で作る・「未認証で繋がっている窓」が一瞬できる |
+| **接続後メッセージ認証** | 未認証で接続し、最初のフレームでトークンを送る。サーバはそれまでゲート | ヘッダ制約を回避・失効を都度判定しやすい | プロトコルを自前で作る・「未認証で繋がっている窓」が一瞬できる |
 | **ワンタイムチケット** | REST で短命チケットを発行 → WS はチケットで接続 | トークン本体を WS に載せない | 余分な往復・チケット管理 |
 
 ### mindstock の選択
@@ -344,7 +344,7 @@ guardedRegistered(session) { residentId -> ... }
 
 3 つの答えを合わせると、WS-RPC に忠実な形はこうなる:
 
-```
+```text
 - エンドポイント: 単一(例 /api/rpc)。全サービスを 1 接続に相乗り
 - 認証:           ハンドシェイクで JWT 検証(現行 MindstockAuth のまま、1 接続 1 回)
 - バージョン:     サブプロトコル mindstock.v1 / v2 で交渉(URL に出さない)

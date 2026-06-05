@@ -11,7 +11,7 @@
 
 **ゲートを 2 層に分け、各層を「WS がきれいに扱える場所」に置く:**
 
-```
+```text
 ゲート①認証(JWT の有無)= ハンドシェイクで確実に効く → エンドポイントで表現
 ゲート②認可(登録の有無)= 接続後のメッセージ単位     → アプリ層(guard ヘルパー)で表現
 ```
@@ -26,7 +26,7 @@
 | 認証ゲート | `MindstockAuthPlugin`(現行ロジック)をハンドシェイクで。有効 JWT なら未登録でも接続可 |
 | 登録ガード | `RequireRegisteredUserPlugin` を**削除**。各 RPC メソッドが guard ヘルパーで宣言 |
 | guard ヘルパー | `requireRegistered(session){ residentId -> }`(既定・fail-closed)/ `allowUnregistered(session){ }`(register・whoami 専用) |
-| 未登録判定 | `SessionRpcService.whoami(): RpcResult<SessionStatus, RpcError>`、`SessionStatus = Registered(Resident) | Unregistered` |
+| 未登録判定 | `SessionRpcService.whoami(): RpcResult<SessionStatus, RpcError>`、`SessionStatus = Registered(Resident) \| Unregistered` |
 | バージョニング | サブプロトコル `mindstock.v1`(URL に `/v1` を出さない)。v2 実装は今回しない |
 | frontend | 単一接続 + boot で `whoami()` 分岐 |
 | 認証不要エンドポイント | 今回作らない(将来 `/api/public` を兄弟として追加) |

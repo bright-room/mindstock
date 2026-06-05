@@ -86,11 +86,13 @@ class StockController(
         stockId: StockId,
         quantity: Quantity,
         note: Note,
-    ): RpcResult<Unit, RpcError> {
+    ): RpcResult<Unit, RpcError> =
+        // 登録ガードは requireRegistered で宣言(residentId は block 引数で受ける)。
         // tx() 不要 — transaction は StockDataSource 内で transaction(database){} として張られる
-        stockService.replenish(stockId, quantity, note, requireNotNull(session.userId))
-        return RpcResult.Ok(Unit)
-    }
+        requireRegistered(session) { residentId ->
+            stockService.replenish(stockId, quantity, note, residentId)
+            RpcResult.Ok(Unit)
+        }
 }
 ```
 
@@ -116,10 +118,10 @@ fun Application.routingConfigure() {
         // 全サービスを単一エンドポイントに相乗り。JWT 認証は MindstockAuthPlugin(app-level)が担う
         rpc("/api/rpc") {
             registerService<StockRpcService> {
-                StockController(stockService, session = sessionOf(applicationCall))
+                StockController(stockService, session = sessionOf(call))
             }
             registerService<SessionRpcService> {
-                SessionController(sessionService, session = sessionOf(applicationCall))
+                SessionController(sessionService, session = sessionOf(call))
             }
         }
     }
