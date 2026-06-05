@@ -58,8 +58,12 @@ kotlinx-serialization の標準 deserialize は `data class` / `@JvmInline value
 
 ### Routing
 
-- 認証レルムで rpc route を nest: `authenticate("user") { rpc("/api/v1/...") { /* ... */ } }`
-- 中の `registerService<T> { ImplClass(...) }` で 1 service ずつ登録
+- 全 `@Rpc` service は **単一エンドポイント `rpc("/api/rpc")`** に相乗りし、1 つの WS 接続で全サービスを提供する(per-service パスは使わない)
+- JWT 認証は `MindstockAuthPlugin`(app-level install)が WS ハンドシェイク時に行う。有効な JWT であれば未登録 Resident でも接続できる
+- 登録要件はルートスコープでなく **各 RPC メソッド内のガードヘルパー** で宣言する
+  - `requireRegistered` — デフォルト(フェイルクローズ)。未登録の場合は `RpcError.Unauthorized`
+  - `allowUnregistered` — `register` / `whoami` 等のみに付ける
+  - ガードヘルパーの実装は `configuration/guard/SessionGuard.kt`
 
 ## Why
 
@@ -106,13 +110,16 @@ class AttachmentController(
 ```kotlin
 fun Application.routingConfigure() {
     val stockService by dependencies   // ← suspend 解決を先取り
+    val sessionService by dependencies
 
     routing {
-        authenticate("user") {
-            rpc("/api/v1/stock") {
-                registerService<StockRpcService> {
-                    StockController(stockService, session = sessionOf(applicationCall))
-                }
+        // 全サービスを単一エンドポイントに相乗り。JWT 認証は MindstockAuthPlugin(app-level)が担う
+        rpc("/api/rpc") {
+            registerService<StockRpcService> {
+                StockController(stockService, session = sessionOf(applicationCall))
+            }
+            registerService<SessionRpcService> {
+                SessionController(sessionService, session = sessionOf(applicationCall))
             }
         }
     }
