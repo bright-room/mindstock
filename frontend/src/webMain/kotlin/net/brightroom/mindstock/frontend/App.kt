@@ -10,6 +10,10 @@ import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.plugins.websocket.WebSockets
 import io.ktor.serialization.kotlinx.json.json
 import kotlinx.browser.window
+import mindstock.frontend.generated.resources.Res
+import mindstock.frontend.generated.resources.loading
+import mindstock.frontend.generated.resources.onboarding_placeholder
+import mindstock.frontend.generated.resources.stock_placeholder
 import net.brightroom.mindstock.frontend.app.AuthViewModel
 import net.brightroom.mindstock.frontend.app.shell.AppShell
 import net.brightroom.mindstock.frontend.auth.AuthClient
@@ -19,6 +23,7 @@ import net.brightroom.mindstock.frontend.core.rpc.RpcClientProvider
 import net.brightroom.mindstock.frontend.core.session.AppSession
 import net.brightroom.mindstock.frontend.designsystem.atom.AppText
 import net.brightroom.mindstock.frontend.designsystem.theme.MindstockTheme
+import org.jetbrains.compose.resources.stringResource
 
 @Composable
 fun App() {
@@ -46,10 +51,10 @@ fun App() {
 
     MindstockTheme {
         when (state) {
-            is AuthState.Booting -> AppText("読み込み中…")
+            is AuthState.Booting -> AppText(stringResource(Res.string.loading))
             is AuthState.Failed -> AppText((state as AuthState.Failed).message)
-            is AuthState.NeedOnboarding -> AppText("オンボーディング(P6-3)")
-            is AuthState.Ready -> AppShell(stockContent = { AppText("在庫一覧(配線確認用プレースホルダ)") })
+            is AuthState.NeedOnboarding -> AppText(stringResource(Res.string.onboarding_placeholder))
+            is AuthState.Ready -> AppShell(stockContent = { AppText(stringResource(Res.string.stock_placeholder)) })
         }
     }
 }

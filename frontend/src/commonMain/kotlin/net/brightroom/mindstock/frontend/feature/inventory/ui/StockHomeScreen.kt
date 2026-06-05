@@ -12,6 +12,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import mindstock.frontend.generated.resources.Res
+import mindstock.frontend.generated.resources.loading
+import mindstock.frontend.generated.resources.stock_view_grid
+import mindstock.frontend.generated.resources.stock_view_list
 import net.brightroom.mindstock.domain.model.inventory.stock.Stock
 import net.brightroom.mindstock.domain.model.inventory.stock.StockStatus
 import net.brightroom.mindstock.frontend.designsystem.atom.AppText
@@ -21,6 +25,7 @@ import net.brightroom.mindstock.frontend.designsystem.atom.StatusDot
 import net.brightroom.mindstock.frontend.designsystem.theme.LocalMindstockTokens
 import net.brightroom.mindstock.frontend.feature.inventory.InventoryUiState
 import net.brightroom.mindstock.frontend.feature.inventory.StockView
+import org.jetbrains.compose.resources.stringResource
 
 @Composable
 fun StockHomeScreen(
@@ -31,7 +36,7 @@ fun StockHomeScreen(
     Column(modifier = modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         when (state) {
             is InventoryUiState.Loading -> {
-                AppText("読み込み中…")
+                AppText(stringResource(Res.string.loading))
             }
 
             is InventoryUiState.Error -> {
@@ -40,7 +45,11 @@ fun StockHomeScreen(
 
             is InventoryUiState.Content -> {
                 SegmentedControl(
-                    options = listOf(SegOption("list", "リスト"), SegOption("grid", "グリッド")),
+                    options =
+                        listOf(
+                            SegOption("list", stringResource(Res.string.stock_view_list)),
+                            SegOption("grid", stringResource(Res.string.stock_view_grid)),
+                        ),
                     selectedKey = if (state.view == StockView.List) "list" else "grid",
                     onSelect = { onSelectView(if (it == "list") StockView.List else StockView.Grid) },
                 )
