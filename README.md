@@ -11,7 +11,9 @@ backend は OIDC access_token (JWT) を Zitadel で検証する。ローカル�
 docker compose up -d            # postgres(:5432) + zitadel(:8081)
 ```
 
-http://localhost:8081 が応答するまで 30 秒ほど待つ。
+http://localhost:8081 が応答するまで 30 秒ほど待つ。`admin@localhost` / `Password1!` でログインする。
+
+> **Login UI について**: Zitadel v4 は新しい Login UI v2(別コンテナ)を既定にするが、本 compose は zitadel 本体のみなので `compose.yml` で `ZITADEL_DEFAULTINSTANCE_FEATURES_LOGINV2_REQUIRED: "false"` を指定し、本体内蔵の Login v1(`/ui/login`)を使う。**この設定はインスタンス生成時のみ反映される**ため、後から変えた/コンソールに入れない場合は `docker compose down -v && docker compose up -d` で再 init する(ボリュームが消えるので Zitadel の Project/Application 設定はやり直し)。
 
 ### 初回セットアップ (UI 操作)
 

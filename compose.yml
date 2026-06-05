@@ -41,6 +41,10 @@ services:
       ZITADEL_EXTERNALPORT: "8081"
       ZITADEL_FIRSTINSTANCE_ORG_HUMAN_EMAIL_ADDRESS: "admin@localhost"
       ZITADEL_FIRSTINSTANCE_ORG_HUMAN_PASSWORD: "Password1!"
+      # Zitadel v4 は新しい Login UI v2(別コンテナ)を既定にするが、本 compose は
+      # zitadel 本体のみなので v2 を無効化し、本体内蔵の Login v1(/ui/login)を使う。
+      # ※ インスタンス生成時のみ反映されるため、変更時は `docker compose down -v` で再 init する。
+      ZITADEL_DEFAULTINSTANCE_FEATURES_LOGINV2_REQUIRED: "false"
     ports:
       - "8081:8080"
     depends_on:
