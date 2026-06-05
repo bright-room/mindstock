@@ -1,0 +1,22 @@
+<resources>
+    <string name="app_name">mindstock</string>
+    <string name="nav_stock">在庫</string>
+    <string name="nav_shop">買い物</string>
+    <string name="nav_activity">履歴</string>
+    <string name="nav_profile">設定</string>
+    <string name="action_add">追加</string>
+    <string name="stock_view_list">リスト</string>
+    <string name="stock_view_grid">グリッド</string>
+    <string name="stock_empty">在庫がまだありません</string>
+    <string name="action_replenish">補充</string>
+    <string name="action_consume">消費</string>
+    <string name="login_title">mindstock にログイン</string>
+    <string name="login_button">ログイン</string>
+    <string name="error_generic">エラーが発生しました</string>
+    <string name="loading">読み込み中…</string>
+    <string name="onboarding_placeholder">オンボーディング(P6-3)</string>
+    <string name="stock_placeholder">在庫一覧(配線確認用プレースホルダ)</string>
+    <string name="tab_shop_placeholder">買い物(P6-1)</string>
+    <string name="tab_activity_placeholder">履歴(P6-1)</string>
+    <string name="tab_profile_placeholder">設定(P6-3)</string>
+</resources>

@@ -19,6 +19,7 @@ kotlin {
             implementation(libs.compose.ui)
             implementation(libs.compose.components.resources)
             implementation(libs.material3.adaptive.navigation.suite)
+            implementation(libs.navigation.compose)
 
             implementation(libs.compose.ui.tooling.preview)
 
@@ -41,6 +42,7 @@ kotlin {
             implementation(kotlin("test"))
             implementation(ktorLib.client.mock)
             implementation(libs.kotlinx.coroutines.test)
+            implementation(libs.kotest.assertions.core)
         }
     }
 }

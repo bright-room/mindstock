@@ -179,5 +179,5 @@ val badCount = stocks.list.size  // ❌
 ## 関連
 
 - spec: [docs/superpowers/specs/2026-05-30-coding-conventions-design.md](../../docs/superpowers/specs/2026-05-30-coding-conventions-design.md)
-- rule: [software-architecture](software-architecture.md) — 層全体の依存方向
+- rule: [backend-software-architecture](backend-software-architecture.md) — 層全体の依存方向
 - rule: [error-handling](error-handling.md) — IAE / ResourceNotFoundException の扱い

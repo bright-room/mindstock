@@ -41,12 +41,42 @@ services:
       ZITADEL_EXTERNALPORT: "8081"
       ZITADEL_FIRSTINSTANCE_ORG_HUMAN_EMAIL_ADDRESS: "admin@localhost"
       ZITADEL_FIRSTINSTANCE_ORG_HUMAN_PASSWORD: "Password1!"
+      # 初回ログインでのパスワード変更を要求しない(ローカル用)。
+      ZITADEL_FIRSTINSTANCE_ORG_HUMAN_PASSWORDCHANGEREQUIRED: "false"
+      # Zitadel v4 は新しい Login UI v2(別コンテナ)を既定にするが、本 compose は
+      # zitadel 本体のみなので v2 を無効化し、本体内蔵の Login v1(/ui/login)を使う。
+      # ※ インスタンス生成時のみ反映されるため、変更時は `docker compose down -v` で再 init する。
+      ZITADEL_DEFAULTINSTANCE_FEATURES_LOGINV2_REQUIRED: "false"
+      # 自動セットアップ用のサービスアカウント(IAM_OWNER)+ PAT を init 時に発行し、
+      # PAT を共有ボリュームへ書き出す。zitadel-init がこれで Management API を叩く。
+      ZITADEL_FIRSTINSTANCE_ORG_MACHINE_MACHINE_USERNAME: "admin-sa"
+      ZITADEL_FIRSTINSTANCE_ORG_MACHINE_MACHINE_NAME: "Admin Service Account"
+      ZITADEL_FIRSTINSTANCE_ORG_MACHINE_PAT_EXPIRATIONDATE: "2099-01-01T00:00:00Z"
+      ZITADEL_FIRSTINSTANCE_PATPATH: "/machinekey/pat.txt"
     ports:
       - "8081:8080"
+    volumes:
+      # 名前付きボリュームは root 所有で zitadel(非 root)が PAT を書けないため bind mount にする。
+      - "./docker/machinekey:/machinekey"
     depends_on:
       postgres:
         condition: "service_healthy"
     restart: "unless-stopped"
+
+  # compose up 時に Zitadel を宣言的にセットアップする(画面操作不要・冪等)。
+  # Project / API(JWT) / PKCE アプリ(DevMode + AccessToken=JWT + redirect)を作成し、
+  # 生成された AUTH_* を repo ルートの .env.zitadel に書き出す。
+  zitadel-init:
+    image: "alpine:3.20"
+    container_name: "mindstock-zitadel-init"
+    depends_on:
+      - zitadel
+    volumes:
+      - "./docker/machinekey:/machinekey:ro"
+      - "./docker/zitadel-init.sh:/zitadel-init.sh:ro"
+      - "./:/output"
+    entrypoint: ["sh", "/zitadel-init.sh"]
+    restart: "no"
 
 volumes:
   mindstock-pgdata:

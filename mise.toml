@@ -8,11 +8,7 @@ PORT = "8090"
 TEST_DB_URL = "jdbc:postgresql://localhost:5432/mindstock_test"
 TEST_DB_USER = "mindstock"
 TEST_DB_PASSWORD = "mindstock"
-# Zitadel (local) — see README for setup. These are not secrets; PKCE public client.
-AUTH_ISSUER = "http://localhost:8081"
-AUTH_CLIENT_ID = "374810488246173699"
-AUTH_AUDIENCE = "374810419610517507"
-AUTH_PROJECT_ID = "374810419610517507"
-AUTH_REDIRECT_URI = "http://localhost:8080/auth/callback"
-AUTH_POST_LOGOUT_REDIRECT_URI = "http://localhost:8080/"
-AUTH_JWKS_URL = "http://localhost:8081/oauth/v2/keys"
+# Zitadel の AUTH_*(AUTH_ISSUER / AUTH_CLIENT_ID / AUTH_AUDIENCE / AUTH_PROJECT_ID /
+# AUTH_REDIRECT_URI / AUTH_POST_LOGOUT_REDIRECT_URI / AUTH_JWKS_URL)は
+# `docker compose up` が生成する .env.zitadel から読む(直書きしない)。
+_.file = ".env.zitadel"
