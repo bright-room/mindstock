@@ -74,6 +74,11 @@ fun Application.routingConfigure() {
         audience = authConfig.property("audience").getString()
         this.residentRepository = residentRepository
     }
+    // MindstockAuth の後に install すること(session 確定後に登録要否を判定する)。
+    // 登録なしでも通すのは初回登録ルートのみ(完全一致 allowlist)。
+    install(RequireRegisteredUserPlugin) {
+        publicPaths.add("/api/v1/resident/register")
+    }
 
     // service / scenario を先取り解決(registerService factory は非 suspend のため)
     val residentService: ResidentService by dependencies
@@ -92,6 +97,9 @@ fun Application.routingConfigure() {
     val joinHouseholdScenario: JoinHouseholdScenario by dependencies
 
     routing {
+        // 登録要否のガードは application レベルの [RequireRegisteredUserPlugin] が担う
+        // (public は /resident/register のみ)。ここでは route("") の入れ子を作らず flat に並べる。
+        // route("") を挟むと route-scoped plugin が WS upgrade 経路でだけ隣接 public ルートへ漏れる。
         route("/api/v1") {
             // public: JWT 有効なら未登録 OK(初回登録)
             rpc("/resident/register") {
@@ -99,48 +107,44 @@ fun Application.routingConfigure() {
                     ResidentRegisterController(residentRegisterService, sessionOf(call))
                 }
             }
-            // 登録済み Resident 必須
-            route("") {
-                install(RequireRegisteredUserPlugin)
-
-                rpc("/resident") {
-                    registerService<ResidentRpcService> { ResidentController(residentService, sessionOf(call)) }
+            // 以下は登録済み Resident 必須(RequireRegisteredUserPlugin が allowlist 外として弾く)
+            rpc("/resident") {
+                registerService<ResidentRpcService> { ResidentController(residentService, sessionOf(call)) }
+            }
+            rpc("/catalog") {
+                registerService<CatalogRpcService> { CatalogController(catalogService, sessionOf(call)) }
+            }
+            rpc("/household") {
+                registerService<HouseholdRpcService> { HouseholdController(householdService, invitationService, sessionOf(call)) }
+            }
+            rpc("/household/register") {
+                registerService<HouseholdRegisterRpcService> {
+                    HouseholdRegisterController(
+                        householdRegisterService,
+                        createInvitationScenario,
+                        revokeInvitationScenario,
+                        joinHouseholdScenario,
+                        sessionOf(call),
+                    )
                 }
-                rpc("/catalog") {
-                    registerService<CatalogRpcService> { CatalogController(catalogService, sessionOf(call)) }
+            }
+            rpc("/product") {
+                registerService<ProductRpcService> { ProductController(productService, sessionOf(call)) }
+            }
+            rpc("/product/register") {
+                registerService<ProductRegisterRpcService> {
+                    ProductRegisterController(
+                        productRegisterService,
+                        adoptProductScenario,
+                        sessionOf(call),
+                    )
                 }
-                rpc("/household") {
-                    registerService<HouseholdRpcService> { HouseholdController(householdService, invitationService, sessionOf(call)) }
-                }
-                rpc("/household/register") {
-                    registerService<HouseholdRegisterRpcService> {
-                        HouseholdRegisterController(
-                            householdRegisterService,
-                            createInvitationScenario,
-                            revokeInvitationScenario,
-                            joinHouseholdScenario,
-                            sessionOf(call),
-                        )
-                    }
-                }
-                rpc("/product") {
-                    registerService<ProductRpcService> { ProductController(productService, sessionOf(call)) }
-                }
-                rpc("/product/register") {
-                    registerService<ProductRegisterRpcService> {
-                        ProductRegisterController(
-                            productRegisterService,
-                            adoptProductScenario,
-                            sessionOf(call),
-                        )
-                    }
-                }
-                rpc("/stock") {
-                    registerService<StockRpcService> { StockController(stockService, sessionOf(call)) }
-                }
-                rpc("/stock/register") {
-                    registerService<StockRegisterRpcService> { StockRegisterController(stockRegisterService, sessionOf(call)) }
-                }
+            }
+            rpc("/stock") {
+                registerService<StockRpcService> { StockController(stockService, sessionOf(call)) }
+            }
+            rpc("/stock/register") {
+                registerService<StockRegisterRpcService> { StockRegisterController(stockRegisterService, sessionOf(call)) }
             }
         }
     }

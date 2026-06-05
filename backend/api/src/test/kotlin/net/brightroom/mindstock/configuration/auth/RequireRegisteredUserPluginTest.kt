@@ -8,7 +8,6 @@ import io.ktor.server.application.createApplicationPlugin
 import io.ktor.server.application.install
 import io.ktor.server.response.respondText
 import io.ktor.server.routing.get
-import io.ktor.server.routing.route
 import io.ktor.server.routing.routing
 import io.ktor.server.testing.testApplication
 import net.brightroom.mindstock.domain.model.resident.identity.ResidentId
@@ -33,57 +32,67 @@ class RequireRegisteredUserPluginTest :
         val identity = AuthIdentity(AuthProvider.ZITADEL, AuthSubject("sub"))
         // 本 plugin は exp を見ないため任意の値でよい(失効判定は P5c の guard)。
         val farFuture = Instant.DISTANT_FUTURE
+        val publicPath = "/api/v1/resident/register"
 
         fun registered() = MindstockSession.Registered(identity, ResidentId.create(), farFuture, Uuid.random())
 
         fun unregistered() = MindstockSession.Unregistered(identity, farFuture, Uuid.random())
 
-        suspend fun guardedStatusWith(session: MindstockSession?): HttpStatusCode {
+        // session を stub し、app レベルで RequireRegisteredUserPlugin を install したアプリで path を GET。
+        // 返り値は (status, 保護/public/healthz ハンドラの実行回数合計)。
+        suspend fun statusFor(
+            session: MindstockSession?,
+            path: String,
+        ): Pair<HttpStatusCode, Int> {
+            val handlerRuns = AtomicInteger(0)
             lateinit var status: HttpStatusCode
             testApplication {
                 application {
                     if (session != null) install(stubSessionPlugin(session))
+                    install(RequireRegisteredUserPlugin) { publicPaths.add(publicPath) }
                     routing {
-                        route("/guarded") {
-                            install(RequireRegisteredUserPlugin)
-                            get { call.respondText("ok") }
+                        get("/api/v1/resident") {
+                            handlerRuns.incrementAndGet()
+                            call.respondText("ok")
+                        }
+                        get(publicPath) {
+                            handlerRuns.incrementAndGet()
+                            call.respondText("ok")
+                        }
+                        get("/healthz") {
+                            handlerRuns.incrementAndGet()
+                            call.respondText("ok")
                         }
                     }
                 }
-                status = client.get("/guarded").status
+                status = client.get(path).status
             }
-            return status
+            return status to handlerRuns.get()
         }
 
-        test("Registered → 200") {
-            guardedStatusWith(registered()) shouldBe HttpStatusCode.OK
+        test("Registered + 保護ルート → 200") {
+            statusFor(registered(), "/api/v1/resident").first shouldBe HttpStatusCode.OK
         }
 
-        test("Unregistered → 401") {
-            guardedStatusWith(unregistered()) shouldBe HttpStatusCode.Unauthorized
+        test("Unregistered + 保護ルート → 401") {
+            statusFor(unregistered(), "/api/v1/resident").first shouldBe HttpStatusCode.Unauthorized
         }
 
-        test("session 無し → 401") {
-            guardedStatusWith(null) shouldBe HttpStatusCode.Unauthorized
+        test("session 無し + 保護ルート → 401") {
+            statusFor(null, "/api/v1/resident").first shouldBe HttpStatusCode.Unauthorized
         }
 
         test("Unregistered: 保護ルートのハンドラは実行されない(バイパスしない)") {
-            val handlerRuns = AtomicInteger(0)
-            testApplication {
-                application {
-                    install(stubSessionPlugin(unregistered()))
-                    routing {
-                        route("/guarded") {
-                            install(RequireRegisteredUserPlugin)
-                            get {
-                                handlerRuns.incrementAndGet()
-                                call.respondText("ok")
-                            }
-                        }
-                    }
-                }
-                client.get("/guarded").status shouldBe HttpStatusCode.Unauthorized
-            }
-            handlerRuns.get() shouldBe 0
+            val (status, runs) = statusFor(unregistered(), "/api/v1/resident")
+            status shouldBe HttpStatusCode.Unauthorized
+            runs shouldBe 0
+        }
+
+        test("Unregistered + public 登録ルート(allowlist 完全一致)→ 200") {
+            statusFor(unregistered(), publicPath).first shouldBe HttpStatusCode.OK
+        }
+
+        test("Unregistered + API 接頭辞外のパス → 素通し(200)") {
+            statusFor(unregistered(), "/healthz").first shouldBe HttpStatusCode.OK
         }
     })

@@ -2,6 +2,7 @@ package net.brightroom.mindstock.e2e.auth
 
 import com.auth0.jwk.Jwk
 import com.auth0.jwk.JwkProvider
+import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
 import io.ktor.client.HttpClient
@@ -24,11 +25,14 @@ import kotlinx.rpc.krpc.serialization.json.json
 import kotlinx.rpc.withService
 import net.brightroom.mindstock.application.repository.resident.ResidentRepository
 import net.brightroom.mindstock.configuration.auth.MindstockAuthPlugin
+import net.brightroom.mindstock.configuration.auth.RequireRegisteredUserPlugin
 import net.brightroom.mindstock.configuration.auth.WsSubprotocolEchoPlugin
 import net.brightroom.mindstock.domain.exception.ResourceNotFoundException
 import net.brightroom.mindstock.domain.model.resident.Resident
+import net.brightroom.mindstock.domain.model.resident.identity.ResidentId
 import net.brightroom.mindstock.domain.model.resident.identity.auth.AuthIdentity
 import net.brightroom.mindstock.domain.model.resident.profile.DisplayName
+import net.brightroom.mindstock.domain.model.resident.profile.Profile
 import net.brightroom.mindstock.extensions.kotlinx.serialization.CustomJson
 import net.brightroom.mindstock.extensions.kotlinx.serialization.KrpcJson
 import net.brightroom.mindstock.rpc.resident.ResidentRegisterRpcService
@@ -61,6 +65,11 @@ class KrpcWsUpgradeAuthTest :
                 every { it.findByAuth(any<AuthIdentity>()) } throws ResourceNotFoundException("not found")
             }
 
+        fun registeredRepo(): ResidentRepository =
+            mockk<ResidentRepository>().also {
+                every { it.findByAuth(any<AuthIdentity>()) } returns Resident(ResidentId.create(), Profile(DisplayName("Alice")))
+            }
+
         val stubService =
             object : ResidentRegisterRpcService {
                 override suspend fun registerDisplayName(displayName: DisplayName): RpcResult<Resident, RpcError> = error("unused")
@@ -71,10 +80,14 @@ class KrpcWsUpgradeAuthTest :
         @OptIn(ExperimentalEncodingApi::class)
         fun bearerSubprotocol(token: String): String = "mindstock.bearer." + Base64.UrlSafe.encode(token.encodeToByteArray()).trimEnd('=')
 
-        // 本番 RoutingConfiguration と同じプラグイン構成・同じ CIO エンジンで `/api/v1/resident/register`
-        // (RequireRegisteredUser の外 = 有効 JWT なら未登録でも通るルート)を立て、
-        // 与えられた request 設定で kRPC client から rename() を呼び結果を返す。
-        suspend fun callRename(configure: io.ktor.client.request.HttpRequestBuilder.() -> Unit): RpcResult<Unit, RpcError> {
+        // 本番 RoutingConfiguration と同じプラグイン構成・ルーティング構造(app レベルの
+        // RequireRegisteredUser + public は /resident/register のみの allowlist、route("") の入れ子なし)
+        // を本番と同じ CIO エンジンで立て、指定 path に kRPC client で接続して rename() を呼ぶ。
+        suspend fun callRename(
+            repo: ResidentRepository,
+            path: String,
+            configure: io.ktor.client.request.HttpRequestBuilder.() -> Unit,
+        ): RpcResult<Unit, RpcError> {
             val server =
                 embeddedServer(ServerCIO, port = 0) {
                     install(ContentNegotiation) { jsonIo(CustomJson) }
@@ -84,13 +97,13 @@ class KrpcWsUpgradeAuthTest :
                         jwkProvider = stubJwkProvider()
                         this.issuer = issuer
                         this.audience = audience
-                        residentRepository = unregisteredRepo()
+                        residentRepository = repo
                     }
+                    install(RequireRegisteredUserPlugin) { publicPaths.add("/api/v1/resident/register") }
                     routing {
                         route("/api/v1") {
-                            rpc("/resident/register") {
-                                registerService<ResidentRegisterRpcService> { stubService }
-                            }
+                            rpc("/resident/register") { registerService<ResidentRegisterRpcService> { stubService } }
+                            rpc("/resident") { registerService<ResidentRegisterRpcService> { stubService } }
                         }
                     }
                 }
@@ -106,7 +119,7 @@ class KrpcWsUpgradeAuthTest :
                     install(ClientWebSockets)
                 }
             return try {
-                val rpcClient = client.rpc("ws://127.0.0.1:$port/api/v1/resident/register", configure)
+                val rpcClient = client.rpc("ws://127.0.0.1:$port$path", configure)
                 rpcClient.withService<ResidentRegisterRpcService>().rename(DisplayName("Alice"))
             } finally {
                 client.close()
@@ -114,10 +127,10 @@ class KrpcWsUpgradeAuthTest :
             }
         }
 
-        test("有効 JWT + bearer subprotocol + kRPC route で RPC 呼び出しが成立する(本番のブラウザ経路)") {
+        test("未登録 JWT + bearer subprotocol で public な /resident/register の WS upgrade が成立する(本番のブラウザ経路)") {
             runBlocking {
                 val token = TestJwtIssuer.issue(subject = "zitadel-sub-1")
-                callRename {
+                callRename(unregisteredRepo(), "/api/v1/resident/register") {
                     headers.append(SecWebSocketProtocol, "mindstock.v1")
                     headers.append(SecWebSocketProtocol, bearerSubprotocol(token))
                 } shouldBe RpcResult.Ok(Unit)
@@ -126,13 +139,35 @@ class KrpcWsUpgradeAuthTest :
 
         // 旧セッションの「WS upgrade + Authorization ヘッダ → 401」切り分け(python raw socket)と
         // 同じリクエスト形(mindstock.v1 を offer しつつ token は Authorization ヘッダ)を kRPC route で再現。
-        test("有効 JWT + Authorization ヘッダ + kRPC route(旧 401 切り分けと同形)でも成立する") {
+        test("未登録 JWT + Authorization ヘッダで public な /resident/register が成立する(旧 401 切り分けと同形)") {
             runBlocking {
                 val token = TestJwtIssuer.issue(subject = "zitadel-sub-1")
-                callRename {
+                callRename(unregisteredRepo(), "/api/v1/resident/register") {
                     headers.append(SecWebSocketProtocol, "mindstock.v1")
                     headers.append(HttpHeaders.Authorization, "Bearer $token")
                 } shouldBe RpcResult.Ok(Unit)
+            }
+        }
+
+        test("登録済み JWT で保護ルート /resident の WS upgrade が成立する(ガードは登録済みを通す)") {
+            runBlocking {
+                val token = TestJwtIssuer.issue(subject = "zitadel-sub-1")
+                callRename(registeredRepo(), "/api/v1/resident") {
+                    headers.append(SecWebSocketProtocol, "mindstock.v1")
+                    headers.append(SecWebSocketProtocol, bearerSubprotocol(token))
+                } shouldBe RpcResult.Ok(Unit)
+            }
+        }
+
+        test("未登録 JWT は保護ルート /resident の WS upgrade で弾かれる(ガードが効いている)") {
+            runBlocking {
+                val token = TestJwtIssuer.issue(subject = "zitadel-sub-1")
+                shouldThrow<Throwable> {
+                    callRename(unregisteredRepo(), "/api/v1/resident") {
+                        headers.append(SecWebSocketProtocol, "mindstock.v1")
+                        headers.append(SecWebSocketProtocol, bearerSubprotocol(token))
+                    }
+                }
             }
         }
     })
