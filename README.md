@@ -43,6 +43,9 @@ Application `mindstock-frontend` (User Agent / PKCE) に対して、Zitadel 管�
 
 - Redirect URIs: `http://localhost:8080/auth/callback`
 - Post Logout Redirect URIs: `http://localhost:8080/`
+- **Development Mode: ON**(必須)
+
+> **Development Mode を ON にしないと** authorize 時に `invalid_request: This client's redirect_uri is http and is not allowed` で弾かれる。Zitadel は本番安全のため http(非 https)の redirect URI を既定で拒否し、Development Mode 有効時のみ http localhost を許可する。Application の Configuration / Redirect Settings にトグルがある。
 
 控えるべき値:
 
