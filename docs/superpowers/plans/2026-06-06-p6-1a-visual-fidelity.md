@@ -79,6 +79,58 @@ webapp-testing スキルで現状(ダサい状態)のスクショを保存し、
 
 ---
 
+## Task 0.5: サンプルデータのプレビュー経路(検証の土台・必須)
+
+**Files:**
+- Create: `frontend/src/commonMain/kotlin/.../feature/inventory/ui/StockHomePreview.kt`
+- Modify(検証中のみ・最後に戻す): `frontend/src/webMain/kotlin/.../App.kt`
+
+**なぜ必須か:** 当初の失敗は「モックと比較せず出荷した」。Task 16 のスクショ比較は、dev server が
+**実際に商品カード入りの StockHome に到達**して初めて意味を持つ。本番経路は Zitadel ログイン + 登録ユーザ +
+アクティブ世帯 + backend RPC が `Stocks` を返す、を全て満たす必要があり、見た目の高速反復には不向き。
+`InventoryViewModel` は `loadStocks: suspend (HouseholdId) -> RpcOutcome<Stocks>` を**注入で受ける**ので、
+サンプルを返すラムダを差せば認証/backend 無しでカード描画画面を出せる。**全タスクのスクショはこの経路で撮る。**
+（注: Wasm では `@Preview` は IDE 限定で dev server には出ない。実際に描画される代替 composable/エントリにする。)
+
+- [ ] **Step 1: サンプル Stocks ファクトリを作る**
+
+`StockHomePreview.kt`(out/low/ok の混在、長い名前、grid/list 両方で確認できる構成)。`Stock` 構築は
+`domain` の `Stock(product, movements)` を組む。構築方法は既存 `commonTest` の `InventoryViewModelTest` /
+`ProductDetailViewModelTest` のファクトリを参照し、同じやり方で `Product`(`ProductName`/`StockingPolicy`/`ProductUnit`/
+`MinimumStock`/`Barcode`/`ProductImage`/`ProductStatus`)+ `StockMovements`(補充/消費を積んで netQuantity を作る)を組む。
+```kotlin
+package net.brightroom.mindstock.frontend.feature.inventory.ui
+
+import net.brightroom.mindstock.domain.model.inventory.stock.Stock
+import net.brightroom.mindstock.domain.model.inventory.stock.Stocks
+
+/** 認証/backend 無しの見た目検証用サンプル。net 数量で out/low/ok を作り分ける。 */
+fun previewStocks(): Stocks = Stocks(
+    listOf(
+        // 例: 牛乳 net0(out, min2) / トイレットペーパー net1(low, min1) / 食器用洗剤 net3(ok, min1)
+        // … 実際の Product/StockMovements 構築は既存テストのファクトリ流用
+    ),
+)
+```
+（具体的な構築コードは `InventoryViewModelTest` の既存ヘルパをコピーして埋める。netQuantity が min を割る/割らないで status が決まる。)
+
+- [ ] **Step 2: App.kt に検証用の差し込み(後で戻す)**
+
+`App.kt` の `AuthState.Ready` 分岐冒頭に、検証時だけ有効化する分岐を置く(環境フラグ or 一時的なハードコード)。
+`InventoryViewModel(householdId=<任意>, loadStocks = { RpcOutcome.Success(previewStocks()) }, ... )` を渡して
+`InventoryRoute`/`StockHomeScreen` をサンプルで描画する。**この差し込みは検証用で、Task 16 完了後に元へ戻す**
+(コミットには含めない。`git stash` 等で退避するか、別ブランチで検証)。
+
+- [ ] **Step 3: dev server で商品カードが出ることを確認**
+
+Run: `./gradlew :frontend:wasmJsBrowserDevelopmentRun`
+Expected: ログイン無しで在庫一覧(現状はまだダサい)が、サンプル商品カード入りで表示される。
+**ここに到達できない場合、後続の視覚検証が全て成立しないので、ここで必ず解消する。**
+
+（コミットなし＝検証足場。サンプル composable 自体(`StockHomePreview.kt`)は残してよい。)
+
+---
+
 ## Task 1: Token 層 — 影スケールと softShadow ヘルパ
 
 **Files:**
@@ -125,19 +177,57 @@ fun Modifier.softShadow(
     )
 ```
 
-- [ ] **Step 2: MindstockTokens に補助色を足す(SummaryStrip 等で使う)**
+- [ ] **Step 2: MindstockTokens に semantic 色を全部入れる(feature が material3 を直参照しないため)**
 
-`MindstockTokens.kt` の `data class MindstockTokens(...)` に以下フィールドを追加し、`clayTokens` に値を設定する。値は core.jsx の clay TONES より。
+`frontend-designsystem.md` は **`feature/**` が `androidx.compose.material3.*` を直接 import するのを禁止**している。
+よって feature ファイル(SummaryStrip / ProductCard / CompactCard / StockHomeScreen)が必要な色を **すべて `MindstockTokens` に持たせ**、
+feature は `LocalMindstockTokens.current` からのみ色を取る。`MaterialTheme.colorScheme` の直参照は `designsystem/`(atom)内に閉じる。
+
+`MindstockTokens.kt` の `data class MindstockTokens(...)` に以下を追加(値は `MindstockTheme.kt` の ClayColorScheme と core.jsx clay TONES より):
 ```kotlin
-// data class に追加
-val faint: Color,        // oklch(0.66 0.010 60)
-val onAccentRipple: Color = Color(0x2EFFFFFF), // need カード上のアイコン丸 rgba(255,255,255,0.18)
+// data class に追加(status*/radius は既存)
+val accent: Color,
+val onAccent: Color,
+val accentSoft: Color,
+val surface: Color,
+val surface2: Color,
+val ink: Color,
+val sub: Color,
+val line: Color,
+val lineSoft: Color,
+val faint: Color,
 ```
 `clayTokens` に追加:
 ```kotlin
+accent = Color(0xFFC76743),
+onAccent = Color(0xFFFFFBF4),
+accentSoft = Color(0xFFFFE3D3),
+surface = Color(0xFFFFFDFA),
+surface2 = Color(0xFFFBF7F3),
+ink = Color(0xFF2B2520),
+sub = Color(0xFF69625C),
+line = Color(0xFFE1DDD8),
+lineSoft = Color(0xFFEAE7E4),
 faint = Color(0xFFA59C94), // oklch(0.66 0.010 60)
 ```
-（`accent`/`accentSoft`/`onAccent`/`surface`/`line` は ColorScheme(primary/primaryContainer/onPrimary/surface/outline)から取得できるので tokens には足さない。`faint` は ColorScheme に対応が無いので足す。）
+
+**色参照の対応表(本プラン共通):** 以降のコードブロックで、**feature ファイル**(`feature/inventory/**`)に出てくる
+`MaterialTheme.colorScheme.X` は、実装時にすべて下表の `tokens.Y` に読み替える(`val tokens = LocalMindstockTokens.current` を先頭に置く)。
+**atom ファイル**(`designsystem/atom/**`)は規約上 material3 を直接使ってよいので `MaterialTheme.colorScheme.X` のままでよい。
+
+| MaterialTheme.colorScheme | tokens(feature で使う) |
+| --- | --- |
+| `primary` | `accent` |
+| `onPrimary` | `onAccent` |
+| `primaryContainer` | `accentSoft` |
+| `surface` | `surface` |
+| `surfaceVariant` | `surface2` |
+| `onSurface` | `ink` |
+| `onSurfaceVariant` | `sub` |
+| `outline` | `line` |
+| `outlineVariant` | `lineSoft` |
+
+（この一括ルールにより、後続の feature コードブロックは個別注記なしで規約準拠にできる。)
 
 - [ ] **Step 3: コンパイル確認**
 
@@ -187,7 +277,7 @@ object MindstockType {
     @Composable
     fun cardTitle() = base(notoSansJpFamily()).copy(fontWeight = FontWeight.SemiBold, fontSize = 15.5.sp) // 600/15.5
     @Composable
-    fun bigQty() = base(notoSansJpFamily()).copy(fontWeight = FontWeight.Bold, fontSize = 30.sp) // 700/30 tnum
+    fun bigQty() = base(notoSansJpFamily()).copy(fontWeight = FontWeight.Bold, fontSize = 30.sp, fontFeatureSettings = "tnum") // 700/30 等幅数字
     @Composable
     fun unitCaption() = base(notoSansJpFamily()).copy(fontWeight = FontWeight.Medium, fontSize = 11.5.sp) // 500/11.5
     @Composable
@@ -344,7 +434,11 @@ private fun ProvideButtonTextStyle(content: @Composable () -> Unit) {
     )
 }
 ```
-注: `Triple` の分解代入は val 3 つに。`AppIcon` は size 指定が要れば `modifier`(後続 Task 11 で size 引数化済みの想定。未対応なら `Modifier` のみ)。
+注:
+- `Triple` の分解代入は val 3 つに。`AppIcon` の size 引数は Task 10 で追加。
+- **Material3 `Button` は `defaultMinSize`(≈48dp の最小タッチ領域)を持つため、`Sm`=38dp が効かないことがある。**
+  `Modifier.height(size.height.dp)` だけでは縮まない場合、`Modifier.requiredHeight(size.height.dp)` を使うか、
+  `Surface`/`Box`+`clickable` ベースの自前ボタンにする。Sm の 38dp 実寸はスクショで確認すること。
 
 - [ ] **Step 2: コンパイル確認**
 
@@ -1637,6 +1731,7 @@ git commit -m "feat(frontend): ProductCard restyle と CompactCard(grid)を追�
 <string name="summary_ok_title">在庫はぜんぶ足りています</string>
 <string name="summary_ok_sub">いまのところ補充は不要です</string>
 <string name="household_member_count">%1$d 人</string>
+<string name="household_default_name">わたしの家</string>
 ```
 
 - [ ] **Step 2: SummaryStrip / ProductCard / CompactCard の literal を stringResource 化**
@@ -1650,7 +1745,8 @@ git commit -m "feat(frontend): ProductCard restyle と CompactCard(grid)を追�
 is InventoryUiState.Content -> {
     // ヘッダ chrome
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-        HouseholdPill(name = "わたしの家", memberCount = 1, onClick = {}) // TODO(P6-1b): 世帯名/人数を session から
+        // 世帯名/人数は P6-1b で session から渡す。本パスは strings の既定文言で表示のみ。
+        HouseholdPill(name = stringResource(Res.string.household_default_name), memberCount = 1, onClick = {})
         RoundBtn(icon = AppIconName.Bell, contentDescription = "notifications", onClick = {})
     }
     AppText(stringResource(Res.string.stock_greeting, displayName), style = MindstockType.greeting(),
@@ -1737,10 +1833,10 @@ git commit -m "feat(frontend): StockHome をモック忠実に再構成(ヘッ�
 
 **Files:** 是正に応じて Task 1〜15 のファイル
 
-- [ ] **Step 1: dev server 起動 + スクショ**
+- [ ] **Step 1: dev server 起動 + スクショ(Task 0.5 のプレビュー経路で)**
 
-Run: `./gradlew :frontend:wasmJsBrowserDevelopmentRun`
-webapp-testing スキルで在庫画面(list / grid 両方)のスクショを撮る。ログイン/世帯が要る場合は、検証用に `App.kt` の `AuthState.Ready` 分岐へ一時的なサンプル `Stocks` を流す簡易プレビュー経路を設けてよい(検証後に戻す)。
+Task 0.5 で用意したサンプルデータ経路(`previewStocks()` を `loadStocks` に注入)で dev server を起動し、
+webapp-testing スキルで在庫画面(list / grid 両方)のスクショを撮る。認証/backend は不要。
 
 - [ ] **Step 2: モックと横並び比較**
 
@@ -1767,7 +1863,8 @@ git commit -m "fix(frontend): モック横並び比較での見た目ズレを�
 
 ## Self-Review(プラン作成者チェック済み)
 
-- **Spec coverage:** ①Token=Task1 / タイポ=Task2 / ②Atom 各=Task3,5,6,7,8,9,10,11 / AppIcon glyph=Task10 / ③StockHome=Task13,14,15 / SummaryStrip データ暫定=Task13 / アイコンヒューリスティック=Task12 / ④検証ループ=Task0,16 / ⑤テスト規約=Task4,12,13(kotlin.test+Kotest)/ 文言=Task15。全 spec 項目に対応タスクあり。
+- **Spec coverage:** ①Token=Task1 / タイポ=Task2 / ②Atom 各=Task3,5,6,7,8,9,10,11 / AppIcon glyph=Task10 / ③StockHome=Task13,14,15 / SummaryStrip データ暫定=Task13 / アイコンヒューリスティック=Task12 / ④検証ループ=Task0,0.5,16(サンプル経路を必須化)/ ⑤テスト規約=Task4,12,13(kotlin.test+Kotest)/ 文言=Task15 / feature の material3 直参照回避=Task1(token 対応表)。全 spec 項目に対応タスクあり。
+- **Loading/Error:** spec「軽量で可」に従い本パスでは現行の `AppText` 表示のまま(モックトーンへの寄せは最小)。意図的に深追いしない。
 - **Placeholder scan:** TODO は Task15 の「世帯名/人数を session から(P6-1b)」のみ。これは spec で「ヘッダの世帯ピルは表示のみ・タップ/実データは後続」と明示済みの意図的な暫定。他に未確定コードなし。
 - **Type consistency:** `comfortableStock/fillFraction/minFraction`(Task4→5)、`AppButton(variant,size,icon)`/`ButtonVariant`/`ButtonSize`(Task3→14)、`StatusDot(color,soft,label)`(Task6→14)、`Thumb(icon,size,radius)`(Task7→14)、`AppIcon(size,tint)`/`AppIconName` 拡張(Task10→7,11,13,14,15)、`stockSummaryOf`/`StockSummary`(Task13→15)、`glyphForProductName`(Task12→14)、`softShadow/ShadowLevel`(Task1→各)、`MindstockType.*`(Task2→各)整合。
 - **既知の確認事項(実装時にレビュー):** (a) `PathParser().parsePathString` vs `addPathNodes` の API 名(Task10 Step2 注)。(b) feature からの `MaterialTheme` 直参照を designsystem 規約に沿って閉じ込めるか(Task15 Step3 注)— `LocalMindstockTokens` に `ink/sub` 追加が無難。(c) `StockStatus` enum 名の最終確認(Task13)。(d) `InventoryUiState.Content` に `query`/`visibleStocks()` が既にある前提(現行コードで確認済み)。
