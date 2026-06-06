@@ -21,9 +21,11 @@ import mindstock.frontend.generated.resources.activity_row_summary
 import mindstock.frontend.generated.resources.activity_subtitle
 import mindstock.frontend.generated.resources.activity_title
 import mindstock.frontend.generated.resources.history_consume
+import mindstock.frontend.generated.resources.history_corrected_badge
 import mindstock.frontend.generated.resources.history_replenish
 import mindstock.frontend.generated.resources.loading
 import net.brightroom.mindstock.domain.model.inventory.product.ProductId
+import net.brightroom.mindstock.domain.model.inventory.stock.movement.MovementIdentity
 import net.brightroom.mindstock.domain.model.inventory.stock.movement.StockMovement
 import net.brightroom.mindstock.extensions.kotlinx.datetime.JST
 import net.brightroom.mindstock.extensions.kotlinx.datetime.now
@@ -57,6 +59,12 @@ fun ActivityScreen(
 
             is ActivityUiState.Content -> {
                 val today = LocalDate.now(TimeZone.JST)
+                val correctedIds =
+                    state.feed.list
+                        .map { it.movement }
+                        .filterIsInstance<StockMovement.Correction>()
+                        .map { it.target }
+                        .toSet()
                 // 活動行は補充/消費のみ。訂正は商品履歴側で扱うため除外する。
                 val visible = ActivityFeed(state.feed.list.filter { it.movement !is StockMovement.Correction })
                 val groups = visible.groupedByDay(today)
@@ -75,6 +83,7 @@ fun ActivityScreen(
                                         is StockMovement.Consumption -> stringResource(Res.string.history_consume)
                                         is StockMovement.Correction -> stringResource(Res.string.history_replenish) // 除外済みのため到達しない
                                     }
+                                val corrected = (m.identity as? MovementIdentity.Persisted)?.id in correctedIds
                                 Row(
                                     modifier = Modifier.fillMaxWidth(),
                                     horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -93,6 +102,7 @@ fun ActivityScreen(
                                         ),
                                     )
                                     AppText(hm(m.occurredAt()))
+                                    if (corrected) AppText(stringResource(Res.string.history_corrected_badge))
                                 }
                             }
                         }

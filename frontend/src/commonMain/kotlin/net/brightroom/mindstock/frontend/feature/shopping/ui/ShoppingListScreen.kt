@@ -92,7 +92,9 @@ fun ShoppingListScreen(
                     AppText(stringResource(Res.string.shop_progress_count, total - remaining, total))
                     LazyColumn(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                         if (auto.isNotEmpty()) {
-                            item { AppText(stringResource(Res.string.shop_section_auto)) }
+                            if (manual.isNotEmpty()) {
+                                item { AppText(stringResource(Res.string.shop_section_auto)) }
+                            }
                             items(auto) { entry ->
                                 ShopRow(entry, isManual = false, done, onOpenProduct, onSetWanted, onReplenish = {
                                     moveTarget =
