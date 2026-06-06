@@ -9,7 +9,15 @@ sealed interface InventoryUiState {
     data class Content(
         val stocks: Stocks,
         val view: StockView,
-    ) : InventoryUiState
+        val query: String = "",
+    ) : InventoryUiState {
+        /** query で名前 substring 絞り込み（frontend 側フィルタ）。 */
+        fun visibleStocks(): Stocks {
+            val q = query.trim()
+            if (q.isEmpty()) return stocks
+            return Stocks(stocks.list.filter { it.product.name().contains(q, ignoreCase = true) })
+        }
+    }
 
     data class Error(
         val text: UiText,
