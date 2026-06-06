@@ -2,8 +2,8 @@ package net.brightroom.mindstock.frontend.core.auth
 
 import io.kotest.matchers.collections.shouldHaveSize
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.runCurrent
+import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 
 class ReauthControllerTest {

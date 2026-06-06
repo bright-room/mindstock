@@ -42,10 +42,16 @@ class ProductDetailViewModelTest {
         runTest {
             var loads = 0
             val toast = ToastController()
-            val v = detailVm(loadHistory = { loads++; RpcOutcome.Success(StockMovements(emptyList())) }, toast = toast)
+            val v =
+                detailVm(loadHistory = {
+                    loads++
+                    RpcOutcome.Success(StockMovements(emptyList()))
+                }, toast = toast)
             v.load()
             v.correct(MovementId(1), Quantity(3), Reason("数え間違い"))
             loads shouldBe 2
-            toast.current.value?.text?.resource shouldBe Res.string.toast_corrected
+            toast.current.value
+                ?.text
+                ?.resource shouldBe Res.string.toast_corrected
         }
 }

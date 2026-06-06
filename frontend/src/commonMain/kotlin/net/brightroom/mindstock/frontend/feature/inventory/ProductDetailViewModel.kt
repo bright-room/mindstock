@@ -33,7 +33,10 @@ class ProductDetailViewModel(
         _state.value = ProductDetailUiState.Loading
         _state.value =
             when (val out = loadHistory(productId)) {
-                is RpcOutcome.Success -> ProductDetailUiState.Content(out.value)
+                is RpcOutcome.Success -> {
+                    ProductDetailUiState.Content(out.value)
+                }
+
                 is RpcOutcome.Failure -> {
                     handleFailure(out.error)
                     ProductDetailUiState.Error(errorText(out.error))
@@ -41,13 +44,20 @@ class ProductDetailViewModel(
             }
     }
 
-    suspend fun correct(target: MovementId, correctedQuantity: Quantity, reason: Reason) {
+    suspend fun correct(
+        target: MovementId,
+        correctedQuantity: Quantity,
+        reason: Reason,
+    ) {
         when (val out = correctMovement(target, correctedQuantity, reason)) {
             is RpcOutcome.Success -> {
                 load()
                 toast.show(UiText(Res.string.toast_corrected))
             }
-            is RpcOutcome.Failure -> handleFailure(out.error)
+
+            is RpcOutcome.Failure -> {
+                handleFailure(out.error)
+            }
         }
     }
 

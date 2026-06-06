@@ -42,7 +42,9 @@ fun MoveSheet(
     var note by remember(open, stock) { mutableStateOf("") }
     Sheet(open = open, title = title, onClose = onClose) {
         Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(20.dp)) {
-            AppText(stringResource(Res.string.move_current_qty, stock.product.name(), stock.currentQuantity(), stock.product.setting.unit()))
+            AppText(
+                stringResource(Res.string.move_current_qty, stock.product.name(), stock.currentQuantity(), stock.product.setting.unit()),
+            )
             Stepper(value = qty, onChange = { qty = it }, unit = stock.product.setting.unit())
             TextInput(
                 value = note,
@@ -50,7 +52,10 @@ fun MoveSheet(
                 placeholder = stringResource(Res.string.move_note_placeholder),
                 modifier = Modifier.fillMaxWidth(),
             )
-            PrimaryButton(onClick = { onSubmit(qty, note); onClose() }) {
+            PrimaryButton(onClick = {
+                onSubmit(qty, note)
+                onClose()
+            }) {
                 AppText(stringResource(Res.string.move_submit, qty, stock.product.setting.unit(), title))
             }
         }

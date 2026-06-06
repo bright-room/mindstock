@@ -100,10 +100,22 @@ fun App() {
 
         Box(Modifier.fillMaxSize()) {
             when (state) {
-                is AuthState.Booting -> AppText(stringResource(Res.string.loading))
-                is AuthState.Failed -> AppText((state as AuthState.Failed).message)
-                is AuthState.NeedOnboarding -> AppText(stringResource(Res.string.onboarding_placeholder))
-                is AuthState.NeedHousehold -> AppText(stringResource(Res.string.need_household))
+                is AuthState.Booting -> {
+                    AppText(stringResource(Res.string.loading))
+                }
+
+                is AuthState.Failed -> {
+                    AppText((state as AuthState.Failed).message)
+                }
+
+                is AuthState.NeedOnboarding -> {
+                    AppText(stringResource(Res.string.onboarding_placeholder))
+                }
+
+                is AuthState.NeedHousehold -> {
+                    AppText(stringResource(Res.string.need_household))
+                }
+
                 is AuthState.Ready -> {
                     val householdId = sessionState.activeHouseholdId
                     if (householdId == null) {

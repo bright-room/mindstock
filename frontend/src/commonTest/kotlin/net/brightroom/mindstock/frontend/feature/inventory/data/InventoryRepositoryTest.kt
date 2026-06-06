@@ -28,7 +28,12 @@ class InventoryRepositoryTest {
                 object : FakeProductRpc() {
                     override suspend fun list(householdId: HouseholdId) = RpcResult.Ok(Stocks(emptyList()))
                 }
-            val repo = InventoryRepository(productService = { fakeProduct }, stockService = { error("unused") }, stockRegisterService = { error("unused") })
+            val repo =
+                InventoryRepository(
+                    productService = { fakeProduct },
+                    stockService = { error("unused") },
+                    stockRegisterService = { error("unused") },
+                )
             val out = repo.list(HouseholdId.create())
             out.shouldBeInstanceOf<RpcOutcome.Success<Stocks>>()
         }

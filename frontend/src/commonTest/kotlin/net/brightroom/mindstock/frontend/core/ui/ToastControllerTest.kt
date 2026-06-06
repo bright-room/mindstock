@@ -11,7 +11,9 @@ class ToastControllerTest {
         val controller = ToastController()
         controller.current.value shouldBe null
         controller.show(UiText(Res.string.toast_replenished))
-        controller.current.value?.text?.resource shouldBe Res.string.toast_replenished
+        controller.current.value
+            ?.text
+            ?.resource shouldBe Res.string.toast_replenished
         controller.dismiss()
         controller.current.value shouldBe null
     }

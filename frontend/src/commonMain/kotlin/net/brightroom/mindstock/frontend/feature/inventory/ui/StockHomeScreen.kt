@@ -6,10 +6,10 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.items
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -43,8 +43,14 @@ fun StockHomeScreen(
 ) {
     Column(modifier = modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         when (state) {
-            is InventoryUiState.Loading -> AppText(stringResource(Res.string.loading))
-            is InventoryUiState.Error -> AppText(state.text.resolve())
+            is InventoryUiState.Loading -> {
+                AppText(stringResource(Res.string.loading))
+            }
+
+            is InventoryUiState.Error -> {
+                AppText(state.text.resolve())
+            }
+
             is InventoryUiState.Content -> {
                 TextInput(
                     value = state.query,

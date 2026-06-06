@@ -55,11 +55,17 @@ class InventoryViewModelTest {
         runTest {
             var loads = 0
             val toast = ToastController()
-            val v = vm(loadStocks = { loads++; RpcOutcome.Success(Stocks(emptyList())) }, toast = toast)
+            val v =
+                vm(loadStocks = {
+                    loads++
+                    RpcOutcome.Success(Stocks(emptyList()))
+                }, toast = toast)
             v.load()
             v.replenish(ProductId.create(), Quantity(2), Note(""))
             loads shouldBe 2 // 初回 + 補充後の再フェッチ
-            toast.current.value?.text?.resource shouldBe Res.string.toast_replenished
+            toast.current.value
+                ?.text
+                ?.resource shouldBe Res.string.toast_replenished
         }
 
     @Test

@@ -36,12 +36,16 @@ class InventoryViewModel(
     val view: StateFlow<StockView> = _view.asStateFlow()
 
     private val _query = MutableStateFlow("")
+    val query: StateFlow<String> = _query.asStateFlow()
 
     suspend fun load() {
         _state.value = InventoryUiState.Loading
         _state.value =
             when (val out = loadStocks(householdId)) {
-                is RpcOutcome.Success -> InventoryUiState.Content(out.value, _view.value, _query.value)
+                is RpcOutcome.Success -> {
+                    InventoryUiState.Content(out.value, _view.value, _query.value)
+                }
+
                 is RpcOutcome.Failure -> {
                     handleFailure(out.error)
                     InventoryUiState.Error(errorText(out.error))
@@ -61,19 +65,31 @@ class InventoryViewModel(
         if (s is InventoryUiState.Content) _state.value = s.copy(query = query)
     }
 
-    suspend fun replenish(productId: ProductId, quantity: Quantity, note: Note) =
-        write(replenishStock(productId, quantity, note), UiText(Res.string.toast_replenished))
+    suspend fun replenish(
+        productId: ProductId,
+        quantity: Quantity,
+        note: Note,
+    ) = write(replenishStock(productId, quantity, note), UiText(Res.string.toast_replenished))
 
-    suspend fun consume(productId: ProductId, quantity: Quantity, note: Note) =
-        write(consumeStock(productId, quantity, note), UiText(Res.string.toast_consumed))
+    suspend fun consume(
+        productId: ProductId,
+        quantity: Quantity,
+        note: Note,
+    ) = write(consumeStock(productId, quantity, note), UiText(Res.string.toast_consumed))
 
-    private suspend fun write(outcome: RpcOutcome<Unit>, successText: UiText) {
+    private suspend fun write(
+        outcome: RpcOutcome<Unit>,
+        successText: UiText,
+    ) {
         when (outcome) {
             is RpcOutcome.Success -> {
                 load() // append-only のサーバ真実を再取得
                 toast.show(successText)
             }
-            is RpcOutcome.Failure -> handleFailure(outcome.error)
+
+            is RpcOutcome.Failure -> {
+                handleFailure(outcome.error)
+            }
         }
     }
 

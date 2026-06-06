@@ -8,7 +8,6 @@ import net.brightroom.mindstock.domain.model.household.Household
 import net.brightroom.mindstock.domain.model.household.HouseholdId
 import net.brightroom.mindstock.domain.model.household.HouseholdName
 import net.brightroom.mindstock.domain.model.household.Households
-import net.brightroom.mindstock.domain.model.household.Profile as HouseholdProfile
 import net.brightroom.mindstock.domain.model.household.member.Members
 import net.brightroom.mindstock.domain.model.resident.Resident
 import net.brightroom.mindstock.domain.model.resident.identity.ResidentId
@@ -20,6 +19,7 @@ import net.brightroom.mindstock.rpc.session.SessionStatus
 import kotlin.test.Test
 import kotlin.time.ExperimentalTime
 import kotlin.time.Instant
+import net.brightroom.mindstock.domain.model.household.Profile as HouseholdProfile
 
 @OptIn(ExperimentalTime::class)
 private class FakeAuthDeps(
@@ -59,10 +59,12 @@ private class FakeAuthDeps(
         onAuthenticatedCalled = true
     }
 
-    override suspend fun loadHouseholds(): Households =
-        if (failHouseholds) throw RuntimeException("household load failed") else households
+    override suspend fun loadHouseholds(): Households = if (failHouseholds) throw RuntimeException("household load failed") else households
 
-    override fun onHouseholdsLoaded(households: Households, active: HouseholdId) {
+    override fun onHouseholdsLoaded(
+        households: Households,
+        active: HouseholdId,
+    ) {
         setHouseholdsCalled = households
     }
 }
@@ -85,7 +87,8 @@ class AuthViewModelTest {
             val hh = Household(HouseholdId.create(), HouseholdProfile(HouseholdName("家")), Members(emptyList()))
             val deps =
                 FakeAuthDeps(
-                    path = "/", token = "tok",
+                    path = "/",
+                    token = "tok",
                     status = SessionStatus.Registered(resident),
                     households = Households(listOf(hh)),
                 )
@@ -102,7 +105,8 @@ class AuthViewModelTest {
             val resident = Resident(ResidentId.create(), Profile(DisplayName("name")))
             val deps =
                 FakeAuthDeps(
-                    path = "/", token = "tok",
+                    path = "/",
+                    token = "tok",
                     status = SessionStatus.Registered(resident),
                     households = Households(emptyList()),
                 )
@@ -135,7 +139,8 @@ class AuthViewModelTest {
             val resident = Resident(ResidentId.create(), Profile(DisplayName("name")))
             val deps =
                 FakeAuthDeps(
-                    path = "/", token = "tok",
+                    path = "/",
+                    token = "tok",
                     status = SessionStatus.Registered(resident),
                     failHouseholds = true,
                 )

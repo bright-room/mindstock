@@ -89,7 +89,10 @@ class WebAuthDeps(
             is RpcResult.Err -> error("household list failed: ${r.error}")
         }
 
-    override fun onHouseholdsLoaded(households: Households, active: HouseholdId) {
+    override fun onHouseholdsLoaded(
+        households: Households,
+        active: HouseholdId,
+    ) {
         session.setHouseholds(households, active)
     }
 }

@@ -26,12 +26,21 @@ class InventoryRepository(
 
     suspend fun history(productId: ProductId): RpcOutcome<StockMovements> = stockService().history(productId).toOutcome()
 
-    suspend fun replenish(productId: ProductId, quantity: Quantity, note: Note): RpcOutcome<Unit> =
-        stockRegisterService().replenish(productId, quantity, note).toOutcome()
+    suspend fun replenish(
+        productId: ProductId,
+        quantity: Quantity,
+        note: Note,
+    ): RpcOutcome<Unit> = stockRegisterService().replenish(productId, quantity, note).toOutcome()
 
-    suspend fun consume(productId: ProductId, quantity: Quantity, note: Note): RpcOutcome<Unit> =
-        stockRegisterService().consume(productId, quantity, note).toOutcome()
+    suspend fun consume(
+        productId: ProductId,
+        quantity: Quantity,
+        note: Note,
+    ): RpcOutcome<Unit> = stockRegisterService().consume(productId, quantity, note).toOutcome()
 
-    suspend fun correct(target: MovementId, correctedQuantity: Quantity, reason: Reason): RpcOutcome<Unit> =
-        stockRegisterService().correct(target, correctedQuantity, reason).toOutcome()
+    suspend fun correct(
+        target: MovementId,
+        correctedQuantity: Quantity,
+        reason: Reason,
+    ): RpcOutcome<Unit> = stockRegisterService().correct(target, correctedQuantity, reason).toOutcome()
 }

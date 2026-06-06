@@ -38,7 +38,10 @@ interface AuthDeps {
     suspend fun loadHouseholds(): Households
 
     /** ロードした世帯と先頭アクティブをセッションに反映。 */
-    fun onHouseholdsLoaded(households: Households, active: HouseholdId)
+    fun onHouseholdsLoaded(
+        households: Households,
+        active: HouseholdId,
+    )
 }
 
 class AuthViewModel(
