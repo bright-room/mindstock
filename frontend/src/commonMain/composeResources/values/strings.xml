@@ -93,4 +93,65 @@
     <string name="detail_wanted_auto">在庫が少ないため、買い物リストに表示中です</string>
     <string name="detail_wanted_add">買い物リストに入れる</string>
     <string name="detail_wanted_remove">買い物リストから外す</string>
+    <!-- P6-2 商品追加 -->
+    <string name="add_product_title">商品を追加</string>
+    <string name="add_product_search_placeholder">商品名 または JANコードで検索</string>
+    <string name="add_product_search_hint">商品マスタから選ぶか、見つからない商品はその場で在庫に追加できます。単位や最低在庫はあとから変えられます。</string>
+    <string name="add_product_jan_hint">JANコード「%1$s」で商品を検索しています。見つからない場合も、その場で在庫に追加できます。</string>
+    <string name="add_product_jan_lookup">JANコード「%1$s」で商品を探す</string>
+    <string name="add_product_custom_add">「%1$s」を世帯に追加</string>
+    <string name="add_product_adopted_badge">採用済み</string>
+    <string name="add_product_already_jan">このJANコードの商品はすでに在庫にあります。</string>
+    <string name="add_product_adopt_title">世帯に採用する</string>
+    <string name="add_product_custom_title">世帯に追加する</string>
+    <string name="add_product_name_label">商品名</string>
+    <string name="add_product_name_placeholder">商品名（例: 麦茶パック）</string>
+    <string name="add_product_name_locked_master">商品マスタに登録された商品名です。</string>
+    <string name="add_product_name_locked_jan">JANコードから取得した商品名を使用します。</string>
+    <string name="add_product_name_editable">商品名は自由に変更できます。</string>
+    <string name="add_product_unit_label">数える単位</string>
+    <string name="add_product_unit_other">その他（自由入力）</string>
+    <string name="add_product_min_label">最低在庫</string>
+    <string name="add_product_min_caption">これ以下で買い物リストへ</string>
+    <string name="add_product_submit_adopt">この世帯に採用する</string>
+    <string name="add_product_submit_custom">この世帯に追加する</string>
+    <string name="add_product_image_note">画像は追加後、商品マスタの編集から設定できます。</string>
+    <string name="add_product_loading_jan">JANコードから商品情報を取得中…</string>
+    <!-- P6-2 商品マスタ / 設定 -->
+    <string name="master_title">商品マスタ</string>
+    <string name="master_subtitle">%1$s · %2$d品目</string>
+    <string name="master_add">商品を追加</string>
+    <string name="master_hint">各商品の単位と最低在庫を設定できます。タップして編集。</string>
+    <string name="master_empty_title">まだ商品がありません</string>
+    <string name="master_empty_sub">「商品を追加」から大元のマスタを選んで採用しましょう。</string>
+    <string name="master_row_meta">単位: %1$s · 在庫 %2$d%3$s</string>
+    <string name="settings_title">商品の設定</string>
+    <string name="settings_name_immutable">商品名は変更できません。</string>
+    <string name="settings_save">変更を保存</string>
+    <string name="settings_archive">この商品をアーカイブ</string>
+    <string name="settings_archive_blocked">在庫が %1$d%2$s 残っています。アーカイブは在庫が 0%2$s のときだけできます。先に使い切ってください。</string>
+    <string name="settings_archive_note">在庫一覧・買い物リストから外れますが、記録も設定も残ります。「アーカイブした商品」からいつでも在庫に戻せます。</string>
+    <!-- P6-2 アーカイブ -->
+    <string name="archived_title">アーカイブした商品</string>
+    <string name="archived_subtitle">%1$s · %2$d件</string>
+    <string name="archived_hint_owner">いったん使うのをやめた商品。記録と設定はそのまま残っています。また必要になったら「在庫に戻す」。</string>
+    <string name="archived_hint_viewer">いったん使うのをやめた商品。記録と設定はそのまま残っています。在庫に戻せるのはオーナーです。</string>
+    <string name="archived_empty_title">アーカイブした商品はありません</string>
+    <string name="archived_empty_sub">商品の設定からアーカイブすると、ここに集まります。</string>
+    <string name="archived_row_meta">単位: %1$s · 最低 %2$d%3$s</string>
+    <string name="archived_restore">在庫に戻す</string>
+    <!-- P6-2 Profile -->
+    <string name="profile_master_entry">商品マスタ</string>
+    <string name="profile_master_entry_sub">商品の追加・単位・最低在庫の設定</string>
+    <string name="profile_archived_entry">アーカイブした商品</string>
+    <string name="profile_archived_entry_sub">使うのをやめた商品の確認・復元</string>
+    <!-- P6-2 トースト -->
+    <string name="toast_product_added">商品を追加しました</string>
+    <string name="toast_product_adopted">商品を採用しました</string>
+    <string name="toast_settings_saved">設定を保存しました</string>
+    <string name="toast_archived">アーカイブしました</string>
+    <string name="toast_unarchived">在庫に戻しました</string>
+    <!-- P6-2 共通 -->
+    <string name="action_back">戻る</string>
+    <string name="action_settings">設定</string>
 </resources>

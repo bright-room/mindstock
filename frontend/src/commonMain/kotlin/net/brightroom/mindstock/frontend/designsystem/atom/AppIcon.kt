@@ -10,11 +10,16 @@ import androidx.compose.material.icons.filled.Inventory2
 import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material.icons.outlined.AccessTime
+import androidx.compose.material.icons.outlined.Archive
+import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material.icons.outlined.Person
+import androidx.compose.material.icons.outlined.QrCode
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.TrendingUp
+import androidx.compose.material.icons.outlined.Tune
+import androidx.compose.material.icons.outlined.Unarchive
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.runtime.Composable
@@ -46,6 +51,11 @@ enum class AppIconName {
     Salt,
     Bolt,
     Leaf,
+    Settings,
+    Barcode,
+    Archive,
+    Restore,
+    Pencil,
 }
 
 private fun AppIconName.vector(): ImageVector =
@@ -70,6 +80,11 @@ private fun AppIconName.vector(): ImageVector =
         AppIconName.Salt -> MindstockGlyphs.Salt
         AppIconName.Bolt -> MindstockGlyphs.Bolt
         AppIconName.Leaf -> MindstockGlyphs.Leaf
+        AppIconName.Settings -> Icons.Outlined.Tune
+        AppIconName.Barcode -> Icons.Outlined.QrCode
+        AppIconName.Archive -> Icons.Outlined.Archive
+        AppIconName.Restore -> Icons.Outlined.Unarchive
+        AppIconName.Pencil -> Icons.Outlined.Edit
     }
 
 @Composable
