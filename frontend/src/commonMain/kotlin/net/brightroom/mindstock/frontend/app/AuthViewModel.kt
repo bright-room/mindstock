@@ -8,10 +8,11 @@ import kotlinx.coroutines.flow.asStateFlow
 import net.brightroom.mindstock.domain.model.resident.Resident
 import net.brightroom.mindstock.frontend.auth.Tokens
 import net.brightroom.mindstock.frontend.core.auth.AuthState
+import net.brightroom.mindstock.rpc.session.SessionStatus
 
 /**
  * boot に必要な副作用の境界。本番実装は app/ で web 用に束ね、テストは fake を差す。
- * registered 判定は me() の throw を未登録に倒す(前提 #3)。
+ * registered 判定は whoami() が返す SessionStatus で明示的に分岐する(例外は本当の通信失敗のみ)。
  */
 interface AuthDeps {
     fun currentPath(): String
@@ -25,8 +26,8 @@ interface AuthDeps {
     /** code_verifier 生成→保存→authorize へ redirect。 */
     suspend fun redirectToAuthorize()
 
-    /** me() を呼ぶ。登録済みなら Resident、未登録/拒否なら throw。 */
-    suspend fun fetchMe(token: Tokens): Resident
+    /** 単一接続を張り whoami を呼んで登録状態を返す。失敗時 throw。 */
+    suspend fun fetchSessionStatus(token: Tokens): SessionStatus
 
     /** 取得済み Resident をセッションに反映。 */
     fun onAuthenticated(resident: Resident)
@@ -51,17 +52,23 @@ class AuthViewModel(
             return // redirect でページ離脱。Booting のまま
         }
         try {
-            val resident = deps.fetchMe(token)
-            deps.onAuthenticated(resident)
-            _state.value = AuthState.Ready
+            when (val status = deps.fetchSessionStatus(token)) {
+                is SessionStatus.Registered -> {
+                    deps.onAuthenticated(status.resident)
+                    _state.value = AuthState.Ready
+                }
+
+                is SessionStatus.Unregistered -> {
+                    _state.value = AuthState.NeedOnboarding
+                }
+            }
         } catch (cancellation: CancellationException) {
             // 構造化並行性: キャンセルは握り潰さず伝播させる。
             throw cancellation
         } catch (_: Exception) {
-            // /resident は登録済み必須ルート。未登録は WS handshake で拒否され throw。
-            // ブラウザは 401 を JS に公開しないため、ここは未登録に倒す(前提 #3)。
+            // 登録状態は whoami が明示的に返すため、ここに来るのは通信失敗等の本当のエラー。
             // Error(OOM 等)は捕捉しない(回復不能なのでクラッシュさせる)。
-            _state.value = AuthState.NeedOnboarding
+            _state.value = AuthState.Failed("起動に失敗しました")
         }
     }
 }

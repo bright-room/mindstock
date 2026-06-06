@@ -27,7 +27,7 @@ sealed interface MindstockSession {
     val exp: Instant
     val callId: Uuid
 
-    /** JWT 有効だが Resident 未登録。register route でのみ通過を許す。 */
+    /** JWT 有効だが Resident 未登録。allowUnregistered を宣言したメソッド(register / whoami)でのみ通過できる。 */
     data class Unregistered(
         override val identity: AuthIdentity,
         override val exp: Instant,

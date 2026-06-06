@@ -3,8 +3,7 @@ package net.brightroom.mindstock.presentation.rpc.product
 import net.brightroom.mindstock.application.scenario.product.AdoptProductScenario
 import net.brightroom.mindstock.application.service.product.ProductRegisterService
 import net.brightroom.mindstock.configuration.auth.MindstockSession
-import net.brightroom.mindstock.configuration.auth.requireResidentId
-import net.brightroom.mindstock.configuration.guard.guarded
+import net.brightroom.mindstock.configuration.guard.requireRegistered
 import net.brightroom.mindstock.domain.model.catalog.item.CatalogItemId
 import net.brightroom.mindstock.domain.model.household.HouseholdId
 import net.brightroom.mindstock.domain.model.inventory.product.Product
@@ -28,15 +27,15 @@ class ProductRegisterController(
         unit: ProductUnit,
         minimumStock: MinimumStock,
     ): RpcResult<Product, RpcError> =
-        guarded(session) {
-            RpcResult.Ok(adoptProductScenario.run(householdId, catalogItemId, unit, minimumStock, session.requireResidentId()))
+        requireRegistered(session) { residentId ->
+            RpcResult.Ok(adoptProductScenario.run(householdId, catalogItemId, unit, minimumStock, residentId))
         }
 
     override suspend fun addCustom(
         householdId: HouseholdId,
         request: AddCustomProductRequest,
     ): RpcResult<Product, RpcError> =
-        guarded(session) {
+        requireRegistered(session) { residentId ->
             RpcResult.Ok(
                 productRegisterService.addCustom(
                     householdId,
@@ -44,7 +43,7 @@ class ProductRegisterController(
                     request.barcode,
                     request.unit,
                     request.minimumStock,
-                    session.requireResidentId(),
+                    residentId,
                 ),
             )
         }
@@ -53,8 +52,8 @@ class ProductRegisterController(
         productId: ProductId,
         unit: ProductUnit,
     ): RpcResult<Unit, RpcError> =
-        guarded(session) {
-            productRegisterService.changeUnit(productId, unit, session.requireResidentId())
+        requireRegistered(session) { residentId ->
+            productRegisterService.changeUnit(productId, unit, residentId)
             RpcResult.Ok(Unit)
         }
 
@@ -62,8 +61,8 @@ class ProductRegisterController(
         productId: ProductId,
         image: ProductImage,
     ): RpcResult<Unit, RpcError> =
-        guarded(session) {
-            productRegisterService.changeImage(productId, image, session.requireResidentId())
+        requireRegistered(session) { residentId ->
+            productRegisterService.changeImage(productId, image, residentId)
             RpcResult.Ok(Unit)
         }
 
@@ -71,20 +70,20 @@ class ProductRegisterController(
         productId: ProductId,
         minimumStock: MinimumStock,
     ): RpcResult<Unit, RpcError> =
-        guarded(session) {
-            productRegisterService.changeMinimum(productId, minimumStock, session.requireResidentId())
+        requireRegistered(session) { residentId ->
+            productRegisterService.changeMinimum(productId, minimumStock, residentId)
             RpcResult.Ok(Unit)
         }
 
     override suspend fun archive(productId: ProductId): RpcResult<Unit, RpcError> =
-        guarded(session) {
-            productRegisterService.archive(productId, session.requireResidentId())
+        requireRegistered(session) { residentId ->
+            productRegisterService.archive(productId, residentId)
             RpcResult.Ok(Unit)
         }
 
     override suspend fun unarchive(productId: ProductId): RpcResult<Unit, RpcError> =
-        guarded(session) {
-            productRegisterService.unarchive(productId, session.requireResidentId())
+        requireRegistered(session) { residentId ->
+            productRegisterService.unarchive(productId, residentId)
             RpcResult.Ok(Unit)
         }
 
@@ -92,8 +91,8 @@ class ProductRegisterController(
         productId: ProductId,
         wanted: Boolean,
     ): RpcResult<Unit, RpcError> =
-        guarded(session) {
-            productRegisterService.setWanted(productId, wanted, session.requireResidentId())
+        requireRegistered(session) { residentId ->
+            productRegisterService.setWanted(productId, wanted, residentId)
             RpcResult.Ok(Unit)
         }
 }

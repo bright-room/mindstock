@@ -24,55 +24,94 @@ import kotlin.uuid.Uuid
 class SessionGuardTest :
     FunSpec({
         val identity = AuthIdentity(AuthProvider.ZITADEL, AuthSubject("sub"))
+        val residentId = ResidentId.create()
 
-        fun active() = MindstockSession.Registered(identity, ResidentId.create(), Clock.System.now().plus(1.hours), Uuid.random())
+        fun registered(exp: kotlin.time.Instant = Clock.System.now().plus(1.hours)) =
+            MindstockSession.Registered(identity, residentId, exp, Uuid.random())
 
-        fun expired() = MindstockSession.Registered(identity, ResidentId.create(), Clock.System.now().minus(1.hours), Uuid.random())
+        fun unregistered(exp: kotlin.time.Instant = Clock.System.now().plus(1.hours)) =
+            MindstockSession.Unregistered(identity, exp, Uuid.random())
 
-        test("期限切れ session は Unauthorized で短絡(block は実行されない)") {
+        // ---- allowUnregistered ----
+        test("allowUnregistered: 未登録でも block を実行する") {
+            allowUnregistered(unregistered()) { RpcResult.Ok(42) } shouldBe RpcResult.Ok(42)
+        }
+
+        test("allowUnregistered: 登録済みでも block を実行する") {
+            allowUnregistered(registered()) { RpcResult.Ok(7) } shouldBe RpcResult.Ok(7)
+        }
+
+        test("allowUnregistered: 期限切れは Unauthorized で短絡") {
             var ran = false
-            val result =
-                guarded<Unit>(expired()) {
+            val r =
+                allowUnregistered<Unit>(unregistered(exp = Clock.System.now().minus(1.hours))) {
                     ran = true
                     RpcResult.Ok(Unit)
                 }
             ran shouldBe false
-            val err = result.shouldBeInstanceOf<RpcResult.Err<RpcError>>()
-            err.error.shouldBeInstanceOf<RpcError.Unauthorized>()
+            (r as RpcResult.Err).error.shouldBeInstanceOf<RpcError.Unauthorized>()
         }
 
-        test("正常系は block の結果をそのまま返す") {
-            guarded(active()) { RpcResult.Ok(42) } shouldBe RpcResult.Ok(42)
+        // ---- requireRegistered ----
+        test("requireRegistered: 登録済みは residentId を渡して block 実行") {
+            var seen: ResidentId? = null
+            val r =
+                requireRegistered(registered()) { id ->
+                    seen = id
+                    RpcResult.Ok(1)
+                }
+            seen shouldBe residentId
+            r shouldBe RpcResult.Ok(1)
         }
 
+        test("requireRegistered: 未登録は Unauthorized(block は実行されない / fail-closed)") {
+            var ran = false
+            val r =
+                requireRegistered<Unit>(unregistered()) {
+                    ran = true
+                    RpcResult.Ok(Unit)
+                }
+            ran shouldBe false
+            (r as RpcResult.Err).error.shouldBeInstanceOf<RpcError.Unauthorized>()
+        }
+
+        test("requireRegistered: 期限切れは Unauthorized で短絡") {
+            val r =
+                requireRegistered<Unit>(registered(exp = Clock.System.now().minus(1.hours))) {
+                    RpcResult.Ok(Unit)
+                }
+            (r as RpcResult.Err).error.shouldBeInstanceOf<RpcError.Unauthorized>()
+        }
+
+        // ---- 例外翻訳(requireRegistered 経由で共通処理を確認)----
         test("IllegalArgumentException は BadRequest") {
-            val r = guarded<Unit>(active()) { throw IllegalArgumentException("bad") }
+            val r = requireRegistered<Unit>(registered()) { throw IllegalArgumentException("bad") }
             (r as RpcResult.Err).error.shouldBeInstanceOf<RpcError.BadRequest>()
         }
 
         test("ResourceNotFoundException は NotFound") {
-            val r = guarded<Unit>(active()) { throw ResourceNotFoundException("x not found") }
+            val r = requireRegistered<Unit>(registered()) { throw ResourceNotFoundException("x not found") }
             (r as RpcResult.Err).error.shouldBeInstanceOf<RpcError.NotFound>()
         }
 
         test("MembershipRequiredException は Unauthorized") {
-            val r = guarded<Unit>(active()) { throw MembershipRequiredException("not member") }
+            val r = requireRegistered<Unit>(registered()) { throw MembershipRequiredException("not member") }
             (r as RpcResult.Err).error.shouldBeInstanceOf<RpcError.Unauthorized>()
         }
 
         test("DuplicateJanException は Conflict") {
-            val r = guarded<Unit>(active()) { throw DuplicateJanException("dup") }
+            val r = requireRegistered<Unit>(registered()) { throw DuplicateJanException("dup") }
             (r as RpcResult.Err).error.shouldBeInstanceOf<RpcError.Conflict>()
         }
 
         test("想定外例外は Internal") {
-            val r = guarded<Unit>(active()) { throw RuntimeException("boom") }
+            val r = requireRegistered<Unit>(registered()) { throw RuntimeException("boom") }
             (r as RpcResult.Err).error.shouldBeInstanceOf<RpcError.Internal>()
         }
 
         test("CancellationException は握り潰さず再 throw する") {
             shouldThrow<CancellationException> {
-                guarded<Unit>(active()) { throw CancellationException("cancelled") }
+                requireRegistered<Unit>(registered()) { throw CancellationException("cancelled") }
             }
         }
     })

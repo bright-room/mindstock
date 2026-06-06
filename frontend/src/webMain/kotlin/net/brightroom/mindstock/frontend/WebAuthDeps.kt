@@ -1,6 +1,5 @@
 package net.brightroom.mindstock.frontend
 
-import kotlinx.rpc.withService
 import net.brightroom.mindstock.domain.model.resident.Resident
 import net.brightroom.mindstock.frontend.app.AuthDeps
 import net.brightroom.mindstock.frontend.auth.AuthClient
@@ -13,8 +12,9 @@ import net.brightroom.mindstock.frontend.auth.Tokens
 import net.brightroom.mindstock.frontend.core.auth.BrowserNav
 import net.brightroom.mindstock.frontend.core.rpc.RpcClientProvider
 import net.brightroom.mindstock.frontend.core.session.AppSession
-import net.brightroom.mindstock.rpc.resident.ResidentRpcService
 import net.brightroom.mindstock.rpc.result.RpcResult
+import net.brightroom.mindstock.rpc.session.SessionRpcService
+import net.brightroom.mindstock.rpc.session.SessionStatus
 
 private const val STATE_KEY = "mindstock.oauth.state.v1"
 private const val VERIFIER_KEY = "mindstock.oauth.verifier.v1"
@@ -68,11 +68,11 @@ class WebAuthDeps(
         BrowserNav.assign(url)
     }
 
-    override suspend fun fetchMe(token: Tokens): Resident {
-        val client = rpc.open("resident", token.accessToken)
-        return when (val r = client.withService<ResidentRpcService>().me()) {
+    override suspend fun fetchSessionStatus(token: Tokens): SessionStatus {
+        rpc.connect(token.accessToken)
+        return when (val r = rpc.service<SessionRpcService>().whoami()) {
             is RpcResult.Ok -> r.value
-            is RpcResult.Err -> error("me failed: ${r.error}")
+            is RpcResult.Err -> error("whoami failed: ${r.error}")
         }
     }
 
