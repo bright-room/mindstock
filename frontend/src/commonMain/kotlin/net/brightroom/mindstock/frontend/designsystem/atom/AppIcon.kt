@@ -1,6 +1,7 @@
 package net.brightroom.mindstock.frontend.designsystem.atom
 
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Inventory2
 import androidx.compose.material.icons.filled.Remove
@@ -14,7 +15,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 
 /** semantic アイコン名。feature は AppIconName でのみ参照(将来差し替え可能に)。 */
-enum class AppIconName { Box, Cart, Plus, Minus, Clock, Home, User }
+enum class AppIconName { Box, Cart, Plus, Minus, Clock, Home, User, Back }
 
 private fun AppIconName.vector(): ImageVector =
     when (this) {
@@ -25,6 +26,7 @@ private fun AppIconName.vector(): ImageVector =
         AppIconName.Clock -> Icons.Outlined.AccessTime
         AppIconName.Home -> Icons.Outlined.Home
         AppIconName.User -> Icons.Outlined.Person
+        AppIconName.Back -> Icons.AutoMirrored.Filled.ArrowBack
     }
 
 @Composable
