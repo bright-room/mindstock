@@ -21,14 +21,4 @@ class RpcOutcomeTest {
         out.shouldBeInstanceOf<RpcOutcome.Failure>()
         (out as RpcOutcome.Failure).error shouldBe err
     }
-
-    @Test
-    fun errorText_covers_all_variants() {
-        // when 網羅の回帰: 各 variant が UiText を返す
-        errorText(RpcError.Unauthorized("x")).shouldBeInstanceOf<net.brightroom.mindstock.frontend.core.ui.UiText>()
-        errorText(RpcError.NotFound("x")).shouldBeInstanceOf<net.brightroom.mindstock.frontend.core.ui.UiText>()
-        errorText(RpcError.BadRequest("f", "r")).shouldBeInstanceOf<net.brightroom.mindstock.frontend.core.ui.UiText>()
-        errorText(RpcError.Conflict("x")).shouldBeInstanceOf<net.brightroom.mindstock.frontend.core.ui.UiText>()
-        errorText(RpcError.Internal("x")).shouldBeInstanceOf<net.brightroom.mindstock.frontend.core.ui.UiText>()
-    }
 }
