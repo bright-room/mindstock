@@ -1,5 +1,6 @@
 package net.brightroom.mindstock.frontend.app
 
+import io.kotest.matchers.nulls.shouldNotBeNull
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.types.shouldBeInstanceOf
 import kotlinx.coroutines.test.runTest
@@ -26,6 +27,7 @@ private class FakeAuthDeps(
     private val token: String?,
     private val status: SessionStatus? = null,
     private val households: Households = Households(emptyList()),
+    private val failHouseholds: Boolean = false,
 ) : AuthDeps {
     var redirectCalled = false
     var onAuthenticatedCalled = false
@@ -57,7 +59,8 @@ private class FakeAuthDeps(
         onAuthenticatedCalled = true
     }
 
-    override suspend fun loadHouseholds(): Households = households
+    override suspend fun loadHouseholds(): Households =
+        if (failHouseholds) throw RuntimeException("household load failed") else households
 
     override fun onHouseholdsLoaded(households: Households, active: HouseholdId) {
         setHouseholdsCalled = households
@@ -89,24 +92,8 @@ class AuthViewModelTest {
             val vm = AuthViewModel(deps)
             vm.boot()
             deps.onAuthenticatedCalled shouldBe true
+            deps.setHouseholdsCalled.shouldNotBeNull().size() shouldBe 1
             vm.state.value.shouldBeInstanceOf<AuthState.Ready>()
-        }
-
-    @Test
-    fun registered_with_household_becomes_ready() =
-        runTest {
-            val resident = Resident(ResidentId.create(), Profile(DisplayName("name")))
-            val hh = Household(HouseholdId.create(), HouseholdProfile(HouseholdName("家")), Members(emptyList()))
-            val deps =
-                FakeAuthDeps(
-                    path = "/", token = "tok",
-                    status = SessionStatus.Registered(resident),
-                    households = Households(listOf(hh)),
-                )
-            val vm = AuthViewModel(deps)
-            vm.boot()
-            vm.state.value.shouldBeInstanceOf<AuthState.Ready>()
-            deps.setHouseholdsCalled?.size() shouldBe 1
         }
 
     @Test
@@ -137,6 +124,21 @@ class AuthViewModelTest {
     fun whoami_failure_becomes_failed() =
         runTest {
             val deps = FakeAuthDeps(path = "/", token = "tok", status = null)
+            val vm = AuthViewModel(deps)
+            vm.boot()
+            vm.state.value.shouldBeInstanceOf<AuthState.Failed>()
+        }
+
+    @Test
+    fun household_load_failure_becomes_failed() =
+        runTest {
+            val resident = Resident(ResidentId.create(), Profile(DisplayName("name")))
+            val deps =
+                FakeAuthDeps(
+                    path = "/", token = "tok",
+                    status = SessionStatus.Registered(resident),
+                    failHouseholds = true,
+                )
             val vm = AuthViewModel(deps)
             vm.boot()
             vm.state.value.shouldBeInstanceOf<AuthState.Failed>()
