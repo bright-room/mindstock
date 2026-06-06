@@ -41,6 +41,7 @@ import net.brightroom.mindstock.frontend.feature.inventory.InventoryViewModel
 import net.brightroom.mindstock.frontend.feature.inventory.ProductDetailViewModel
 import net.brightroom.mindstock.frontend.feature.inventory.data.InventoryRepository
 import net.brightroom.mindstock.frontend.feature.inventory.ui.InventoryRoute
+import net.brightroom.mindstock.rpc.product.ProductRegisterRpcService
 import net.brightroom.mindstock.rpc.product.ProductRpcService
 import net.brightroom.mindstock.rpc.stock.StockRegisterRpcService
 import net.brightroom.mindstock.rpc.stock.StockRpcService
@@ -95,6 +96,7 @@ fun App() {
                     productService = { rpc.service<ProductRpcService>() },
                     stockService = { rpc.service<StockRpcService>() },
                     stockRegisterService = { rpc.service<StockRegisterRpcService>() },
+                    productRegisterService = { rpc.service<ProductRegisterRpcService>() },
                 )
             }
 
