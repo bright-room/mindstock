@@ -104,6 +104,7 @@
     <string name="add_product_already_jan">このJANコードの商品はすでに在庫にあります。</string>
     <string name="add_product_adopt_title">世帯に採用する</string>
     <string name="add_product_custom_title">世帯に追加する</string>
+    <string name="add_product_new_name">新しい商品</string>
     <string name="add_product_name_label">商品名</string>
     <string name="add_product_name_placeholder">商品名（例: 麦茶パック）</string>
     <string name="add_product_name_locked_master">商品マスタに登録された商品名です。</string>

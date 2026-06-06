@@ -24,6 +24,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import mindstock.frontend.generated.resources.Res
 import mindstock.frontend.generated.resources.action_back
@@ -41,6 +42,7 @@ import mindstock.frontend.generated.resources.add_product_name_label
 import mindstock.frontend.generated.resources.add_product_name_locked_jan
 import mindstock.frontend.generated.resources.add_product_name_locked_master
 import mindstock.frontend.generated.resources.add_product_name_placeholder
+import mindstock.frontend.generated.resources.add_product_new_name
 import mindstock.frontend.generated.resources.add_product_search_hint
 import mindstock.frontend.generated.resources.add_product_search_placeholder
 import mindstock.frontend.generated.resources.add_product_submit_adopt
@@ -76,7 +78,6 @@ fun AddProductScreen(
     onPickCatalog: (CatalogItem) -> Unit,
     onPickCustom: (String) -> Unit,
     onBack: () -> Unit,
-    onClose: () -> Unit,
     onAdopt: (CatalogItem, ProductUnit, MinimumStock) -> Unit,
     onAddCustom: (ProductName, Jan?, ProductUnit, MinimumStock) -> Unit,
     modifier: Modifier = Modifier,
@@ -451,7 +452,7 @@ private fun AdoptFormContent(
             text = stringResource(Res.string.add_product_image_note),
             style = MindstockType.unitCaption(),
             color = tokens.faint,
-            textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+            textAlign = TextAlign.Center,
             modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
         )
 
@@ -493,7 +494,7 @@ private fun CustomFormContent(
             Thumb(size = 52.dp)
             Column {
                 AppText(
-                    text = name.ifBlank { "新しい商品" },
+                    text = name.ifBlank { stringResource(Res.string.add_product_new_name) },
                     style = MindstockType.summaryTitle(),
                     color = tokens.ink,
                 )
@@ -643,7 +644,7 @@ private fun CustomFormContent(
             text = stringResource(Res.string.add_product_image_note),
             style = MindstockType.unitCaption(),
             color = tokens.faint,
-            textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+            textAlign = TextAlign.Center,
             modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
         )
 
