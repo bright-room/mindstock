@@ -13,7 +13,6 @@ import net.brightroom.mindstock.domain.model.catalog.content.CatalogItemName
 import net.brightroom.mindstock.domain.model.catalog.item.CatalogItem
 import net.brightroom.mindstock.domain.model.catalog.item.CatalogItemId
 import net.brightroom.mindstock.domain.model.catalog.item.CatalogItems
-import net.brightroom.mindstock.domain.model.household.HouseholdId
 import net.brightroom.mindstock.domain.model.inventory.product.Product
 import net.brightroom.mindstock.domain.model.inventory.product.ProductName
 import net.brightroom.mindstock.domain.model.inventory.product.setting.MinimumStock
@@ -31,7 +30,6 @@ import net.brightroom.mindstock.rpc.result.RpcError
 private const val SEARCH_LIMIT = 20
 
 class AddProductViewModel(
-    private val householdId: HouseholdId,
     private val searchCatalog: suspend (CatalogItemName, Int) -> RpcOutcome<CatalogItems>,
     private val lookupJan: suspend (Jan) -> RpcOutcome<CatalogItem>,
     private val adoptProduct: suspend (CatalogItemId, ProductUnit, MinimumStock) -> RpcOutcome<Product>,

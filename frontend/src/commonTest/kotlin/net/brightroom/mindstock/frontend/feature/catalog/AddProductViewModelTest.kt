@@ -10,7 +10,6 @@ import net.brightroom.mindstock.domain.model.catalog.content.CatalogItemName
 import net.brightroom.mindstock.domain.model.catalog.item.CatalogItem
 import net.brightroom.mindstock.domain.model.catalog.item.CatalogItemId
 import net.brightroom.mindstock.domain.model.catalog.item.CatalogItems
-import net.brightroom.mindstock.domain.model.household.HouseholdId
 import net.brightroom.mindstock.domain.model.inventory.product.Product
 import net.brightroom.mindstock.domain.model.inventory.product.setting.MinimumStock
 import net.brightroom.mindstock.domain.model.inventory.product.setting.ProductUnit
@@ -37,7 +36,6 @@ private fun vm(
     toast: ToastController = ToastController(),
     reauth: ReauthController = ReauthController(),
 ) = AddProductViewModel(
-    householdId = HouseholdId.create(),
     searchCatalog = search,
     lookupJan = lookup,
     adoptProduct = adopt,
