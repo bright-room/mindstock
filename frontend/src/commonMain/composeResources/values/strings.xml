@@ -22,6 +22,7 @@
     <string name="toast_consumed">消費しました</string>
     <string name="toast_corrected">訂正を記録しました</string>
     <string name="loading">読み込み中…</string>
+    <string name="need_household">世帯がありません（世帯作成は準備中）</string>
     <string name="onboarding_placeholder">オンボーディング(P6-3)</string>
     <string name="stock_placeholder">在庫一覧(配線確認用プレースホルダ)</string>
     <string name="tab_shop_placeholder">買い物(P6-1)</string>

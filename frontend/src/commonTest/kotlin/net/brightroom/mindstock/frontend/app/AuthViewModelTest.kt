@@ -3,6 +3,12 @@ package net.brightroom.mindstock.frontend.app
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.types.shouldBeInstanceOf
 import kotlinx.coroutines.test.runTest
+import net.brightroom.mindstock.domain.model.household.Household
+import net.brightroom.mindstock.domain.model.household.HouseholdId
+import net.brightroom.mindstock.domain.model.household.HouseholdName
+import net.brightroom.mindstock.domain.model.household.Households
+import net.brightroom.mindstock.domain.model.household.Profile as HouseholdProfile
+import net.brightroom.mindstock.domain.model.household.member.Members
 import net.brightroom.mindstock.domain.model.resident.Resident
 import net.brightroom.mindstock.domain.model.resident.identity.ResidentId
 import net.brightroom.mindstock.domain.model.resident.profile.DisplayName
@@ -19,9 +25,11 @@ private class FakeAuthDeps(
     private val path: String,
     private val token: String?,
     private val status: SessionStatus? = null,
+    private val households: Households = Households(emptyList()),
 ) : AuthDeps {
     var redirectCalled = false
     var onAuthenticatedCalled = false
+    var setHouseholdsCalled: Households? = null
 
     override fun currentPath(): String = path
 
@@ -48,6 +56,12 @@ private class FakeAuthDeps(
     override fun onAuthenticated(resident: Resident) {
         onAuthenticatedCalled = true
     }
+
+    override suspend fun loadHouseholds(): Households = households
+
+    override fun onHouseholdsLoaded(households: Households, active: HouseholdId) {
+        setHouseholdsCalled = households
+    }
 }
 
 class AuthViewModelTest {
@@ -65,11 +79,49 @@ class AuthViewModelTest {
     fun registered_becomes_ready() =
         runTest {
             val resident = Resident(ResidentId.create(), Profile(DisplayName("name")))
-            val deps = FakeAuthDeps(path = "/", token = "tok", status = SessionStatus.Registered(resident))
+            val hh = Household(HouseholdId.create(), HouseholdProfile(HouseholdName("家")), Members(emptyList()))
+            val deps =
+                FakeAuthDeps(
+                    path = "/", token = "tok",
+                    status = SessionStatus.Registered(resident),
+                    households = Households(listOf(hh)),
+                )
             val vm = AuthViewModel(deps)
             vm.boot()
             deps.onAuthenticatedCalled shouldBe true
             vm.state.value.shouldBeInstanceOf<AuthState.Ready>()
+        }
+
+    @Test
+    fun registered_with_household_becomes_ready() =
+        runTest {
+            val resident = Resident(ResidentId.create(), Profile(DisplayName("name")))
+            val hh = Household(HouseholdId.create(), HouseholdProfile(HouseholdName("家")), Members(emptyList()))
+            val deps =
+                FakeAuthDeps(
+                    path = "/", token = "tok",
+                    status = SessionStatus.Registered(resident),
+                    households = Households(listOf(hh)),
+                )
+            val vm = AuthViewModel(deps)
+            vm.boot()
+            vm.state.value.shouldBeInstanceOf<AuthState.Ready>()
+            deps.setHouseholdsCalled?.size() shouldBe 1
+        }
+
+    @Test
+    fun registered_without_household_becomes_need_household() =
+        runTest {
+            val resident = Resident(ResidentId.create(), Profile(DisplayName("name")))
+            val deps =
+                FakeAuthDeps(
+                    path = "/", token = "tok",
+                    status = SessionStatus.Registered(resident),
+                    households = Households(emptyList()),
+                )
+            val vm = AuthViewModel(deps)
+            vm.boot()
+            vm.state.value.shouldBeInstanceOf<AuthState.NeedHousehold>()
         }
 
     @Test

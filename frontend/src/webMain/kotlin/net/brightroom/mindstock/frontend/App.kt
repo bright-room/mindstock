@@ -13,6 +13,7 @@ import io.ktor.serialization.kotlinx.json.json
 import kotlinx.browser.window
 import mindstock.frontend.generated.resources.Res
 import mindstock.frontend.generated.resources.loading
+import mindstock.frontend.generated.resources.need_household
 import mindstock.frontend.generated.resources.onboarding_placeholder
 import mindstock.frontend.generated.resources.stock_placeholder
 import net.brightroom.mindstock.frontend.app.AuthViewModel
@@ -57,6 +58,7 @@ fun App() {
         when (state) {
             is AuthState.Booting -> AppText(stringResource(Res.string.loading))
             is AuthState.Failed -> AppText((state as AuthState.Failed).message)
+            is AuthState.NeedHousehold -> AppText(stringResource(Res.string.need_household))
             is AuthState.NeedOnboarding -> AppText(stringResource(Res.string.onboarding_placeholder))
             is AuthState.Ready -> AppShell(stockContent = { AppText(stringResource(Res.string.stock_placeholder)) })
         }
