@@ -25,6 +25,8 @@ import mindstock.frontend.generated.resources.correct_submit
 import mindstock.frontend.generated.resources.correct_title
 import mindstock.frontend.generated.resources.detail_history
 import mindstock.frontend.generated.resources.detail_history_empty
+import mindstock.frontend.generated.resources.loading
+import net.brightroom.mindstock.frontend.core.ui.resolve
 import mindstock.frontend.generated.resources.history_consume
 import mindstock.frontend.generated.resources.history_replenish
 import net.brightroom.mindstock.domain.model.inventory.stock.Stock
@@ -64,8 +66,8 @@ fun ProductDetailScreen(
         }
         AppText(stringResource(Res.string.detail_history))
         when (detail) {
-            is ProductDetailUiState.Loading -> AppText("…")
-            is ProductDetailUiState.Error -> AppText("…")
+            is ProductDetailUiState.Loading -> AppText(stringResource(Res.string.loading))
+            is ProductDetailUiState.Error -> AppText(detail.text.resolve())
             is ProductDetailUiState.Content -> {
                 if (detail.movements.list.isEmpty()) {
                     AppText(stringResource(Res.string.detail_history_empty))

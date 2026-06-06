@@ -7,6 +7,9 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -59,9 +62,22 @@ fun StockHomeScreen(
                     onSelect = { onSelectView(StockView.valueOf(it)) },
                 )
                 val visible = state.visibleStocks()
-                LazyColumn(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    items(visible.list) { stock ->
-                        ProductCard(stock = stock, onOpen = onOpen, onReplenish = onReplenish, onConsume = onConsume)
+                if (state.view == StockView.Grid) {
+                    LazyVerticalGrid(
+                        columns = GridCells.Fixed(2),
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        items(visible.list) { stock ->
+                            ProductCard(stock = stock, onOpen = onOpen, onReplenish = onReplenish, onConsume = onConsume)
+                        }
+                    }
+                } else {
+                    LazyColumn(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        items(visible.list) { stock ->
+                            ProductCard(stock = stock, onOpen = onOpen, onReplenish = onReplenish, onConsume = onConsume)
+                        }
                     }
                 }
                 PrimaryButton(onClick = onAddProduct) { AppText(stringResource(Res.string.stock_add_product)) }

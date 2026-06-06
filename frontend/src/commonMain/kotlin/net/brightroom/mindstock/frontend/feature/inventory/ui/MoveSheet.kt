@@ -15,6 +15,7 @@ import mindstock.frontend.generated.resources.action_consume
 import mindstock.frontend.generated.resources.action_replenish
 import mindstock.frontend.generated.resources.move_current_qty
 import mindstock.frontend.generated.resources.move_note_placeholder
+import mindstock.frontend.generated.resources.move_submit
 import net.brightroom.mindstock.domain.model.inventory.stock.Stock
 import net.brightroom.mindstock.frontend.designsystem.atom.AppText
 import net.brightroom.mindstock.frontend.designsystem.atom.PrimaryButton
@@ -50,7 +51,7 @@ fun MoveSheet(
                 modifier = Modifier.fillMaxWidth(),
             )
             PrimaryButton(onClick = { onSubmit(qty, note); onClose() }) {
-                AppText("$qty${stock.product.setting.unit()} $title")
+                AppText(stringResource(Res.string.move_submit, qty, stock.product.setting.unit(), title))
             }
         }
     }
