@@ -11,9 +11,7 @@ import mindstock.frontend.generated.resources.nav_activity
 import mindstock.frontend.generated.resources.nav_profile
 import mindstock.frontend.generated.resources.nav_shop
 import mindstock.frontend.generated.resources.nav_stock
-import mindstock.frontend.generated.resources.tab_activity_placeholder
 import mindstock.frontend.generated.resources.tab_profile_placeholder
-import mindstock.frontend.generated.resources.tab_shop_placeholder
 import net.brightroom.mindstock.frontend.designsystem.atom.AppIcon
 import net.brightroom.mindstock.frontend.designsystem.atom.AppIconName
 import net.brightroom.mindstock.frontend.designsystem.atom.AppText
@@ -31,7 +29,11 @@ enum class Tab(
 }
 
 @Composable
-fun AppShell(stockContent: @Composable () -> Unit) {
+fun AppShell(
+    stockContent: @Composable () -> Unit,
+    shopContent: @Composable () -> Unit,
+    activityContent: @Composable () -> Unit,
+) {
     var selected by remember { mutableStateOf(Tab.Stock) }
     NavigationSuiteScaffold(
         navigationSuiteItems = {
@@ -47,8 +49,8 @@ fun AppShell(stockContent: @Composable () -> Unit) {
     ) {
         when (selected) {
             Tab.Stock -> stockContent()
-            Tab.Shop -> AppText(stringResource(Res.string.tab_shop_placeholder))
-            Tab.Activity -> AppText(stringResource(Res.string.tab_activity_placeholder))
+            Tab.Shop -> shopContent()
+            Tab.Activity -> activityContent()
             Tab.Profile -> AppText(stringResource(Res.string.tab_profile_placeholder))
         }
     }

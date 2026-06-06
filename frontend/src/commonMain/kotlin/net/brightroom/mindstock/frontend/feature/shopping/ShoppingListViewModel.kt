@@ -1,16 +1,17 @@
-package net.brightroom.mindstock.frontend.feature.inventory
+package net.brightroom.mindstock.frontend.feature.shopping
 
 import androidx.lifecycle.ViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import mindstock.frontend.generated.resources.Res
-import mindstock.frontend.generated.resources.toast_consumed
+import mindstock.frontend.generated.resources.toast_added_to_list
+import mindstock.frontend.generated.resources.toast_removed_from_list
 import mindstock.frontend.generated.resources.toast_replenished
 import net.brightroom.mindstock.domain.model.household.HouseholdId
 import net.brightroom.mindstock.domain.model.inventory.product.ProductId
 import net.brightroom.mindstock.domain.model.inventory.quantity.Quantity
-import net.brightroom.mindstock.domain.model.inventory.stock.Stocks
+import net.brightroom.mindstock.domain.model.inventory.shopping.ShoppingList
 import net.brightroom.mindstock.domain.model.inventory.stock.movement.Note
 import net.brightroom.mindstock.frontend.core.auth.ReauthController
 import net.brightroom.mindstock.frontend.core.rpc.RpcOutcome
@@ -21,50 +22,39 @@ import net.brightroom.mindstock.frontend.core.ui.ToastController
 import net.brightroom.mindstock.frontend.core.ui.UiText
 import net.brightroom.mindstock.rpc.result.RpcError
 
-class InventoryViewModel(
+class ShoppingListViewModel(
     private val householdId: HouseholdId,
-    private val loadStocks: suspend (HouseholdId) -> RpcOutcome<Stocks>,
+    private val loadShoppingList: suspend (HouseholdId) -> RpcOutcome<ShoppingList>,
+    private val setWantedFlag: suspend (ProductId, Boolean) -> RpcOutcome<Unit>,
     private val replenishStock: suspend (ProductId, Quantity, Note) -> RpcOutcome<Unit>,
-    private val consumeStock: suspend (ProductId, Quantity, Note) -> RpcOutcome<Unit>,
     private val refresh: InventoryRefreshController,
     private val toast: ToastController,
     private val reauth: ReauthController,
 ) : ViewModel() {
-    private val _state = MutableStateFlow<InventoryUiState>(InventoryUiState.Loading)
-    val state: StateFlow<InventoryUiState> = _state.asStateFlow()
-
-    // view / query は load() の再フェッチ（補充消費後）でも保持するため独立した source of truth に持つ。
-    private val _view = MutableStateFlow(StockView.List)
-    val view: StateFlow<StockView> = _view.asStateFlow()
-
-    private val _query = MutableStateFlow("")
-    val query: StateFlow<String> = _query.asStateFlow()
+    private val _state = MutableStateFlow<ShoppingListUiState>(ShoppingListUiState.Loading)
+    val state: StateFlow<ShoppingListUiState> = _state.asStateFlow()
 
     suspend fun load() {
-        _state.value = InventoryUiState.Loading
+        _state.value = ShoppingListUiState.Loading
         _state.value =
-            when (val out = loadStocks(householdId)) {
+            when (val out = loadShoppingList(householdId)) {
                 is RpcOutcome.Success -> {
-                    InventoryUiState.Content(out.value, _view.value, _query.value)
+                    ShoppingListUiState.Content(out.value)
                 }
 
                 is RpcOutcome.Failure -> {
                     handleFailure(out.error)
-                    InventoryUiState.Error(errorText(out.error))
+                    ShoppingListUiState.Error(errorText(out.error))
                 }
             }
     }
 
-    fun setView(v: StockView) {
-        _view.value = v
-        val s = _state.value
-        if (s is InventoryUiState.Content) _state.value = s.copy(view = v)
-    }
-
-    fun setQuery(query: String) {
-        _query.value = query
-        val s = _state.value
-        if (s is InventoryUiState.Content) _state.value = s.copy(query = query)
+    suspend fun setWanted(
+        productId: ProductId,
+        wanted: Boolean,
+    ) {
+        val text = if (wanted) UiText(Res.string.toast_added_to_list) else UiText(Res.string.toast_removed_from_list)
+        write(setWantedFlag(productId, wanted), text)
     }
 
     suspend fun replenish(
@@ -73,20 +63,14 @@ class InventoryViewModel(
         note: Note,
     ) = write(replenishStock(productId, quantity, note), UiText(Res.string.toast_replenished))
 
-    suspend fun consume(
-        productId: ProductId,
-        quantity: Quantity,
-        note: Note,
-    ) = write(consumeStock(productId, quantity, note), UiText(Res.string.toast_consumed))
-
     private suspend fun write(
         outcome: RpcOutcome<Unit>,
         successText: UiText,
     ) {
         when (outcome) {
             is RpcOutcome.Success -> {
-                load() // append-only のサーバ真実を再取得
-                refresh.request() // 他タブ（買い物/活動）へ波及
+                load()
+                refresh.request()
                 toast.show(successText)
             }
 
@@ -97,10 +81,6 @@ class InventoryViewModel(
     }
 
     private fun handleFailure(error: RpcError) {
-        if (error.requiresReauth()) {
-            reauth.request()
-        } else {
-            toast.show(errorText(error))
-        }
+        if (error.requiresReauth()) reauth.request() else toast.show(errorText(error))
     }
 }

@@ -26,6 +26,9 @@ import mindstock.frontend.generated.resources.correct_title
 import mindstock.frontend.generated.resources.detail_history
 import mindstock.frontend.generated.resources.detail_history_empty
 import mindstock.frontend.generated.resources.detail_min_stock
+import mindstock.frontend.generated.resources.detail_wanted_add
+import mindstock.frontend.generated.resources.detail_wanted_auto
+import mindstock.frontend.generated.resources.detail_wanted_remove
 import mindstock.frontend.generated.resources.history_consume
 import mindstock.frontend.generated.resources.history_corrected_badge
 import mindstock.frontend.generated.resources.history_replenish
@@ -51,23 +54,35 @@ import org.jetbrains.compose.resources.stringResource
 
 @Composable
 fun ProductDetailScreen(
-    stock: Stock,
     detail: ProductDetailUiState,
+    seed: Stock?,
     onBack: () -> Unit,
-    onReplenish: (Stock) -> Unit,
-    onConsume: (Stock) -> Unit,
+    onReplenish: () -> Unit,
+    onConsume: () -> Unit,
     onCorrect: (target: MovementId, quantity: Int, reason: String) -> Unit,
+    onToggleWanted: (wanted: Boolean) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val tokens = LocalMindstockTokens.current
-    val statusColor =
-        when (stock.status()) {
-            StockStatus.在庫切れ -> tokens.statusOut
-            StockStatus.残りわずか -> tokens.statusLow
-            StockStatus.十分 -> tokens.statusOk
-        }
-    var correcting by remember { mutableStateOf<StockMovement?>(null) }
+    // ヘッダの Stock: Content があればそれ、無ければ seed
+    val stock: Stock? = (detail as? ProductDetailUiState.Content)?.stock ?: seed
+    val wanted: Boolean? = (detail as? ProductDetailUiState.Content)?.wanted
+
     Column(modifier = modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        if (stock == null) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                RoundBtn(AppIconName.Back, contentDescription = "back", onClick = onBack)
+            }
+            if (detail is ProductDetailUiState.Error) AppText(detail.text.resolve()) else AppText(stringResource(Res.string.loading))
+            return@Column
+        }
+
+        val tokens = LocalMindstockTokens.current
+        val statusColor =
+            when (stock.status()) {
+                StockStatus.在庫切れ -> tokens.statusOut
+                StockStatus.残りわずか -> tokens.statusLow
+                StockStatus.十分 -> tokens.statusOk
+            }
         Row(verticalAlignment = Alignment.CenterVertically) {
             RoundBtn(AppIconName.Back, contentDescription = "back", onClick = onBack)
             AppText(stock.product.name())
@@ -85,9 +100,31 @@ fun ProductDetailScreen(
             ),
         )
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            PrimaryButton(onClick = { onReplenish(stock) }) { AppText(stringResource(Res.string.action_replenish)) }
-            PrimaryButton(onClick = { onConsume(stock) }) { AppText(stringResource(Res.string.action_consume)) }
+            PrimaryButton(onClick = onReplenish) { AppText(stringResource(Res.string.action_replenish)) }
+            PrimaryButton(onClick = onConsume) { AppText(stringResource(Res.string.action_consume)) }
         }
+
+        // wanted トグル領域（status==十分 のときのみ操作可能。それ以外は自動表示の案内）
+        when {
+            stock.status() != StockStatus.十分 -> {
+                AppText(stringResource(Res.string.detail_wanted_auto))
+            }
+
+            wanted == true -> {
+                PrimaryButton(
+                    onClick = { onToggleWanted(false) },
+                ) { AppText(stringResource(Res.string.detail_wanted_remove)) }
+            }
+
+            wanted == false -> {
+                PrimaryButton(onClick = { onToggleWanted(true) }) { AppText(stringResource(Res.string.detail_wanted_add)) }
+            }
+
+            else -> {
+                Unit
+            } // wanted 未確定（ロード中）はトグル非表示
+        }
+
         AppText(stringResource(Res.string.detail_history))
         when (detail) {
             is ProductDetailUiState.Loading -> {
@@ -107,51 +144,55 @@ fun ProductDetailScreen(
                 if (detail.movements.list.isEmpty()) {
                     AppText(stringResource(Res.string.detail_history_empty))
                 } else {
-                    LazyColumn(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalArrangement = Arrangement.spacedBy(8.dp),
-                    ) {
+                    var correcting by remember { mutableStateOf<StockMovement?>(null) }
+                    LazyColumn(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         items(detail.movements.list.reversed()) { m ->
-                            val corrected =
-                                (m.identity as? MovementIdentity.Persisted)?.id in correctedIds
-                            HistoryRow(
-                                m,
-                                stock.product.setting.unit(),
-                                corrected = corrected,
-                                onCorrect = { correcting = m },
-                            )
+                            val corrected = (m.identity as? MovementIdentity.Persisted)?.id in correctedIds
+                            HistoryRow(m, stock.product.setting.unit(), corrected = corrected, onCorrect = { correcting = m })
                         }
                     }
+                    CorrectionSheet(
+                        target = correcting,
+                        unit = stock.product.setting.unit(),
+                        onClose = { correcting = null },
+                        onCorrect = onCorrect,
+                    )
                 }
             }
         }
     }
+}
 
-    val target = correcting
-    if (target != null) {
-        val movementId = (target.identity as? MovementIdentity.Persisted)?.id
-        var qty by remember(target) { mutableStateOf(target.quantity()) }
-        var reason by remember(target) { mutableStateOf("") }
-        Sheet(open = true, title = stringResource(Res.string.correct_title), onClose = { correcting = null }) {
-            Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                Stepper(value = qty, onChange = { qty = it }, unit = stock.product.setting.unit())
-                TextInput(
-                    value = reason,
-                    onValueChange = { reason = it },
-                    placeholder = stringResource(Res.string.correct_reason_placeholder),
-                    modifier = Modifier.fillMaxWidth(),
-                    isError = reason.isBlank(),
-                )
-                PrimaryButton(
-                    onClick = {
-                        if (movementId != null && reason.isNotBlank()) {
-                            onCorrect(movementId, qty, reason)
-                            correcting = null
-                        }
-                    },
-                    enabled = movementId != null && reason.isNotBlank(),
-                ) { AppText(stringResource(Res.string.correct_submit)) }
-            }
+@Composable
+private fun CorrectionSheet(
+    target: StockMovement?,
+    unit: String,
+    onClose: () -> Unit,
+    onCorrect: (target: MovementId, quantity: Int, reason: String) -> Unit,
+) {
+    if (target == null) return
+    val movementId = (target.identity as? MovementIdentity.Persisted)?.id
+    var qty by remember(target) { mutableStateOf(target.quantity()) }
+    var reason by remember(target) { mutableStateOf("") }
+    Sheet(open = true, title = stringResource(Res.string.correct_title), onClose = onClose) {
+        Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+            Stepper(value = qty, onChange = { qty = it }, unit = unit)
+            TextInput(
+                value = reason,
+                onValueChange = { reason = it },
+                placeholder = stringResource(Res.string.correct_reason_placeholder),
+                modifier = Modifier.fillMaxWidth(),
+                isError = reason.isBlank(),
+            )
+            PrimaryButton(
+                onClick = {
+                    if (movementId != null && reason.isNotBlank()) {
+                        onCorrect(movementId, qty, reason)
+                        onClose()
+                    }
+                },
+                enabled = movementId != null && reason.isNotBlank(),
+            ) { AppText(stringResource(Res.string.correct_submit)) }
         }
     }
 }

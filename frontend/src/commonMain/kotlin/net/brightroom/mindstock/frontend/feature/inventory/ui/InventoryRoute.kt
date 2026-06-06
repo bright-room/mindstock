@@ -10,72 +10,44 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import kotlinx.coroutines.launch
+import net.brightroom.mindstock.domain.model.inventory.product.ProductId
 import net.brightroom.mindstock.domain.model.inventory.quantity.Quantity
 import net.brightroom.mindstock.domain.model.inventory.stock.Stock
-import net.brightroom.mindstock.domain.model.inventory.stock.movement.MovementId
 import net.brightroom.mindstock.domain.model.inventory.stock.movement.Note
-import net.brightroom.mindstock.domain.model.inventory.stock.movement.Reason
-import net.brightroom.mindstock.frontend.feature.inventory.InventoryUiState
+import net.brightroom.mindstock.frontend.core.ui.InventoryRefreshController
 import net.brightroom.mindstock.frontend.feature.inventory.InventoryViewModel
-import net.brightroom.mindstock.frontend.feature.inventory.ProductDetailViewModel
 
 /**
- * 在庫ホーム + 商品詳細 + 補充/消費/訂正シートの表示状態を束ねる live エントリ。
- * ViewModel の生成は呼び出し側（App）から factory で受ける（householdId 注入・テスト容易性）。
+ * 在庫ホーム + カードからの補充/消費シートを束ねる live エントリ。
+ * 商品詳細はオーバーレイ（app 層）へ昇格したため、ここでは onOpenProduct を上げるだけ。
  */
 @Composable
 fun InventoryRoute(
     homeViewModel: InventoryViewModel,
-    detailViewModelFactory: (Stock) -> ProductDetailViewModel,
+    refresh: InventoryRefreshController,
+    onOpenProduct: (ProductId, Stock?) -> Unit,
     onAddProduct: () -> Unit,
     displayName: String = "",
     modifier: Modifier = Modifier,
 ) {
     val scope = rememberCoroutineScope()
     val state by homeViewModel.state.collectAsState()
-    var selected by remember { mutableStateOf<Stock?>(null) }
     var moveTarget by remember { mutableStateOf<Pair<Stock, MoveMode>?>(null) }
 
     LaunchedEffect(Unit) { homeViewModel.load() }
+    LaunchedEffect(refresh) { refresh.signal.collect { homeViewModel.load() } }
 
-    val current = selected
-    if (current == null) {
-        StockHomeScreen(
-            state = state,
-            displayName = displayName,
-            onSelectView = { homeViewModel.setView(it) },
-            onQueryChange = { homeViewModel.setQuery(it) },
-            onOpen = { selected = it },
-            onReplenish = { moveTarget = it to MoveMode.Replenish },
-            onConsume = { moveTarget = it to MoveMode.Consume },
-            onAddProduct = onAddProduct,
-            modifier = modifier,
-        )
-    } else {
-        val detailVm = remember(current) { detailViewModelFactory(current) }
-        val detailState by detailVm.state.collectAsState()
-        LaunchedEffect(current) { detailVm.load() }
-        ProductDetailScreen(
-            stock = current,
-            detail = detailState,
-            onBack = { selected = null },
-            onReplenish = { moveTarget = it to MoveMode.Replenish },
-            onConsume = { moveTarget = it to MoveMode.Consume },
-            onCorrect = { target: MovementId, qty: Int, reason: String ->
-                scope.launch {
-                    detailVm.correct(target, Quantity(qty), Reason(reason))
-                    homeViewModel.load()
-                    val refreshed =
-                        (homeViewModel.state.value as? InventoryUiState.Content)
-                            ?.stocks
-                            ?.list
-                            ?.firstOrNull { it.product.id == current.product.id }
-                    selected = refreshed
-                }
-            },
-            modifier = modifier,
-        )
-    }
+    StockHomeScreen(
+        state = state,
+        displayName = displayName,
+        onSelectView = { homeViewModel.setView(it) },
+        onQueryChange = { homeViewModel.setQuery(it) },
+        onOpen = { stock -> onOpenProduct(stock.product.id, stock) },
+        onReplenish = { moveTarget = it to MoveMode.Replenish },
+        onConsume = { moveTarget = it to MoveMode.Consume },
+        onAddProduct = onAddProduct,
+        modifier = modifier,
+    )
 
     val mt = moveTarget
     MoveSheet(
@@ -91,9 +63,7 @@ fun InventoryRoute(
                     MoveMode.Consume -> homeViewModel.consume(stock.product.id, Quantity(quantity), Note(note))
                 }
             }
-            // 補充/消費後は詳細の Stock が陳腐化する（数量は home の Stocks 由来）。
-            // 安全な既定として home に戻し、再フェッチ済みの最新数量を見せる。
-            selected = null
+            moveTarget = null
         },
     )
 }

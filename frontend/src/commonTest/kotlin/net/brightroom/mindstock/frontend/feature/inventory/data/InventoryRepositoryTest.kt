@@ -33,8 +33,27 @@ class InventoryRepositoryTest {
                     productService = { fakeProduct },
                     stockService = { error("unused") },
                     stockRegisterService = { error("unused") },
+                    productRegisterService = { error("unused") },
                 )
             val out = repo.list(HouseholdId.create())
             out.shouldBeInstanceOf<RpcOutcome.Success<Stocks>>()
+        }
+
+    @Test
+    fun shopping_list_returns_success_outcome_on_ok() =
+        runTest {
+            val fakeProduct =
+                object : FakeProductRpc() {
+                    override suspend fun shoppingList(householdId: HouseholdId) = RpcResult.Ok(ShoppingList(emptyList()))
+                }
+            val repo =
+                InventoryRepository(
+                    productService = { fakeProduct },
+                    stockService = { error("unused") },
+                    stockRegisterService = { error("unused") },
+                    productRegisterService = { error("unused") },
+                )
+            val out = repo.shoppingList(HouseholdId.create())
+            out.shouldBeInstanceOf<RpcOutcome.Success<ShoppingList>>()
         }
 }
