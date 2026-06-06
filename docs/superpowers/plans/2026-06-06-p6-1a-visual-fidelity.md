@@ -475,7 +475,7 @@ import kotlin.test.Test
 class StockLevelMathTest {
     @Test
     fun comfortable_is_at_least_min_times_two() {
-        comfortableStock(qty = 0, min = 2) shouldBe 4
+        comfortableStock(qty = 0, min = 4) shouldBe 8 // max(8, 7, 0, 1) = 8
     }
 
     @Test
