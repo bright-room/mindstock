@@ -16,6 +16,7 @@ import net.brightroom.mindstock.frontend.core.auth.ReauthController
 import net.brightroom.mindstock.frontend.core.rpc.RpcOutcome
 import net.brightroom.mindstock.frontend.core.rpc.errorText
 import net.brightroom.mindstock.frontend.core.rpc.requiresReauth
+import net.brightroom.mindstock.frontend.core.ui.InventoryRefreshController
 import net.brightroom.mindstock.frontend.core.ui.ToastController
 import net.brightroom.mindstock.frontend.core.ui.UiText
 import net.brightroom.mindstock.rpc.result.RpcError
@@ -25,6 +26,7 @@ class InventoryViewModel(
     private val loadStocks: suspend (HouseholdId) -> RpcOutcome<Stocks>,
     private val replenishStock: suspend (ProductId, Quantity, Note) -> RpcOutcome<Unit>,
     private val consumeStock: suspend (ProductId, Quantity, Note) -> RpcOutcome<Unit>,
+    private val refresh: InventoryRefreshController,
     private val toast: ToastController,
     private val reauth: ReauthController,
 ) : ViewModel() {
@@ -84,6 +86,7 @@ class InventoryViewModel(
         when (outcome) {
             is RpcOutcome.Success -> {
                 load() // append-only のサーバ真実を再取得
+                refresh.request() // 他タブ（買い物/活動）へ波及
                 toast.show(successText)
             }
 

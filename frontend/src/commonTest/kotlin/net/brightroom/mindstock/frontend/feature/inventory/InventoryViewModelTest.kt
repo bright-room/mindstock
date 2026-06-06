@@ -14,6 +14,7 @@ import net.brightroom.mindstock.domain.model.inventory.stock.Stocks
 import net.brightroom.mindstock.domain.model.inventory.stock.movement.Note
 import net.brightroom.mindstock.frontend.core.auth.ReauthController
 import net.brightroom.mindstock.frontend.core.rpc.RpcOutcome
+import net.brightroom.mindstock.frontend.core.ui.InventoryRefreshController
 import net.brightroom.mindstock.frontend.core.ui.ToastController
 import net.brightroom.mindstock.rpc.result.RpcError
 import kotlin.test.Test
@@ -22,6 +23,7 @@ private fun vm(
     loadStocks: suspend (HouseholdId) -> RpcOutcome<Stocks> = { RpcOutcome.Success(Stocks(emptyList())) },
     replenish: suspend (ProductId, Quantity, Note) -> RpcOutcome<Unit> = { _, _, _ -> RpcOutcome.Success(Unit) },
     consume: suspend (ProductId, Quantity, Note) -> RpcOutcome<Unit> = { _, _, _ -> RpcOutcome.Success(Unit) },
+    refresh: InventoryRefreshController = InventoryRefreshController(),
     toast: ToastController = ToastController(),
     reauth: ReauthController = ReauthController(),
 ) = InventoryViewModel(
@@ -29,6 +31,7 @@ private fun vm(
     loadStocks = loadStocks,
     replenishStock = replenish,
     consumeStock = consume,
+    refresh = refresh,
     toast = toast,
     reauth = reauth,
 )
@@ -102,5 +105,20 @@ class InventoryViewModelTest {
             v.replenish(ProductId.create(), Quantity(1), Note("")) // 内部で load() 再フェッチ
             val content = v.state.value as InventoryUiState.Content
             content.query shouldBe "milk" // クエリが消えない
+        }
+
+    @Test
+    fun replenish_success_emits_refresh() =
+        runTest {
+            var refreshed = 0
+            val refresh = InventoryRefreshController()
+            val job = launch { refresh.signal.collect { refreshed++ } }
+            runCurrent()
+            val v = vm(refresh = refresh)
+            v.load()
+            v.replenish(ProductId.create(), Quantity(1), Note(""))
+            runCurrent()
+            refreshed shouldBe 1
+            job.cancel()
         }
 }

@@ -31,6 +31,7 @@ import net.brightroom.mindstock.frontend.core.auth.AuthState
 import net.brightroom.mindstock.frontend.core.auth.ReauthController
 import net.brightroom.mindstock.frontend.core.rpc.RpcClientProvider
 import net.brightroom.mindstock.frontend.core.session.AppSession
+import net.brightroom.mindstock.frontend.core.ui.InventoryRefreshController
 import net.brightroom.mindstock.frontend.core.ui.ToastController
 import net.brightroom.mindstock.frontend.core.ui.UiText
 import net.brightroom.mindstock.frontend.core.ui.resolve
@@ -78,6 +79,7 @@ fun App() {
     MindstockTheme {
         val toast = remember { ToastController() }
         val reauth = remember { ReauthController() }
+        val refresh = remember { InventoryRefreshController() }
         val sessionState by session.state.collectAsState()
         val toastMessage by toast.current.collectAsState()
 
@@ -130,6 +132,7 @@ fun App() {
                                     loadStocks = repository::list,
                                     replenishStock = repository::replenish,
                                     consumeStock = repository::consume,
+                                    refresh = refresh,
                                     toast = toast,
                                     reauth = reauth,
                                 )
