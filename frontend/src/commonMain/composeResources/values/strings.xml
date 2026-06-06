@@ -28,4 +28,21 @@
     <string name="tab_shop_placeholder">買い物(P6-1)</string>
     <string name="tab_activity_placeholder">履歴(P6-1)</string>
     <string name="tab_profile_placeholder">設定(P6-3)</string>
+    <string name="detail_history">履歴</string>
+    <string name="detail_history_empty">まだ記録がありません。</string>
+    <string name="detail_min_stock">最低在庫 %1$d%2$s</string>
+    <string name="history_replenish">補充</string>
+    <string name="history_consume">消費</string>
+    <string name="history_corrected_badge">訂正済</string>
+    <string name="action_correct">訂正</string>
+    <string name="correct_title">数量を訂正</string>
+    <string name="correct_reason_placeholder">訂正の理由（入力推奨）</string>
+    <string name="correct_submit">訂正を記録する</string>
+    <string name="move_note_placeholder">メモ（任意・まとめ買い 等）</string>
+    <string name="move_current_qty">%1$s（現在 %2$d%3$s）</string>
+    <string name="stock_search_placeholder">在庫を検索</string>
+    <string name="stock_greeting">こんにちは、%1$s</string>
+    <string name="stock_title">在庫</string>
+    <string name="stock_add_product">商品を追加</string>
+    <string name="stock_search_empty">「%1$s」に一致する在庫はありません</string>
 </resources>
