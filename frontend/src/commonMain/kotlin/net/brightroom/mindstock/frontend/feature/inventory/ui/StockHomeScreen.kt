@@ -16,7 +16,10 @@ import androidx.compose.ui.unit.dp
 import mindstock.frontend.generated.resources.Res
 import mindstock.frontend.generated.resources.loading
 import mindstock.frontend.generated.resources.stock_add_product
+import mindstock.frontend.generated.resources.stock_greeting
+import mindstock.frontend.generated.resources.stock_search_empty
 import mindstock.frontend.generated.resources.stock_search_placeholder
+import mindstock.frontend.generated.resources.stock_title
 import mindstock.frontend.generated.resources.stock_view_grid
 import mindstock.frontend.generated.resources.stock_view_list
 import net.brightroom.mindstock.domain.model.inventory.stock.Stock
@@ -33,6 +36,7 @@ import org.jetbrains.compose.resources.stringResource
 @Composable
 fun StockHomeScreen(
     state: InventoryUiState,
+    displayName: String = "",
     onSelectView: (StockView) -> Unit,
     onQueryChange: (String) -> Unit,
     onOpen: (Stock) -> Unit,
@@ -52,6 +56,8 @@ fun StockHomeScreen(
             }
 
             is InventoryUiState.Content -> {
+                AppText(stringResource(Res.string.stock_greeting, displayName))
+                AppText(stringResource(Res.string.stock_title))
                 TextInput(
                     value = state.query,
                     onValueChange = onQueryChange,
@@ -68,7 +74,9 @@ fun StockHomeScreen(
                     onSelect = { onSelectView(StockView.valueOf(it)) },
                 )
                 val visible = state.visibleStocks()
-                if (state.view == StockView.Grid) {
+                if (state.query.isNotBlank() && visible.list.isEmpty()) {
+                    AppText(stringResource(Res.string.stock_search_empty, state.query.trim()))
+                } else if (state.view == StockView.Grid) {
                     LazyVerticalGrid(
                         columns = GridCells.Fixed(2),
                         modifier = Modifier.fillMaxWidth(),

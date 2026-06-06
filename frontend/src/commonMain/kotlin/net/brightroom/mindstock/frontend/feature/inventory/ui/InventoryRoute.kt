@@ -15,6 +15,7 @@ import net.brightroom.mindstock.domain.model.inventory.stock.Stock
 import net.brightroom.mindstock.domain.model.inventory.stock.movement.MovementId
 import net.brightroom.mindstock.domain.model.inventory.stock.movement.Note
 import net.brightroom.mindstock.domain.model.inventory.stock.movement.Reason
+import net.brightroom.mindstock.frontend.feature.inventory.InventoryUiState
 import net.brightroom.mindstock.frontend.feature.inventory.InventoryViewModel
 import net.brightroom.mindstock.frontend.feature.inventory.ProductDetailViewModel
 
@@ -27,6 +28,7 @@ fun InventoryRoute(
     homeViewModel: InventoryViewModel,
     detailViewModelFactory: (Stock) -> ProductDetailViewModel,
     onAddProduct: () -> Unit,
+    displayName: String = "",
     modifier: Modifier = Modifier,
 ) {
     val scope = rememberCoroutineScope()
@@ -40,6 +42,7 @@ fun InventoryRoute(
     if (current == null) {
         StockHomeScreen(
             state = state,
+            displayName = displayName,
             onSelectView = { homeViewModel.setView(it) },
             onQueryChange = { homeViewModel.setQuery(it) },
             onOpen = { selected = it },
@@ -59,7 +62,16 @@ fun InventoryRoute(
             onReplenish = { moveTarget = it to MoveMode.Replenish },
             onConsume = { moveTarget = it to MoveMode.Consume },
             onCorrect = { target: MovementId, qty: Int, reason: String ->
-                scope.launch { detailVm.correct(target, Quantity(qty), Reason(reason)) }
+                scope.launch {
+                    detailVm.correct(target, Quantity(qty), Reason(reason))
+                    homeViewModel.load()
+                    val refreshed =
+                        (homeViewModel.state.value as? InventoryUiState.Content)
+                            ?.stocks
+                            ?.list
+                            ?.firstOrNull { it.product.id == current.product.id }
+                    selected = refreshed
+                }
             },
             modifier = modifier,
         )

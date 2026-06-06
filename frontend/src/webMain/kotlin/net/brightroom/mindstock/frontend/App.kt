@@ -146,6 +146,7 @@ fun App() {
                                         )
                                     },
                                     onAddProduct = { toast.show(UiText(Res.string.feature_coming_soon)) },
+                                    displayName = sessionState.displayName?.invoke() ?: "",
                                 )
                             },
                         )
