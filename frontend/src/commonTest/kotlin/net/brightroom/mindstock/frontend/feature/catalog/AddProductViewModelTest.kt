@@ -11,6 +11,7 @@ import net.brightroom.mindstock.domain.model.catalog.item.CatalogItem
 import net.brightroom.mindstock.domain.model.catalog.item.CatalogItemId
 import net.brightroom.mindstock.domain.model.catalog.item.CatalogItems
 import net.brightroom.mindstock.domain.model.inventory.product.Product
+import net.brightroom.mindstock.domain.model.inventory.product.ProductName
 import net.brightroom.mindstock.domain.model.inventory.product.setting.MinimumStock
 import net.brightroom.mindstock.domain.model.inventory.product.setting.ProductUnit
 import net.brightroom.mindstock.frontend.core.auth.ReauthController
@@ -83,6 +84,17 @@ class AddProductViewModelTest {
             s.shouldBeInstanceOf<AddProductUiState.CustomForm>()
             s.jan shouldBe sampleJan
             s.nameLocked shouldBe false
+            s.seedName shouldBe ""
+        }
+
+    @Test
+    fun lookup_other_failure_returns_to_browsing() =
+        runTest {
+            val v = vm(lookup = { RpcOutcome.Failure(RpcError.Internal("x")) })
+            v.lookupByJan(sampleJan)
+            val s = v.state.value
+            s.shouldBeInstanceOf<AddProductUiState.Browsing>()
+            s.phase shouldBe BrowsePhase.Idle
         }
 
     @Test
@@ -98,8 +110,7 @@ class AddProductViewModelTest {
         runTest {
             val v = vm()
             v.addCustom(
-                net.brightroom.mindstock.domain.model.inventory.product
-                    .ProductName("麦茶パック"),
+                ProductName("麦茶パック"),
                 null,
                 ProductUnit("袋"),
                 MinimumStock(2),

@@ -62,6 +62,8 @@ class AddProductViewModel(
     }
 
     suspend fun lookupByJan(jan: Jan) {
+        // JAN 照会開始時は Browsing の results を意図的にリセットする(JanLookingUp 中は画面が
+        // 全画面ローディングを出すため、直前の名前検索結果は表示されない)。
         _state.value = AddProductUiState.Browsing(phase = BrowsePhase.JanLookingUp)
         _state.value =
             when (val out = lookupJan(jan)) {
@@ -123,6 +125,9 @@ class AddProductViewModel(
             }
 
             is RpcOutcome.Failure -> {
+                // 失敗時はフォーム状態を意図的に保持し、ユーザが再試行できるようにする。
+                // Unauthorized は handleFailure 経由でアプリ層の再認証(ページ遷移)を起こすため、
+                // フォーム状態を残したままで問題ない。
                 handleFailure(outcome.error)
             }
         }
