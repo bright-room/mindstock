@@ -47,4 +47,15 @@
     <string name="stock_search_empty">「%1$s」に一致する在庫はありません</string>
     <string name="move_submit">%1$d%2$s %3$s</string>
     <string name="feature_coming_soon">準備中です</string>
+    <string name="status_ok">十分</string>
+    <string name="status_low">そろそろ</string>
+    <string name="status_out">切らし中</string>
+    <string name="stock_count_all">すべて · %1$d点</string>
+    <string name="stock_search_count">%1$d件 見つかりました</string>
+    <string name="summary_need_title">%1$d点 買い物リストにあります</string>
+    <string name="summary_need_sub">切らし %1$d ・ そろそろ %2$d</string>
+    <string name="summary_ok_title">在庫はぜんぶ足りています</string>
+    <string name="summary_ok_sub">いまのところ補充は不要です</string>
+    <string name="household_member_count">%1$d 人</string>
+    <string name="household_default_name">わたしの家</string>
 </resources>
