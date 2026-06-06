@@ -6,7 +6,6 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -18,8 +17,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import mindstock.frontend.generated.resources.Res
-import mindstock.frontend.generated.resources.action_consume
-import mindstock.frontend.generated.resources.action_replenish
 import mindstock.frontend.generated.resources.status_low
 import mindstock.frontend.generated.resources.status_ok
 import mindstock.frontend.generated.resources.status_out
@@ -41,7 +38,7 @@ import net.brightroom.mindstock.frontend.feature.inventory.glyphForProductName
 import org.jetbrains.compose.resources.stringResource
 
 @Composable
-fun ProductCard(
+fun CompactCard(
     stock: Stock,
     onOpen: (Stock) -> Unit,
     onReplenish: (Stock) -> Unit,
@@ -79,47 +76,54 @@ fun ProductCard(
                 .background(tokens.surface)
                 .border(1.dp, tokens.lineSoft, shape)
                 .clickable { onOpen(stock) }
-                .padding(18.dp),
-        verticalArrangement = Arrangement.spacedBy(14.dp),
+                .padding(14.dp),
+        verticalArrangement = Arrangement.spacedBy(11.dp),
     ) {
-        Row(horizontalArrangement = Arrangement.spacedBy(14.dp), verticalAlignment = Alignment.Top) {
-            Thumb(icon = glyphForProductName(stock.product.name()), size = 48.dp)
-            Column(Modifier.weight(1f)) {
-                AppText(
-                    stock.product.name(),
-                    style = MindstockType.cardTitle(),
-                    color = tokens.ink,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                Spacer(Modifier.height(6.dp))
-                StatusDot(color = statusColor, soft = statusSoft, label = statusLabel)
-            }
-            Column(horizontalAlignment = Alignment.End) {
+        Row(
+            Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.Top,
+        ) {
+            Thumb(icon = glyphForProductName(stock.product.name()), size = 40.dp, radius = 12.dp)
+            Row(verticalAlignment = Alignment.Bottom) {
                 AppText(
                     "$qty",
                     style = MindstockType.bigQty(),
                     color = if (status == StockStatus.在庫切れ) tokens.statusOut else tokens.ink,
                 )
-                AppText(stock.product.setting.unit(), style = MindstockType.unitCaption(), color = tokens.faint)
+                AppText(
+                    stock.product.setting.unit(),
+                    style = MindstockType.unitCaption(),
+                    color = tokens.faint,
+                    modifier = Modifier.padding(start = 4.dp, bottom = 4.dp),
+                )
             }
         }
+        AppText(
+            stock.product.name(),
+            style = MindstockType.cardTitle(),
+            color = tokens.ink,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.height(37.dp),
+        )
+        StatusDot(color = statusColor, soft = statusSoft, label = statusLabel)
         StockLevelBar(qty = qty, min = stock.product.setting.minimumStock(), color = statusColor)
-        Row(horizontalArrangement = Arrangement.spacedBy(9.dp), modifier = Modifier.fillMaxWidth()) {
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
             AppButton(
                 onClick = { onReplenish(stock) },
                 variant = ButtonVariant.Soft,
                 size = ButtonSize.Sm,
                 icon = AppIconName.Plus,
                 modifier = Modifier.weight(1f),
-            ) { AppText(stringResource(Res.string.action_replenish)) }
+            ) {}
             AppButton(
                 onClick = { onConsume(stock) },
                 variant = ButtonVariant.Ghost,
                 size = ButtonSize.Sm,
                 icon = AppIconName.Minus,
                 modifier = Modifier.weight(1f),
-            ) { AppText(stringResource(Res.string.action_consume)) }
+            ) {}
         }
     }
 }
