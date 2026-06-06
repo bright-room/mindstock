@@ -18,6 +18,7 @@ import net.brightroom.mindstock.frontend.core.rpc.errorText
 import net.brightroom.mindstock.frontend.core.rpc.requiresReauth
 import net.brightroom.mindstock.frontend.core.ui.ToastController
 import net.brightroom.mindstock.frontend.core.ui.UiText
+import net.brightroom.mindstock.rpc.result.RpcError
 
 class InventoryViewModel(
     private val householdId: HouseholdId,
@@ -76,7 +77,7 @@ class InventoryViewModel(
         }
     }
 
-    private fun handleFailure(error: net.brightroom.mindstock.rpc.result.RpcError) {
+    private fun handleFailure(error: RpcError) {
         if (error.requiresReauth()) {
             reauth.request()
         } else {
