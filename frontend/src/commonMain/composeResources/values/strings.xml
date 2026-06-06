@@ -13,6 +13,14 @@
     <string name="login_title">mindstock にログイン</string>
     <string name="login_button">ログイン</string>
     <string name="error_generic">エラーが発生しました</string>
+    <string name="error_unauthorized">セッションが切れました。再ログインしてください。</string>
+    <string name="error_not_found">対象が見つかりませんでした。</string>
+    <string name="error_bad_request">入力に誤りがあります: %1$s</string>
+    <string name="error_conflict">操作が競合しました: %1$s</string>
+    <string name="error_internal">サーバでエラーが発生しました。</string>
+    <string name="toast_replenished">補充しました</string>
+    <string name="toast_consumed">消費しました</string>
+    <string name="toast_corrected">訂正を記録しました</string>
     <string name="loading">読み込み中…</string>
     <string name="onboarding_placeholder">オンボーディング(P6-3)</string>
     <string name="stock_placeholder">在庫一覧(配線確認用プレースホルダ)</string>

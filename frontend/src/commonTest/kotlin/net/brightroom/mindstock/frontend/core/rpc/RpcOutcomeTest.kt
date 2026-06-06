@@ -23,12 +23,12 @@ class RpcOutcomeTest {
     }
 
     @Test
-    fun userMessage_covers_all_variants() {
-        // when 網羅の回帰: 各 variant が message を返す
-        userMessageOf(RpcError.Unauthorized("x")).shouldBeInstanceOf<String>()
-        userMessageOf(RpcError.NotFound("x")).shouldBeInstanceOf<String>()
-        userMessageOf(RpcError.BadRequest("f", "r")).shouldBeInstanceOf<String>()
-        userMessageOf(RpcError.Conflict("x")).shouldBeInstanceOf<String>()
-        userMessageOf(RpcError.Internal("x")).shouldBeInstanceOf<String>()
+    fun errorText_covers_all_variants() {
+        // when 網羅の回帰: 各 variant が UiText を返す
+        errorText(RpcError.Unauthorized("x")).shouldBeInstanceOf<net.brightroom.mindstock.frontend.core.ui.UiText>()
+        errorText(RpcError.NotFound("x")).shouldBeInstanceOf<net.brightroom.mindstock.frontend.core.ui.UiText>()
+        errorText(RpcError.BadRequest("f", "r")).shouldBeInstanceOf<net.brightroom.mindstock.frontend.core.ui.UiText>()
+        errorText(RpcError.Conflict("x")).shouldBeInstanceOf<net.brightroom.mindstock.frontend.core.ui.UiText>()
+        errorText(RpcError.Internal("x")).shouldBeInstanceOf<net.brightroom.mindstock.frontend.core.ui.UiText>()
     }
 }

@@ -1,6 +1,7 @@
 package net.brightroom.mindstock.frontend.feature.inventory
 
 import net.brightroom.mindstock.domain.model.inventory.stock.Stocks
+import net.brightroom.mindstock.frontend.core.ui.UiText
 
 sealed interface InventoryUiState {
     data object Loading : InventoryUiState
@@ -11,6 +12,6 @@ sealed interface InventoryUiState {
     ) : InventoryUiState
 
     data class Error(
-        val message: String,
+        val text: UiText,
     ) : InventoryUiState
 }

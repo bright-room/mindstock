@@ -7,7 +7,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import net.brightroom.mindstock.domain.model.household.HouseholdId
 import net.brightroom.mindstock.domain.model.inventory.stock.Stocks
 import net.brightroom.mindstock.frontend.core.rpc.RpcOutcome
-import net.brightroom.mindstock.frontend.core.rpc.userMessageOf
+import net.brightroom.mindstock.frontend.core.rpc.errorText
 
 class InventoryViewModel(
     private val householdId: HouseholdId,
@@ -24,7 +24,7 @@ class InventoryViewModel(
         _state.value =
             when (val out = loadStocks(householdId)) {
                 is RpcOutcome.Success -> InventoryUiState.Content(out.value, _view.value)
-                is RpcOutcome.Failure -> InventoryUiState.Error(userMessageOf(out.error))
+                is RpcOutcome.Failure -> InventoryUiState.Error(errorText(out.error))
             }
     }
 

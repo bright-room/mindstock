@@ -18,6 +18,7 @@ import mindstock.frontend.generated.resources.stock_view_grid
 import mindstock.frontend.generated.resources.stock_view_list
 import net.brightroom.mindstock.domain.model.inventory.stock.Stock
 import net.brightroom.mindstock.domain.model.inventory.stock.StockStatus
+import net.brightroom.mindstock.frontend.core.ui.resolve
 import net.brightroom.mindstock.frontend.designsystem.atom.AppText
 import net.brightroom.mindstock.frontend.designsystem.atom.SegOption
 import net.brightroom.mindstock.frontend.designsystem.atom.SegmentedControl
@@ -40,7 +41,7 @@ fun StockHomeScreen(
             }
 
             is InventoryUiState.Error -> {
-                AppText(state.message)
+                AppText(state.text.resolve())
             }
 
             is InventoryUiState.Content -> {
