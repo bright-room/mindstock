@@ -13,6 +13,16 @@ data class MindstockTokens(
     val statusLowSoft: Color,
     val statusOut: Color,
     val statusOutSoft: Color,
+    val accent: Color,
+    val onAccent: Color,
+    val accentSoft: Color,
+    val surface: Color,
+    val surface2: Color,
+    val ink: Color,
+    val sub: Color,
+    val line: Color,
+    val lineSoft: Color,
+    val faint: Color,
     val radiusSm: Dp = 12.dp,
     val radiusMd: Dp = 16.dp,
     val radiusLg: Dp = 22.dp,
@@ -28,6 +38,16 @@ val clayTokens =
         statusLowSoft = Color(0xFFFFECCD), // oklch(0.95 0.045 80)
         statusOut = Color(0xFFC94D42), // oklch(0.585 0.16 28)
         statusOutSoft = Color(0xFFFFE4DD), // oklch(0.945 0.038 32)
+        accent = Color(0xFFC76743),
+        onAccent = Color(0xFFFFFBF4),
+        accentSoft = Color(0xFFFFE3D3),
+        surface = Color(0xFFFFFDFA),
+        surface2 = Color(0xFFFBF7F3),
+        ink = Color(0xFF2B2520),
+        sub = Color(0xFF69625C),
+        line = Color(0xFFE1DDD8),
+        lineSoft = Color(0xFFEAE7E4),
+        faint = Color(0xFFA59C94),
     )
 
 val LocalMindstockTokens = staticCompositionLocalOf { clayTokens }
