@@ -767,6 +767,17 @@ class InventoryViewModelTest {
             val content = v.state.value as InventoryUiState.Content
             content.query shouldBe "xyz"
         }
+
+    @Test
+    fun query_survives_reload_after_write() =
+        runTest {
+            val v = vm()
+            v.load()
+            v.setQuery("milk")
+            v.replenish(ProductId.create(), Quantity(1), Note("")) // 内部で load() 再フェッチ
+            val content = v.state.value as InventoryUiState.Content
+            content.query shouldBe "milk" // クエリが消えない
+        }
 }
 ```
 
@@ -810,14 +821,17 @@ class InventoryViewModel(
     private val _state = MutableStateFlow<InventoryUiState>(InventoryUiState.Loading)
     val state: StateFlow<InventoryUiState> = _state.asStateFlow()
 
+    // view / query は load() の再フェッチ（補充消費後）でも保持するため独立した source of truth に持つ。
     private val _view = MutableStateFlow(StockView.List)
     val view: StateFlow<StockView> = _view.asStateFlow()
+
+    private val _query = MutableStateFlow("")
 
     suspend fun load() {
         _state.value = InventoryUiState.Loading
         _state.value =
             when (val out = loadStocks(householdId)) {
-                is RpcOutcome.Success -> InventoryUiState.Content(out.value, _view.value, currentQuery())
+                is RpcOutcome.Success -> InventoryUiState.Content(out.value, _view.value, _query.value)
                 is RpcOutcome.Failure -> {
                     handleFailure(out.error)
                     InventoryUiState.Error(errorText(out.error))
@@ -832,6 +846,7 @@ class InventoryViewModel(
     }
 
     fun setQuery(query: String) {
+        _query.value = query
         val s = _state.value
         if (s is InventoryUiState.Content) _state.value = s.copy(query = query)
     }
@@ -859,8 +874,6 @@ class InventoryViewModel(
             toast.show(errorText(error))
         }
     }
-
-    private fun currentQuery(): String = (_state.value as? InventoryUiState.Content)?.query ?: ""
 }
 ```
 
@@ -1061,6 +1074,19 @@ git commit -m "feat(frontend): ProductDetailViewModel loads history, correct wit
 - Create: `frontend/src/commonMain/.../designsystem/atom/Toast.kt`
 
 UI atom はコンパイル確認のみ（描画網羅テストは追わない）。Material3 を designsystem に封じ込め（feature は import しない）。
+
+- [ ] **Step 0: AppIconName に Back を追加（詳細画面の戻る用）**
+
+`designsystem/atom/AppIcon.kt` の enum と `vector()` に `Back` を追加:
+
+```kotlin
+// import 追加
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+// enum に Back を追加
+enum class AppIconName { Box, Cart, Plus, Minus, Clock, Home, User, Back }
+// vector() の when に追加
+        AppIconName.Back -> Icons.AutoMirrored.Filled.ArrowBack
+```
 
 - [ ] **Step 1: StockLevelBar に trackColor を追加**
 
@@ -1532,7 +1558,7 @@ fun ProductDetailScreen(
     var correcting by remember { mutableStateOf<StockMovement?>(null) }
     Column(modifier = modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            RoundBtn(AppIconName.Box, contentDescription = "back", onClick = onBack)
+            RoundBtn(AppIconName.Back, contentDescription = "back", onClick = onBack)
             AppText(stock.product.name())
         }
         AppText("${stock.currentQuantity()}${stock.product.setting.unit()}")
@@ -1807,12 +1833,15 @@ fun InventoryRoute(
                     MoveMode.Consume -> homeViewModel.consume(stock.product.id, Quantity(quantity), Note(note))
                 }
             }
+            // 補充/消費後は詳細の Stock が陳腐化する（数量は home の Stocks 由来）。
+            // 安全な既定として home に戻し、再フェッチ済みの最新数量を見せる。
+            selected = null
         },
     )
 }
 ```
 
-> 注: `Quantity(quantity)` は >0 必須。Stepper の min=1 で担保。`Reason(reason)` は非空必須（CorrectionSheet の enabled で担保）。詳細表示中の補充/消費後は home の `load()` が走るが詳細の在庫数も更新したい場合は `detailVm.load()` も呼ぶ（history のみ再取得。在庫数は home の Stocks 由来なので、詳細の Stock を最新化するには selected を更新する設計が必要＝実装時に「補充/消費後に selected を再解決」する。簡易には補充/消費後 `selected = null` で home に戻す方針でもよい。plan レビューで UX 確定）。
+> 注: `Quantity(quantity)` は >0 必須（Stepper の min=1 で担保）。`Reason(reason)` は非空必須（CorrectionSheet の enabled で担保）。詳細から補充/消費した場合は上記のとおり `selected = null` で home に戻す（陳腐化した数量を見せない既定動作）。訂正は history のみの更新なので詳細に留まり `detailVm.load()` で再取得する。
 
 - [ ] **Step 4: コンパイル確認**
 
@@ -1868,6 +1897,15 @@ import net.brightroom.mindstock.rpc.stock.StockRpcService
 import mindstock.frontend.generated.resources.need_household
 ```
 
+**まず deps を変数に引き上げる**（reauth 受け口と AuthViewModel の両方で使う）。`App()` 冒頭の `val vm = remember { AuthViewModel(WebAuthDeps(authClient, rpc, session)) }` を次に変更:
+
+```kotlin
+    val deps = remember { WebAuthDeps(authClient, rpc, session) }
+    val vm = remember { AuthViewModel(deps) }
+```
+
+import 追加: `import net.brightroom.mindstock.frontend.auth.TokenStore`。
+
 App body 要点（`MindstockTheme { ... }` 内）:
 
 ```kotlin
@@ -1876,14 +1914,12 @@ App body 要点（`MindstockTheme { ... }` 内）:
     val sessionState by session.state.collectAsState()
     val toastMessage by toast.current.collectAsState()
 
-    // 再認証受け口（単一）: token 破棄 → WS 閉じ → authorize へ
+    // 再認証受け口（単一）: token 破棄 → WS 閉じ → authorize へ redirect（ページ離脱）
     LaunchedEffect(reauth) {
         reauth.signal.collectLatest {
-            // WebAuthDeps 経由ではなく、App が保持する authClient/rpc/TokenStore を直接操作
-            net.brightroom.mindstock.frontend.auth.TokenStore.clear()
+            TokenStore.clear()
             rpc.close()
-            (vm as? AuthViewModel) // boot 再実行ではなく authorize redirect を行う
-            // redirectToAuthorize は WebAuthDeps にあるため、deps を App で保持して呼ぶ。
+            deps.redirectToAuthorize() // suspend。authorize へ遷移しページ離脱
         }
     }
 
@@ -1949,8 +1985,6 @@ App body 要点（`MindstockTheme { ... }` 内）:
     }
 ```
 
-> **再認証受け口の実装確定（実装者向け）:** `redirectToAuthorize()` は `WebAuthDeps` のメソッド。App で `WebAuthDeps` インスタンスを `remember` して保持し（現状 `WebAuthDeps` は `AuthViewModel` 内に隠れているなら App に引き上げる）、reauth.signal 受信時に `TokenStore.clear()` → `rpc.close()` → `webAuthDeps.redirectToAuthorize()` を `launch` で呼ぶ。`AuthViewModel(WebAuthDeps(...))` の構築を App で deps を変数に出してから渡すよう小修正する。
-
 - [ ] **Step 3: コンパイル確認**
 
 Run: `./gradlew :frontend:compileKotlinWasmJs`
@@ -2014,8 +2048,6 @@ Run: `./gradlew :frontend:wasmJsBrowserDevelopmentRun`
 **未確定（実装レビューで詰める・plan に注記済み）:**
 1. メモ/理由の `TextInput` atom（Task 12 で必要判明 → Task 13 で追加）。
 2. grid 多列 / desktop 列増の具体（Task 14 注記）。
-3. 補充/消費後の詳細画面の在庫数最新化 UX（Task 14 注記。簡易は「home に戻す」）。
-4. 再認証受け口の `WebAuthDeps` 引き上げ（Task 15 注記）。
-5. 履歴行の時刻整形 / 訂正済バッジの導出粒度（Task 13 注記）。
+3. 履歴行の時刻整形 / 訂正済バッジの導出粒度（Task 13 注記）。
 
 これらは UI 細部・実装時に確定できる範囲。ロジック（ViewModel/controller/repository/i18n）は完全に TDD で固定済み。
