@@ -46,4 +46,5 @@
     <string name="stock_add_product">商品を追加</string>
     <string name="stock_search_empty">「%1$s」に一致する在庫はありません</string>
     <string name="move_submit">%1$d%2$s %3$s</string>
+    <string name="feature_coming_soon">準備中です</string>
 </resources>
