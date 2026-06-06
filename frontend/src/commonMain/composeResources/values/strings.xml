@@ -58,4 +58,39 @@
     <string name="summary_ok_sub">いまのところ補充は不要です</string>
     <string name="household_member_count">%1$d 人</string>
     <string name="household_default_name">わたしの家</string>
+    <!-- P6-1b: 買い物リスト -->
+    <string name="shop_subtitle">在庫が少ない商品と、自分で追加した商品</string>
+    <string name="shop_title">買い物リスト</string>
+    <string name="shop_add_from_stock_title">在庫から探して追加</string>
+    <string name="shop_add_from_stock_sub">在庫はあるけど買い足したい商品を選ぶ</string>
+    <string name="shop_progress">あと %1$d 点で買い物完了</string>
+    <string name="shop_progress_count">%1$d/%2$d</string>
+    <string name="shop_section_auto">在庫が少ない</string>
+    <string name="shop_section_manual">自分で追加</string>
+    <string name="shop_manual_badge">自分で追加</string>
+    <string name="shop_stock_qty">在庫 %1$d%2$s</string>
+    <string name="shop_shortage">目安 %1$d%2$s</string>
+    <string name="shop_remove">リストから外す</string>
+    <string name="shop_empty_title">買うものはありません</string>
+    <string name="shop_empty_sub">在庫はぜんぶ足りています。買い足したい物は上から追加できます。</string>
+    <string name="shop_add_search_placeholder">在庫の商品名で検索</string>
+    <string name="shop_add_sheet_title">在庫から追加</string>
+    <string name="shop_add_empty_all">すべての在庫がすでに買い物リストにあります。</string>
+    <string name="shop_add_empty_none">該当する在庫がありません。</string>
+    <string name="shop_add_action">追加</string>
+    <string name="toast_added_to_list">買い物リストに追加しました</string>
+    <string name="toast_removed_from_list">買い物リストから外しました</string>
+    <!-- P6-1b: 活動 -->
+    <string name="activity_subtitle">世帯のすべての記録</string>
+    <string name="activity_title">履歴</string>
+    <string name="activity_empty_title">まだ記録がありません</string>
+    <string name="activity_empty_sub">補充や消費をすると、ここに事実が積み重なります。</string>
+    <string name="activity_day_today">今日</string>
+    <string name="activity_day_yesterday">昨日</string>
+    <string name="activity_day_n_days_ago">%1$d日前</string>
+    <string name="activity_row_summary">%1$s %2$d%3$s · %4$s</string>
+    <!-- P6-1b: 商品詳細 wanted -->
+    <string name="detail_wanted_auto">在庫が少ないため、買い物リストに表示中です</string>
+    <string name="detail_wanted_add">買い物リストに入れる</string>
+    <string name="detail_wanted_remove">買い物リストから外す</string>
 </resources>
