@@ -11,6 +11,9 @@ sealed interface AuthState {
     /** 認証済みだが Resident 未登録。表示名登録 → 世帯作成へ。 */
     data object NeedOnboarding : AuthState
 
+    /** 認証済み・登録済みだが所属世帯ゼロ。世帯作成へ（P6-3 で本実装）。 */
+    data object NeedHousehold : AuthState
+
     /** 失敗。message を表示し再ログイン可能に。 */
     data class Failed(
         val message: String,

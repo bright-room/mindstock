@@ -15,12 +15,14 @@ fun StockLevelBar(
     min: Int,
     color: Color,
     modifier: Modifier = Modifier,
+    trackColor: Color = color.copy(alpha = 0.16f),
 ) {
     val comfortable = max(max(min * 2, min + 3), max(qty, 1))
     val pct = (qty.toFloat() / comfortable).coerceIn(0f, 1f)
     LinearProgressIndicator(
         progress = { pct },
         color = color,
+        trackColor = trackColor,
         modifier = modifier.fillMaxWidth().height(8.dp),
     )
 }

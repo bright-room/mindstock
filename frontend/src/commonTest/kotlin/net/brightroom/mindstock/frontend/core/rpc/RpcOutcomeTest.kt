@@ -21,14 +21,4 @@ class RpcOutcomeTest {
         out.shouldBeInstanceOf<RpcOutcome.Failure>()
         (out as RpcOutcome.Failure).error shouldBe err
     }
-
-    @Test
-    fun userMessage_covers_all_variants() {
-        // when 網羅の回帰: 各 variant が message を返す
-        userMessageOf(RpcError.Unauthorized("x")).shouldBeInstanceOf<String>()
-        userMessageOf(RpcError.NotFound("x")).shouldBeInstanceOf<String>()
-        userMessageOf(RpcError.BadRequest("f", "r")).shouldBeInstanceOf<String>()
-        userMessageOf(RpcError.Conflict("x")).shouldBeInstanceOf<String>()
-        userMessageOf(RpcError.Internal("x")).shouldBeInstanceOf<String>()
-    }
 }

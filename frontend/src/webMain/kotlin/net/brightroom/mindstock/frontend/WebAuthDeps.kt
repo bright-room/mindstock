@@ -1,5 +1,7 @@
 package net.brightroom.mindstock.frontend
 
+import net.brightroom.mindstock.domain.model.household.HouseholdId
+import net.brightroom.mindstock.domain.model.household.Households
 import net.brightroom.mindstock.domain.model.resident.Resident
 import net.brightroom.mindstock.frontend.app.AuthDeps
 import net.brightroom.mindstock.frontend.auth.AuthClient
@@ -12,6 +14,7 @@ import net.brightroom.mindstock.frontend.auth.Tokens
 import net.brightroom.mindstock.frontend.core.auth.BrowserNav
 import net.brightroom.mindstock.frontend.core.rpc.RpcClientProvider
 import net.brightroom.mindstock.frontend.core.session.AppSession
+import net.brightroom.mindstock.rpc.household.HouseholdRpcService
 import net.brightroom.mindstock.rpc.result.RpcResult
 import net.brightroom.mindstock.rpc.session.SessionRpcService
 import net.brightroom.mindstock.rpc.session.SessionStatus
@@ -78,5 +81,18 @@ class WebAuthDeps(
 
     override fun onAuthenticated(resident: Resident) {
         session.setResident(resident.id, resident.profile.displayName)
+    }
+
+    override suspend fun loadHouseholds(): Households =
+        when (val r = rpc.service<HouseholdRpcService>().list()) {
+            is RpcResult.Ok -> r.value
+            is RpcResult.Err -> error("household list failed: ${r.error}")
+        }
+
+    override fun onHouseholdsLoaded(
+        households: Households,
+        active: HouseholdId,
+    ) {
+        session.setHouseholds(households, active)
     }
 }

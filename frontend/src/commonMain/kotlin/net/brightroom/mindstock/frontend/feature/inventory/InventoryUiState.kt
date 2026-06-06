@@ -1,6 +1,7 @@
 package net.brightroom.mindstock.frontend.feature.inventory
 
 import net.brightroom.mindstock.domain.model.inventory.stock.Stocks
+import net.brightroom.mindstock.frontend.core.ui.UiText
 
 sealed interface InventoryUiState {
     data object Loading : InventoryUiState
@@ -8,9 +9,17 @@ sealed interface InventoryUiState {
     data class Content(
         val stocks: Stocks,
         val view: StockView,
-    ) : InventoryUiState
+        val query: String = "",
+    ) : InventoryUiState {
+        /** query で名前 substring 絞り込み（frontend 側フィルタ）。 */
+        fun visibleStocks(): Stocks {
+            val q = query.trim()
+            if (q.isEmpty()) return stocks
+            return Stocks(stocks.list.filter { it.product.name().contains(q, ignoreCase = true) })
+        }
+    }
 
     data class Error(
-        val message: String,
+        val text: UiText,
     ) : InventoryUiState
 }

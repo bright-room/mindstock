@@ -1,29 +1,49 @@
 package net.brightroom.mindstock.frontend
 
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
 import io.ktor.client.HttpClient
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.plugins.websocket.WebSockets
 import io.ktor.serialization.kotlinx.json.json
 import kotlinx.browser.window
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.collectLatest
 import mindstock.frontend.generated.resources.Res
+import mindstock.frontend.generated.resources.feature_coming_soon
 import mindstock.frontend.generated.resources.loading
+import mindstock.frontend.generated.resources.need_household
 import mindstock.frontend.generated.resources.onboarding_placeholder
-import mindstock.frontend.generated.resources.stock_placeholder
 import net.brightroom.mindstock.frontend.app.AuthViewModel
 import net.brightroom.mindstock.frontend.app.shell.AppShell
 import net.brightroom.mindstock.frontend.auth.AuthClient
 import net.brightroom.mindstock.frontend.auth.AuthConfig
+import net.brightroom.mindstock.frontend.auth.TokenStore
 import net.brightroom.mindstock.frontend.core.auth.AuthState
+import net.brightroom.mindstock.frontend.core.auth.ReauthController
 import net.brightroom.mindstock.frontend.core.rpc.RpcClientProvider
 import net.brightroom.mindstock.frontend.core.session.AppSession
+import net.brightroom.mindstock.frontend.core.ui.ToastController
+import net.brightroom.mindstock.frontend.core.ui.UiText
+import net.brightroom.mindstock.frontend.core.ui.resolve
 import net.brightroom.mindstock.frontend.designsystem.atom.AppText
+import net.brightroom.mindstock.frontend.designsystem.atom.Toast
 import net.brightroom.mindstock.frontend.designsystem.theme.MindstockTheme
+import net.brightroom.mindstock.frontend.feature.inventory.InventoryViewModel
+import net.brightroom.mindstock.frontend.feature.inventory.ProductDetailViewModel
+import net.brightroom.mindstock.frontend.feature.inventory.data.InventoryRepository
+import net.brightroom.mindstock.frontend.feature.inventory.ui.InventoryRoute
+import net.brightroom.mindstock.rpc.product.ProductRpcService
+import net.brightroom.mindstock.rpc.stock.StockRegisterRpcService
+import net.brightroom.mindstock.rpc.stock.StockRpcService
 import org.jetbrains.compose.resources.stringResource
 
 @Composable
@@ -45,7 +65,8 @@ fun App() {
                     .replaceFirst("http://", "ws://")
             RpcClientProvider(http, baseUrl = wsBase)
         }
-    val vm = remember { AuthViewModel(WebAuthDeps(authClient, rpc, session)) }
+    val deps = remember { WebAuthDeps(authClient, rpc, session) }
+    val vm = remember { AuthViewModel(deps) }
     val state by vm.state.collectAsState()
 
     DisposableEffect(http) {
@@ -54,11 +75,92 @@ fun App() {
     LaunchedEffect(Unit) { vm.boot() }
 
     MindstockTheme {
-        when (state) {
-            is AuthState.Booting -> AppText(stringResource(Res.string.loading))
-            is AuthState.Failed -> AppText((state as AuthState.Failed).message)
-            is AuthState.NeedOnboarding -> AppText(stringResource(Res.string.onboarding_placeholder))
-            is AuthState.Ready -> AppShell(stockContent = { AppText(stringResource(Res.string.stock_placeholder)) })
+        val toast = remember { ToastController() }
+        val reauth = remember { ReauthController() }
+        val sessionState by session.state.collectAsState()
+        val toastMessage by toast.current.collectAsState()
+
+        // 再認証受け口（単一）: token 破棄 → WS 閉じ → authorize へ redirect（ページ離脱）
+        LaunchedEffect(reauth) {
+            reauth.signal.collectLatest {
+                TokenStore.clear()
+                rpc.close()
+                deps.redirectToAuthorize()
+            }
+        }
+
+        val repository =
+            remember {
+                InventoryRepository(
+                    productService = { rpc.service<ProductRpcService>() },
+                    stockService = { rpc.service<StockRpcService>() },
+                    stockRegisterService = { rpc.service<StockRegisterRpcService>() },
+                )
+            }
+
+        Box(Modifier.fillMaxSize()) {
+            when (state) {
+                is AuthState.Booting -> {
+                    AppText(stringResource(Res.string.loading))
+                }
+
+                is AuthState.Failed -> {
+                    AppText((state as AuthState.Failed).message)
+                }
+
+                is AuthState.NeedOnboarding -> {
+                    AppText(stringResource(Res.string.onboarding_placeholder))
+                }
+
+                is AuthState.NeedHousehold -> {
+                    AppText(stringResource(Res.string.need_household))
+                }
+
+                is AuthState.Ready -> {
+                    val householdId = sessionState.activeHouseholdId
+                    if (householdId == null) {
+                        AppText(stringResource(Res.string.need_household))
+                    } else {
+                        val homeVm =
+                            remember(householdId) {
+                                InventoryViewModel(
+                                    householdId = householdId,
+                                    loadStocks = repository::list,
+                                    replenishStock = repository::replenish,
+                                    consumeStock = repository::consume,
+                                    toast = toast,
+                                    reauth = reauth,
+                                )
+                            }
+                        AppShell(
+                            stockContent = {
+                                InventoryRoute(
+                                    homeViewModel = homeVm,
+                                    detailViewModelFactory = { stock ->
+                                        ProductDetailViewModel(
+                                            productId = stock.product.id,
+                                            loadHistory = repository::history,
+                                            correctMovement = repository::correct,
+                                            toast = toast,
+                                            reauth = reauth,
+                                        )
+                                    },
+                                    onAddProduct = { toast.show(UiText(Res.string.feature_coming_soon)) },
+                                    displayName = sessionState.displayName?.invoke() ?: "",
+                                )
+                            },
+                        )
+                    }
+                }
+            }
+            // トースト全体オーバーレイ
+            Toast(message = toastMessage?.text?.resolve(), modifier = Modifier.align(Alignment.BottomCenter))
+            LaunchedEffect(toastMessage) {
+                if (toastMessage != null) {
+                    delay(2500)
+                    toast.dismiss()
+                }
+            }
         }
     }
 }

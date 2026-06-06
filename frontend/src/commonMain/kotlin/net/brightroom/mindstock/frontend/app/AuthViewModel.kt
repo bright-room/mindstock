@@ -5,6 +5,8 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import net.brightroom.mindstock.domain.model.household.HouseholdId
+import net.brightroom.mindstock.domain.model.household.Households
 import net.brightroom.mindstock.domain.model.resident.Resident
 import net.brightroom.mindstock.frontend.auth.Tokens
 import net.brightroom.mindstock.frontend.core.auth.AuthState
@@ -31,6 +33,15 @@ interface AuthDeps {
 
     /** 取得済み Resident をセッションに反映。 */
     fun onAuthenticated(resident: Resident)
+
+    /** 所属世帯一覧をロード（whoami=Registered 後）。失敗時 throw。 */
+    suspend fun loadHouseholds(): Households
+
+    /** ロードした世帯と先頭アクティブをセッションに反映。 */
+    fun onHouseholdsLoaded(
+        households: Households,
+        active: HouseholdId,
+    )
 }
 
 class AuthViewModel(
@@ -55,7 +66,14 @@ class AuthViewModel(
             when (val status = deps.fetchSessionStatus(token)) {
                 is SessionStatus.Registered -> {
                     deps.onAuthenticated(status.resident)
-                    _state.value = AuthState.Ready
+                    val households = deps.loadHouseholds()
+                    val first = households.list.firstOrNull()
+                    if (first == null) {
+                        _state.value = AuthState.NeedHousehold
+                    } else {
+                        deps.onHouseholdsLoaded(households, first.id)
+                        _state.value = AuthState.Ready
+                    }
                 }
 
                 is SessionStatus.Unregistered -> {
