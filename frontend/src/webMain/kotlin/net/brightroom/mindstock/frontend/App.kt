@@ -310,12 +310,16 @@ fun App() {
                         LaunchedEffect(householdId) { settingsSheet = null }
                         AppShell(
                             stockContent = {
+                                val activeHousehold =
+                                    sessionState.households?.list?.firstOrNull { it.id == householdId }
                                 InventoryRoute(
                                     homeViewModel = homeVm,
                                     refresh = refresh,
                                     onOpenProduct = { pid, seed -> opened = DetailTarget(pid, seed) },
                                     onAddProduct = { catalogOverlay = CatalogOverlay.AddProduct },
                                     displayName = sessionState.displayName?.invoke() ?: "",
+                                    householdName = activeHousehold?.profile?.name?.invoke() ?: "",
+                                    memberCount = activeHousehold?.members?.size() ?: 1,
                                 )
                             },
                             shopContent = {

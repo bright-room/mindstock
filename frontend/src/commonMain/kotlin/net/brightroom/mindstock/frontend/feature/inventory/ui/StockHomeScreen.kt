@@ -18,7 +18,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import mindstock.frontend.generated.resources.Res
-import mindstock.frontend.generated.resources.household_default_name
 import mindstock.frontend.generated.resources.loading
 import mindstock.frontend.generated.resources.stock_add_product
 import mindstock.frontend.generated.resources.stock_count_all
@@ -50,6 +49,8 @@ import org.jetbrains.compose.resources.stringResource
 fun StockHomeScreen(
     state: InventoryUiState,
     displayName: String = "",
+    householdName: String = "",
+    memberCount: Int = 1,
     onSelectView: (StockView) -> Unit,
     onQueryChange: (String) -> Unit,
     onOpen: (Stock) -> Unit,
@@ -78,10 +79,9 @@ fun StockHomeScreen(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    // 世帯名/人数は P6-1b で session から渡す。本パスは既定文言で表示のみ。
                     HouseholdPill(
-                        name = stringResource(Res.string.household_default_name),
-                        memberCount = 1,
+                        name = householdName,
+                        memberCount = memberCount,
                         onClick = {},
                     )
                     RoundBtn(icon = AppIconName.Bell, contentDescription = "notifications", onClick = {})

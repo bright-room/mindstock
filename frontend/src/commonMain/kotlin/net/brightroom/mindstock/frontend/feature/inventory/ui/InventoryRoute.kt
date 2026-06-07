@@ -28,6 +28,8 @@ fun InventoryRoute(
     onOpenProduct: (ProductId, Stock?) -> Unit,
     onAddProduct: () -> Unit,
     displayName: String = "",
+    householdName: String = "",
+    memberCount: Int = 1,
     modifier: Modifier = Modifier,
 ) {
     val scope = rememberCoroutineScope()
@@ -40,6 +42,8 @@ fun InventoryRoute(
     StockHomeScreen(
         state = state,
         displayName = displayName,
+        householdName = householdName,
+        memberCount = memberCount,
         onSelectView = { homeViewModel.setView(it) },
         onQueryChange = { homeViewModel.setQuery(it) },
         onOpen = { stock -> onOpenProduct(stock.product.id, stock) },
