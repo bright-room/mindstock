@@ -265,8 +265,6 @@
     <string name="invite_title">家族を招待</string>
     <string name="invite_desc">「%1$s」に招待して、在庫を一緒に管理しましょう。コードを送るだけです。</string>
     <string name="invite_role_label">参加したときの権限</string>
-    <string name="invite_role_member">編集できる</string>
-    <string name="invite_role_viewer">閲覧のみ</string>
     <string name="invite_none">まだ招待コードがありません</string>
     <string name="invite_issue">招待コードを発行</string>
     <string name="invite_reissue">新しいコード</string>

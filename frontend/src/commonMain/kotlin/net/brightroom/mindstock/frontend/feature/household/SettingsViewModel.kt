@@ -12,6 +12,11 @@ import mindstock.frontend.generated.resources.Res
 import mindstock.frontend.generated.resources.settings_error_last_owner_change_role
 import mindstock.frontend.generated.resources.settings_error_last_owner_leave
 import mindstock.frontend.generated.resources.settings_error_last_owner_remove
+import mindstock.frontend.generated.resources.settings_toast_invite_issued
+import mindstock.frontend.generated.resources.settings_toast_invite_revoked
+import mindstock.frontend.generated.resources.settings_toast_left
+import mindstock.frontend.generated.resources.settings_toast_member_removed
+import mindstock.frontend.generated.resources.settings_toast_renamed
 import net.brightroom.mindstock.domain.model.household.HouseholdId
 import net.brightroom.mindstock.domain.model.household.HouseholdName
 import net.brightroom.mindstock.domain.model.household.invitation.Invitation
@@ -94,15 +99,21 @@ class SettingsViewModel(
     suspend fun renameDisplayName(name: DisplayName) {
         submitting {
             when (val r = renameDisplayNameRpc(name)) {
-                is RpcOutcome.Success -> flow.applyDisplayName(name)
-                is RpcOutcome.Failure -> failWith(r.error, null)
+                is RpcOutcome.Success -> {
+                    flow.applyDisplayName(name)
+                    toast.show(UiText(Res.string.settings_toast_renamed))
+                }
+
+                is RpcOutcome.Failure -> {
+                    failWith(r.error, null)
+                }
             }
         }
     }
 
     suspend fun renameHousehold(name: HouseholdName) {
         val id = activeId() ?: return
-        submitting { runRefreshing(renameHouseholdRpc(id, name), null) }
+        submitting { runRefreshing(renameHouseholdRpc(id, name), null, Res.string.settings_toast_renamed) }
     }
 
     suspend fun changeRole(
@@ -110,20 +121,38 @@ class SettingsViewModel(
         role: HouseholdMemberRole,
     ) {
         val id = activeId() ?: return
-        submitting { runRefreshing(changeRoleRpc(id, target, role), Res.string.settings_error_last_owner_change_role) }
+        submitting {
+            runRefreshing(
+                changeRoleRpc(id, target, role),
+                Res.string.settings_error_last_owner_change_role,
+                Res.string.settings_toast_renamed,
+            )
+        }
     }
 
     suspend fun removeMember(target: ResidentId) {
         val id = activeId() ?: return
-        submitting { runRefreshing(removeMemberRpc(id, target), Res.string.settings_error_last_owner_remove) }
+        submitting {
+            runRefreshing(
+                removeMemberRpc(id, target),
+                Res.string.settings_error_last_owner_remove,
+                Res.string.settings_toast_member_removed,
+            )
+        }
     }
 
     suspend fun leave() {
         val id = activeId() ?: return
         submitting {
             when (val r = leaveRpc(id)) {
-                is RpcOutcome.Success -> safe { flow.leaveActiveHousehold() }
-                is RpcOutcome.Failure -> failWith(r.error, Res.string.settings_error_last_owner_leave)
+                is RpcOutcome.Success -> {
+                    safe { flow.leaveActiveHousehold() }
+                    toast.show(UiText(Res.string.settings_toast_left))
+                }
+
+                is RpcOutcome.Failure -> {
+                    failWith(r.error, Res.string.settings_error_last_owner_leave)
+                }
             }
         }
     }
@@ -132,8 +161,14 @@ class SettingsViewModel(
         val id = activeId() ?: return
         submitting {
             when (val r = createInviteRpc(id, role)) {
-                is RpcOutcome.Success -> local.value = local.value.copy(issuedInvite = r.value)
-                is RpcOutcome.Failure -> failWith(r.error, null)
+                is RpcOutcome.Success -> {
+                    local.value = local.value.copy(issuedInvite = r.value)
+                    toast.show(UiText(Res.string.settings_toast_invite_issued))
+                }
+
+                is RpcOutcome.Failure -> {
+                    failWith(r.error, null)
+                }
             }
         }
     }
@@ -142,8 +177,14 @@ class SettingsViewModel(
         val invite = local.value.issuedInvite ?: return
         submitting {
             when (val r = revokeInviteRpc(invite.code)) {
-                is RpcOutcome.Success -> local.value = local.value.copy(issuedInvite = null)
-                is RpcOutcome.Failure -> failWith(r.error, null)
+                is RpcOutcome.Success -> {
+                    local.value = local.value.copy(issuedInvite = null)
+                    toast.show(UiText(Res.string.settings_toast_invite_revoked))
+                }
+
+                is RpcOutcome.Failure -> {
+                    failWith(r.error, null)
+                }
             }
         }
     }
@@ -155,10 +196,17 @@ class SettingsViewModel(
     private suspend fun runRefreshing(
         outcome: RpcOutcome<Unit>,
         lastOwner: StringResource?,
+        successRes: StringResource,
     ) {
         when (outcome) {
-            is RpcOutcome.Success -> safe { flow.refreshHouseholds() }
-            is RpcOutcome.Failure -> failWith(outcome.error, lastOwner)
+            is RpcOutcome.Success -> {
+                safe { flow.refreshHouseholds() }
+                toast.show(UiText(successRes))
+            }
+
+            is RpcOutcome.Failure -> {
+                failWith(outcome.error, lastOwner)
+            }
         }
     }
 

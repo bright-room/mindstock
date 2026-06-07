@@ -11,6 +11,8 @@ import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import mindstock.frontend.generated.resources.Res
 import mindstock.frontend.generated.resources.settings_error_last_owner_leave
+import mindstock.frontend.generated.resources.settings_toast_invite_issued
+import mindstock.frontend.generated.resources.settings_toast_member_removed
 import net.brightroom.mindstock.domain.model.household.Household
 import net.brightroom.mindstock.domain.model.household.HouseholdId
 import net.brightroom.mindstock.domain.model.household.HouseholdName
@@ -237,6 +239,28 @@ class SettingsViewModelTest {
             v.createInvite(HouseholdMemberRole.メンバー)
             v.state.value.issuedInvite
                 .shouldNotBeNull()
+        }
+
+    @Test
+    fun removeMember_success_shows_toast() =
+        runTest {
+            val toast = ToastController()
+            val v = vm(toast = toast)
+            v.removeMember(otherId)
+            toast.current.value
+                ?.text
+                ?.resource shouldBe Res.string.settings_toast_member_removed
+        }
+
+    @Test
+    fun createInvite_success_shows_toast() =
+        runTest {
+            val toast = ToastController()
+            val v = vm(toast = toast)
+            v.createInvite(HouseholdMemberRole.メンバー)
+            toast.current.value
+                ?.text
+                ?.resource shouldBe Res.string.settings_toast_invite_issued
         }
 
     @Test
