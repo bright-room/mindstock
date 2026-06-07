@@ -79,9 +79,21 @@
 - [done] WideShell サイドバー / BottomNav 浮遊ピル / 在庫ヘッダの desktop ピル・ベル非表示。render 確認済。
 - [要render] サイドバーの各行 padding/active 配色/フッタ、ボトムナビの blur 近似の質感。
 
-## バックエンド要（別 PR・承認済 occurredAt）
+## バックエンド要（全 4 件 実装決定・各 spec→plan→別 PR、2026-06-08 ユーザ確定）
 
-- `occurredAt` クライアント指定: RPC(replenish/consume)→Service→domain(Stock)→datasource 横断 + frontend(MoveSheet 日時ピッカー・履歴の実日時)。専用 spec→plan で実装。
+全 RPC 面と突合した結果、mock 機能のうち backend 不足でフロントに反映できないのは以下 4 件のみ。**全て「実装する」で確定**（後出し禁止）。
+
+1. **occurredAt の設定（バックデート）**: `replenish/consume/correct` のサーバ時刻固定を解除。RPC→Service→domain(`Stock`)→datasource 横断 + frontend(MoveSheet 日時ピッカー・履歴の実日時)。過去の「occurredAt サーバ確定」決定を覆す（spec/ルール更新）。
+2. **商品画像（撮影/選択・表示）**: アップロード→ImageRef 生成 と ImageRef→配信 の基盤を作る（`changeImage` RPC は既存）。frontend は Thumb 画像表示化 + 設定 UI。
+3. **消費予測「あと約X日」/予測バナー**: domain に消費履歴からのレート推定を実装。在庫ホームのトレンドバナー・shopping もこれ依存。
+4. **通知（ベル/お知らせ/Web Push）**: 通知スキーマ+生成+Web Push。ベル・NotifSheet を実配線。
+
+詳細・working agreement・忠実度指標はメモリ `p6-4b-fidelity-program` 参照。
+
+## backend gap でない（frontend で私が直す手抜き）
+
+- アバターの利用者別カラー（mock=USERS 別色 / 実装=accent 単色）→ id から導出して色分け。`[now]`
+- 設定アイコン sliders（mock）vs 歯車（実装）等のアイコン差。`[now]`
 
 ## 優先順位（fix 順）
 
