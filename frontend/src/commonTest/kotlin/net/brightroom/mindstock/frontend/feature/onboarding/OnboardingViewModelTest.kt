@@ -37,6 +37,14 @@ private class FakeAuthFlow : AuthFlow {
     override fun needHousehold() {
         needHouseholdCalled = true
     }
+
+    override fun switchActiveHousehold(id: HouseholdId) {}
+
+    override suspend fun refreshHouseholds() {}
+
+    override fun applyDisplayName(name: DisplayName) {}
+
+    override suspend fun leaveActiveHousehold() {}
 }
 
 private fun resident() = Resident(ResidentId.create(), ResidentProfile(DisplayName("たろう")))

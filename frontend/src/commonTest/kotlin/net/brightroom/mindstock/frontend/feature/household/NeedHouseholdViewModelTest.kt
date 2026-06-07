@@ -12,6 +12,7 @@ import net.brightroom.mindstock.domain.model.household.invitation.InvitationCode
 import net.brightroom.mindstock.domain.model.household.member.HouseholdMemberRole
 import net.brightroom.mindstock.domain.model.household.member.Members
 import net.brightroom.mindstock.domain.model.resident.Resident
+import net.brightroom.mindstock.domain.model.resident.profile.DisplayName
 import net.brightroom.mindstock.frontend.app.AuthFlow
 import net.brightroom.mindstock.frontend.core.auth.ReauthController
 import net.brightroom.mindstock.frontend.core.rpc.RpcOutcome
@@ -30,6 +31,14 @@ private class FakeAuthFlow : AuthFlow {
     }
 
     override fun needHousehold() {}
+
+    override fun switchActiveHousehold(id: HouseholdId) {}
+
+    override suspend fun refreshHouseholds() {}
+
+    override fun applyDisplayName(name: DisplayName) {}
+
+    override suspend fun leaveActiveHousehold() {}
 }
 
 private fun household() = Household(HouseholdId.create(), Profile(HouseholdName("家")), Members(emptyList()))
