@@ -143,5 +143,6 @@ class AuthViewModelSwitchTest {
             vm.refreshHouseholds()
             deps.active shouldBe id
             deps.households shouldBe Households(listOf(renamed))
+            deps.persisted shouldBe emptyList()
         }
 }

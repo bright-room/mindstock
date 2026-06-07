@@ -141,7 +141,9 @@ class AuthViewModel(
 
     override suspend fun refreshHouseholds() {
         val households = deps.loadHouseholds()
-        val active = deps.currentActiveHousehold() ?: households.list.firstOrNull()?.id
+        val active =
+            households.list.firstOrNull { it.id == deps.currentActiveHousehold() }?.id
+                ?: households.list.firstOrNull()?.id
         if (active == null) {
             deps.onHouseholdsCleared(households)
             _state.value = AuthState.NeedHousehold
