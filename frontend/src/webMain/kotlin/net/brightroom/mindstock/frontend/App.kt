@@ -318,10 +318,16 @@ fun App() {
                         // 世帯作成/参加 or 切替が成立して active が変わったら、開いていたシートを閉じる。
                         LaunchedEffect(householdId) { settingsSheet = null }
                         var selectedTab by remember { mutableStateOf(Tab.Stock) }
+                        val shellHousehold =
+                            sessionState.households?.list?.firstOrNull { it.id == householdId }
                         AppShell(
                             selectedTab = selectedTab,
                             onSelectTab = { selectedTab = it },
                             onAdd = { catalogOverlay = CatalogOverlay.AddProduct },
+                            onOpenSwitcher = { settingsSheet = SettingsSheet.Switcher },
+                            onBell = {},
+                            displayName = sessionState.displayName?.invoke() ?: "",
+                            householdName = shellHousehold?.profile?.name?.invoke() ?: "",
                             stockContent = {
                                 val activeHousehold =
                                     sessionState.households?.list?.firstOrNull { it.id == householdId }
