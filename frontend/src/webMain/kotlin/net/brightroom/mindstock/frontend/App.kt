@@ -329,16 +329,14 @@ fun App() {
                             displayName = sessionState.displayName?.invoke() ?: "",
                             householdName = shellHousehold?.profile?.name?.invoke() ?: "",
                             stockContent = {
-                                val activeHousehold =
-                                    sessionState.households?.list?.firstOrNull { it.id == householdId }
                                 InventoryRoute(
                                     homeViewModel = homeVm,
                                     refresh = refresh,
                                     onOpenProduct = { pid, seed -> opened = DetailTarget(pid, seed) },
                                     onAddProduct = { catalogOverlay = CatalogOverlay.AddProduct },
                                     displayName = sessionState.displayName?.invoke() ?: "",
-                                    householdName = activeHousehold?.profile?.name?.invoke() ?: "",
-                                    memberCount = activeHousehold?.members?.size() ?: 1,
+                                    householdName = shellHousehold?.profile?.name?.invoke() ?: "",
+                                    memberCount = shellHousehold?.members?.size() ?: 1,
                                     onShop = { selectedTab = Tab.Shop },
                                     onOpenSettings = { selectedTab = Tab.Profile },
                                 )
