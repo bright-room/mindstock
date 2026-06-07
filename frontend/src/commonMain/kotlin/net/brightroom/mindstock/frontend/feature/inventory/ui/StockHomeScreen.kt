@@ -27,8 +27,6 @@ import mindstock.frontend.generated.resources.stock_search_count
 import mindstock.frontend.generated.resources.stock_search_empty
 import mindstock.frontend.generated.resources.stock_search_placeholder
 import mindstock.frontend.generated.resources.stock_title
-import mindstock.frontend.generated.resources.stock_view_grid
-import mindstock.frontend.generated.resources.stock_view_list
 import net.brightroom.mindstock.domain.model.inventory.stock.Stock
 import net.brightroom.mindstock.frontend.core.ui.resolve
 import net.brightroom.mindstock.frontend.designsystem.atom.AddTile
@@ -166,7 +164,7 @@ private fun StockHeader(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 HouseholdPill(name = householdName, memberCount = memberCount, onClick = onOpenSettings)
-                NavIconButton(icon = AppIconName.Bell, contentDescription = "notifications", onClick = {})
+                NavIconButton(icon = AppIconName.Bell, contentDescription = "notifications", onClick = {}, badge = true)
             }
         }
 
@@ -204,12 +202,12 @@ private fun StockHeader(
             SegmentedControl(
                 options =
                     listOf(
-                        SegOption(StockView.List.name, stringResource(Res.string.stock_view_list)),
-                        SegOption(StockView.Grid.name, stringResource(Res.string.stock_view_grid)),
+                        SegOption(StockView.Grid.name, "", AppIconName.Grid),
+                        SegOption(StockView.List.name, "", AppIconName.ListView),
                     ),
                 selectedKey = state.view.name,
                 onSelect = { onSelectView(StockView.valueOf(it)) },
-                modifier = Modifier.width(120.dp),
+                modifier = Modifier.width(96.dp),
             )
         }
     }
