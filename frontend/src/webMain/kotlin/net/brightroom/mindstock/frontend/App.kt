@@ -32,6 +32,7 @@ import net.brightroom.mindstock.frontend.app.isOwner
 import net.brightroom.mindstock.frontend.app.settings.SettingsScreen
 import net.brightroom.mindstock.frontend.app.shell.AppShell
 import net.brightroom.mindstock.frontend.app.shell.Tab
+import net.brightroom.mindstock.frontend.app.welcome.WelcomeScreen
 import net.brightroom.mindstock.frontend.auth.AuthClient
 import net.brightroom.mindstock.frontend.auth.AuthConfig
 import net.brightroom.mindstock.frontend.auth.TokenStore
@@ -161,6 +162,13 @@ fun App() {
             when (state) {
                 is AuthState.Booting -> {
                     AppText(stringResource(Res.string.loading))
+                }
+
+                is AuthState.Unauthenticated -> {
+                    WelcomeScreen(
+                        onSignIn = { scope.launch { deps.redirectToAuthorize() } },
+                        modifier = Modifier.fillMaxSize(),
+                    )
                 }
 
                 is AuthState.Failed -> {
