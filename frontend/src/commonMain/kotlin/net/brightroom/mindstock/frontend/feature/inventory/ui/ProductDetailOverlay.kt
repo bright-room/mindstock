@@ -33,6 +33,7 @@ fun ProductDetailOverlay(
     viewModelFactory: (DetailTarget) -> ProductDetailViewModel,
     refresh: InventoryRefreshController,
     onBack: () -> Unit,
+    onOpenSettings: (() -> Unit)? = null,
     modifier: Modifier = Modifier,
 ) {
     val scope = rememberCoroutineScope()
@@ -54,6 +55,7 @@ fun ProductDetailOverlay(
             scope.launch { vm.correct(mid, Quantity(qty), Reason(reason)) }
         },
         onToggleWanted = { wanted -> scope.launch { vm.setWanted(target.productId, wanted) } },
+        onOpenSettings = onOpenSettings,
         modifier = modifier.fillMaxSize(),
     )
 
