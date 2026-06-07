@@ -531,7 +531,7 @@ fun App() {
                             }
 
                             is CatalogOverlay.Settings -> {
-                                val settingsVm =
+                                val productSettingsVm =
                                     remember(householdId) {
                                         ProductMasterViewModel(
                                             householdId = householdId,
@@ -549,13 +549,13 @@ fun App() {
                                     stock = ov.stock,
                                     onClose = { catalogOverlay = null },
                                     onChangeUnit = { u ->
-                                        scope.launch { settingsVm.changeUnit(ov.stock.product.id, u) }
+                                        scope.launch { productSettingsVm.changeUnit(ov.stock.product.id, u) }
                                     },
                                     onChangeMinimum = { m ->
-                                        scope.launch { settingsVm.changeMinimum(ov.stock.product.id, m) }
+                                        scope.launch { productSettingsVm.changeMinimum(ov.stock.product.id, m) }
                                     },
                                     onArchive = {
-                                        scope.launch { settingsVm.archive(ov.stock.product.id) }
+                                        scope.launch { productSettingsVm.archive(ov.stock.product.id) }
                                         catalogOverlay = null
                                     },
                                 )
