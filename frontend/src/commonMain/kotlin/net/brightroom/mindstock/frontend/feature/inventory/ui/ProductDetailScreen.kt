@@ -1,5 +1,6 @@
 package net.brightroom.mindstock.frontend.feature.inventory.ui
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -71,8 +72,12 @@ fun ProductDetailScreen(
     // ヘッダの Stock: Content があればそれ、無ければ seed
     val stock: Stock? = (detail as? ProductDetailUiState.Content)?.stock ?: seed
     val wanted: Boolean? = (detail as? ProductDetailUiState.Content)?.wanted
+    val tokens = LocalMindstockTokens.current
 
-    Column(modifier = modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+    Column(
+        modifier = modifier.fillMaxSize().background(tokens.surface).padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
         if (stock == null) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 RoundBtn(AppIconName.Back, contentDescription = "back", onClick = onBack)
@@ -81,7 +86,6 @@ fun ProductDetailScreen(
             return@Column
         }
 
-        val tokens = LocalMindstockTokens.current
         val statusColor =
             when (stock.status()) {
                 StockStatus.在庫切れ -> tokens.statusOut
