@@ -8,6 +8,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import net.brightroom.mindstock.domain.model.household.HouseholdId
 import net.brightroom.mindstock.domain.model.household.Households
 import net.brightroom.mindstock.domain.model.resident.Resident
+import net.brightroom.mindstock.domain.model.resident.profile.DisplayName
 import net.brightroom.mindstock.frontend.auth.Tokens
 import net.brightroom.mindstock.frontend.core.auth.AuthState
 import net.brightroom.mindstock.rpc.session.SessionStatus
@@ -51,6 +52,18 @@ interface AuthDeps {
 
     /** 永続化済みアクティブ世帯。無ければ null。 */
     fun savedActiveHousehold(): HouseholdId?
+
+    /** アクティブ世帯のみ session 反映(切替用・一覧は変えない)。 */
+    fun setActiveHousehold(id: HouseholdId)
+
+    /** 表示名のみ session 反映。 */
+    fun setDisplayName(name: DisplayName)
+
+    /** 現在のアクティブ世帯。無ければ null。 */
+    fun currentActiveHousehold(): HouseholdId?
+
+    /** 世帯ゼロを session 反映(active=null)。退出で全世帯を失った時に使う。 */
+    fun onHouseholdsCleared(households: Households)
 }
 
 class AuthViewModel(
@@ -119,5 +132,42 @@ class AuthViewModel(
 
     override fun needHousehold() {
         _state.value = AuthState.NeedHousehold
+    }
+
+    override fun switchActiveHousehold(id: HouseholdId) {
+        deps.setActiveHousehold(id)
+        deps.persistActiveHousehold(id)
+    }
+
+    override suspend fun refreshHouseholds() {
+        val households = deps.loadHouseholds()
+        val active =
+            households.list.firstOrNull { it.id == deps.currentActiveHousehold() }?.id
+                ?: households.list.firstOrNull()?.id
+        if (active == null) {
+            deps.onHouseholdsCleared(households)
+            _state.value = AuthState.NeedHousehold
+        } else {
+            deps.onHouseholdsLoaded(households, active)
+        }
+    }
+
+    override fun applyDisplayName(name: DisplayName) {
+        deps.setDisplayName(name)
+    }
+
+    override suspend fun leaveActiveHousehold() {
+        val households = deps.loadHouseholds()
+        val current = deps.currentActiveHousehold()
+        val active =
+            households.list.firstOrNull { it.id == current }?.id
+                ?: households.list.firstOrNull()?.id
+        if (active == null) {
+            deps.onHouseholdsCleared(households)
+            _state.value = AuthState.NeedHousehold
+        } else {
+            deps.onHouseholdsLoaded(households, active)
+            deps.persistActiveHousehold(active)
+        }
     }
 }

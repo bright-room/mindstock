@@ -80,6 +80,20 @@ private class FakeAuthDeps(
     }
 
     override fun savedActiveHousehold(): HouseholdId? = savedActive
+
+    override fun setActiveHousehold(id: HouseholdId) {
+        // no-op for boot tests
+    }
+
+    override fun setDisplayName(name: DisplayName) {
+        // no-op for boot tests
+    }
+
+    override fun currentActiveHousehold(): HouseholdId? = savedActive
+
+    override fun onHouseholdsCleared(households: Households) {
+        // no-op for boot tests
+    }
 }
 
 class AuthViewModelTest {

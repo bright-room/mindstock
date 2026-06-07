@@ -12,6 +12,8 @@ import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material.icons.outlined.AccessTime
 import androidx.compose.material.icons.outlined.Archive
 import androidx.compose.material.icons.outlined.Check
+import androidx.compose.material.icons.outlined.ContentCopy
+import androidx.compose.material.icons.outlined.DeleteOutline
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.Group
 import androidx.compose.material.icons.outlined.Home
@@ -20,9 +22,12 @@ import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material.icons.outlined.QrCode
 import androidx.compose.material.icons.outlined.Search
+import androidx.compose.material.icons.outlined.SwapHoriz
 import androidx.compose.material.icons.outlined.TrendingUp
 import androidx.compose.material.icons.outlined.Tune
 import androidx.compose.material.icons.outlined.Unarchive
+import androidx.compose.material.icons.outlined.Visibility
+import androidx.compose.material.icons.outlined.WorkspacePremium
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.runtime.Composable
@@ -62,6 +67,11 @@ enum class AppIconName {
     Check,
     Link,
     Users,
+    Crown,
+    Swap,
+    Copy,
+    Eye,
+    Trash,
 }
 
 private fun AppIconName.vector(): ImageVector =
@@ -94,6 +104,11 @@ private fun AppIconName.vector(): ImageVector =
         AppIconName.Check -> Icons.Outlined.Check
         AppIconName.Link -> Icons.Outlined.Link
         AppIconName.Users -> Icons.Outlined.Group
+        AppIconName.Crown -> Icons.Outlined.WorkspacePremium
+        AppIconName.Swap -> Icons.Outlined.SwapHoriz
+        AppIconName.Copy -> Icons.Outlined.ContentCopy
+        AppIconName.Eye -> Icons.Outlined.Visibility
+        AppIconName.Trash -> Icons.Outlined.DeleteOutline
     }
 
 @Composable

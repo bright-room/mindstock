@@ -12,4 +12,6 @@ class ResidentRepository(
 ) {
     suspend fun register(displayName: DisplayName): RpcOutcome<Resident> =
         residentRegisterService().registerDisplayName(displayName).toOutcome()
+
+    suspend fun rename(displayName: DisplayName): RpcOutcome<Unit> = residentRegisterService().rename(displayName).toOutcome()
 }

@@ -5,6 +5,7 @@ package net.brightroom.mindstock.frontend
 import net.brightroom.mindstock.domain.model.household.HouseholdId
 import net.brightroom.mindstock.domain.model.household.Households
 import net.brightroom.mindstock.domain.model.resident.Resident
+import net.brightroom.mindstock.domain.model.resident.profile.DisplayName
 import net.brightroom.mindstock.frontend.app.AuthDeps
 import net.brightroom.mindstock.frontend.auth.AuthClient
 import net.brightroom.mindstock.frontend.auth.AuthConfig
@@ -114,5 +115,19 @@ class WebAuthDeps(
     override fun savedActiveHousehold(): HouseholdId? {
         val raw = PreferenceStore.get(ACTIVE_HOUSEHOLD_KEY) ?: return null
         return runCatching { HouseholdId(Uuid.parse(raw)) }.getOrNull()
+    }
+
+    override fun setActiveHousehold(id: HouseholdId) {
+        session.setActiveHousehold(id)
+    }
+
+    override fun setDisplayName(name: DisplayName) {
+        session.setDisplayName(name)
+    }
+
+    override fun currentActiveHousehold(): HouseholdId? = session.state.value.activeHouseholdId
+
+    override fun onHouseholdsCleared(households: Households) {
+        session.setHouseholds(households, null)
     }
 }

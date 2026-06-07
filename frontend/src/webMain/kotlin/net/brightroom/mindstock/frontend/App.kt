@@ -29,7 +29,7 @@ import net.brightroom.mindstock.domain.model.inventory.stock.Stock
 import net.brightroom.mindstock.domain.model.inventory.stock.movement.Note
 import net.brightroom.mindstock.frontend.app.AuthViewModel
 import net.brightroom.mindstock.frontend.app.isOwner
-import net.brightroom.mindstock.frontend.app.profile.ProfileScreen
+import net.brightroom.mindstock.frontend.app.settings.SettingsScreen
 import net.brightroom.mindstock.frontend.app.shell.AppShell
 import net.brightroom.mindstock.frontend.auth.AuthClient
 import net.brightroom.mindstock.frontend.auth.AuthConfig
@@ -57,8 +57,10 @@ import net.brightroom.mindstock.frontend.feature.catalog.ui.CatalogOverlay
 import net.brightroom.mindstock.frontend.feature.catalog.ui.ProductMasterScreen
 import net.brightroom.mindstock.frontend.feature.catalog.ui.ProductSettingsSheet
 import net.brightroom.mindstock.frontend.feature.household.NeedHouseholdViewModel
+import net.brightroom.mindstock.frontend.feature.household.SettingsViewModel
 import net.brightroom.mindstock.frontend.feature.household.data.HouseholdRepository
 import net.brightroom.mindstock.frontend.feature.household.ui.CreateHouseholdSheet
+import net.brightroom.mindstock.frontend.feature.household.ui.HouseholdSwitcher
 import net.brightroom.mindstock.frontend.feature.household.ui.JoinCodeSheet
 import net.brightroom.mindstock.frontend.feature.household.ui.NeedHouseholdScreen
 import net.brightroom.mindstock.frontend.feature.inventory.InventoryViewModel
@@ -275,6 +277,37 @@ fun App() {
                                     reauth = reauth,
                                 )
                             }
+                        val settingsVm =
+                            remember(householdId, sessionState.residentId) {
+                                SettingsViewModel(
+                                    session = session,
+                                    renameDisplayNameRpc = residentRepository::rename,
+                                    renameHouseholdRpc = householdRepository::rename,
+                                    changeRoleRpc = householdRepository::changeRole,
+                                    removeMemberRpc = householdRepository::removeMember,
+                                    leaveRpc = householdRepository::leave,
+                                    createInviteRpc = householdRepository::createInvite,
+                                    revokeInviteRpc = householdRepository::revokeInvite,
+                                    flow = vm,
+                                    toast = toast,
+                                    reauth = reauth,
+                                )
+                            }
+                        var settingsSheet by remember { mutableStateOf<SettingsSheet?>(null) }
+                        val settingsHhVm =
+                            remember(householdId) {
+                                NeedHouseholdViewModel(
+                                    createHousehold = householdRepository::create,
+                                    previewInvite = householdRepository::previewInvite,
+                                    joinByCode = householdRepository::join,
+                                    flow = vm,
+                                    toast = toast,
+                                    reauth = reauth,
+                                )
+                            }
+                        val settingsHhState by settingsHhVm.state.collectAsState()
+                        // 世帯作成/参加 or 切替が成立して active が変わったら、開いていたシートを閉じる。
+                        LaunchedEffect(householdId) { settingsSheet = null }
                         AppShell(
                             stockContent = {
                                 InventoryRoute(
@@ -306,12 +339,54 @@ fun App() {
                                 )
                             },
                             profileContent = {
-                                ProfileScreen(
-                                    isOwner = owner,
+                                val sState by settingsVm.state.collectAsState()
+                                SettingsScreen(
+                                    state = sState,
+                                    onRenameDisplayName = { scope.launch { settingsVm.renameDisplayName(it) } },
+                                    onRenameHousehold = { scope.launch { settingsVm.renameHousehold(it) } },
+                                    onChangeRole = { t, r -> scope.launch { settingsVm.changeRole(t, r) } },
+                                    onRemoveMember = { scope.launch { settingsVm.removeMember(it) } },
+                                    onLeave = { scope.launch { settingsVm.leave() } },
+                                    onIssueInvite = { scope.launch { settingsVm.createInvite(it) } },
+                                    onRevokeInvite = { scope.launch { settingsVm.revokeInvite() } },
                                     onOpenMaster = { catalogOverlay = CatalogOverlay.Master },
                                     onOpenArchived = { catalogOverlay = CatalogOverlay.Archived },
+                                    onOpenSwitcher = { settingsSheet = SettingsSheet.Switcher },
+                                    onLogout = { reauth.request() },
                                 )
                             },
+                        )
+                        HouseholdSwitcher(
+                            open = settingsSheet == SettingsSheet.Switcher,
+                            households = settingsVm.state.value.households,
+                            onClose = { settingsSheet = null },
+                            onChoose = { id ->
+                                settingsVm.switchHousehold(id)
+                                settingsSheet = null
+                            },
+                            onCreate = { settingsSheet = SettingsSheet.Create },
+                            onJoin = {
+                                settingsHhVm.clearPreview()
+                                settingsSheet = SettingsSheet.Join
+                            },
+                        )
+                        CreateHouseholdSheet(
+                            open = settingsSheet == SettingsSheet.Create,
+                            busy = settingsHhState.busy,
+                            onClose = { settingsSheet = null },
+                            onCreate = { name -> scope.launch { settingsHhVm.create(name) } },
+                        )
+                        JoinCodeSheet(
+                            open = settingsSheet == SettingsSheet.Join,
+                            state = settingsHhState,
+                            onClose = {
+                                settingsSheet = null
+                                settingsHhVm.clearPreview()
+                            },
+                            onCodeChange = { code ->
+                                if (code.length == 6) scope.launch { settingsHhVm.preview(code) } else settingsHhVm.clearPreview()
+                            },
+                            onJoin = { code -> scope.launch { settingsHhVm.join(code) } },
                         )
                         val target = opened
                         if (target != null) {
@@ -456,7 +531,7 @@ fun App() {
                             }
 
                             is CatalogOverlay.Settings -> {
-                                val settingsVm =
+                                val productSettingsVm =
                                     remember(householdId) {
                                         ProductMasterViewModel(
                                             householdId = householdId,
@@ -474,13 +549,13 @@ fun App() {
                                     stock = ov.stock,
                                     onClose = { catalogOverlay = null },
                                     onChangeUnit = { u ->
-                                        scope.launch { settingsVm.changeUnit(ov.stock.product.id, u) }
+                                        scope.launch { productSettingsVm.changeUnit(ov.stock.product.id, u) }
                                     },
                                     onChangeMinimum = { m ->
-                                        scope.launch { settingsVm.changeMinimum(ov.stock.product.id, m) }
+                                        scope.launch { productSettingsVm.changeMinimum(ov.stock.product.id, m) }
                                     },
                                     onArchive = {
-                                        scope.launch { settingsVm.archive(ov.stock.product.id) }
+                                        scope.launch { productSettingsVm.archive(ov.stock.product.id) }
                                         catalogOverlay = null
                                     },
                                 )
@@ -510,3 +585,5 @@ private fun activeHouseholdName(s: AppSession.State): String =
         ?.invoke() ?: ""
 
 private enum class NeedHouseholdSheet { Create, Join }
+
+private enum class SettingsSheet { Switcher, Create, Join }

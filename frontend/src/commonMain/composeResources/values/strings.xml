@@ -211,4 +211,77 @@
     <string name="role_viewer">閲覧のみ</string>
     <string name="toast_household_created">世帯をつくりました</string>
     <string name="toast_household_joined">世帯に参加しました</string>
+    <string name="settings_error_last_owner_leave">最後のオーナーは退出できません。先に別のメンバーをオーナーにしてください。</string>
+    <string name="settings_error_last_owner_remove">最後のオーナーは外せません。</string>
+    <string name="settings_error_last_owner_change_role">最後のオーナーの権限は変更できません。</string>
+
+    <!-- 設定タブ -->
+    <string name="settings_tab_title">設定</string>
+    <string name="settings_eyebrow">アカウントと世帯</string>
+    <string name="settings_section_household">世帯</string>
+    <string name="settings_section_preferences">環境設定</string>
+    <string name="settings_section_other">その他</string>
+    <string name="settings_account_provider">Zitadel でログイン中</string>
+    <string name="settings_display_name_edit">表示名を変更</string>
+    <string name="settings_household_rename">世帯名を変更</string>
+    <string name="settings_household_member_count">%1$d人で共有</string>
+    <string name="settings_switch">切り替え</string>
+    <string name="settings_invite_owner_only">家族の招待はオーナー(%1$s)が行えます。</string>
+    <string name="settings_master_entry">商品マスタを編集</string>
+    <string name="settings_master_entry_sub">画像・単位・最低在庫の設定／商品のアーカイブ</string>
+    <string name="settings_owner_badge">オーナー</string>
+    <string name="settings_pref_push">在庫減少のお知らせ</string>
+    <string name="settings_pref_push_sub">Web Push で端末に通知</string>
+    <string name="settings_pref_offline">オフラインで在庫を見る</string>
+    <string name="settings_pref_offline_sub">読み取りのみ・書き込みは要オンライン</string>
+    <string name="settings_badge_future">将来対応予定</string>
+    <string name="settings_badge_soon">近日</string>
+    <string name="settings_other_trend">消費の傾向</string>
+    <string name="settings_other_archived">アーカイブした商品</string>
+    <string name="settings_leave">この世帯から退出</string>
+    <string name="settings_logout">ログアウト</string>
+    <string name="settings_footer">mindstock · MVP プレビュー</string>
+
+    <!-- 世帯切替シート -->
+    <string name="switcher_title">世帯を切り替え</string>
+    <string name="switcher_desc">参加している世帯から選んで切り替えられます。いくつでも持てます。</string>
+    <string name="switcher_create">新しい世帯をつくる</string>
+    <string name="switcher_create_sub">空の在庫から始めます</string>
+    <string name="switcher_join">招待コードで参加</string>
+    <string name="switcher_join_sub">家族や同居人の世帯に加わる</string>
+
+    <!-- メンバーシート -->
+    <string name="member_title">メンバー</string>
+    <string name="member_you">あなた</string>
+    <string name="member_role_label">権限</string>
+    <string name="member_owner_note">世帯のオーナーです。すべての在庫とメンバーを管理できます。</string>
+    <string name="member_viewer_note">権限の変更やメンバーの削除はオーナーのみ行えます。</string>
+    <string name="member_remove">世帯から外す</string>
+    <string name="member_remove_confirm">%1$s さんを世帯から外しますか? 共有はすぐに解除されます。</string>
+    <string name="member_remove_cancel">やめる</string>
+    <string name="member_remove_do">外す</string>
+
+    <!-- 招待シート(明示発行式) -->
+    <string name="invite_title">家族を招待</string>
+    <string name="invite_desc">「%1$s」に招待して、在庫を一緒に管理しましょう。コードを送るだけです。</string>
+    <string name="invite_role_label">参加したときの権限</string>
+    <string name="invite_none">まだ招待コードがありません</string>
+    <string name="invite_issue">招待コードを発行</string>
+    <string name="invite_reissue">新しいコード</string>
+    <string name="invite_revoke">失効する</string>
+    <string name="invite_copy">コードをコピー</string>
+    <string name="invite_copied">コピーしました</string>
+    <string name="invite_reusable">何度でも使えます</string>
+
+    <!-- 退出確認 -->
+    <string name="leave_confirm">この世帯から退出しますか? 在庫の共有が解除されます。</string>
+    <string name="leave_cancel">やめる</string>
+    <string name="leave_do">退出する</string>
+
+    <!-- 成功トースト -->
+    <string name="settings_toast_renamed">変更しました</string>
+    <string name="settings_toast_member_removed">メンバーを外しました</string>
+    <string name="settings_toast_left">世帯から退出しました</string>
+    <string name="settings_toast_invite_issued">招待コードを発行しました</string>
+    <string name="settings_toast_invite_revoked">招待コードを失効しました</string>
 </resources>
