@@ -4,10 +4,13 @@ import io.kotest.matchers.nulls.shouldBeNull
 import io.kotest.matchers.nulls.shouldNotBeNull
 import io.kotest.matchers.shouldBe
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
+import mindstock.frontend.generated.resources.Res
+import mindstock.frontend.generated.resources.settings_error_last_owner_leave
 import net.brightroom.mindstock.domain.model.household.Household
 import net.brightroom.mindstock.domain.model.household.HouseholdId
 import net.brightroom.mindstock.domain.model.household.HouseholdName
@@ -197,6 +200,33 @@ class SettingsViewModelTest {
             val flow = RecordingFlow()
             val v = vm(leave = { RpcOutcome.Failure(RpcError.Conflict("last owner cannot leave")) }, flow = flow)
             v.leave()
+            flow.left shouldBe false
+        }
+
+    @Test
+    fun leave_unauthorized_requests_reauth() =
+        runTest {
+            val flow = RecordingFlow()
+            val reauth = ReauthController()
+            var signals = 0
+            val job = launch(UnconfinedTestDispatcher(testScheduler)) { reauth.signal.collect { signals++ } }
+            val v = vm(leave = { RpcOutcome.Failure(RpcError.Unauthorized("x")) }, flow = flow, reauth = reauth)
+            v.leave()
+            signals shouldBe 1
+            flow.left shouldBe false
+            job.cancel()
+        }
+
+    @Test
+    fun leave_conflict_shows_last_owner_toast() =
+        runTest {
+            val flow = RecordingFlow()
+            val toast = ToastController()
+            val v = vm(leave = { RpcOutcome.Failure(RpcError.Conflict("last owner")) }, flow = flow, toast = toast)
+            v.leave()
+            val shown = toast.current.value
+            shown.shouldNotBeNull()
+            shown.text.resource shouldBe Res.string.settings_error_last_owner_leave
             flow.left shouldBe false
         }
 

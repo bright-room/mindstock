@@ -92,15 +92,17 @@ class SettingsViewModel(
     private fun activeId(): HouseholdId? = state.value.activeId
 
     suspend fun renameDisplayName(name: DisplayName) {
-        when (val r = renameDisplayNameRpc(name)) {
-            is RpcOutcome.Success -> flow.applyDisplayName(name)
-            is RpcOutcome.Failure -> failWith(r.error, null)
+        submitting {
+            when (val r = renameDisplayNameRpc(name)) {
+                is RpcOutcome.Success -> flow.applyDisplayName(name)
+                is RpcOutcome.Failure -> failWith(r.error, null)
+            }
         }
     }
 
     suspend fun renameHousehold(name: HouseholdName) {
         val id = activeId() ?: return
-        runRefreshing(renameHouseholdRpc(id, name), null)
+        submitting { runRefreshing(renameHouseholdRpc(id, name), null) }
     }
 
     suspend fun changeRole(
@@ -108,35 +110,41 @@ class SettingsViewModel(
         role: HouseholdMemberRole,
     ) {
         val id = activeId() ?: return
-        runRefreshing(changeRoleRpc(id, target, role), Res.string.settings_error_last_owner_change_role)
+        submitting { runRefreshing(changeRoleRpc(id, target, role), Res.string.settings_error_last_owner_change_role) }
     }
 
     suspend fun removeMember(target: ResidentId) {
         val id = activeId() ?: return
-        runRefreshing(removeMemberRpc(id, target), Res.string.settings_error_last_owner_remove)
+        submitting { runRefreshing(removeMemberRpc(id, target), Res.string.settings_error_last_owner_remove) }
     }
 
     suspend fun leave() {
         val id = activeId() ?: return
-        when (val r = leaveRpc(id)) {
-            is RpcOutcome.Success -> safe { flow.leaveActiveHousehold() }
-            is RpcOutcome.Failure -> failWith(r.error, Res.string.settings_error_last_owner_leave)
+        submitting {
+            when (val r = leaveRpc(id)) {
+                is RpcOutcome.Success -> safe { flow.leaveActiveHousehold() }
+                is RpcOutcome.Failure -> failWith(r.error, Res.string.settings_error_last_owner_leave)
+            }
         }
     }
 
     suspend fun createInvite(role: HouseholdMemberRole) {
         val id = activeId() ?: return
-        when (val r = createInviteRpc(id, role)) {
-            is RpcOutcome.Success -> local.value = local.value.copy(issuedInvite = r.value)
-            is RpcOutcome.Failure -> failWith(r.error, null)
+        submitting {
+            when (val r = createInviteRpc(id, role)) {
+                is RpcOutcome.Success -> local.value = local.value.copy(issuedInvite = r.value)
+                is RpcOutcome.Failure -> failWith(r.error, null)
+            }
         }
     }
 
     suspend fun revokeInvite() {
         val invite = local.value.issuedInvite ?: return
-        when (val r = revokeInviteRpc(invite.code)) {
-            is RpcOutcome.Success -> local.value = local.value.copy(issuedInvite = null)
-            is RpcOutcome.Failure -> failWith(r.error, null)
+        submitting {
+            when (val r = revokeInviteRpc(invite.code)) {
+                is RpcOutcome.Success -> local.value = local.value.copy(issuedInvite = null)
+                is RpcOutcome.Failure -> failWith(r.error, null)
+            }
         }
     }
 
@@ -168,6 +176,16 @@ class SettingsViewModel(
             return
         }
         toast.show(errorText(error))
+    }
+
+    /** 操作中フラグを立て、完了/失敗を問わず必ず下ろす。 */
+    private suspend fun submitting(block: suspend () -> Unit) {
+        local.value = local.value.copy(submitting = true)
+        try {
+            block()
+        } finally {
+            local.value = local.value.copy(submitting = false)
+        }
     }
 
     /** AuthFlow 呼び出しの通信失敗を toast に倒す(Cancellation は再 throw)。 */
