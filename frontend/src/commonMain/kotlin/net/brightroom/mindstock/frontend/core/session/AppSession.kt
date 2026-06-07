@@ -26,6 +26,8 @@ class AppSession {
         displayName: DisplayName,
     ) = _state.update { it.copy(residentId = residentId, displayName = displayName) }
 
+    fun setDisplayName(displayName: DisplayName) = _state.update { it.copy(displayName = displayName) }
+
     fun setHouseholds(
         households: Households,
         active: HouseholdId?,
