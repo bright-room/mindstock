@@ -62,7 +62,9 @@ fun InviteSheet(
 ) {
     val tokens = LocalMindstockTokens.current
     val clipboard = LocalClipboardManager.current
-    var selectedRole by remember(open) { mutableStateOf(HouseholdMemberRole.メンバー) }
+    var selectedRole by remember(open) {
+        mutableStateOf(issuedInvite?.grantedRole ?: HouseholdMemberRole.メンバー)
+    }
     var copied by remember(open, issuedInvite?.code) { mutableStateOf(false) }
     Sheet(open = open, title = stringResource(Res.string.invite_title), onClose = onClose) {
         Column(verticalArrangement = Arrangement.spacedBy(16.dp), modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp)) {

@@ -36,6 +36,8 @@ import net.brightroom.mindstock.frontend.designsystem.theme.MindstockType
 import net.brightroom.mindstock.frontend.feature.household.HouseholdSummary
 import org.jetbrains.compose.resources.stringResource
 
+private const val SEPARATOR = "·"
+
 @Composable
 fun HouseholdSwitcher(
     open: Boolean,
@@ -116,7 +118,7 @@ private fun HouseholdRow(
                     style = MindstockType.unitCaption(),
                     color = tokens.faint,
                 )
-                AppText("·", style = MindstockType.unitCaption(), color = tokens.line)
+                AppText(SEPARATOR, style = MindstockType.unitCaption(), color = tokens.line)
                 val ownerLike = summary.myRole.is世帯主()
                 AppIcon(
                     roleIcon(summary.myRole),
