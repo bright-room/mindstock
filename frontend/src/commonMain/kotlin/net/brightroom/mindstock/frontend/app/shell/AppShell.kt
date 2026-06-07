@@ -11,7 +11,6 @@ import mindstock.frontend.generated.resources.nav_activity
 import mindstock.frontend.generated.resources.nav_profile
 import mindstock.frontend.generated.resources.nav_shop
 import mindstock.frontend.generated.resources.nav_stock
-import mindstock.frontend.generated.resources.tab_profile_placeholder
 import net.brightroom.mindstock.frontend.designsystem.atom.AppIcon
 import net.brightroom.mindstock.frontend.designsystem.atom.AppIconName
 import net.brightroom.mindstock.frontend.designsystem.atom.AppText
@@ -33,6 +32,7 @@ fun AppShell(
     stockContent: @Composable () -> Unit,
     shopContent: @Composable () -> Unit,
     activityContent: @Composable () -> Unit,
+    profileContent: @Composable () -> Unit,
 ) {
     var selected by remember { mutableStateOf(Tab.Stock) }
     NavigationSuiteScaffold(
@@ -51,7 +51,7 @@ fun AppShell(
             Tab.Stock -> stockContent()
             Tab.Shop -> shopContent()
             Tab.Activity -> activityContent()
-            Tab.Profile -> AppText(stringResource(Res.string.tab_profile_placeholder))
+            Tab.Profile -> profileContent()
         }
     }
 }
