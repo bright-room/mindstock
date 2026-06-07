@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.adaptive.currentWindowAdaptiveInfo
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -28,30 +29,54 @@ enum class Tab(
 }
 
 @Composable
+private fun resolveShellKind(): ShellKind = shellKindFor(currentWindowAdaptiveInfo().windowSizeClass.minWidthDp)
+
+@Composable
 fun AppShell(
     selectedTab: Tab,
     onSelectTab: (Tab) -> Unit,
     onAdd: () -> Unit,
+    onOpenSwitcher: () -> Unit,
+    onBell: () -> Unit,
+    displayName: String,
+    householdName: String,
     stockContent: @Composable () -> Unit,
     shopContent: @Composable () -> Unit,
     activityContent: @Composable () -> Unit,
     profileContent: @Composable () -> Unit,
 ) {
-    Box(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
-        // 本文。浮遊ナビに隠れないよう下部に余白を取る。
-        Box(modifier = Modifier.fillMaxSize().padding(bottom = 88.dp)) {
-            when (selectedTab) {
-                Tab.Stock -> stockContent()
-                Tab.Shop -> shopContent()
-                Tab.Activity -> activityContent()
-                Tab.Profile -> profileContent()
+    val content: @Composable () -> Unit = {
+        when (selectedTab) {
+            Tab.Stock -> stockContent()
+            Tab.Shop -> shopContent()
+            Tab.Activity -> activityContent()
+            Tab.Profile -> profileContent()
+        }
+    }
+    when (resolveShellKind()) {
+        ShellKind.Wide -> {
+            WideShell(
+                selectedTab = selectedTab,
+                onSelectTab = onSelectTab,
+                onAdd = onAdd,
+                onOpenSwitcher = onOpenSwitcher,
+                onBell = onBell,
+                displayName = displayName,
+                householdName = householdName,
+                content = content,
+            )
+        }
+
+        ShellKind.Compact -> {
+            Box(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
+                Box(modifier = Modifier.fillMaxSize().padding(bottom = 88.dp)) { content() }
+                BottomNav(
+                    selected = selectedTab,
+                    onSelect = onSelectTab,
+                    onAdd = onAdd,
+                    modifier = Modifier.align(Alignment.BottomCenter),
+                )
             }
         }
-        BottomNav(
-            selected = selectedTab,
-            onSelect = onSelectTab,
-            onAdd = onAdd,
-            modifier = Modifier.align(Alignment.BottomCenter),
-        )
     }
 }
