@@ -65,8 +65,12 @@ class NeedHouseholdViewModel(
             }
 
             is RpcOutcome.Failure -> {
-                if (out.error.requiresReauth()) reauth.request()
-                _state.update { it.copy(preview = null, previewError = errorText(out.error)) }
+                if (out.error.requiresReauth()) {
+                    reauth.request()
+                    _state.update { it.copy(preview = null, previewError = null) }
+                } else {
+                    _state.update { it.copy(preview = null, previewError = errorText(out.error)) }
+                }
             }
         }
     }

@@ -75,6 +75,7 @@ fun OnboardingScreen(
     onNext: () -> Unit,
     onBack: () -> Unit,
     onSubmit: () -> Unit,
+    onSkip: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val tokens = LocalMindstockTokens.current
@@ -185,7 +186,11 @@ fun OnboardingScreen(
                         AppText(stringResource(Res.string.onboarding_to_confirm))
                     }
                     Spacer(Modifier.height(12.dp))
-                    GhostTextButton(text = stringResource(Res.string.onboarding_skip), onClick = onSubmit)
+                    GhostTextButton(
+                        text = stringResource(Res.string.onboarding_skip),
+                        onClick = onSkip,
+                        enabled = !state.submitting,
+                    )
                 }
 
                 OnboardingStep.Confirm -> {
@@ -209,9 +214,10 @@ fun OnboardingScreen(
 private fun GhostTextButton(
     text: String,
     onClick: () -> Unit,
+    enabled: Boolean = true,
 ) {
     val tokens = LocalMindstockTokens.current
-    Box(modifier = Modifier.clickable(onClick = onClick).padding(8.dp)) {
+    Box(modifier = Modifier.clickable(enabled = enabled, onClick = onClick).padding(8.dp)) {
         AppText(text, style = MindstockType.sectionMeta(), color = tokens.faint)
     }
 }

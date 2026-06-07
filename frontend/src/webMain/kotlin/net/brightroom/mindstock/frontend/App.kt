@@ -183,6 +183,10 @@ fun App() {
                         onNext = onbVm::next,
                         onBack = onbVm::back,
                         onSubmit = { scope.launch { onbVm.submit() } },
+                        onSkip = {
+                            onbVm.setHouseholdName("")
+                            scope.launch { onbVm.submit() }
+                        },
                         modifier = Modifier.fillMaxSize(),
                     )
                 }
