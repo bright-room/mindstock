@@ -98,13 +98,13 @@ private class FakeAuthDeps(
 
 class AuthViewModelTest {
     @Test
-    fun no_token_redirects_to_authorize_and_stays_booting() =
+    fun no_token_becomes_unauthenticated() =
         runTest {
             val deps = FakeAuthDeps(path = "/", token = null)
             val vm = AuthViewModel(deps)
             vm.boot()
-            deps.redirectCalled shouldBe true
-            vm.state.value.shouldBeInstanceOf<AuthState.Booting>()
+            deps.redirectCalled shouldBe false
+            vm.state.value.shouldBeInstanceOf<AuthState.Unauthenticated>()
         }
 
     @Test

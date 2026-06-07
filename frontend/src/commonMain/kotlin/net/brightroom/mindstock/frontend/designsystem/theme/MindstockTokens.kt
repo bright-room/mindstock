@@ -16,6 +16,7 @@ data class MindstockTokens(
     val accent: Color,
     val onAccent: Color,
     val accentSoft: Color,
+    val bg: Color,
     val surface: Color,
     val surface2: Color,
     val ink: Color,
@@ -41,6 +42,7 @@ val clayTokens =
         accent = Color(0xFFC76743),
         onAccent = Color(0xFFFFFBF4),
         accentSoft = Color(0xFFFFE3D3),
+        bg = Color(0xFFF6F2ED), // colorScheme.background と同値(モック T.bg)
         surface = Color(0xFFFFFDFA),
         surface2 = Color(0xFFFBF7F3),
         ink = Color(0xFF2B2520),

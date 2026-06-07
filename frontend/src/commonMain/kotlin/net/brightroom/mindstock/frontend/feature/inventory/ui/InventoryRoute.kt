@@ -14,6 +14,7 @@ import net.brightroom.mindstock.domain.model.inventory.product.ProductId
 import net.brightroom.mindstock.domain.model.inventory.quantity.Quantity
 import net.brightroom.mindstock.domain.model.inventory.stock.Stock
 import net.brightroom.mindstock.domain.model.inventory.stock.movement.Note
+import net.brightroom.mindstock.frontend.app.shell.LocalIsWideShell
 import net.brightroom.mindstock.frontend.core.ui.InventoryRefreshController
 import net.brightroom.mindstock.frontend.feature.inventory.InventoryViewModel
 
@@ -37,12 +38,14 @@ fun InventoryRoute(
     val scope = rememberCoroutineScope()
     val state by homeViewModel.state.collectAsState()
     var moveTarget by remember { mutableStateOf<Pair<Stock, MoveMode>?>(null) }
+    val wide = LocalIsWideShell.current
 
     LaunchedEffect(Unit) { homeViewModel.load() }
     LaunchedEffect(refresh) { refresh.signal.collect { homeViewModel.load() } }
 
     StockHomeScreen(
         state = state,
+        wide = wide,
         displayName = displayName,
         householdName = householdName,
         memberCount = memberCount,

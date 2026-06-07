@@ -32,6 +32,7 @@ import net.brightroom.mindstock.frontend.app.isOwner
 import net.brightroom.mindstock.frontend.app.settings.SettingsScreen
 import net.brightroom.mindstock.frontend.app.shell.AppShell
 import net.brightroom.mindstock.frontend.app.shell.Tab
+import net.brightroom.mindstock.frontend.app.welcome.WelcomeScreen
 import net.brightroom.mindstock.frontend.auth.AuthClient
 import net.brightroom.mindstock.frontend.auth.AuthConfig
 import net.brightroom.mindstock.frontend.auth.TokenStore
@@ -161,6 +162,13 @@ fun App() {
             when (state) {
                 is AuthState.Booting -> {
                     AppText(stringResource(Res.string.loading))
+                }
+
+                is AuthState.Unauthenticated -> {
+                    WelcomeScreen(
+                        onSignIn = { scope.launch { deps.redirectToAuthorize() } },
+                        modifier = Modifier.fillMaxSize(),
+                    )
                 }
 
                 is AuthState.Failed -> {
@@ -310,21 +318,25 @@ fun App() {
                         // 世帯作成/参加 or 切替が成立して active が変わったら、開いていたシートを閉じる。
                         LaunchedEffect(householdId) { settingsSheet = null }
                         var selectedTab by remember { mutableStateOf(Tab.Stock) }
+                        val shellHousehold =
+                            sessionState.households?.list?.firstOrNull { it.id == householdId }
                         AppShell(
                             selectedTab = selectedTab,
                             onSelectTab = { selectedTab = it },
                             onAdd = { catalogOverlay = CatalogOverlay.AddProduct },
+                            onOpenSwitcher = { settingsSheet = SettingsSheet.Switcher },
+                            onBell = {},
+                            displayName = sessionState.displayName?.invoke() ?: "",
+                            householdName = shellHousehold?.profile?.name?.invoke() ?: "",
                             stockContent = {
-                                val activeHousehold =
-                                    sessionState.households?.list?.firstOrNull { it.id == householdId }
                                 InventoryRoute(
                                     homeViewModel = homeVm,
                                     refresh = refresh,
                                     onOpenProduct = { pid, seed -> opened = DetailTarget(pid, seed) },
                                     onAddProduct = { catalogOverlay = CatalogOverlay.AddProduct },
                                     displayName = sessionState.displayName?.invoke() ?: "",
-                                    householdName = activeHousehold?.profile?.name?.invoke() ?: "",
-                                    memberCount = activeHousehold?.members?.size() ?: 1,
+                                    householdName = shellHousehold?.profile?.name?.invoke() ?: "",
+                                    memberCount = shellHousehold?.members?.size() ?: 1,
                                     onShop = { selectedTab = Tab.Shop },
                                     onOpenSettings = { selectedTab = Tab.Profile },
                                 )

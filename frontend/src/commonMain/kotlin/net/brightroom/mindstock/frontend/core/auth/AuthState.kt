@@ -5,6 +5,9 @@ sealed interface AuthState {
     /** 起動処理中(callback 交換 or token 検証 or me() 問い合わせ)。 */
     data object Booting : AuthState
 
+    /** 未認証(有効 token 無し)。ウェルカム/サインイン splash を表示する。 */
+    data object Unauthenticated : AuthState
+
     /** 認証済み・登録済み。app 本体へ。 */
     data object Ready : AuthState
 

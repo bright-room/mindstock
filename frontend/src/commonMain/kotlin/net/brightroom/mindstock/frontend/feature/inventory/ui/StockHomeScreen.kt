@@ -2,6 +2,7 @@ package net.brightroom.mindstock.frontend.feature.inventory.ui
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -34,11 +35,12 @@ import net.brightroom.mindstock.frontend.designsystem.atom.AddTile
 import net.brightroom.mindstock.frontend.designsystem.atom.AppIconName
 import net.brightroom.mindstock.frontend.designsystem.atom.AppText
 import net.brightroom.mindstock.frontend.designsystem.atom.HouseholdPill
-import net.brightroom.mindstock.frontend.designsystem.atom.RoundBtn
+import net.brightroom.mindstock.frontend.designsystem.atom.NavIconButton
 import net.brightroom.mindstock.frontend.designsystem.atom.SearchField
 import net.brightroom.mindstock.frontend.designsystem.atom.SegOption
 import net.brightroom.mindstock.frontend.designsystem.atom.SegmentedControl
 import net.brightroom.mindstock.frontend.designsystem.theme.LocalMindstockTokens
+import net.brightroom.mindstock.frontend.designsystem.theme.MindstockTokens
 import net.brightroom.mindstock.frontend.designsystem.theme.MindstockType
 import net.brightroom.mindstock.frontend.feature.inventory.InventoryUiState
 import net.brightroom.mindstock.frontend.feature.inventory.StockView
@@ -48,6 +50,7 @@ import org.jetbrains.compose.resources.stringResource
 @Composable
 fun StockHomeScreen(
     state: InventoryUiState,
+    wide: Boolean = false,
     displayName: String = "",
     householdName: String = "",
     memberCount: Int = 1,
@@ -62,109 +65,74 @@ fun StockHomeScreen(
     modifier: Modifier = Modifier,
 ) {
     val tokens = LocalMindstockTokens.current
-    Column(
-        modifier = modifier.fillMaxSize().padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(14.dp),
-    ) {
-        when (state) {
-            is InventoryUiState.Loading -> {
+    when (state) {
+        is InventoryUiState.Loading -> {
+            Column(modifier = modifier.fillMaxSize().padding(16.dp)) {
                 AppText(stringResource(Res.string.loading), color = tokens.sub)
             }
+        }
 
-            is InventoryUiState.Error -> {
+        is InventoryUiState.Error -> {
+            Column(modifier = modifier.fillMaxSize().padding(16.dp)) {
                 AppText(state.text.resolve(), color = tokens.statusOut)
             }
+        }
 
-            is InventoryUiState.Content -> {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    HouseholdPill(
-                        name = householdName,
-                        memberCount = memberCount,
-                        onClick = onOpenSettings,
-                    )
-                    RoundBtn(icon = AppIconName.Bell, contentDescription = "notifications", onClick = {})
-                }
-
-                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    AppText(stringResource(Res.string.stock_greeting, displayName), style = MindstockType.greeting(), color = tokens.sub)
-                    AppText(stringResource(Res.string.stock_title), style = MindstockType.screenTitle(), color = tokens.ink)
-                }
-
-                val visible = state.visibleStocks()
-                if (state.query.isBlank()) {
-                    val summary = stockSummaryOf(state.stocks.list.map { it.status() })
-                    SummaryStrip(summary = summary, onClick = onShop)
-                }
-
-                SearchField(
-                    value = state.query,
-                    onValueChange = onQueryChange,
-                    placeholder = stringResource(Res.string.stock_search_placeholder),
-                    modifier = Modifier.fillMaxWidth(),
+        is InventoryUiState.Content -> {
+            val visible = state.visibleStocks()
+            val showEmpty = state.query.isNotBlank() && visible.list.isEmpty()
+            val header: @Composable () -> Unit = {
+                StockHeader(
+                    state = state,
+                    wide = wide,
+                    displayName = displayName,
+                    householdName = householdName,
+                    memberCount = memberCount,
+                    visibleCount = visible.list.size,
+                    onSelectView = onSelectView,
+                    onQueryChange = onQueryChange,
+                    onShop = onShop,
+                    onOpenSettings = onOpenSettings,
                 )
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically,
+            }
+            // 画面全体を 1 つのスクローラに(モック準拠: ヘッダもリストと一緒にスクロール)。
+            if (state.view == StockView.Grid) {
+                LazyVerticalGrid(
+                    columns = GridCells.Fixed(2),
+                    modifier = modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(13.dp),
+                    horizontalArrangement = Arrangement.spacedBy(13.dp),
                 ) {
-                    AppText(
-                        if (state.query.isNotBlank()) {
-                            stringResource(Res.string.stock_search_count, visible.list.size)
-                        } else {
-                            stringResource(Res.string.stock_count_all, state.stocks.list.size)
-                        },
-                        style = MindstockType.sectionMeta(),
-                        color = tokens.sub,
-                    )
-                    SegmentedControl(
-                        options =
-                            listOf(
-                                SegOption(StockView.List.name, stringResource(Res.string.stock_view_list)),
-                                SegOption(StockView.Grid.name, stringResource(Res.string.stock_view_grid)),
-                            ),
-                        selectedKey = state.view.name,
-                        onSelect = { onSelectView(StockView.valueOf(it)) },
-                        modifier = Modifier.width(120.dp),
-                    )
-                }
-
-                if (state.query.isNotBlank() && visible.list.isEmpty()) {
-                    AppText(
-                        stringResource(Res.string.stock_search_empty, state.query.trim()),
-                        style = MindstockType.cardTitle(),
-                        color = tokens.ink,
-                    )
-                } else if (state.view == StockView.Grid) {
-                    LazyVerticalGrid(
-                        columns = GridCells.Fixed(2),
-                        modifier = Modifier.fillMaxWidth().weight(1f),
-                        verticalArrangement = Arrangement.spacedBy(13.dp),
-                        horizontalArrangement = Arrangement.spacedBy(13.dp),
-                    ) {
+                    item(key = "header", span = { GridItemSpan(maxLineSpan) }) { header() }
+                    if (showEmpty) {
+                        item(key = "empty", span = { GridItemSpan(maxLineSpan) }) { SearchEmpty(state.query, tokens) }
+                    } else {
                         items(visible.list) { stock ->
                             CompactCard(stock = stock, onOpen = onOpen, onReplenish = onReplenish, onConsume = onConsume)
                         }
                         if (state.query.isBlank()) {
-                            item(span = { GridItemSpan(maxLineSpan) }) {
+                            item(key = "addtile", span = { GridItemSpan(maxLineSpan) }) {
                                 AddTile(label = stringResource(Res.string.stock_add_product), onClick = onAddProduct)
                             }
                         }
                     }
-                } else {
-                    LazyColumn(
-                        modifier = Modifier.fillMaxWidth().weight(1f),
-                        verticalArrangement = Arrangement.spacedBy(13.dp),
-                    ) {
+                }
+            } else {
+                LazyColumn(
+                    modifier = modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(13.dp),
+                ) {
+                    item(key = "header") { header() }
+                    if (showEmpty) {
+                        item(key = "empty") { SearchEmpty(state.query, tokens) }
+                    } else {
                         items(visible.list) { stock ->
                             ProductCard(stock = stock, onOpen = onOpen, onReplenish = onReplenish, onConsume = onConsume)
                         }
                         if (state.query.isBlank()) {
-                            item {
+                            item(key = "addtile") {
                                 AddTile(label = stringResource(Res.string.stock_add_product), onClick = onAddProduct)
                             }
                         }
@@ -173,4 +141,88 @@ fun StockHomeScreen(
             }
         }
     }
+}
+
+@Composable
+private fun StockHeader(
+    state: InventoryUiState.Content,
+    wide: Boolean,
+    displayName: String,
+    householdName: String,
+    memberCount: Int,
+    visibleCount: Int,
+    onSelectView: (StockView) -> Unit,
+    onQueryChange: (String) -> Unit,
+    onShop: () -> Unit,
+    onOpenSettings: () -> Unit,
+) {
+    val tokens = LocalMindstockTokens.current
+    Column(verticalArrangement = Arrangement.spacedBy(14.dp), modifier = Modifier.fillMaxWidth().padding(bottom = 1.dp)) {
+        // デスクトップ(サイドバーあり)では世帯ピル/ベルは出さない(サイドバーが担う)。
+        if (!wide) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                HouseholdPill(name = householdName, memberCount = memberCount, onClick = onOpenSettings)
+                NavIconButton(icon = AppIconName.Bell, contentDescription = "notifications", onClick = {})
+            }
+        }
+
+        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            AppText(stringResource(Res.string.stock_greeting, displayName), style = MindstockType.greeting(), color = tokens.sub)
+            AppText(stringResource(Res.string.stock_title), style = MindstockType.screenTitle(), color = tokens.ink)
+        }
+
+        if (state.query.isBlank()) {
+            val summary = stockSummaryOf(state.stocks.list.map { it.status() })
+            SummaryStrip(summary = summary, onClick = onShop)
+        }
+
+        SearchField(
+            value = state.query,
+            onValueChange = onQueryChange,
+            placeholder = stringResource(Res.string.stock_search_placeholder),
+            modifier = Modifier.fillMaxWidth(),
+        )
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            AppText(
+                if (state.query.isNotBlank()) {
+                    stringResource(Res.string.stock_search_count, visibleCount)
+                } else {
+                    stringResource(Res.string.stock_count_all, state.stocks.list.size)
+                },
+                style = MindstockType.sectionMeta(),
+                color = tokens.sub,
+            )
+            SegmentedControl(
+                options =
+                    listOf(
+                        SegOption(StockView.List.name, stringResource(Res.string.stock_view_list)),
+                        SegOption(StockView.Grid.name, stringResource(Res.string.stock_view_grid)),
+                    ),
+                selectedKey = state.view.name,
+                onSelect = { onSelectView(StockView.valueOf(it)) },
+                modifier = Modifier.width(120.dp),
+            )
+        }
+    }
+}
+
+@Composable
+private fun SearchEmpty(
+    query: String,
+    tokens: MindstockTokens,
+) {
+    AppText(
+        stringResource(Res.string.stock_search_empty, query.trim()),
+        style = MindstockType.cardTitle(),
+        color = tokens.ink,
+    )
 }

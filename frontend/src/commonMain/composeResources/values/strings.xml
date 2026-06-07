@@ -31,6 +31,11 @@
     <string name="history_replenish">補充</string>
     <string name="history_consume">消費</string>
     <string name="history_corrected_badge">訂正済</string>
+    <string name="history_time_now">たった今</string>
+    <string name="history_time_hours">%1$d時間前</string>
+    <string name="history_time_days">%1$d日前</string>
+    <string name="history_time_date">%1$d/%2$d</string>
+    <string name="history_reason_label">訂正理由: %1$s</string>
     <string name="action_correct">訂正</string>
     <string name="correct_title">数量を訂正</string>
     <string name="correct_reason_placeholder">訂正の理由（入力推奨）</string>
@@ -38,6 +43,10 @@
     <string name="move_note_placeholder">メモ（任意・まとめ買い 等）</string>
     <string name="move_note_consume_placeholder">メモ（任意）</string>
     <string name="move_current_qty">%1$s（現在 %2$d%3$s）</string>
+    <string name="move_title_replenish">補充する</string>
+    <string name="move_title_consume">消費する</string>
+    <string name="move_current_short">現在 %1$d%2$s</string>
+    <string name="move_after_negative">マイナス在庫</string>
     <string name="stock_search_placeholder">在庫を検索</string>
     <string name="stock_greeting">こんにちは、%1$s</string>
     <string name="stock_title">在庫</string>
@@ -125,6 +134,7 @@
     <string name="master_empty_sub">「商品を追加」から大元のマスタを選んで採用しましょう。</string>
     <string name="master_row_meta">単位: %1$s · 在庫 %2$d%3$s</string>
     <string name="settings_title">商品の設定</string>
+    <string name="settings_master_edit_title">商品マスタの編集</string>
     <string name="settings_name_immutable">商品名は変更できません。</string>
     <string name="settings_save">変更を保存</string>
     <string name="settings_archive">この商品をアーカイブ</string>
@@ -285,4 +295,19 @@
     <string name="settings_toast_left">世帯から退出しました</string>
     <string name="settings_toast_invite_issued">招待コードを発行しました</string>
     <string name="settings_toast_invite_revoked">招待コードを失効しました</string>
+
+    <!-- welcome / sign-in splash -->
+    <string name="welcome_tagline">暮らしの在庫を、ちょうどよく。</string>
+    <string name="welcome_description">買い忘れも、買い過ぎも減らす。日用品のストックを家族とゆるやかに共有する在庫ノート。</string>
+    <string name="welcome_chip_forget">買い忘れ防止</string>
+    <string name="welcome_chip_predict">消費予測</string>
+    <string name="welcome_chip_share">家族で共有</string>
+    <string name="welcome_cta">ログインして始める</string>
+    <string name="welcome_cta_busy">Zitadel に接続中…</string>
+    <string name="welcome_footer">Zitadel アカウントで安全にサインイン</string>
+    <!-- desktop sidebar -->
+    <string name="sidebar_switch_subtitle">切り替え・追加</string>
+    <string name="sidebar_add_product">商品を追加</string>
+    <string name="sidebar_notifications">お知らせ</string>
+    <string name="avatar_fallback_initial">あ</string>
 </resources>

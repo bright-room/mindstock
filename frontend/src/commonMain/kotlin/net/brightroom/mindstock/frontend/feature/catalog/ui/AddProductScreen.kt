@@ -57,8 +57,8 @@ import net.brightroom.mindstock.frontend.designsystem.atom.AddTile
 import net.brightroom.mindstock.frontend.designsystem.atom.AppIcon
 import net.brightroom.mindstock.frontend.designsystem.atom.AppIconName
 import net.brightroom.mindstock.frontend.designsystem.atom.AppText
+import net.brightroom.mindstock.frontend.designsystem.atom.NavIconButton
 import net.brightroom.mindstock.frontend.designsystem.atom.PrimaryButton
-import net.brightroom.mindstock.frontend.designsystem.atom.RoundBtn
 import net.brightroom.mindstock.frontend.designsystem.atom.SearchField
 import net.brightroom.mindstock.frontend.designsystem.atom.Stepper
 import net.brightroom.mindstock.frontend.designsystem.atom.TextInput
@@ -101,7 +101,7 @@ fun AddProductScreen(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                RoundBtn(
+                NavIconButton(
                     icon = AppIconName.Back,
                     contentDescription = stringResource(Res.string.action_back),
                     onClick = onBack,
