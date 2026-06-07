@@ -158,6 +158,8 @@ class SettingsViewModelTest {
             val v = vm(flow = flow)
             v.renameDisplayName(DisplayName("あたらしい"))
             flow.renamedDisplay shouldBe DisplayName("あたらしい")
+            // メンバー一覧の自分の名前を更新するため世帯を再取得する。
+            flow.refreshed shouldBe true
         }
 
     @Test

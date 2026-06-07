@@ -101,6 +101,8 @@ class SettingsViewModel(
             when (val r = renameDisplayNameRpc(name)) {
                 is RpcOutcome.Success -> {
                     flow.applyDisplayName(name)
+                    // メンバー一覧の自分の表示名も更新するため世帯を再取得する。
+                    safe { flow.refreshHouseholds() }
                     toast.show(UiText(Res.string.settings_toast_renamed))
                 }
 
