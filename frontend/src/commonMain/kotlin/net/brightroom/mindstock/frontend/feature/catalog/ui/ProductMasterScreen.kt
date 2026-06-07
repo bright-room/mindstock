@@ -36,7 +36,7 @@ import net.brightroom.mindstock.frontend.designsystem.atom.AppIcon
 import net.brightroom.mindstock.frontend.designsystem.atom.AppIconName
 import net.brightroom.mindstock.frontend.designsystem.atom.AppText
 import net.brightroom.mindstock.frontend.designsystem.atom.EmptyState
-import net.brightroom.mindstock.frontend.designsystem.atom.RoundBtn
+import net.brightroom.mindstock.frontend.designsystem.atom.NavIconButton
 import net.brightroom.mindstock.frontend.designsystem.atom.Thumb
 import net.brightroom.mindstock.frontend.designsystem.theme.LocalMindstockTokens
 import net.brightroom.mindstock.frontend.designsystem.theme.MindstockType
@@ -72,7 +72,7 @@ fun ProductMasterScreen(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            RoundBtn(
+            NavIconButton(
                 icon = AppIconName.Back,
                 contentDescription = stringResource(Res.string.action_back),
                 onClick = onBack,

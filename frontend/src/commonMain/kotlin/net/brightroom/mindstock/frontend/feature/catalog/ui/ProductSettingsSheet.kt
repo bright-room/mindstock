@@ -2,9 +2,11 @@ package net.brightroom.mindstock.frontend.feature.catalog.ui
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -26,9 +28,9 @@ import mindstock.frontend.generated.resources.add_product_unit_label
 import mindstock.frontend.generated.resources.settings_archive
 import mindstock.frontend.generated.resources.settings_archive_blocked
 import mindstock.frontend.generated.resources.settings_archive_note
+import mindstock.frontend.generated.resources.settings_master_edit_title
 import mindstock.frontend.generated.resources.settings_name_immutable
 import mindstock.frontend.generated.resources.settings_save
-import mindstock.frontend.generated.resources.settings_title
 import net.brightroom.mindstock.domain.model.inventory.product.setting.MinimumStock
 import net.brightroom.mindstock.domain.model.inventory.product.setting.ProductUnit
 import net.brightroom.mindstock.domain.model.inventory.stock.Stock
@@ -62,7 +64,7 @@ fun ProductSettingsSheet(
 
     val changed = unit.trim() != stock.product.setting.unit() || min != stock.product.setting.minimumStock()
 
-    Sheet(open = open, title = stringResource(Res.string.settings_title), onClose = onClose) {
+    Sheet(open = open, title = stringResource(Res.string.settings_master_edit_title), onClose = onClose) {
         val tokens = LocalMindstockTokens.current
 
         Column(
@@ -98,31 +100,30 @@ fun ProductSettingsSheet(
                 UnitPicker(value = unit, onChange = { unit = it }, modifier = Modifier.fillMaxWidth())
             }
 
-            // 3. Min stock section
-            Row(
-                modifier =
-                    Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(tokens.radiusMd))
-                        .background(tokens.surface)
-                        .padding(horizontal = 16.dp, vertical = 16.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween,
-            ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    AppText(
-                        text = stringResource(Res.string.add_product_min_label),
-                        style = MindstockType.cardTitle(),
-                        color = tokens.ink,
-                    )
-                    AppText(
-                        text = stringResource(Res.string.add_product_min_caption),
-                        style = MindstockType.unitCaption(),
-                        color = tokens.faint,
-                        modifier = Modifier.padding(top = 5.dp),
-                    )
+            // 3. Min stock section（モック: 上下ボーダー・背景なし）
+            Column {
+                Box(Modifier.fillMaxWidth().height(1.dp).background(tokens.lineSoft))
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(vertical = 16.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        AppText(
+                            text = stringResource(Res.string.add_product_min_label),
+                            style = MindstockType.cardTitle(),
+                            color = tokens.ink,
+                        )
+                        AppText(
+                            text = stringResource(Res.string.add_product_min_caption),
+                            style = MindstockType.unitCaption(),
+                            color = tokens.faint,
+                            modifier = Modifier.padding(top = 5.dp),
+                        )
+                    }
+                    Stepper(value = min, onChange = { min = it }, unit = "", min = 0)
                 }
-                Stepper(value = min, onChange = { min = it }, unit = "", min = 0)
+                Box(Modifier.fillMaxWidth().height(1.dp).background(tokens.lineSoft))
             }
 
             // 4. Save button

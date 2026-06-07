@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.adaptive.currentWindowAdaptiveInfo
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -45,15 +46,18 @@ fun AppShell(
     activityContent: @Composable () -> Unit,
     profileContent: @Composable () -> Unit,
 ) {
+    val kind = resolveShellKind()
     val content: @Composable () -> Unit = {
-        when (selectedTab) {
-            Tab.Stock -> stockContent()
-            Tab.Shop -> shopContent()
-            Tab.Activity -> activityContent()
-            Tab.Profile -> profileContent()
+        CompositionLocalProvider(LocalIsWideShell provides (kind == ShellKind.Wide)) {
+            when (selectedTab) {
+                Tab.Stock -> stockContent()
+                Tab.Shop -> shopContent()
+                Tab.Activity -> activityContent()
+                Tab.Profile -> profileContent()
+            }
         }
     }
-    when (resolveShellKind()) {
+    when (kind) {
         ShellKind.Wide -> {
             WideShell(
                 selectedTab = selectedTab,

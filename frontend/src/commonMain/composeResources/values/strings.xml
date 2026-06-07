@@ -38,6 +38,10 @@
     <string name="move_note_placeholder">メモ（任意・まとめ買い 等）</string>
     <string name="move_note_consume_placeholder">メモ（任意）</string>
     <string name="move_current_qty">%1$s（現在 %2$d%3$s）</string>
+    <string name="move_title_replenish">補充する</string>
+    <string name="move_title_consume">消費する</string>
+    <string name="move_current_short">現在 %1$d%2$s</string>
+    <string name="move_after_negative">マイナス在庫</string>
     <string name="stock_search_placeholder">在庫を検索</string>
     <string name="stock_greeting">こんにちは、%1$s</string>
     <string name="stock_title">在庫</string>
@@ -125,6 +129,7 @@
     <string name="master_empty_sub">「商品を追加」から大元のマスタを選んで採用しましょう。</string>
     <string name="master_row_meta">単位: %1$s · 在庫 %2$d%3$s</string>
     <string name="settings_title">商品の設定</string>
+    <string name="settings_master_edit_title">商品マスタの編集</string>
     <string name="settings_name_immutable">商品名は変更できません。</string>
     <string name="settings_save">変更を保存</string>
     <string name="settings_archive">この商品をアーカイブ</string>

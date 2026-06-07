@@ -39,7 +39,7 @@ import net.brightroom.mindstock.frontend.designsystem.atom.AppText
 import net.brightroom.mindstock.frontend.designsystem.atom.ButtonSize
 import net.brightroom.mindstock.frontend.designsystem.atom.ButtonVariant
 import net.brightroom.mindstock.frontend.designsystem.atom.EmptyState
-import net.brightroom.mindstock.frontend.designsystem.atom.RoundBtn
+import net.brightroom.mindstock.frontend.designsystem.atom.NavIconButton
 import net.brightroom.mindstock.frontend.designsystem.atom.Thumb
 import net.brightroom.mindstock.frontend.designsystem.theme.LocalMindstockTokens
 import net.brightroom.mindstock.frontend.designsystem.theme.MindstockType
@@ -73,7 +73,7 @@ fun ArchivedScreen(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            RoundBtn(
+            NavIconButton(
                 icon = AppIconName.Back,
                 contentDescription = stringResource(Res.string.action_back),
                 onClick = onBack,
