@@ -23,8 +23,7 @@ import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import mindstock.frontend.generated.resources.Res
 import mindstock.frontend.generated.resources.loading
-import mindstock.frontend.generated.resources.need_household
-import mindstock.frontend.generated.resources.onboarding_placeholder
+import mindstock.frontend.generated.resources.need_household_title
 import net.brightroom.mindstock.domain.model.inventory.quantity.Quantity
 import net.brightroom.mindstock.domain.model.inventory.stock.Stock
 import net.brightroom.mindstock.domain.model.inventory.stock.movement.Note
@@ -146,17 +145,17 @@ fun App() {
                 }
 
                 is AuthState.NeedOnboarding -> {
-                    AppText(stringResource(Res.string.onboarding_placeholder))
+                    AppText(stringResource(Res.string.need_household_title))
                 }
 
                 is AuthState.NeedHousehold -> {
-                    AppText(stringResource(Res.string.need_household))
+                    AppText(stringResource(Res.string.need_household_title))
                 }
 
                 is AuthState.Ready -> {
                     val householdId = sessionState.activeHouseholdId
                     if (householdId == null) {
-                        AppText(stringResource(Res.string.need_household))
+                        AppText(stringResource(Res.string.need_household_title))
                     } else {
                         val owner =
                             isOwner(sessionState.households, sessionState.activeHouseholdId, sessionState.residentId)
