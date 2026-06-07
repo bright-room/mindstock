@@ -29,7 +29,6 @@ import androidx.compose.ui.unit.dp
 import mindstock.frontend.generated.resources.Res
 import mindstock.frontend.generated.resources.action_back
 import mindstock.frontend.generated.resources.add_product_adopt_title
-import mindstock.frontend.generated.resources.add_product_adopted_badge
 import mindstock.frontend.generated.resources.add_product_custom_add
 import mindstock.frontend.generated.resources.add_product_custom_title
 import mindstock.frontend.generated.resources.add_product_image_note
