@@ -42,11 +42,21 @@ interface AuthDeps {
         households: Households,
         active: HouseholdId,
     )
+
+    /** WS を貼り直す(close → connect)。登録直後にセッションを Registered へ昇格させる。 */
+    suspend fun reconnect(token: Tokens)
+
+    /** アクティブ世帯を永続化する。 */
+    fun persistActiveHousehold(id: HouseholdId)
+
+    /** 永続化済みアクティブ世帯。無ければ null。 */
+    fun savedActiveHousehold(): HouseholdId?
 }
 
 class AuthViewModel(
     private val deps: AuthDeps,
-) : ViewModel() {
+) : ViewModel(),
+    AuthFlow {
     private val _state = MutableStateFlow<AuthState>(AuthState.Booting)
     val state: StateFlow<AuthState> = _state.asStateFlow()
 
@@ -67,11 +77,15 @@ class AuthViewModel(
                 is SessionStatus.Registered -> {
                     deps.onAuthenticated(status.resident)
                     val households = deps.loadHouseholds()
-                    val first = households.list.firstOrNull()
-                    if (first == null) {
+                    val saved = deps.savedActiveHousehold()
+                    val active =
+                        households.list.firstOrNull { it.id == saved }
+                            ?: households.list.firstOrNull()
+                    if (active == null) {
                         _state.value = AuthState.NeedHousehold
                     } else {
-                        deps.onHouseholdsLoaded(households, first.id)
+                        deps.onHouseholdsLoaded(households, active.id)
+                        deps.persistActiveHousehold(active.id)
                         _state.value = AuthState.Ready
                     }
                 }
@@ -88,5 +102,22 @@ class AuthViewModel(
             // Error(OOM 等)は捕捉しない(回復不能なのでクラッシュさせる)。
             _state.value = AuthState.Failed("起動に失敗しました")
         }
+    }
+
+    override suspend fun onResidentRegistered(resident: Resident) {
+        deps.onAuthenticated(resident)
+        val token = deps.loadValidToken() ?: error("token lost during registration")
+        deps.reconnect(token)
+    }
+
+    override suspend fun enterApp(activeId: HouseholdId) {
+        val households = deps.loadHouseholds()
+        deps.onHouseholdsLoaded(households, activeId)
+        deps.persistActiveHousehold(activeId)
+        _state.value = AuthState.Ready
+    }
+
+    override fun needHousehold() {
+        _state.value = AuthState.NeedHousehold
     }
 }
