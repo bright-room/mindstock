@@ -11,8 +11,11 @@ import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material.icons.outlined.AccessTime
 import androidx.compose.material.icons.outlined.Archive
+import androidx.compose.material.icons.outlined.Check
 import androidx.compose.material.icons.outlined.Edit
+import androidx.compose.material.icons.outlined.Group
 import androidx.compose.material.icons.outlined.Home
+import androidx.compose.material.icons.outlined.Link
 import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material.icons.outlined.QrCode
@@ -56,6 +59,9 @@ enum class AppIconName {
     Archive,
     Restore,
     Pencil,
+    Check,
+    Link,
+    Users,
 }
 
 private fun AppIconName.vector(): ImageVector =
@@ -85,6 +91,9 @@ private fun AppIconName.vector(): ImageVector =
         AppIconName.Archive -> Icons.Outlined.Archive
         AppIconName.Restore -> Icons.Outlined.Unarchive
         AppIconName.Pencil -> Icons.Outlined.Edit
+        AppIconName.Check -> Icons.Outlined.Check
+        AppIconName.Link -> Icons.Outlined.Link
+        AppIconName.Users -> Icons.Outlined.Group
     }
 
 @Composable

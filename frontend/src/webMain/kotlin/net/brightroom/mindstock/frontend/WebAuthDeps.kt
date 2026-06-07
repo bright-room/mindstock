@@ -1,3 +1,5 @@
+@file:OptIn(ExperimentalUuidApi::class)
+
 package net.brightroom.mindstock.frontend
 
 import net.brightroom.mindstock.domain.model.household.HouseholdId
@@ -12,15 +14,19 @@ import net.brightroom.mindstock.frontend.auth.SessionStorage
 import net.brightroom.mindstock.frontend.auth.TokenStore
 import net.brightroom.mindstock.frontend.auth.Tokens
 import net.brightroom.mindstock.frontend.core.auth.BrowserNav
+import net.brightroom.mindstock.frontend.core.preference.PreferenceStore
 import net.brightroom.mindstock.frontend.core.rpc.RpcClientProvider
 import net.brightroom.mindstock.frontend.core.session.AppSession
 import net.brightroom.mindstock.rpc.household.HouseholdRpcService
 import net.brightroom.mindstock.rpc.result.RpcResult
 import net.brightroom.mindstock.rpc.session.SessionRpcService
 import net.brightroom.mindstock.rpc.session.SessionStatus
+import kotlin.uuid.ExperimentalUuidApi
+import kotlin.uuid.Uuid
 
 private const val STATE_KEY = "mindstock.oauth.state.v1"
 private const val VERIFIER_KEY = "mindstock.oauth.verifier.v1"
+private const val ACTIVE_HOUSEHOLD_KEY = "mindstock.active_household.v1"
 
 class WebAuthDeps(
     private val authClient: AuthClient,
@@ -94,5 +100,19 @@ class WebAuthDeps(
         active: HouseholdId,
     ) {
         session.setHouseholds(households, active)
+    }
+
+    override suspend fun reconnect(token: Tokens) {
+        rpc.close()
+        rpc.connect(token.accessToken)
+    }
+
+    override fun persistActiveHousehold(id: HouseholdId) {
+        PreferenceStore.set(ACTIVE_HOUSEHOLD_KEY, id().toString())
+    }
+
+    override fun savedActiveHousehold(): HouseholdId? {
+        val raw = PreferenceStore.get(ACTIVE_HOUSEHOLD_KEY) ?: return null
+        return runCatching { HouseholdId(Uuid.parse(raw)) }.getOrNull()
     }
 }
