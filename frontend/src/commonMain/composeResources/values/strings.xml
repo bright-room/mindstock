@@ -211,4 +211,7 @@
     <string name="role_viewer">閲覧のみ</string>
     <string name="toast_household_created">世帯をつくりました</string>
     <string name="toast_household_joined">世帯に参加しました</string>
+    <string name="settings_error_last_owner_leave">最後のオーナーは退出できません。先に別のメンバーをオーナーにしてください。</string>
+    <string name="settings_error_last_owner_remove">最後のオーナーは外せません。</string>
+    <string name="settings_error_last_owner_change_role">最後のオーナーの権限は変更できません。</string>
 </resources>
