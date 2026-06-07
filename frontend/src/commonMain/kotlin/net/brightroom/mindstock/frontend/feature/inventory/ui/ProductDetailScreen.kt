@@ -50,7 +50,12 @@ import mindstock.frontend.generated.resources.detail_wanted_auto
 import mindstock.frontend.generated.resources.detail_wanted_remove
 import mindstock.frontend.generated.resources.history_consume
 import mindstock.frontend.generated.resources.history_corrected_badge
+import mindstock.frontend.generated.resources.history_reason_label
 import mindstock.frontend.generated.resources.history_replenish
+import mindstock.frontend.generated.resources.history_time_date
+import mindstock.frontend.generated.resources.history_time_days
+import mindstock.frontend.generated.resources.history_time_hours
+import mindstock.frontend.generated.resources.history_time_now
 import mindstock.frontend.generated.resources.loading
 import mindstock.frontend.generated.resources.status_low
 import mindstock.frontend.generated.resources.status_ok
@@ -79,6 +84,7 @@ import net.brightroom.mindstock.frontend.designsystem.theme.MindstockTokens
 import net.brightroom.mindstock.frontend.designsystem.theme.MindstockType
 import net.brightroom.mindstock.frontend.feature.inventory.ProductDetailUiState
 import org.jetbrains.compose.resources.stringResource
+import kotlin.time.Clock
 
 @Composable
 fun ProductDetailScreen(
@@ -298,23 +304,29 @@ private fun HistorySection(
         }
 
         is ProductDetailUiState.Content -> {
-            val correctedIds =
+            // 訂正イベントは行に積まず、対象の元行を「訂正済」として見せる(モック準拠・append-only を表示で畳む)。
+            val byTarget =
                 detail.movements.list
                     .filterIsInstance<StockMovement.Correction>()
-                    .map { it.target }
-                    .toSet()
-            val rows = detail.movements.list.reversed()
+                    .associateBy { it.target }
+            val rows =
+                detail.movements.list
+                    .filter { it is StockMovement.Replenishment || it is StockMovement.Consumption }
+                    .reversed()
             if (rows.isEmpty()) {
                 AppText(stringResource(Res.string.detail_history_empty), color = tokens.faint, modifier = Modifier.padding(start = 4.dp))
             } else {
+                val now = remember { Clock.System.now() }
                 var correcting by remember { mutableStateOf<StockMovement?>(null) }
                 Column {
                     rows.forEachIndexed { i, m ->
-                        val corrected = (m.identity as? MovementIdentity.Persisted)?.id in correctedIds
+                        val correction = (m.identity as? MovementIdentity.Persisted)?.id?.let { byTarget[it] }
                         HistoryRow(
                             movement = m,
                             unit = unit,
-                            corrected = corrected,
+                            displayQty = correction?.let { it.quantity() } ?: m.quantity(),
+                            reason = correction?.let { it.reason() },
+                            relTime = relTimeOf(m.occurredAt, now),
                             last = i == rows.lastIndex,
                             tokens = tokens,
                             onCorrect = { correcting = m },
@@ -333,22 +345,29 @@ private fun HistorySection(
 }
 
 @Composable
+private fun relTimeLabel(rel: RelTime): String =
+    when (rel) {
+        RelTime.JustNow -> stringResource(Res.string.history_time_now)
+        is RelTime.HoursAgo -> stringResource(Res.string.history_time_hours, rel.hours)
+        is RelTime.DaysAgo -> stringResource(Res.string.history_time_days, rel.days)
+        is RelTime.OnDate -> stringResource(Res.string.history_time_date, rel.month, rel.day)
+    }
+
+@Composable
 private fun HistoryRow(
     movement: StockMovement,
     unit: String,
-    corrected: Boolean,
+    displayQty: Int,
+    reason: String?,
+    relTime: RelTime,
     last: Boolean,
     tokens: MindstockTokens,
     onCorrect: () -> Unit,
 ) {
     val isReplenish = movement is StockMovement.Replenishment
     val label =
-        when (movement) {
-            is StockMovement.Replenishment -> stringResource(Res.string.history_replenish)
-            is StockMovement.Consumption -> stringResource(Res.string.history_consume)
-            is StockMovement.Correction -> stringResource(Res.string.action_correct)
-        }
-    val canCorrect = movement is StockMovement.Replenishment || movement is StockMovement.Consumption
+        if (isReplenish) stringResource(Res.string.history_replenish) else stringResource(Res.string.history_consume)
+    val corrected = reason != null
     val name = movement.actor.profile.displayName()
     Row(modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min)) {
         // ノード + 縦コネクタ
@@ -373,9 +392,10 @@ private fun HistoryRow(
         }
         Spacer(Modifier.width(14.dp))
         Column(modifier = Modifier.weight(1f).padding(bottom = if (last) 0.dp else 18.dp)) {
+            // ラベル + 数量 + 訂正済バッジ … 右端に相対時刻
             Row(verticalAlignment = Alignment.CenterVertically) {
                 AppText(
-                    "$label ${movement.quantity()}$unit",
+                    "$label $displayQty$unit",
                     style = MindstockType.cardTitle().copy(fontSize = 14.5f.sp),
                     color = tokens.ink,
                 )
@@ -384,9 +404,8 @@ private fun HistoryRow(
                     Box(
                         modifier =
                             Modifier
-                                .clip(
-                                    RoundedCornerShape(6.dp),
-                                ).background(tokens.accentSoft)
+                                .clip(RoundedCornerShape(6.dp))
+                                .background(tokens.accentSoft)
                                 .padding(horizontal = 6.dp, vertical = 3.dp),
                     ) {
                         AppText(
@@ -396,8 +415,15 @@ private fun HistoryRow(
                         )
                     }
                 }
+                Spacer(Modifier.weight(1f))
+                AppText(
+                    relTimeLabel(relTime),
+                    style = MindstockType.unitCaption().copy(fontSize = 12.sp),
+                    color = tokens.faint,
+                )
             }
             Spacer(Modifier.height(7.dp))
+            // 実行者 + メモ … 右端に訂正リンク
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Box(
                     modifier = Modifier.size(18.dp).clip(CircleShape).background(tokens.accent),
@@ -412,19 +438,26 @@ private fun HistoryRow(
                     overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.weight(1f),
                 )
-                if (canCorrect) {
-                    AppText(
-                        stringResource(Res.string.action_correct),
-                        style = MindstockType.statusLabel().copy(fontSize = 12.sp),
-                        color = tokens.accent,
-                        modifier =
-                            Modifier
-                                .padding(start = 8.dp)
-                                .clip(RoundedCornerShape(6.dp))
-                                .clickable(onClick = onCorrect)
-                                .padding(4.dp),
-                    )
-                }
+                AppText(
+                    stringResource(Res.string.action_correct),
+                    style = MindstockType.statusLabel().copy(fontSize = 12.sp),
+                    color = tokens.accent,
+                    modifier =
+                        Modifier
+                            .padding(start = 8.dp)
+                            .clip(RoundedCornerShape(6.dp))
+                            .clickable(onClick = onCorrect)
+                            .padding(4.dp),
+                )
+            }
+            // 訂正理由(訂正済のときのみ)
+            if (reason != null) {
+                Spacer(Modifier.height(5.dp))
+                AppText(
+                    stringResource(Res.string.history_reason_label, reason),
+                    style = MindstockType.unitCaption().copy(fontSize = 11.5f.sp),
+                    color = tokens.sub,
+                )
             }
         }
     }

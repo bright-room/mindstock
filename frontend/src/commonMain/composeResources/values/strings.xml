@@ -31,6 +31,11 @@
     <string name="history_replenish">補充</string>
     <string name="history_consume">消費</string>
     <string name="history_corrected_badge">訂正済</string>
+    <string name="history_time_now">たった今</string>
+    <string name="history_time_hours">%1$d時間前</string>
+    <string name="history_time_days">%1$d日前</string>
+    <string name="history_time_date">%1$d/%2$d</string>
+    <string name="history_reason_label">訂正理由: %1$s</string>
     <string name="action_correct">訂正</string>
     <string name="correct_title">数量を訂正</string>
     <string name="correct_reason_placeholder">訂正の理由（入力推奨）</string>
