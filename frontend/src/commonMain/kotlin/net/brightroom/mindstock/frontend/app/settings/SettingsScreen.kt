@@ -45,6 +45,7 @@ import mindstock.frontend.generated.resources.settings_display_name_edit
 import mindstock.frontend.generated.resources.settings_eyebrow
 import mindstock.frontend.generated.resources.settings_footer
 import mindstock.frontend.generated.resources.settings_household_member_count
+import mindstock.frontend.generated.resources.settings_household_rename
 import mindstock.frontend.generated.resources.settings_invite_owner_only
 import mindstock.frontend.generated.resources.settings_leave
 import mindstock.frontend.generated.resources.settings_logout
@@ -103,7 +104,7 @@ fun SettingsScreen(
     modifier: Modifier = Modifier,
 ) {
     val tokens = LocalMindstockTokens.current
-    var selectedMember by remember { mutableStateOf<MemberRow?>(null) }
+    var selectedMemberId by remember { mutableStateOf<ResidentId?>(null) }
     var inviteOpen by remember { mutableStateOf(false) }
 
     Column(
@@ -135,7 +136,7 @@ fun SettingsScreen(
                 state = state,
                 onRenameHousehold = onRenameHousehold,
                 onOpenSwitcher = onOpenSwitcher,
-                onSelectMember = { selectedMember = it },
+                onSelectMember = { selectedMemberId = it.residentId },
                 onOpenInvite = { inviteOpen = true },
                 onLeave = onLeave,
             )
@@ -201,15 +202,16 @@ fun SettingsScreen(
         )
     }
 
+    val selectedMember = state.members.firstOrNull { it.residentId == selectedMemberId }
     MemberSheet(
         open = selectedMember != null,
         member = selectedMember,
         isOwnerSelf = state.isOwner,
-        onClose = { selectedMember = null },
+        onClose = { selectedMemberId = null },
         onChangeRole = onChangeRole,
         onRemove = {
             onRemoveMember(it)
-            selectedMember = null
+            selectedMemberId = null
         },
     )
     InviteSheet(
@@ -232,15 +234,7 @@ private fun AccountCard(
     var draft by remember { mutableStateOf(displayName) }
 
     Box(
-        modifier =
-            Modifier
-                .fillMaxWidth()
-                .padding(bottom = 16.dp)
-                .softShadow(ShadowLevel.Sm, RoundedCornerShape(tokens.radiusLg))
-                .clip(RoundedCornerShape(tokens.radiusLg))
-                .background(tokens.surface)
-                .border(1.dp, tokens.lineSoft, RoundedCornerShape(tokens.radiusLg))
-                .padding(20.dp),
+        modifier = Modifier.cardSurface().padding(20.dp),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(15.dp)) {
             Box(
@@ -299,17 +293,8 @@ private fun AccountCard(
 
 @Composable
 private fun NoHouseholdFallback(onOpenSwitcher: () -> Unit) {
-    val tokens = LocalMindstockTokens.current
     Column(
-        modifier =
-            Modifier
-                .fillMaxWidth()
-                .padding(bottom = 16.dp)
-                .softShadow(ShadowLevel.Sm, RoundedCornerShape(tokens.radiusLg))
-                .clip(RoundedCornerShape(tokens.radiusLg))
-                .background(tokens.surface)
-                .border(1.dp, tokens.lineSoft, RoundedCornerShape(tokens.radiusLg))
-                .padding(8.dp),
+        modifier = Modifier.cardSurface().padding(8.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         EmptyState(
@@ -355,14 +340,7 @@ private fun HouseholdCard(
     var leaveConfirm by remember { mutableStateOf(false) }
 
     Column(
-        modifier =
-            Modifier
-                .fillMaxWidth()
-                .padding(bottom = 16.dp)
-                .softShadow(ShadowLevel.Sm, RoundedCornerShape(tokens.radiusLg))
-                .clip(RoundedCornerShape(tokens.radiusLg))
-                .background(tokens.surface)
-                .border(1.dp, tokens.lineSoft, RoundedCornerShape(tokens.radiusLg)),
+        modifier = Modifier.cardSurface(),
     ) {
         // header
         Row(
@@ -416,7 +394,7 @@ private fun HouseholdCard(
                             if (state.isOwner) {
                                 AppIcon(
                                     AppIconName.Pencil,
-                                    contentDescription = null,
+                                    contentDescription = stringResource(Res.string.settings_household_rename),
                                     size = 14.dp,
                                     tint = tokens.accent,
                                     modifier =
@@ -596,12 +574,7 @@ private fun MasterEntryCard(onOpenMaster: () -> Unit) {
     Row(
         modifier =
             Modifier
-                .fillMaxWidth()
-                .padding(bottom = 16.dp)
-                .softShadow(ShadowLevel.Sm, RoundedCornerShape(tokens.radiusLg))
-                .clip(RoundedCornerShape(tokens.radiusLg))
-                .background(tokens.surface)
-                .border(1.dp, tokens.lineSoft, RoundedCornerShape(tokens.radiusLg))
+                .cardSurface()
                 .clickable { onOpenMaster() }
                 .padding(horizontal = 16.dp, vertical = 15.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -649,17 +622,7 @@ private fun SectionLabel(text: String) {
 
 @Composable
 private fun Card(content: @Composable () -> Unit) {
-    val tokens = LocalMindstockTokens.current
-    Column(
-        modifier =
-            Modifier
-                .fillMaxWidth()
-                .padding(bottom = 16.dp)
-                .softShadow(ShadowLevel.Sm, RoundedCornerShape(tokens.radiusLg))
-                .clip(RoundedCornerShape(tokens.radiusLg))
-                .background(tokens.surface)
-                .border(1.dp, tokens.lineSoft, RoundedCornerShape(tokens.radiusLg)),
-    ) {
+    Column(modifier = Modifier.cardSurface()) {
         content()
     }
 }
@@ -737,6 +700,19 @@ private fun Modifier.topDivider(color: Color): Modifier =
     drawBehind {
         drawLine(color = color, start = Offset(0f, 0f), end = Offset(size.width, 0f), strokeWidth = 1f)
     }
+
+/** カード共通の表層(影 → 角丸 → 面 → 枠 + 下マージン)。設定画面の 4 カードで共有。 */
+@Composable
+private fun Modifier.cardSurface(): Modifier {
+    val tokens = LocalMindstockTokens.current
+    return this
+        .fillMaxWidth()
+        .padding(bottom = 16.dp)
+        .softShadow(ShadowLevel.Sm, RoundedCornerShape(tokens.radiusLg))
+        .clip(RoundedCornerShape(tokens.radiusLg))
+        .background(tokens.surface)
+        .border(1.dp, tokens.lineSoft, RoundedCornerShape(tokens.radiusLg))
+}
 
 @Composable
 private fun FutureBadge(text: String) {
