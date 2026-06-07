@@ -299,4 +299,5 @@
     <string name="sidebar_switch_subtitle">切り替え・追加</string>
     <string name="sidebar_add_product">商品を追加</string>
     <string name="sidebar_notifications">お知らせ</string>
+    <string name="avatar_fallback_initial">あ</string>
 </resources>

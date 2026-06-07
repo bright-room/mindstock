@@ -31,6 +31,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import mindstock.frontend.generated.resources.Res
 import mindstock.frontend.generated.resources.app_name
+import mindstock.frontend.generated.resources.avatar_fallback_initial
 import mindstock.frontend.generated.resources.sidebar_add_product
 import mindstock.frontend.generated.resources.sidebar_notifications
 import mindstock.frontend.generated.resources.sidebar_switch_subtitle
@@ -46,6 +47,7 @@ import org.jetbrains.compose.resources.stringResource
  * 幅 >= 840dp 用のデスクトップ shell。モック `app/app.jsx` の `DesktopChrome` 準拠。
  * 248dp 左サイドバー(ロゴ/世帯スイッチャ/追加/ナビ/お知らせ/ユーザフッタ) + content 中央寄せ。
  * ブラウザ枠(信号機ドット等)はモックのプレゼン足場であり再現しない(実ブラウザがそれ)。
+ * 呼び出し側はアクティブな世帯がある(AuthState.Ready かつ householdId != null)ことを保証する(AppShell で制御)。
  */
 @Composable
 fun WideShell(
@@ -186,7 +188,7 @@ fun WideShell(
                     contentAlignment = Alignment.Center,
                 ) {
                     AppText(
-                        displayName.take(1).ifEmpty { "あ" },
+                        displayName.take(1).ifEmpty { stringResource(Res.string.avatar_fallback_initial) },
                         color = tokens.onAccent,
                         style = MindstockType.statusLabel(),
                     )
