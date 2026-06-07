@@ -285,4 +285,18 @@
     <string name="settings_toast_left">世帯から退出しました</string>
     <string name="settings_toast_invite_issued">招待コードを発行しました</string>
     <string name="settings_toast_invite_revoked">招待コードを失効しました</string>
+
+    <!-- welcome / sign-in splash -->
+    <string name="welcome_tagline">暮らしの在庫を、ちょうどよく。</string>
+    <string name="welcome_description">買い忘れも、買い過ぎも減らす。日用品のストックを家族とゆるやかに共有する在庫ノート。</string>
+    <string name="welcome_chip_forget">買い忘れ防止</string>
+    <string name="welcome_chip_predict">消費予測</string>
+    <string name="welcome_chip_share">家族で共有</string>
+    <string name="welcome_cta">ログインして始める</string>
+    <string name="welcome_cta_busy">Zitadel に接続中…</string>
+    <string name="welcome_footer">Zitadel アカウントで安全にサインイン</string>
+    <!-- desktop sidebar -->
+    <string name="sidebar_switch_subtitle">切り替え・追加</string>
+    <string name="sidebar_add_product">商品を追加</string>
+    <string name="sidebar_notifications">お知らせ</string>
 </resources>
