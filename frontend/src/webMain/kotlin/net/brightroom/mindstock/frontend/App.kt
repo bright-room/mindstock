@@ -31,6 +31,7 @@ import net.brightroom.mindstock.frontend.app.AuthViewModel
 import net.brightroom.mindstock.frontend.app.isOwner
 import net.brightroom.mindstock.frontend.app.settings.SettingsScreen
 import net.brightroom.mindstock.frontend.app.shell.AppShell
+import net.brightroom.mindstock.frontend.app.shell.Tab
 import net.brightroom.mindstock.frontend.auth.AuthClient
 import net.brightroom.mindstock.frontend.auth.AuthConfig
 import net.brightroom.mindstock.frontend.auth.TokenStore
@@ -308,7 +309,11 @@ fun App() {
                         val settingsHhState by settingsHhVm.state.collectAsState()
                         // 世帯作成/参加 or 切替が成立して active が変わったら、開いていたシートを閉じる。
                         LaunchedEffect(householdId) { settingsSheet = null }
+                        var selectedTab by remember { mutableStateOf(Tab.Stock) }
                         AppShell(
+                            selectedTab = selectedTab,
+                            onSelectTab = { selectedTab = it },
+                            onAdd = { catalogOverlay = CatalogOverlay.AddProduct },
                             stockContent = {
                                 val activeHousehold =
                                     sessionState.households?.list?.firstOrNull { it.id == householdId }
@@ -320,6 +325,8 @@ fun App() {
                                     displayName = sessionState.displayName?.invoke() ?: "",
                                     householdName = activeHousehold?.profile?.name?.invoke() ?: "",
                                     memberCount = activeHousehold?.members?.size() ?: 1,
+                                    onShop = { selectedTab = Tab.Shop },
+                                    onOpenSettings = { selectedTab = Tab.Profile },
                                 )
                             },
                             shopContent = {

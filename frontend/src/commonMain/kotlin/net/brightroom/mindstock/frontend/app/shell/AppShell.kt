@@ -1,21 +1,21 @@
 package net.brightroom.mindstock.frontend.app.shell
 
-import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteScaffold
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import mindstock.frontend.generated.resources.Res
 import mindstock.frontend.generated.resources.nav_activity
 import mindstock.frontend.generated.resources.nav_profile
 import mindstock.frontend.generated.resources.nav_shop
 import mindstock.frontend.generated.resources.nav_stock
-import net.brightroom.mindstock.frontend.designsystem.atom.AppIcon
 import net.brightroom.mindstock.frontend.designsystem.atom.AppIconName
-import net.brightroom.mindstock.frontend.designsystem.atom.AppText
 import org.jetbrains.compose.resources.StringResource
-import org.jetbrains.compose.resources.stringResource
 
 enum class Tab(
     val label: StringResource,
@@ -29,29 +29,29 @@ enum class Tab(
 
 @Composable
 fun AppShell(
+    selectedTab: Tab,
+    onSelectTab: (Tab) -> Unit,
+    onAdd: () -> Unit,
     stockContent: @Composable () -> Unit,
     shopContent: @Composable () -> Unit,
     activityContent: @Composable () -> Unit,
     profileContent: @Composable () -> Unit,
 ) {
-    var selected by remember { mutableStateOf(Tab.Stock) }
-    NavigationSuiteScaffold(
-        navigationSuiteItems = {
-            Tab.entries.forEach { tab ->
-                item(
-                    selected = tab == selected,
-                    onClick = { selected = tab },
-                    icon = { AppIcon(tab.icon, contentDescription = stringResource(tab.label)) },
-                    label = { AppText(stringResource(tab.label)) },
-                )
+    Box(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
+        // 本文。浮遊ナビに隠れないよう下部に余白を取る。
+        Box(modifier = Modifier.fillMaxSize().padding(bottom = 88.dp)) {
+            when (selectedTab) {
+                Tab.Stock -> stockContent()
+                Tab.Shop -> shopContent()
+                Tab.Activity -> activityContent()
+                Tab.Profile -> profileContent()
             }
-        },
-    ) {
-        when (selected) {
-            Tab.Stock -> stockContent()
-            Tab.Shop -> shopContent()
-            Tab.Activity -> activityContent()
-            Tab.Profile -> profileContent()
         }
+        BottomNav(
+            selected = selectedTab,
+            onSelect = onSelectTab,
+            onAdd = onAdd,
+            modifier = Modifier.align(Alignment.BottomCenter),
+        )
     }
 }
