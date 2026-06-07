@@ -56,17 +56,28 @@ import net.brightroom.mindstock.frontend.feature.catalog.ui.ArchivedScreen
 import net.brightroom.mindstock.frontend.feature.catalog.ui.CatalogOverlay
 import net.brightroom.mindstock.frontend.feature.catalog.ui.ProductMasterScreen
 import net.brightroom.mindstock.frontend.feature.catalog.ui.ProductSettingsSheet
+import net.brightroom.mindstock.frontend.feature.household.NeedHouseholdViewModel
+import net.brightroom.mindstock.frontend.feature.household.data.HouseholdRepository
+import net.brightroom.mindstock.frontend.feature.household.ui.CreateHouseholdSheet
+import net.brightroom.mindstock.frontend.feature.household.ui.JoinCodeSheet
+import net.brightroom.mindstock.frontend.feature.household.ui.NeedHouseholdScreen
 import net.brightroom.mindstock.frontend.feature.inventory.InventoryViewModel
 import net.brightroom.mindstock.frontend.feature.inventory.ProductDetailViewModel
 import net.brightroom.mindstock.frontend.feature.inventory.data.InventoryRepository
 import net.brightroom.mindstock.frontend.feature.inventory.ui.DetailTarget
 import net.brightroom.mindstock.frontend.feature.inventory.ui.InventoryRoute
 import net.brightroom.mindstock.frontend.feature.inventory.ui.ProductDetailOverlay
+import net.brightroom.mindstock.frontend.feature.onboarding.OnboardingViewModel
+import net.brightroom.mindstock.frontend.feature.onboarding.ui.OnboardingScreen
+import net.brightroom.mindstock.frontend.feature.resident.data.ResidentRepository
 import net.brightroom.mindstock.frontend.feature.shopping.ShoppingListViewModel
 import net.brightroom.mindstock.frontend.feature.shopping.ui.ShoppingListScreen
 import net.brightroom.mindstock.rpc.catalog.CatalogRpcService
+import net.brightroom.mindstock.rpc.household.HouseholdRegisterRpcService
+import net.brightroom.mindstock.rpc.household.HouseholdRpcService
 import net.brightroom.mindstock.rpc.product.ProductRegisterRpcService
 import net.brightroom.mindstock.rpc.product.ProductRpcService
+import net.brightroom.mindstock.rpc.resident.ResidentRegisterRpcService
 import net.brightroom.mindstock.rpc.stock.StockRegisterRpcService
 import net.brightroom.mindstock.rpc.stock.StockRpcService
 import org.jetbrains.compose.resources.stringResource
@@ -133,6 +144,15 @@ fun App() {
                     productService = { rpc.service<ProductRpcService>() },
                 )
             }
+        val residentRepository =
+            remember { ResidentRepository(residentRegisterService = { rpc.service<ResidentRegisterRpcService>() }) }
+        val householdRepository =
+            remember {
+                HouseholdRepository(
+                    householdService = { rpc.service<HouseholdRpcService>() },
+                    householdRegisterService = { rpc.service<HouseholdRegisterRpcService>() },
+                )
+            }
 
         Box(Modifier.fillMaxSize()) {
             when (state) {
@@ -145,11 +165,68 @@ fun App() {
                 }
 
                 is AuthState.NeedOnboarding -> {
-                    AppText(stringResource(Res.string.need_household_title))
+                    val onbVm =
+                        remember {
+                            OnboardingViewModel(
+                                registerDisplayName = residentRepository::register,
+                                createHousehold = householdRepository::create,
+                                flow = vm,
+                                toast = toast,
+                                reauth = reauth,
+                            )
+                        }
+                    val onbState by onbVm.state.collectAsState()
+                    OnboardingScreen(
+                        state = onbState,
+                        onName = onbVm::setName,
+                        onHouseholdName = onbVm::setHouseholdName,
+                        onNext = onbVm::next,
+                        onBack = onbVm::back,
+                        onSubmit = { scope.launch { onbVm.submit() } },
+                        modifier = Modifier.fillMaxSize(),
+                    )
                 }
 
                 is AuthState.NeedHousehold -> {
-                    AppText(stringResource(Res.string.need_household_title))
+                    val nhVm =
+                        remember {
+                            NeedHouseholdViewModel(
+                                createHousehold = householdRepository::create,
+                                previewInvite = householdRepository::previewInvite,
+                                joinByCode = householdRepository::join,
+                                flow = vm,
+                                toast = toast,
+                                reauth = reauth,
+                            )
+                        }
+                    val nhState by nhVm.state.collectAsState()
+                    var sheet by remember { mutableStateOf<NeedHouseholdSheet?>(null) }
+                    NeedHouseholdScreen(
+                        onCreate = { sheet = NeedHouseholdSheet.Create },
+                        onJoin = {
+                            nhVm.clearPreview()
+                            sheet = NeedHouseholdSheet.Join
+                        },
+                        modifier = Modifier.fillMaxSize(),
+                    )
+                    CreateHouseholdSheet(
+                        open = sheet == NeedHouseholdSheet.Create,
+                        busy = nhState.busy,
+                        onClose = { sheet = null },
+                        onCreate = { name -> scope.launch { nhVm.create(name) } },
+                    )
+                    JoinCodeSheet(
+                        open = sheet == NeedHouseholdSheet.Join,
+                        state = nhState,
+                        onClose = {
+                            sheet = null
+                            nhVm.clearPreview()
+                        },
+                        onCodeChange = { code ->
+                            if (code.length == 6) scope.launch { nhVm.preview(code) } else nhVm.clearPreview()
+                        },
+                        onJoin = { code -> scope.launch { nhVm.join(code) } },
+                    )
                 }
 
                 is AuthState.Ready -> {
@@ -427,3 +504,5 @@ private fun activeHouseholdName(s: AppSession.State): String =
         ?.profile
         ?.name
         ?.invoke() ?: ""
+
+private enum class NeedHouseholdSheet { Create, Join }
