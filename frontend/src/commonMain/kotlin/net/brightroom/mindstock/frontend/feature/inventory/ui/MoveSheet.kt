@@ -14,6 +14,7 @@ import mindstock.frontend.generated.resources.Res
 import mindstock.frontend.generated.resources.action_consume
 import mindstock.frontend.generated.resources.action_replenish
 import mindstock.frontend.generated.resources.move_current_qty
+import mindstock.frontend.generated.resources.move_note_consume_placeholder
 import mindstock.frontend.generated.resources.move_note_placeholder
 import mindstock.frontend.generated.resources.move_submit
 import net.brightroom.mindstock.domain.model.inventory.stock.Stock
@@ -49,7 +50,10 @@ fun MoveSheet(
             TextInput(
                 value = note,
                 onValueChange = { note = it },
-                placeholder = stringResource(Res.string.move_note_placeholder),
+                placeholder =
+                    stringResource(
+                        if (isReplenish) Res.string.move_note_placeholder else Res.string.move_note_consume_placeholder,
+                    ),
                 modifier = Modifier.fillMaxWidth(),
             )
             PrimaryButton(onClick = {

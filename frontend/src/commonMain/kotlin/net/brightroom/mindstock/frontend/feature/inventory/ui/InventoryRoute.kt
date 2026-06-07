@@ -30,6 +30,8 @@ fun InventoryRoute(
     displayName: String = "",
     householdName: String = "",
     memberCount: Int = 1,
+    onShop: () -> Unit = {},
+    onOpenSettings: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     val scope = rememberCoroutineScope()
@@ -50,6 +52,8 @@ fun InventoryRoute(
         onReplenish = { moveTarget = it to MoveMode.Replenish },
         onConsume = { moveTarget = it to MoveMode.Consume },
         onAddProduct = onAddProduct,
+        onShop = onShop,
+        onOpenSettings = onOpenSettings,
         modifier = modifier,
     )
 

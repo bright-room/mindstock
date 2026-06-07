@@ -57,6 +57,8 @@ fun StockHomeScreen(
     onReplenish: (Stock) -> Unit,
     onConsume: (Stock) -> Unit,
     onAddProduct: () -> Unit,
+    onShop: () -> Unit = {},
+    onOpenSettings: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     val tokens = LocalMindstockTokens.current
@@ -82,7 +84,7 @@ fun StockHomeScreen(
                     HouseholdPill(
                         name = householdName,
                         memberCount = memberCount,
-                        onClick = {},
+                        onClick = onOpenSettings,
                     )
                     RoundBtn(icon = AppIconName.Bell, contentDescription = "notifications", onClick = {})
                 }
@@ -95,7 +97,7 @@ fun StockHomeScreen(
                 val visible = state.visibleStocks()
                 if (state.query.isBlank()) {
                     val summary = stockSummaryOf(state.stocks.list.map { it.status() })
-                    SummaryStrip(summary = summary, onClick = {})
+                    SummaryStrip(summary = summary, onClick = onShop)
                 }
 
                 SearchField(
