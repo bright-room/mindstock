@@ -366,7 +366,7 @@ class AuthViewModelSwitchTest {
 
 - [ ] **Step 2: テストを実行して失敗を確認**
 
-Run: `./gradlew :frontend:compileTestKotlinJvm` または `./gradlew :frontend:jvmTest --tests "*AuthViewModelSwitchTest*"`
+Run: `./gradlew :frontend:compileTestKotlinJs`(コンパイルのみ。frontend は js/wasmJs ターゲットのみ・JVM ターゲット無し)
 Expected: コンパイルエラー(未実装メソッド)。
 
 - [ ] **Step 3: AuthViewModel に coordinator を実装**
@@ -416,7 +416,7 @@ import net.brightroom.mindstock.domain.model.resident.profile.DisplayName
 
 - [ ] **Step 4: テストを実行して通過を確認**
 
-Run: `./gradlew :frontend:jvmTest --tests "*AuthViewModelSwitchTest*"`
+Run: `./gradlew :frontend:jsTest`(CI と同じ。karma/headless で commonTest を実行)
 Expected: PASS（5 件）。
 
 - [ ] **Step 5: コミット**
@@ -705,7 +705,7 @@ class SettingsViewModelTest {
 
 - [ ] **Step 2: テストを実行して失敗を確認**
 
-Run: `./gradlew :frontend:jvmTest --tests "*SettingsViewModelTest*"`
+Run: `./gradlew :frontend:jsTest`
 Expected: コンパイルエラー（SettingsViewModel 未定義）。
 
 - [ ] **Step 3: SettingsViewModel を実装**
@@ -900,7 +900,7 @@ class SettingsViewModel(
 
 - [ ] **Step 4: テストを実行して通過を確認**
 
-Run: `./gradlew :frontend:jvmTest --tests "*SettingsViewModelTest*"`
+Run: `./gradlew :frontend:jsTest`
 Expected: PASS（10 件）。失敗したら `RpcOutcome`/`RpcError`/`ToastController` の実 API にテストと実装を合わせる。
 
 - [ ] **Step 5: コミット**
@@ -1171,7 +1171,7 @@ fun InviteSheet(
 
 - [ ] **Step 4: 一括コンパイル確認(JVM)**
 
-Run: `./gradlew :frontend:compileKotlinJvm`
+Run: `./gradlew :frontend:compileKotlinJs`
 Expected: BUILD SUCCESSFUL（型エラーがあればシグネチャを実 atom に合わせて修正）。
 
 - [ ] **Step 5: コミット**
@@ -1393,7 +1393,7 @@ git commit -m "feat(frontend): 設定タブに SettingsScreen と世帯管理を
 
 - [ ] **Step 1: 全テスト実行**
 
-Run: `./gradlew test`
+Run: `./gradlew test :frontend:jsTest`(root `test` は backend/domain の JVM テスト。frontend commonTest は `:frontend:jsTest` で別途実行)
 Expected: BUILD SUCCESSFUL。`SettingsViewModelTest`(10)・`AuthViewModelSwitchTest`(5)・既存テストが全通過。失敗したら該当 Task に戻る。
 
 - [ ] **Step 2: フルビルド(WasmJs を除く)**
