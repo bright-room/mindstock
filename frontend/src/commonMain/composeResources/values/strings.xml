@@ -27,7 +27,6 @@
     <string name="stock_placeholder">在庫一覧(配線確認用プレースホルダ)</string>
     <string name="tab_shop_placeholder">買い物(P6-1)</string>
     <string name="tab_activity_placeholder">履歴(P6-1)</string>
-    <string name="tab_profile_placeholder">設定(P6-3)</string>
     <string name="detail_history">履歴</string>
     <string name="detail_history_empty">まだ記録がありません。</string>
     <string name="detail_min_stock">最低在庫 %1$d%2$s</string>
