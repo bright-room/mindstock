@@ -82,8 +82,8 @@ class AuthViewModel(
         }
         val token = deps.loadValidToken()
         if (token == null) {
-            deps.redirectToAuthorize()
-            return // redirect でページ離脱。Booting のまま
+            _state.value = AuthState.Unauthenticated
+            return // ウェルカム splash を表示。ボタン押下で authorize へ。
         }
         try {
             when (val status = deps.fetchSessionStatus(token)) {
