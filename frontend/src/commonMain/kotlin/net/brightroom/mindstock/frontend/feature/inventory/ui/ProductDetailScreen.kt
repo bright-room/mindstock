@@ -82,7 +82,9 @@ import net.brightroom.mindstock.frontend.designsystem.atom.Thumb
 import net.brightroom.mindstock.frontend.designsystem.theme.LocalMindstockTokens
 import net.brightroom.mindstock.frontend.designsystem.theme.MindstockTokens
 import net.brightroom.mindstock.frontend.designsystem.theme.MindstockType
+import net.brightroom.mindstock.frontend.designsystem.theme.avatarColorOf
 import net.brightroom.mindstock.frontend.feature.inventory.ProductDetailUiState
+import net.brightroom.mindstock.frontend.feature.inventory.glyphForProductName
 import org.jetbrains.compose.resources.stringResource
 import kotlin.time.Clock
 
@@ -162,7 +164,7 @@ fun ProductDetailScreen(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                Thumb(icon = AppIconName.Box, size = 72.dp, radius = 22.dp)
+                Thumb(icon = glyphForProductName(stock.product.name()), size = 72.dp, radius = 22.dp)
                 AppText(
                     stock.product.name(),
                     style = MindstockType.summaryTitle().copy(fontSize = 19.sp),
@@ -187,7 +189,7 @@ fun ProductDetailScreen(
                         Row(verticalAlignment = Alignment.Bottom) {
                             AppText(
                                 "${stock.currentQuantity()}",
-                                style = MindstockType.bigQty().copy(fontSize = 46.sp),
+                                style = MindstockType.bigQty().copy(fontSize = 46.sp, lineHeight = 41.4f.sp),
                                 color = if (status == StockStatus.在庫切れ) tokens.statusOut else tokens.ink,
                             )
                             Spacer(Modifier.width(6.dp))
@@ -207,7 +209,12 @@ fun ProductDetailScreen(
                         color = tokens.faint,
                     )
                 }
-                StockLevelBar(qty = stock.currentQuantity(), min = stock.product.setting.minimumStock(), color = statusColor)
+                // モック準拠: 十分(ok)のバーは status色(緑)でなくアクセント(橙)。
+                StockLevelBar(
+                    qty = stock.currentQuantity(),
+                    min = stock.product.setting.minimumStock(),
+                    color = if (status == StockStatus.十分) tokens.accent else statusColor,
+                )
                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     AppButton(
                         onClick = onReplenish,
@@ -426,7 +433,7 @@ private fun HistoryRow(
             // 実行者 + メモ … 右端に訂正リンク
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Box(
-                    modifier = Modifier.size(18.dp).clip(CircleShape).background(tokens.accent),
+                    modifier = Modifier.size(18.dp).clip(CircleShape).background(avatarColorOf(name)),
                     contentAlignment = Alignment.Center,
                 ) { AppText(name.take(1), style = MindstockType.statusLabel().copy(fontSize = 9.sp), color = tokens.onAccent) }
                 Spacer(Modifier.width(8.dp))
@@ -438,19 +445,25 @@ private fun HistoryRow(
                     overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.weight(1f),
                 )
-                AppText(
-                    stringResource(Res.string.action_correct),
-                    style = MindstockType.statusLabel().copy(fontSize = 12.sp),
-                    color = tokens.accent,
+                Row(
                     modifier =
                         Modifier
                             .padding(start = 8.dp)
                             .clip(RoundedCornerShape(6.dp))
                             .clickable(onClick = onCorrect)
                             .padding(4.dp),
-                )
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                ) {
+                    AppIcon(AppIconName.Pencil, contentDescription = null, tint = tokens.accent, size = 13.dp)
+                    AppText(
+                        stringResource(Res.string.action_correct),
+                        style = MindstockType.statusLabel().copy(fontSize = 12.sp),
+                        color = tokens.accent,
+                    )
+                }
             }
-            // 訂正理由(訂正済のときのみ)
+            // 訂正理由(訂正済のときのみ)。mock には無いが UX 改善として表示する(ユーザ承認済の mock 逸脱)。
             if (reason != null) {
                 Spacer(Modifier.height(5.dp))
                 AppText(
