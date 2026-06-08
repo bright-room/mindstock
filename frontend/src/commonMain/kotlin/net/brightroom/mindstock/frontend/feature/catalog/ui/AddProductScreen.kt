@@ -57,10 +57,10 @@ import net.brightroom.mindstock.frontend.designsystem.atom.AddTile
 import net.brightroom.mindstock.frontend.designsystem.atom.AppIcon
 import net.brightroom.mindstock.frontend.designsystem.atom.AppIconName
 import net.brightroom.mindstock.frontend.designsystem.atom.AppText
+import net.brightroom.mindstock.frontend.designsystem.atom.MiniStepper
 import net.brightroom.mindstock.frontend.designsystem.atom.NavIconButton
 import net.brightroom.mindstock.frontend.designsystem.atom.PrimaryButton
 import net.brightroom.mindstock.frontend.designsystem.atom.SearchField
-import net.brightroom.mindstock.frontend.designsystem.atom.Stepper
 import net.brightroom.mindstock.frontend.designsystem.atom.TextInput
 import net.brightroom.mindstock.frontend.designsystem.atom.Thumb
 import net.brightroom.mindstock.frontend.designsystem.theme.LocalMindstockTokens
@@ -430,7 +430,7 @@ private fun AdoptFormContent(
                     modifier = Modifier.padding(top = 5.dp),
                 )
             }
-            Stepper(value = min, onChange = { min = it }, unit = "", min = 0)
+            MiniStepper(value = min, onChange = { min = it }, min = 0)
         }
 
         // Submit
@@ -616,7 +616,7 @@ private fun CustomFormContent(
                     modifier = Modifier.padding(top = 5.dp),
                 )
             }
-            Stepper(value = min, onChange = { min = it }, unit = "", min = 0)
+            MiniStepper(value = min, onChange = { min = it }, min = 0)
         }
 
         // Submit

@@ -39,9 +39,9 @@ import net.brightroom.mindstock.frontend.designsystem.atom.AppIcon
 import net.brightroom.mindstock.frontend.designsystem.atom.AppIconName
 import net.brightroom.mindstock.frontend.designsystem.atom.AppText
 import net.brightroom.mindstock.frontend.designsystem.atom.ButtonVariant
+import net.brightroom.mindstock.frontend.designsystem.atom.MiniStepper
 import net.brightroom.mindstock.frontend.designsystem.atom.PrimaryButton
 import net.brightroom.mindstock.frontend.designsystem.atom.Sheet
-import net.brightroom.mindstock.frontend.designsystem.atom.Stepper
 import net.brightroom.mindstock.frontend.designsystem.theme.LocalMindstockTokens
 import net.brightroom.mindstock.frontend.designsystem.theme.MindstockType
 import org.jetbrains.compose.resources.stringResource
@@ -121,7 +121,7 @@ fun ProductSettingsSheet(
                             modifier = Modifier.padding(top = 5.dp),
                         )
                     }
-                    Stepper(value = min, onChange = { min = it }, unit = "", min = 0)
+                    MiniStepper(value = min, onChange = { min = it }, min = 0)
                 }
                 Box(Modifier.fillMaxWidth().height(1.dp).background(tokens.lineSoft))
             }
