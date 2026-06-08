@@ -176,6 +176,7 @@ private fun StockHeader(
         if (state.query.isBlank()) {
             val summary = stockSummaryOf(state.stocks.list.map { it.status() })
             SummaryStrip(summary = summary, onClick = onShop)
+            ForecastBanner(stocks = state.stocks)
         }
 
         SearchField(
