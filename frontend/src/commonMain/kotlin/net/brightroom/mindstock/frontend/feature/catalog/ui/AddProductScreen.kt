@@ -90,7 +90,7 @@ fun AddProductScreen(
         modifier =
             modifier
                 .fillMaxSize()
-                .background(tokens.surface),
+                .background(tokens.bg),
     ) {
         Column(modifier = Modifier.fillMaxSize()) {
             // Header
