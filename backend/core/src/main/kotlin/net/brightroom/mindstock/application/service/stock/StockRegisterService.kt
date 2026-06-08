@@ -29,12 +29,13 @@ class StockRegisterService(
         productId: ProductId,
         quantity: Quantity,
         note: Note,
+        occurredAt: OccurredAt,
         actor: ResidentId,
     ) {
         authorizeProduct(productId, actor)
         val resident = residentRepository.findById(actor)
         val stock = stockRepository.findByProduct(productId)
-        val replenished = stock.replenish(quantity, OccurredAt.now(), resident, note)
+        val replenished = stock.replenish(quantity, occurredAt, resident, note)
         stockRegisterRepository.appendMovement(productId, replenished.latestMovement())
     }
 
@@ -42,12 +43,13 @@ class StockRegisterService(
         productId: ProductId,
         quantity: Quantity,
         note: Note,
+        occurredAt: OccurredAt,
         actor: ResidentId,
     ) {
         authorizeProduct(productId, actor)
         val resident = residentRepository.findById(actor)
         val stock = stockRepository.findByProduct(productId)
-        val consumed = stock.consume(quantity, OccurredAt.now(), resident, note)
+        val consumed = stock.consume(quantity, occurredAt, resident, note)
         stockRegisterRepository.appendMovement(productId, consumed.latestMovement())
     }
 
