@@ -17,21 +17,25 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.LineHeightStyle
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
 import net.brightroom.mindstock.frontend.designsystem.theme.LocalMindstockTokens
-import net.brightroom.mindstock.frontend.designsystem.theme.MindstockType
 import net.brightroom.mindstock.frontend.designsystem.theme.ShadowLevel
 import net.brightroom.mindstock.frontend.designsystem.theme.softShadow
 
 /**
- * clay 標準の入力欄。mock `screens-onboard.jsx` / `screens-household.jsx` の標準フィールド準拠:
- * height56 / radius16 / 1.5px border(focus か入力済で accent・他は line)/ surface / shadow.sm /
- * 文字 `600 17px`・placeholder faint。Material3 の OutlinedTextField chrome は使わない。
+ * 招待コードの入力欄。mock `screens-household.jsx:JoinCodeSheet` の input 準拠:
+ * height64 / radius16 / 1.5px border(入力済で accent)/ surface / shadow.sm /
+ * 中央寄せ・monospace `700 26px`・letterSpacing 0.22em。大文字化/桁制限は callsite 側で行う。
  */
 @Composable
-fun TextInput(
+fun CodeInput(
     value: String,
     onValueChange: (String) -> Unit,
     placeholder: String,
@@ -48,35 +52,44 @@ fun TextInput(
             active -> tokens.accent
             else -> tokens.line
         }
-    val fieldStyle =
-        MindstockType.button().copy(
+    val codeStyle =
+        TextStyle(
             color = tokens.ink,
-            fontSize = 17.sp,
-            lineHeight = 17.sp,
-            letterSpacing = 0.sp,
+            fontFamily = FontFamily.Monospace,
+            fontWeight = FontWeight.Bold,
+            fontSize = 26.sp,
+            lineHeight = 26.sp,
+            letterSpacing = 0.22.em,
+            textAlign = TextAlign.Center,
             lineHeightStyle = LineHeightStyle(LineHeightStyle.Alignment.Center, LineHeightStyle.Trim.Both),
         )
     Box(
         modifier =
             modifier
-                .height(56.dp)
+                .height(64.dp)
                 .softShadow(ShadowLevel.Sm, RoundedCornerShape(16.dp))
                 .clip(RoundedCornerShape(16.dp))
                 .background(tokens.surface)
                 .border(1.5.dp, border, RoundedCornerShape(16.dp))
                 .padding(horizontal = 18.dp),
-        contentAlignment = Alignment.CenterStart,
+        contentAlignment = Alignment.Center,
     ) {
         BasicTextField(
             value = value,
             onValueChange = onValueChange,
             interactionSource = interaction,
             singleLine = true,
-            textStyle = fieldStyle,
+            textStyle = codeStyle,
             cursorBrush = SolidColor(tokens.accent),
             modifier = Modifier.fillMaxWidth(),
             decorationBox = { inner ->
-                if (value.isEmpty()) AppText(placeholder, style = fieldStyle, color = tokens.faint)
+                if (value.isEmpty()) {
+                    AppText(
+                        placeholder,
+                        style = codeStyle.copy(color = tokens.faint),
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
                 inner()
             },
         )

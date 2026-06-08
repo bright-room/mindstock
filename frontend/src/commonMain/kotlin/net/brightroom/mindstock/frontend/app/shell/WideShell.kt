@@ -113,14 +113,14 @@ fun WideShell(
                 Column(modifier = Modifier.weight(1f)) {
                     AppText(
                         householdName,
-                        style = MindstockType.cardTitle(),
+                        style = MindstockType.cardTitle().copy(fontSize = 13.5.sp, fontWeight = FontWeight.Bold),
                         color = tokens.ink,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                     )
                     AppText(stringResource(Res.string.sidebar_switch_subtitle), style = MindstockType.unitCaption(), color = tokens.faint)
                 }
-                AppIcon(AppIconName.ChevronRight, contentDescription = null, tint = tokens.faint, size = 15.dp)
+                AppIcon(AppIconName.ChevronDown, contentDescription = null, tint = tokens.faint, size = 15.dp)
             }
 
             Spacer(Modifier.height(16.dp))
@@ -152,7 +152,7 @@ fun WideShell(
                         AppIcon(tab.icon, contentDescription = null, tint = if (active) tokens.accent else tokens.sub, size = 20.dp)
                         AppText(
                             stringResource(tab.label),
-                            style = MindstockType.button(),
+                            style = MindstockType.button().copy(fontSize = 14.5.sp),
                             color = if (active) tokens.accent else tokens.sub,
                         )
                     }
@@ -196,7 +196,7 @@ fun WideShell(
                 Column {
                     AppText(
                         displayName,
-                        style = MindstockType.cardTitle(),
+                        style = MindstockType.cardTitle().copy(fontSize = 13.5.sp, fontWeight = FontWeight.SemiBold),
                         color = tokens.ink,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
@@ -211,6 +211,9 @@ fun WideShell(
                 }
             }
         }
+
+        // サイドバーと content の境界線(mock borderRight 1px lineSoft)
+        Box(modifier = Modifier.width(1.dp).fillMaxHeight().background(tokens.lineSoft))
 
         // content(中央寄せ・最大 880dp)
         Box(modifier = Modifier.weight(1f).fillMaxHeight()) {

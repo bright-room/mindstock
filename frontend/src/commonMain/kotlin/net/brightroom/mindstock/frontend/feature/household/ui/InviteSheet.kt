@@ -82,6 +82,14 @@ fun InviteSheet(
                     onSelect = { selectedRole = HouseholdMemberRole.valueOf(it) },
                     modifier = Modifier.fillMaxWidth(),
                 )
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    AppIcon(roleIcon(selectedRole), contentDescription = null, size = 14.dp, tint = tokens.sub)
+                    AppText(
+                        stringResource(roleDescResource(selectedRole)),
+                        style = MindstockType.summarySub().copy(fontSize = 12.sp),
+                        color = tokens.faint,
+                    )
+                }
             }
 
             if (issuedInvite == null) {

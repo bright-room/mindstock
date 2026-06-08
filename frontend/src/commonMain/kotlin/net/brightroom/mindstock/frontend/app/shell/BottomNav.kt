@@ -18,6 +18,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import net.brightroom.mindstock.frontend.designsystem.atom.AppIcon
 import net.brightroom.mindstock.frontend.designsystem.atom.AppIconName
 import net.brightroom.mindstock.frontend.designsystem.atom.AppText
@@ -44,10 +45,10 @@ fun BottomNav(
         modifier =
             modifier
                 .fillMaxWidth()
-                .padding(horizontal = 14.dp, vertical = 14.dp)
+                .padding(start = 14.dp, end = 14.dp, top = 8.dp, bottom = 14.dp)
                 .softShadow(ShadowLevel.Lg, shape)
                 .clip(shape)
-                .background(tokens.surface.copy(alpha = 0.92f))
+                .background(tokens.surface.copy(alpha = 0.82f))
                 .border(1.dp, tokens.lineSoft, shape)
                 .height(62.dp)
                 .padding(horizontal = 6.dp),
@@ -78,7 +79,7 @@ private fun NavItem(
         verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
         AppIcon(tab.icon, contentDescription = stringResource(tab.label), tint = color, size = 22.dp)
-        AppText(stringResource(tab.label), style = MindstockType.statusLabel(), color = color)
+        AppText(stringResource(tab.label), style = MindstockType.statusLabel().copy(fontSize = 10.sp), color = color)
     }
 }
 
