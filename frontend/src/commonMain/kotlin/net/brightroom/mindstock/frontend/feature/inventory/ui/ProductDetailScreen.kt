@@ -21,6 +21,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -33,6 +34,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import kotlinx.coroutines.delay
 import mindstock.frontend.generated.resources.Res
 import mindstock.frontend.generated.resources.action_back
 import mindstock.frontend.generated.resources.action_consume
@@ -323,7 +325,14 @@ private fun HistorySection(
             if (rows.isEmpty()) {
                 AppText(stringResource(Res.string.detail_history_empty), color = tokens.faint, modifier = Modifier.padding(start = 4.dp))
             } else {
-                val now = remember { Clock.System.now() }
+                // 経過時間が表示に反映されるよう now を 1 分ごとに進める(開いた時点で固定しない)。
+                var now by remember { mutableStateOf(Clock.System.now()) }
+                LaunchedEffect(Unit) {
+                    while (true) {
+                        delay(60_000)
+                        now = Clock.System.now()
+                    }
+                }
                 var correcting by remember { mutableStateOf<StockMovement?>(null) }
                 Column {
                     rows.forEachIndexed { i, m ->

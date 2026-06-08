@@ -85,6 +85,8 @@
     <string name="shop_add_empty_all">すべての在庫がすでに買い物リストにあります。</string>
     <string name="shop_add_empty_none">該当する在庫がありません。</string>
     <string name="shop_add_action">追加</string>
+    <string name="shop_add_added">追加済み</string>
+    <string name="shop_add_close">閉じる</string>
     <string name="toast_added_to_list">買い物リストに追加しました</string>
     <string name="toast_removed_from_list">買い物リストから外しました</string>
     <!-- P6-1b: 活動 -->

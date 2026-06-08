@@ -63,7 +63,7 @@ fun ProductMasterScreen(
         modifier =
             modifier
                 .fillMaxSize()
-                .background(tokens.surface),
+                .background(tokens.bg),
     ) {
         // Header
         Row(
