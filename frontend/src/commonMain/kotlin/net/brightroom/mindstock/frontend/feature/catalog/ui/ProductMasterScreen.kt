@@ -19,6 +19,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import mindstock.frontend.generated.resources.Res
 import mindstock.frontend.generated.resources.action_back
 import mindstock.frontend.generated.resources.loading
@@ -43,6 +44,7 @@ import net.brightroom.mindstock.frontend.designsystem.theme.MindstockType
 import net.brightroom.mindstock.frontend.designsystem.theme.ShadowLevel
 import net.brightroom.mindstock.frontend.designsystem.theme.softShadow
 import net.brightroom.mindstock.frontend.feature.catalog.ProductMasterUiState
+import net.brightroom.mindstock.frontend.feature.inventory.glyphForProductName
 import org.jetbrains.compose.resources.stringResource
 
 @Composable
@@ -105,6 +107,7 @@ fun ProductMasterScreen(
             AddTile(
                 label = stringResource(Res.string.master_add),
                 onClick = onAdd,
+                accent = true,
                 modifier = Modifier.fillMaxWidth(),
             )
 
@@ -175,11 +178,11 @@ private fun MasterStockRow(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(13.dp),
     ) {
-        Thumb(size = 46.dp)
+        Thumb(icon = glyphForProductName(stock.product.name()), size = 46.dp)
         Column(modifier = Modifier.weight(1f)) {
             AppText(
                 text = stock.product.name(),
-                style = MindstockType.cardTitle(),
+                style = MindstockType.cardTitle().copy(fontSize = 14.5f.sp),
                 color = tokens.ink,
                 maxLines = 1,
             )
