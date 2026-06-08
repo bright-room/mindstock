@@ -26,8 +26,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.graphics.PathEffect
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import mindstock.frontend.generated.resources.Res
 import mindstock.frontend.generated.resources.action_replenish
 import mindstock.frontend.generated.resources.loading
@@ -177,8 +183,14 @@ private fun AddFromStockCard(onClick: () -> Unit) {
                 .fillMaxWidth()
                 .clip(shape)
                 .background(tokens.surface)
-                .border(1.dp, tokens.line, shape)
-                .clickable(onClick = onClick)
+                // mock 準拠: 破線ボーダー(1px dashed)
+                .drawBehind {
+                    drawRoundRect(
+                        color = tokens.line,
+                        style = Stroke(width = 1.dp.toPx(), pathEffect = PathEffect.dashPathEffect(floatArrayOf(10f, 8f))),
+                        cornerRadius = CornerRadius(16.dp.toPx()),
+                    )
+                }.clickable(onClick = onClick)
                 .padding(horizontal = 15.dp, vertical = 13.dp),
         horizontalArrangement = Arrangement.spacedBy(12.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -233,7 +245,12 @@ private fun ProgressBanner(
 @Composable
 private fun SectionLabel(text: String) {
     val tokens = LocalMindstockTokens.current
-    AppText(text, style = MindstockType.statusLabel(), color = tokens.faint, modifier = Modifier.padding(start = 4.dp))
+    AppText(
+        text,
+        style = MindstockType.statusLabel().copy(fontWeight = FontWeight.Bold, fontSize = 12.sp, lineHeight = 12.sp),
+        color = tokens.faint,
+        modifier = Modifier.padding(start = 4.dp),
+    )
 }
 
 @Composable
@@ -311,7 +328,7 @@ private fun ShopRow(
                     ) {
                         AppText(
                             stringResource(Res.string.shop_manual_badge),
-                            style = MindstockType.statusLabel(),
+                            style = MindstockType.statusLabel().copy(fontSize = 10.5f.sp, lineHeight = 10.5f.sp),
                             color = tokens.accent,
                         )
                     }
