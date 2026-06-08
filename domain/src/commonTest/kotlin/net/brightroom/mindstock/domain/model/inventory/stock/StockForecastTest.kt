@@ -114,6 +114,15 @@ class StockForecastTest {
     }
 
     @Test
+    fun トレーリング窓は窓外の古い消費を除外する() {
+        // 補充100(90日前)・消費30(90日前=窓外)・消費10(30日前=窓内)→ 在庫60・span90(≥60)・recent10
+        // → トレーリング rate=10/60 → round(60/(10/60))=360。窓外の30を含めるバグなら値が変わる。
+        val stock = stockOf(replenish(1, 100, 90), consume(2, 30, 90), consume(3, 10, 30))
+        stock.currentQuantity() shouldBe 60
+        stock.forecast(asOf) shouldBe ConsumptionForecast.DaysRemaining(360)
+    }
+
+    @Test
     fun span1日クランプで0除算しない() {
         val stock = stockOf(replenish(1, 5, 0), consume(2, 2, 0))
         stock.currentQuantity() shouldBe 3

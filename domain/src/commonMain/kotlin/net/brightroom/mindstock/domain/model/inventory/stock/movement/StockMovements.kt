@@ -63,7 +63,10 @@ data class StockMovements(
         val totalConsumed = consumptions.sumOf { it.second }
         if (totalConsumed == 0) return 0.0
 
-        val firstDate = list.minOf { it.occurredAt().date }
+        val firstDate =
+            list
+                .filter { it is Replenishment || it is Consumption }
+                .minOf { it.occurredAt().date }
         val spanDays = maxOf(1, firstDate.daysUntil(asOf.date))
         val windowStart = asOf.date.minus(DatePeriod(days = FORECAST_WINDOW_DAYS))
         val recentConsumed = consumptions.filter { it.first.date >= windowStart }.sumOf { it.second }
