@@ -165,11 +165,12 @@ fun ShoppingListScreen(
         mode = MoveMode.Replenish,
         stock = mt,
         onClose = { moveTarget = null },
-        onSubmit = { quantity, note ->
+        onSubmit = { quantity, note, _ ->
             val s = mt ?: return@MoveSheet
             onReplenish(s.product.id, quantity, note)
             moveTarget = null
         },
+        showDatePicker = false,
     )
 }
 

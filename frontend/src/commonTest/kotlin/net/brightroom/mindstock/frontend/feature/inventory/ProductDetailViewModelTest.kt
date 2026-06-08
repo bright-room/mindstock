@@ -72,8 +72,8 @@ private fun vm(
     seed: Stock? = null,
     loadShoppingList: suspend (HouseholdId) -> RpcOutcome<ShoppingList> = { RpcOutcome.Success(ShoppingList(emptyList())) },
     loadHistory: suspend (ProductId) -> RpcOutcome<StockMovements> = { RpcOutcome.Success(StockMovements(emptyList())) },
-    replenish: suspend (ProductId, Quantity, Note) -> RpcOutcome<Unit> = { _, _, _ -> RpcOutcome.Success(Unit) },
-    consume: suspend (ProductId, Quantity, Note) -> RpcOutcome<Unit> = { _, _, _ -> RpcOutcome.Success(Unit) },
+    replenish: suspend (ProductId, Quantity, Note, OccurredAt) -> RpcOutcome<Unit> = { _, _, _, _ -> RpcOutcome.Success(Unit) },
+    consume: suspend (ProductId, Quantity, Note, OccurredAt) -> RpcOutcome<Unit> = { _, _, _, _ -> RpcOutcome.Success(Unit) },
     correct: suspend (
         net.brightroom.mindstock.domain.model.inventory.stock.movement.MovementId,
         Quantity,

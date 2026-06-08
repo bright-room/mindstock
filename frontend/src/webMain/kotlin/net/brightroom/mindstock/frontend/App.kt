@@ -27,6 +27,7 @@ import mindstock.frontend.generated.resources.need_household_title
 import net.brightroom.mindstock.domain.model.inventory.quantity.Quantity
 import net.brightroom.mindstock.domain.model.inventory.stock.Stock
 import net.brightroom.mindstock.domain.model.inventory.stock.movement.Note
+import net.brightroom.mindstock.domain.model.inventory.stock.movement.OccurredAt
 import net.brightroom.mindstock.frontend.app.AuthViewModel
 import net.brightroom.mindstock.frontend.app.isOwner
 import net.brightroom.mindstock.frontend.app.settings.SettingsScreen
@@ -271,7 +272,7 @@ fun App() {
                                     householdId = householdId,
                                     loadShoppingList = repository::shoppingList,
                                     setWantedFlag = repository::setWanted,
-                                    replenishStock = repository::replenish,
+                                    replenishStock = { pid, q, n -> repository.replenish(pid, q, n, OccurredAt.now()) },
                                     refresh = refresh,
                                     toast = toast,
                                     reauth = reauth,

@@ -20,6 +20,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import kotlinx.datetime.LocalDateTime
 import mindstock.frontend.generated.resources.Res
 import mindstock.frontend.generated.resources.move_after_negative
 import mindstock.frontend.generated.resources.move_current_short
@@ -29,9 +30,12 @@ import mindstock.frontend.generated.resources.move_submit
 import mindstock.frontend.generated.resources.move_title_consume
 import mindstock.frontend.generated.resources.move_title_replenish
 import net.brightroom.mindstock.domain.model.inventory.stock.Stock
+import net.brightroom.mindstock.domain.model.inventory.stock.movement.OccurredAt
+import net.brightroom.mindstock.extensions.kotlinx.datetime.now
 import net.brightroom.mindstock.frontend.designsystem.atom.AppIcon
 import net.brightroom.mindstock.frontend.designsystem.atom.AppIconName
 import net.brightroom.mindstock.frontend.designsystem.atom.AppText
+import net.brightroom.mindstock.frontend.designsystem.atom.DatePick
 import net.brightroom.mindstock.frontend.designsystem.atom.PrimaryButton
 import net.brightroom.mindstock.frontend.designsystem.atom.Sheet
 import net.brightroom.mindstock.frontend.designsystem.atom.Stepper
@@ -44,14 +48,18 @@ import org.jetbrains.compose.resources.stringResource
 
 enum class MoveMode { Replenish, Consume }
 
-/** 補充/消費シート。商品サマリ + 数量 + 増減プレビュー + メモ(日時ピッカーは無し=サーバ時刻確定)。 */
+/**
+ * 補充/消費シート。商品サマリ + 数量 + 増減プレビュー + 日時ピッカーで occurredAt を指定(バックデート可) + メモ。
+ * 買い物リストからの補充など occurredAt を now 固定にしたい呼び出しは [showDatePicker] = false でピッカーを隠す。
+ */
 @Composable
 fun MoveSheet(
     open: Boolean,
     mode: MoveMode,
     stock: Stock?,
     onClose: () -> Unit,
-    onSubmit: (quantity: Int, note: String) -> Unit,
+    onSubmit: (quantity: Int, note: String, occurredAt: OccurredAt) -> Unit,
+    showDatePicker: Boolean = true,
 ) {
     if (stock == null) return
     val tokens = LocalMindstockTokens.current
@@ -61,6 +69,8 @@ fun MoveSheet(
     val current = stock.currentQuantity()
     var qty by remember(open, stock) { mutableStateOf(1) }
     var note by remember(open, stock) { mutableStateOf("") }
+    val today = remember(open) { LocalDateTime.now().date }
+    var pickedDate by remember(open, stock) { mutableStateOf(today) }
     val after = if (isReplenish) current + qty else current - qty
     Sheet(open = open, title = title, onClose = onClose) {
         Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(22.dp)) {
@@ -120,6 +130,15 @@ fun MoveSheet(
                 }
             }
 
+            if (showDatePicker) {
+                DatePick(
+                    today = today,
+                    selected = pickedDate,
+                    onSelect = { pickedDate = it },
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
+
             TextInput(
                 value = note,
                 onValueChange = { note = it },
@@ -131,7 +150,7 @@ fun MoveSheet(
             )
             PrimaryButton(
                 onClick = {
-                    onSubmit(qty, note)
+                    onSubmit(qty, note, occurredAtOf(pickedDate, LocalDateTime.now()))
                     onClose()
                 },
                 modifier = Modifier.fillMaxWidth(),

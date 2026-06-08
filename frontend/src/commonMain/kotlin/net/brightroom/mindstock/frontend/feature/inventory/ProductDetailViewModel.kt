@@ -17,6 +17,7 @@ import net.brightroom.mindstock.domain.model.inventory.shopping.ShoppingList
 import net.brightroom.mindstock.domain.model.inventory.stock.Stock
 import net.brightroom.mindstock.domain.model.inventory.stock.movement.MovementId
 import net.brightroom.mindstock.domain.model.inventory.stock.movement.Note
+import net.brightroom.mindstock.domain.model.inventory.stock.movement.OccurredAt
 import net.brightroom.mindstock.domain.model.inventory.stock.movement.Reason
 import net.brightroom.mindstock.domain.model.inventory.stock.movement.StockMovements
 import net.brightroom.mindstock.frontend.core.auth.ReauthController
@@ -34,8 +35,8 @@ class ProductDetailViewModel(
     private val seed: Stock?,
     private val loadShoppingList: suspend (HouseholdId) -> RpcOutcome<ShoppingList>,
     private val loadHistory: suspend (ProductId) -> RpcOutcome<StockMovements>,
-    private val replenishStock: suspend (ProductId, Quantity, Note) -> RpcOutcome<Unit>,
-    private val consumeStock: suspend (ProductId, Quantity, Note) -> RpcOutcome<Unit>,
+    private val replenishStock: suspend (ProductId, Quantity, Note, OccurredAt) -> RpcOutcome<Unit>,
+    private val consumeStock: suspend (ProductId, Quantity, Note, OccurredAt) -> RpcOutcome<Unit>,
     private val correctMovement: suspend (MovementId, Quantity, Reason) -> RpcOutcome<Unit>,
     private val setWantedFlag: suspend (ProductId, Boolean) -> RpcOutcome<Unit>,
     private val refresh: InventoryRefreshController,
@@ -91,12 +92,14 @@ class ProductDetailViewModel(
     suspend fun replenish(
         quantity: Quantity,
         note: Note,
-    ) = write(replenishStock(productId, quantity, note), UiText(Res.string.toast_replenished))
+        occurredAt: OccurredAt,
+    ) = write(replenishStock(productId, quantity, note, occurredAt), UiText(Res.string.toast_replenished))
 
     suspend fun consume(
         quantity: Quantity,
         note: Note,
-    ) = write(consumeStock(productId, quantity, note), UiText(Res.string.toast_consumed))
+        occurredAt: OccurredAt,
+    ) = write(consumeStock(productId, quantity, note, occurredAt), UiText(Res.string.toast_consumed))
 
     suspend fun correct(
         target: MovementId,

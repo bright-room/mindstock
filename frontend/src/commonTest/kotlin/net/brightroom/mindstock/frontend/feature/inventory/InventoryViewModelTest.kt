@@ -5,6 +5,7 @@ import io.kotest.matchers.types.shouldBeInstanceOf
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
+import kotlinx.datetime.LocalDateTime
 import mindstock.frontend.generated.resources.Res
 import mindstock.frontend.generated.resources.toast_replenished
 import net.brightroom.mindstock.domain.model.household.HouseholdId
@@ -12,6 +13,7 @@ import net.brightroom.mindstock.domain.model.inventory.product.ProductId
 import net.brightroom.mindstock.domain.model.inventory.quantity.Quantity
 import net.brightroom.mindstock.domain.model.inventory.stock.Stocks
 import net.brightroom.mindstock.domain.model.inventory.stock.movement.Note
+import net.brightroom.mindstock.domain.model.inventory.stock.movement.OccurredAt
 import net.brightroom.mindstock.frontend.core.auth.ReauthController
 import net.brightroom.mindstock.frontend.core.rpc.RpcOutcome
 import net.brightroom.mindstock.frontend.core.ui.InventoryRefreshController
@@ -19,10 +21,12 @@ import net.brightroom.mindstock.frontend.core.ui.ToastController
 import net.brightroom.mindstock.rpc.result.RpcError
 import kotlin.test.Test
 
+private val occurredAt = OccurredAt(LocalDateTime(2026, 6, 8, 9, 0))
+
 private fun vm(
     loadStocks: suspend (HouseholdId) -> RpcOutcome<Stocks> = { RpcOutcome.Success(Stocks(emptyList())) },
-    replenish: suspend (ProductId, Quantity, Note) -> RpcOutcome<Unit> = { _, _, _ -> RpcOutcome.Success(Unit) },
-    consume: suspend (ProductId, Quantity, Note) -> RpcOutcome<Unit> = { _, _, _ -> RpcOutcome.Success(Unit) },
+    replenish: suspend (ProductId, Quantity, Note, OccurredAt) -> RpcOutcome<Unit> = { _, _, _, _ -> RpcOutcome.Success(Unit) },
+    consume: suspend (ProductId, Quantity, Note, OccurredAt) -> RpcOutcome<Unit> = { _, _, _, _ -> RpcOutcome.Success(Unit) },
     refresh: InventoryRefreshController = InventoryRefreshController(),
     toast: ToastController = ToastController(),
     reauth: ReauthController = ReauthController(),
@@ -64,7 +68,7 @@ class InventoryViewModelTest {
                     RpcOutcome.Success(Stocks(emptyList()))
                 }, toast = toast)
             v.load()
-            v.replenish(ProductId.create(), Quantity(2), Note(""))
+            v.replenish(ProductId.create(), Quantity(2), Note(""), occurredAt)
             loads shouldBe 2 // 初回 + 補充後の再フェッチ
             toast.current.value
                 ?.text
@@ -78,9 +82,9 @@ class InventoryViewModelTest {
             val reauth = ReauthController()
             val job = launch { reauth.signal.collect { reauthRequested++ } }
             runCurrent()
-            val v = vm(replenish = { _, _, _ -> RpcOutcome.Failure(RpcError.Unauthorized("expired")) }, reauth = reauth)
+            val v = vm(replenish = { _, _, _, _ -> RpcOutcome.Failure(RpcError.Unauthorized("expired")) }, reauth = reauth)
             v.load()
-            v.replenish(ProductId.create(), Quantity(1), Note(""))
+            v.replenish(ProductId.create(), Quantity(1), Note(""), occurredAt)
             runCurrent()
             reauthRequested shouldBe 1
             job.cancel()
@@ -102,7 +106,7 @@ class InventoryViewModelTest {
             val v = vm()
             v.load()
             v.setQuery("milk")
-            v.replenish(ProductId.create(), Quantity(1), Note("")) // 内部で load() 再フェッチ
+            v.replenish(ProductId.create(), Quantity(1), Note(""), occurredAt) // 内部で load() 再フェッチ
             val content = v.state.value as InventoryUiState.Content
             content.query shouldBe "milk" // クエリが消えない
         }
@@ -116,7 +120,7 @@ class InventoryViewModelTest {
             runCurrent()
             val v = vm(refresh = refresh)
             v.load()
-            v.replenish(ProductId.create(), Quantity(1), Note(""))
+            v.replenish(ProductId.create(), Quantity(1), Note(""), occurredAt)
             runCurrent()
             refreshed shouldBe 1
             job.cancel()
