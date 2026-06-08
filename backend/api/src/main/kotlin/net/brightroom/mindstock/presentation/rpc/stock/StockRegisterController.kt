@@ -7,6 +7,7 @@ import net.brightroom.mindstock.domain.model.inventory.product.ProductId
 import net.brightroom.mindstock.domain.model.inventory.quantity.Quantity
 import net.brightroom.mindstock.domain.model.inventory.stock.movement.MovementId
 import net.brightroom.mindstock.domain.model.inventory.stock.movement.Note
+import net.brightroom.mindstock.domain.model.inventory.stock.movement.OccurredAt
 import net.brightroom.mindstock.domain.model.inventory.stock.movement.Reason
 import net.brightroom.mindstock.rpc.result.RpcError
 import net.brightroom.mindstock.rpc.result.RpcResult
@@ -20,9 +21,10 @@ class StockRegisterController(
         productId: ProductId,
         quantity: Quantity,
         note: Note,
+        occurredAt: OccurredAt,
     ): RpcResult<Unit, RpcError> =
         requireRegistered(session) { residentId ->
-            stockRegisterService.replenish(productId, quantity, note, residentId)
+            stockRegisterService.replenish(productId, quantity, note, occurredAt, residentId)
             RpcResult.Ok(Unit)
         }
 
@@ -30,9 +32,10 @@ class StockRegisterController(
         productId: ProductId,
         quantity: Quantity,
         note: Note,
+        occurredAt: OccurredAt,
     ): RpcResult<Unit, RpcError> =
         requireRegistered(session) { residentId ->
-            stockRegisterService.consume(productId, quantity, note, residentId)
+            stockRegisterService.consume(productId, quantity, note, occurredAt, residentId)
             RpcResult.Ok(Unit)
         }
 
