@@ -16,8 +16,10 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import mindstock.frontend.generated.resources.Res
 import mindstock.frontend.generated.resources.action_back
 import mindstock.frontend.generated.resources.archived_empty_sub
@@ -44,6 +46,7 @@ import net.brightroom.mindstock.frontend.designsystem.atom.Thumb
 import net.brightroom.mindstock.frontend.designsystem.theme.LocalMindstockTokens
 import net.brightroom.mindstock.frontend.designsystem.theme.MindstockType
 import net.brightroom.mindstock.frontend.feature.catalog.ArchivedUiState
+import net.brightroom.mindstock.frontend.feature.inventory.glyphForProductName
 import org.jetbrains.compose.resources.stringResource
 
 @Composable
@@ -175,11 +178,12 @@ private fun ArchivedProductRow(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(13.dp),
     ) {
-        Thumb(size = 46.dp)
+        // mock 準拠: アーカイブ済みはサムネを少し淡く(opacity 0.7)。
+        Thumb(icon = glyphForProductName(product.name()), size = 46.dp, modifier = Modifier.alpha(0.7f))
         Column(modifier = Modifier.weight(1f)) {
             AppText(
                 text = product.name(),
-                style = MindstockType.cardTitle(),
+                style = MindstockType.cardTitle().copy(fontSize = 14.5f.sp),
                 color = tokens.ink,
                 maxLines = 1,
             )

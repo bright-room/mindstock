@@ -39,6 +39,7 @@ import net.brightroom.mindstock.frontend.designsystem.atom.TextInput
 import net.brightroom.mindstock.frontend.designsystem.atom.Thumb
 import net.brightroom.mindstock.frontend.designsystem.theme.LocalMindstockTokens
 import net.brightroom.mindstock.frontend.designsystem.theme.MindstockType
+import net.brightroom.mindstock.frontend.feature.inventory.glyphForProductName
 import org.jetbrains.compose.resources.stringResource
 
 enum class MoveMode { Replenish, Consume }
@@ -74,7 +75,7 @@ fun MoveSheet(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(13.dp),
             ) {
-                Thumb(icon = AppIconName.Box, size = 42.dp)
+                Thumb(icon = glyphForProductName(stock.product.name()), size = 42.dp)
                 Column(modifier = Modifier.weight(1f)) {
                     AppText(
                         stock.product.name(),

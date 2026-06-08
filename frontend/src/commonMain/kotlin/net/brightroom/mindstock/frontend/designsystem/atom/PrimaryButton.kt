@@ -102,7 +102,14 @@ fun AppButton(
         interactionSource = interaction,
         shape = RoundedCornerShape(size.radius.dp),
         border = border,
-        colors = ButtonDefaults.buttonColors(containerColor = container, contentColor = contentColor),
+        // mock 準拠: disabled は Material の灰ではなく自色を opacity 0.45 にフェード。
+        colors =
+            ButtonDefaults.buttonColors(
+                containerColor = container,
+                contentColor = contentColor,
+                disabledContainerColor = container.copy(alpha = 0.45f),
+                disabledContentColor = contentColor.copy(alpha = 0.45f),
+            ),
         contentPadding = PaddingValues(horizontal = 18.dp),
         modifier = modifier.height(size.height.dp).scale(scale),
     ) {

@@ -26,6 +26,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import mindstock.frontend.generated.resources.Res
 import mindstock.frontend.generated.resources.action_back
 import mindstock.frontend.generated.resources.add_product_adopt_title
@@ -57,10 +58,10 @@ import net.brightroom.mindstock.frontend.designsystem.atom.AddTile
 import net.brightroom.mindstock.frontend.designsystem.atom.AppIcon
 import net.brightroom.mindstock.frontend.designsystem.atom.AppIconName
 import net.brightroom.mindstock.frontend.designsystem.atom.AppText
+import net.brightroom.mindstock.frontend.designsystem.atom.MiniStepper
 import net.brightroom.mindstock.frontend.designsystem.atom.NavIconButton
 import net.brightroom.mindstock.frontend.designsystem.atom.PrimaryButton
 import net.brightroom.mindstock.frontend.designsystem.atom.SearchField
-import net.brightroom.mindstock.frontend.designsystem.atom.Stepper
 import net.brightroom.mindstock.frontend.designsystem.atom.TextInput
 import net.brightroom.mindstock.frontend.designsystem.atom.Thumb
 import net.brightroom.mindstock.frontend.designsystem.theme.LocalMindstockTokens
@@ -313,13 +314,14 @@ private fun CatalogItemRow(
         Column(modifier = Modifier.weight(1f)) {
             AppText(
                 text = item.name(),
-                style = MindstockType.cardTitle(),
+                // mock CatalogItemRow の名前は 600 14.5px/1.3。
+                style = MindstockType.cardTitle().copy(fontSize = 14.5f.sp),
                 color = tokens.ink,
                 maxLines = 1,
             )
             AppText(
                 text = "JAN ${item.jan()}",
-                style = MindstockType.unitCaption(),
+                style = MindstockType.unitCaption().copy(fontSize = 12.sp),
                 color = tokens.faint,
                 modifier = Modifier.padding(top = 5.dp),
             )
@@ -430,7 +432,7 @@ private fun AdoptFormContent(
                     modifier = Modifier.padding(top = 5.dp),
                 )
             }
-            Stepper(value = min, onChange = { min = it }, unit = "", min = 0)
+            MiniStepper(value = min, onChange = { min = it }, min = 0)
         }
 
         // Submit
@@ -616,7 +618,7 @@ private fun CustomFormContent(
                     modifier = Modifier.padding(top = 5.dp),
                 )
             }
-            Stepper(value = min, onChange = { min = it }, unit = "", min = 0)
+            MiniStepper(value = min, onChange = { min = it }, min = 0)
         }
 
         // Submit

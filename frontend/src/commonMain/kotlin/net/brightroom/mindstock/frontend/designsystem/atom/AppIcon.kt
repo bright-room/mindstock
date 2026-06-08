@@ -3,10 +3,12 @@ package net.brightroom.mindstock.frontend.designsystem.atom
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.outlined.FormatListBulleted
 import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Inventory2
+import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material.icons.outlined.AccessTime
@@ -15,6 +17,7 @@ import androidx.compose.material.icons.outlined.Check
 import androidx.compose.material.icons.outlined.ContentCopy
 import androidx.compose.material.icons.outlined.DeleteOutline
 import androidx.compose.material.icons.outlined.Edit
+import androidx.compose.material.icons.outlined.GridView
 import androidx.compose.material.icons.outlined.Group
 import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.Link
@@ -72,6 +75,9 @@ enum class AppIconName {
     Copy,
     Eye,
     Trash,
+    ChevronDown,
+    Grid,
+    ListView,
 }
 
 private fun AppIconName.vector(): ImageVector =
@@ -109,6 +115,9 @@ private fun AppIconName.vector(): ImageVector =
         AppIconName.Copy -> Icons.Outlined.ContentCopy
         AppIconName.Eye -> Icons.Outlined.Visibility
         AppIconName.Trash -> Icons.Outlined.DeleteOutline
+        AppIconName.ChevronDown -> Icons.Filled.KeyboardArrowDown
+        AppIconName.Grid -> Icons.Outlined.GridView
+        AppIconName.ListView -> Icons.AutoMirrored.Outlined.FormatListBulleted
     }
 
 @Composable

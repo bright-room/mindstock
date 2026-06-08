@@ -2,6 +2,7 @@ package net.brightroom.mindstock.frontend.designsystem.atom
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.height
@@ -22,6 +23,7 @@ import net.brightroom.mindstock.frontend.designsystem.theme.softShadow
 data class SegOption(
     val key: String,
     val label: String,
+    val icon: AppIconName? = null,
 )
 
 @Composable
@@ -53,11 +55,16 @@ fun SegmentedControl(
                         .clickable { onSelect(o.key) },
                 contentAlignment = Alignment.Center,
             ) {
-                AppText(
-                    text = o.label,
-                    style = MindstockType.sectionMeta(),
-                    color = if (active) scheme.onSurface else tokens.faint,
-                )
+                val contentColor = if (active) scheme.onSurface else tokens.faint
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                ) {
+                    o.icon?.let { AppIcon(it, contentDescription = o.label.ifBlank { o.key }, size = 15.dp, tint = contentColor) }
+                    if (o.label.isNotBlank()) {
+                        AppText(text = o.label, style = MindstockType.sectionMeta(), color = contentColor)
+                    }
+                }
             }
         }
     }

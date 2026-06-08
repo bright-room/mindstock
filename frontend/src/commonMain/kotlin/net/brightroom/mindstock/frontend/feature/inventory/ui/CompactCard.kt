@@ -108,7 +108,12 @@ fun CompactCard(
             modifier = Modifier.height(37.dp),
         )
         StatusDot(color = statusColor, soft = statusSoft, label = statusLabel)
-        StockLevelBar(qty = qty, min = stock.product.setting.minimumStock(), color = statusColor)
+        // モック準拠: 十分(ok)のバーは status色(緑)でなくアクセント(橙)。
+        StockLevelBar(
+            qty = qty,
+            min = stock.product.setting.minimumStock(),
+            color = if (status == StockStatus.十分) tokens.accent else statusColor,
+        )
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
             AppButton(
                 onClick = { onReplenish(stock) },

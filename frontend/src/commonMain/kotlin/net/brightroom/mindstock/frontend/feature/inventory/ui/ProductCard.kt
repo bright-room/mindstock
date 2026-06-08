@@ -104,7 +104,12 @@ fun ProductCard(
                 AppText(stock.product.setting.unit(), style = MindstockType.unitCaption(), color = tokens.faint)
             }
         }
-        StockLevelBar(qty = qty, min = stock.product.setting.minimumStock(), color = statusColor)
+        // モック準拠: 十分(ok)のバーは status色(緑)でなくアクセント(橙)。
+        StockLevelBar(
+            qty = qty,
+            min = stock.product.setting.minimumStock(),
+            color = if (status == StockStatus.十分) tokens.accent else statusColor,
+        )
         Row(horizontalArrangement = Arrangement.spacedBy(9.dp), modifier = Modifier.fillMaxWidth()) {
             AppButton(
                 onClick = { onReplenish(stock) },

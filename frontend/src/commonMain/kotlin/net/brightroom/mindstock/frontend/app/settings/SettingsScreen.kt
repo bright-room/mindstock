@@ -28,6 +28,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import mindstock.frontend.generated.resources.Res
 import mindstock.frontend.generated.resources.invite_title
 import mindstock.frontend.generated.resources.leave_cancel
@@ -78,6 +79,7 @@ import net.brightroom.mindstock.frontend.designsystem.atom.Toggle
 import net.brightroom.mindstock.frontend.designsystem.theme.LocalMindstockTokens
 import net.brightroom.mindstock.frontend.designsystem.theme.MindstockType
 import net.brightroom.mindstock.frontend.designsystem.theme.ShadowLevel
+import net.brightroom.mindstock.frontend.designsystem.theme.avatarColorOf
 import net.brightroom.mindstock.frontend.designsystem.theme.softShadow
 import net.brightroom.mindstock.frontend.feature.household.MemberRow
 import net.brightroom.mindstock.frontend.feature.household.SettingsUiState
@@ -241,7 +243,11 @@ private fun AccountCard(
                 modifier = Modifier.size(58.dp).clip(RoundedCornerShape(99.dp)).background(tokens.accent),
                 contentAlignment = Alignment.Center,
             ) {
-                AppText(displayName.take(1), style = MindstockType.bigQty(), color = tokens.onAccent)
+                AppText(
+                    displayName.take(1),
+                    style = MindstockType.bigQty().copy(fontSize = 24.sp, lineHeight = 24.sp),
+                    color = tokens.onAccent,
+                )
             }
             Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 if (editing) {
@@ -522,11 +528,12 @@ private fun MemberRowItem(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
+        // mock 準拠: メンバーアバターは利用者別色で塗りつぶし + 白頭文字。
         Box(
-            modifier = Modifier.size(38.dp).clip(RoundedCornerShape(99.dp)).background(tokens.accentSoft),
+            modifier = Modifier.size(38.dp).clip(RoundedCornerShape(99.dp)).background(avatarColorOf(member.name)),
             contentAlignment = Alignment.Center,
         ) {
-            AppText(member.name.take(1), style = MindstockType.cardTitle(), color = tokens.accent)
+            AppText(member.name.take(1), style = MindstockType.cardTitle().copy(fontSize = 15.sp), color = tokens.onAccent)
         }
         Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(5.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(7.dp)) {
