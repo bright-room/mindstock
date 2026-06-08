@@ -26,6 +26,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import mindstock.frontend.generated.resources.Res
 import mindstock.frontend.generated.resources.action_back
 import mindstock.frontend.generated.resources.add_product_adopt_title
@@ -313,13 +314,14 @@ private fun CatalogItemRow(
         Column(modifier = Modifier.weight(1f)) {
             AppText(
                 text = item.name(),
-                style = MindstockType.cardTitle(),
+                // mock CatalogItemRow の名前は 600 14.5px/1.3。
+                style = MindstockType.cardTitle().copy(fontSize = 14.5f.sp),
                 color = tokens.ink,
                 maxLines = 1,
             )
             AppText(
                 text = "JAN ${item.jan()}",
-                style = MindstockType.unitCaption(),
+                style = MindstockType.unitCaption().copy(fontSize = 12.sp),
                 color = tokens.faint,
                 modifier = Modifier.padding(top = 5.dp),
             )
