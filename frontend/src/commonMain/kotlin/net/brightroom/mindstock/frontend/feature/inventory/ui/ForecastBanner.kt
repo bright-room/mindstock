@@ -13,12 +13,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import kotlinx.datetime.LocalDateTime
 import mindstock.frontend.generated.resources.Res
 import mindstock.frontend.generated.resources.forecast_banner
 import net.brightroom.mindstock.domain.model.inventory.stock.ConsumptionForecast
+import net.brightroom.mindstock.domain.model.inventory.stock.EvaluatedTime
 import net.brightroom.mindstock.domain.model.inventory.stock.Stocks
-import net.brightroom.mindstock.extensions.kotlinx.datetime.now
 import net.brightroom.mindstock.frontend.designsystem.atom.AppIcon
 import net.brightroom.mindstock.frontend.designsystem.atom.AppIconName
 import net.brightroom.mindstock.frontend.designsystem.atom.AppText
@@ -36,12 +35,12 @@ fun ForecastBanner(
     modifier: Modifier = Modifier,
 ) {
     val tokens = LocalMindstockTokens.current
-    val now = LocalDateTime.now()
+    val now = EvaluatedTime.now()
     val soon =
         stocks.list
             .mapNotNull { stock ->
                 when (val f = stock.forecast(now)) {
-                    is ConsumptionForecast.DaysRemaining -> stock to f.days
+                    is ConsumptionForecast.DaysRemaining -> stock to f()
                     ConsumptionForecast.Unknown -> null
                 }
             }.minByOrNull { it.second } ?: return

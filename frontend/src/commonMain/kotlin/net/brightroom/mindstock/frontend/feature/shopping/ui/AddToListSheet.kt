@@ -142,7 +142,7 @@ private fun CandidateRow(
                 overflow = TextOverflow.Ellipsis,
             )
             AppText(
-                stringResource(Res.string.shop_stock_qty, entry.stock.currentQuantity(), product.setting.unit()),
+                stringResource(Res.string.shop_stock_qty, entry.stock.currentQuantity()(), product.setting.unit()),
                 style = MindstockType.unitCaption(),
                 color = tokens.faint,
             )

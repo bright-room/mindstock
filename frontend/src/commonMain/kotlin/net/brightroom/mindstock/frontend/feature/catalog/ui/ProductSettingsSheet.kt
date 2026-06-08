@@ -147,7 +147,7 @@ fun ProductSettingsSheet(
                         .padding(top = 2.dp, bottom = 8.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                val qty = stock.currentQuantity()
+                val qty = stock.currentQuantity()()
                 if (qty > 0) {
                     // Blocked: archive disabled
                     AppButton(

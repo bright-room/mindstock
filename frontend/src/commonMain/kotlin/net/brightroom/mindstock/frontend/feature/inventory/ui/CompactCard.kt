@@ -66,7 +66,7 @@ fun CompactCard(
             StockStatus.十分 -> stringResource(Res.string.status_ok)
         }
     val shape = RoundedCornerShape(22.dp)
-    val qty = stock.currentQuantity()
+    val qty = stock.currentQuantity()()
     Column(
         modifier =
             modifier

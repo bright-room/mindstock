@@ -17,7 +17,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import kotlinx.datetime.LocalDateTime
 import mindstock.frontend.generated.resources.Res
 import mindstock.frontend.generated.resources.action_consume
 import mindstock.frontend.generated.resources.action_replenish
@@ -26,9 +25,9 @@ import mindstock.frontend.generated.resources.status_low
 import mindstock.frontend.generated.resources.status_ok
 import mindstock.frontend.generated.resources.status_out
 import net.brightroom.mindstock.domain.model.inventory.stock.ConsumptionForecast
+import net.brightroom.mindstock.domain.model.inventory.stock.EvaluatedTime
 import net.brightroom.mindstock.domain.model.inventory.stock.Stock
 import net.brightroom.mindstock.domain.model.inventory.stock.StockStatus
-import net.brightroom.mindstock.extensions.kotlinx.datetime.now
 import net.brightroom.mindstock.frontend.designsystem.atom.AppButton
 import net.brightroom.mindstock.frontend.designsystem.atom.AppIconName
 import net.brightroom.mindstock.frontend.designsystem.atom.AppText
@@ -73,8 +72,8 @@ fun ProductCard(
             StockStatus.十分 -> stringResource(Res.string.status_ok)
         }
     val shape = RoundedCornerShape(22.dp)
-    val qty = stock.currentQuantity()
-    val forecast = stock.forecast(LocalDateTime.now())
+    val qty = stock.currentQuantity()()
+    val forecast = stock.forecast(EvaluatedTime.now())
     Column(
         modifier =
             modifier
@@ -105,7 +104,7 @@ fun ProductCard(
                     StatusDot(color = statusColor, soft = statusSoft, label = statusLabel)
                     if (forecast is ConsumptionForecast.DaysRemaining) {
                         AppText(
-                            stringResource(Res.string.forecast_days_left, forecast.days),
+                            stringResource(Res.string.forecast_days_left, forecast()),
                             style = MindstockType.unitCaption(),
                             color = tokens.faint,
                             maxLines = 1,

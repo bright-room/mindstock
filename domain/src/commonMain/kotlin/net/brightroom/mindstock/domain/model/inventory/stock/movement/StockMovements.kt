@@ -1,10 +1,11 @@
 package net.brightroom.mindstock.domain.model.inventory.stock.movement
 
 import kotlinx.datetime.DatePeriod
-import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.daysUntil
 import kotlinx.datetime.minus
 import kotlinx.serialization.Serializable
+import net.brightroom.mindstock.domain.model.inventory.quantity.NetQuantity
+import net.brightroom.mindstock.domain.model.inventory.stock.EvaluatedTime
 import net.brightroom.mindstock.domain.model.inventory.stock.movement.StockMovement.Consumption
 import net.brightroom.mindstock.domain.model.inventory.stock.movement.StockMovement.Correction
 import net.brightroom.mindstock.domain.model.inventory.stock.movement.StockMovement.Replenishment
@@ -24,17 +25,19 @@ data class StockMovements(
      * 全 movement を畳み込んだ現在の正味在庫数量。
      * 補充(Replenishment)を加算・消費(Consumption)を減算し、訂正(Correction)は対象 movement の数量を
      * 最新の訂正値で上書きしてから集計する(訂正自体は増減を持たない)。
-     * 値は 0 や(訂正途中の不整合では)負にもなり得るため Quantity(>0)ではなく Int を返す。
+     * 値は 0 や(訂正途中の不整合では)負にもなり得るため Quantity(>0)ではなく NetQuantity を返す。
      */
-    fun netQuantity(): Int {
+    fun netQuantity(): NetQuantity {
         val latestCorrection = latestCorrectionByTarget()
-        return list.sumOf { movement ->
-            when (movement) {
-                is Replenishment -> effectiveQuantity(movement, latestCorrection)
-                is Consumption -> -effectiveQuantity(movement, latestCorrection)
-                is Correction -> 0
+        val net =
+            list.sumOf { movement ->
+                when (movement) {
+                    is Replenishment -> effectiveQuantity(movement, latestCorrection)
+                    is Consumption -> -effectiveQuantity(movement, latestCorrection)
+                    is Correction -> 0
+                }
             }
-        }
+        return NetQuantity(net)
     }
 
     /** 同一 target への訂正のうち最新(occurredAt 最大)を採る。 */
@@ -61,31 +64,33 @@ data class StockMovements(
      * 基準時刻 asOf からの相対で「直近」を判定する(frontend は now-JST、テストは固定値を渡す)。
      * どう算出: トレーリング窓(直近 [FORECAST_WINDOW_DAYS] 日)に消費があり観測期間が窓を満たすならその窓の平均、
      * そうでなければ(履歴が浅い/直近窓に消費が無い)全履歴平均(最初の補充・消費→asOf を span とする)に fallback。
-     * 何を返す: 消費ペース(Double, 単位/日)。消費実績が無ければ 0.0(= 予測不可)。
+     * 何を返す: 消費ペース [ConsumptionRate](単位/日)。消費実績が無ければ 0.0(= 予測不可)。
      */
-    fun consumptionRatePerDay(asOf: LocalDateTime): Double {
-        if (list.isEmpty()) return 0.0
+    fun consumptionRatePerDay(asOf: EvaluatedTime): ConsumptionRate {
+        if (list.isEmpty()) return ConsumptionRate(0.0)
         val corrections = latestCorrectionByTarget()
         val consumptions =
             list
                 .filterIsInstance<Consumption>()
                 .map { it.occurredAt() to effectiveQuantity(it, corrections) }
         val totalConsumed = consumptions.sumOf { it.second }
-        if (totalConsumed == 0) return 0.0
+        if (totalConsumed == 0) return ConsumptionRate(0.0)
 
         val firstDate =
             list
                 .filter { it is Replenishment || it is Consumption }
                 .minOf { it.occurredAt().date }
-        val spanDays = maxOf(1, firstDate.daysUntil(asOf.date))
-        val windowStart = asOf.date.minus(DatePeriod(days = FORECAST_WINDOW_DAYS))
+        val spanDays = maxOf(1, firstDate.daysUntil(asOf().date))
+        val windowStart = asOf().date.minus(DatePeriod(days = FORECAST_WINDOW_DAYS))
         val recentConsumed = consumptions.filter { it.first.date >= windowStart }.sumOf { it.second }
 
-        return if (spanDays >= FORECAST_WINDOW_DAYS && recentConsumed > 0) {
-            recentConsumed.toDouble() / FORECAST_WINDOW_DAYS
-        } else {
-            totalConsumed.toDouble() / spanDays
-        }
+        val rate =
+            if (spanDays >= FORECAST_WINDOW_DAYS && recentConsumed > 0) {
+                recentConsumed.toDouble() / FORECAST_WINDOW_DAYS
+            } else {
+                totalConsumed.toDouble() / spanDays
+            }
+        return ConsumptionRate(rate)
     }
 
     companion object {
