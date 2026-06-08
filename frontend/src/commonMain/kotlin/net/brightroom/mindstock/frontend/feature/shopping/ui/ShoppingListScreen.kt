@@ -34,8 +34,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import kotlinx.datetime.LocalDateTime
 import mindstock.frontend.generated.resources.Res
 import mindstock.frontend.generated.resources.action_replenish
+import mindstock.frontend.generated.resources.forecast_days_left_plain
 import mindstock.frontend.generated.resources.loading
 import mindstock.frontend.generated.resources.shop_add_from_stock_sub
 import mindstock.frontend.generated.resources.shop_add_from_stock_title
@@ -56,8 +58,10 @@ import mindstock.frontend.generated.resources.status_ok
 import mindstock.frontend.generated.resources.status_out
 import net.brightroom.mindstock.domain.model.inventory.product.ProductId
 import net.brightroom.mindstock.domain.model.inventory.shopping.ShoppingEntry
+import net.brightroom.mindstock.domain.model.inventory.stock.ConsumptionForecast
 import net.brightroom.mindstock.domain.model.inventory.stock.Stock
 import net.brightroom.mindstock.domain.model.inventory.stock.StockStatus
+import net.brightroom.mindstock.extensions.kotlinx.datetime.now
 import net.brightroom.mindstock.frontend.core.ui.resolve
 import net.brightroom.mindstock.frontend.designsystem.atom.AppButton
 import net.brightroom.mindstock.frontend.designsystem.atom.AppIcon
@@ -341,6 +345,14 @@ private fun ShopRow(
                         style = MindstockType.summarySub(),
                         color = tokens.faint,
                     )
+                    val forecast = stock.forecast(LocalDateTime.now())
+                    if (forecast is ConsumptionForecast.DaysRemaining) {
+                        AppText(
+                            stringResource(Res.string.forecast_days_left_plain, forecast.days),
+                            style = MindstockType.statusLabel().copy(fontWeight = FontWeight.SemiBold),
+                            color = tokens.accent,
+                        )
+                    }
                 }
             }
         }
