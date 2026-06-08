@@ -17,14 +17,18 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import kotlinx.datetime.LocalDateTime
 import mindstock.frontend.generated.resources.Res
 import mindstock.frontend.generated.resources.action_consume
 import mindstock.frontend.generated.resources.action_replenish
+import mindstock.frontend.generated.resources.forecast_days_left
 import mindstock.frontend.generated.resources.status_low
 import mindstock.frontend.generated.resources.status_ok
 import mindstock.frontend.generated.resources.status_out
+import net.brightroom.mindstock.domain.model.inventory.stock.ConsumptionForecast
 import net.brightroom.mindstock.domain.model.inventory.stock.Stock
 import net.brightroom.mindstock.domain.model.inventory.stock.StockStatus
+import net.brightroom.mindstock.extensions.kotlinx.datetime.now
 import net.brightroom.mindstock.frontend.designsystem.atom.AppButton
 import net.brightroom.mindstock.frontend.designsystem.atom.AppIconName
 import net.brightroom.mindstock.frontend.designsystem.atom.AppText
@@ -93,7 +97,21 @@ fun ProductCard(
                     overflow = TextOverflow.Ellipsis,
                 )
                 Spacer(Modifier.height(6.dp))
-                StatusDot(color = statusColor, soft = statusSoft, label = statusLabel)
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    StatusDot(color = statusColor, soft = statusSoft, label = statusLabel)
+                    val forecast = stock.forecast(LocalDateTime.now())
+                    if (forecast is ConsumptionForecast.DaysRemaining) {
+                        AppText(
+                            stringResource(Res.string.forecast_days_left, forecast.days),
+                            style = MindstockType.unitCaption(),
+                            color = tokens.faint,
+                            maxLines = 1,
+                        )
+                    }
+                }
             }
             Column(horizontalAlignment = Alignment.End) {
                 AppText(
