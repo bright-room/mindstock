@@ -1,5 +1,6 @@
 package net.brightroom.mindstock.domain.model.inventory.stock
 
+import kotlinx.datetime.LocalDateTime
 import kotlinx.serialization.Serializable
 import net.brightroom.mindstock.domain.exception.CannotArchiveWithStockException
 import net.brightroom.mindstock.domain.exception.InsufficientStockException
@@ -17,6 +18,7 @@ import net.brightroom.mindstock.domain.model.inventory.stock.movement.StockMovem
 import net.brightroom.mindstock.domain.model.inventory.stock.movement.StockMovement.Replenishment
 import net.brightroom.mindstock.domain.model.inventory.stock.movement.StockMovements
 import net.brightroom.mindstock.domain.model.resident.Resident
+import kotlin.math.roundToInt
 
 @Serializable
 data class Stock(
@@ -85,4 +87,17 @@ data class Stock(
 
     /** 直近に追記した movement(replenish/consume/correct 後にこれを永続化する)。movement が無ければ ResourceNotFoundException。 */
     fun latestMovement(): StockMovement = movements.list.lastOrNull() ?: throw ResourceNotFoundException("no movement")
+
+    /**
+     * 現在の消費ペースから「あと約何日で在庫が尽きるか」を予測する。
+     * asOf は基準時刻(frontend は now-JST、テストは固定値)。
+     * 在庫 0 以下・消費実績なしは Unknown。
+     */
+    fun forecast(asOf: LocalDateTime): ConsumptionForecast {
+        val quantity = currentQuantity()
+        if (quantity <= 0) return ConsumptionForecast.Unknown
+        val rate = movements.consumptionRatePerDay(asOf)
+        if (rate <= 0.0) return ConsumptionForecast.Unknown
+        return ConsumptionForecast.DaysRemaining((quantity / rate).roundToInt())
+    }
 }
