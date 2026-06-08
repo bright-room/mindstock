@@ -67,12 +67,12 @@ fun ProductDetailOverlay(
         mode = mode ?: MoveMode.Replenish,
         stock = stock,
         onClose = { moveMode = null },
-        onSubmit = { quantity, note ->
+        onSubmit = { quantity, note, occurredAt ->
             val m = mode ?: return@MoveSheet
             scope.launch {
                 when (m) {
-                    MoveMode.Replenish -> vm.replenish(Quantity(quantity), Note(note))
-                    MoveMode.Consume -> vm.consume(Quantity(quantity), Note(note))
+                    MoveMode.Replenish -> vm.replenish(Quantity(quantity), Note(note), occurredAt)
+                    MoveMode.Consume -> vm.consume(Quantity(quantity), Note(note), occurredAt)
                 }
             }
             moveMode = null

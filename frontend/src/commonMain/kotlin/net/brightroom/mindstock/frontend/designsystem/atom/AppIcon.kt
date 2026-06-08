@@ -13,6 +13,7 @@ import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material.icons.outlined.AccessTime
 import androidx.compose.material.icons.outlined.Archive
+import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material.icons.outlined.Check
 import androidx.compose.material.icons.outlined.ContentCopy
 import androidx.compose.material.icons.outlined.DeleteOutline
@@ -78,6 +79,7 @@ enum class AppIconName {
     ChevronDown,
     Grid,
     ListView,
+    Calendar,
 }
 
 private fun AppIconName.vector(): ImageVector =
@@ -118,6 +120,7 @@ private fun AppIconName.vector(): ImageVector =
         AppIconName.ChevronDown -> Icons.Filled.KeyboardArrowDown
         AppIconName.Grid -> Icons.Outlined.GridView
         AppIconName.ListView -> Icons.AutoMirrored.Outlined.FormatListBulleted
+        AppIconName.Calendar -> Icons.Outlined.CalendarMonth
     }
 
 @Composable

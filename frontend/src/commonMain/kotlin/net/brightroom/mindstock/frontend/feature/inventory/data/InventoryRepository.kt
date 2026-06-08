@@ -7,6 +7,7 @@ import net.brightroom.mindstock.domain.model.inventory.shopping.ShoppingList
 import net.brightroom.mindstock.domain.model.inventory.stock.Stocks
 import net.brightroom.mindstock.domain.model.inventory.stock.movement.MovementId
 import net.brightroom.mindstock.domain.model.inventory.stock.movement.Note
+import net.brightroom.mindstock.domain.model.inventory.stock.movement.OccurredAt
 import net.brightroom.mindstock.domain.model.inventory.stock.movement.Reason
 import net.brightroom.mindstock.domain.model.inventory.stock.movement.StockMovements
 import net.brightroom.mindstock.frontend.core.rpc.RpcOutcome
@@ -38,13 +39,15 @@ class InventoryRepository(
         productId: ProductId,
         quantity: Quantity,
         note: Note,
-    ): RpcOutcome<Unit> = stockRegisterService().replenish(productId, quantity, note).toOutcome()
+        occurredAt: OccurredAt,
+    ): RpcOutcome<Unit> = stockRegisterService().replenish(productId, quantity, note, occurredAt).toOutcome()
 
     suspend fun consume(
         productId: ProductId,
         quantity: Quantity,
         note: Note,
-    ): RpcOutcome<Unit> = stockRegisterService().consume(productId, quantity, note).toOutcome()
+        occurredAt: OccurredAt,
+    ): RpcOutcome<Unit> = stockRegisterService().consume(productId, quantity, note, occurredAt).toOutcome()
 
     suspend fun correct(
         target: MovementId,

@@ -47,6 +47,13 @@
     <string name="move_title_consume">消費する</string>
     <string name="move_current_short">現在 %1$d%2$s</string>
     <string name="move_after_negative">マイナス在庫</string>
+    <string name="move_when_label">いつの出来事？</string>
+    <string name="date_today">今日</string>
+    <string name="date_yesterday">昨日</string>
+    <string name="date_day_before">おととい</string>
+    <string name="date_picker_open_calendar">カレンダーで日付を選ぶ</string>
+    <string name="date_picker_ok">OK</string>
+    <string name="date_picker_cancel">キャンセル</string>
     <string name="stock_search_placeholder">在庫を検索</string>
     <string name="stock_greeting">こんにちは、%1$s</string>
     <string name="stock_title">在庫</string>

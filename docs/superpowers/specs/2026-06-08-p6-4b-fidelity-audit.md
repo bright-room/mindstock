@@ -32,7 +32,7 @@
 - [done/now] 訂正の畳み込み・訂正理由・相対時刻 → 実装済(render 確認済)。
 - [now] 数量カードの数値 46px の行高/字間、単位の位置、StatusDot ラベル色、最低在庫の右寄せ位置を実数値突合。`[要render]`
 - [now] 履歴コネクタ線の位置・ノード配色・アバター色（モックは USERS 別色 / 実装は accent 固定）。モックは利用者ごとに色違い → 実装は単色。`[now・色割当て要]`
-- [backend] **消費/補充の日時「設定」**（DatePick）= occurredAt をサーバ確定のため未対応。→ **別 PR で occurredAt 改修**（承認済）。
+- [backend] **消費/補充の日時「設定」**（DatePick）= ~~occurredAt をサーバ確定のため未対応~~ → **P6-4b トラックB #1 で実装済**（補充/消費に DatePick・クライアント指定 occurredAt）。`2026-06-08-occurred-at-backdate-design.md`。
 - [now] 設定アイコン: モックは `sliders`（横スライダー）、実装は `Settings`(歯車)。アイコン差。`[now]`
 
 ## 3. 補充/消費シート MoveSheet（改修済・再点検）

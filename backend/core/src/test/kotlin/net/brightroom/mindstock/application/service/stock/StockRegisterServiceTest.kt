@@ -2,10 +2,12 @@ package net.brightroom.mindstock.application.service.stock
 
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.FunSpec
+import io.kotest.matchers.shouldBe
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.slot
 import io.mockk.verify
+import kotlinx.datetime.LocalDateTime
 import net.brightroom.mindstock.application.repository.household.HouseholdRepository
 import net.brightroom.mindstock.application.repository.product.ProductRepository
 import net.brightroom.mindstock.application.repository.resident.ResidentRepository
@@ -89,7 +91,8 @@ class StockRegisterServiceTest :
             check(appended.captured is StockMovement.Correction) { "appended movement must be a Correction" }
         }
 
-        test("replenish は findByProduct で対象を load し補充 movement を append する") {
+        test("replenish は渡された occurredAt をそのまま movement に記録する(バックデート)") {
+            val backdated = OccurredAt(LocalDateTime(2026, 6, 1, 9, 0))
             val appended = slot<StockMovement>()
             every { productRepository.householdOf(product.id) } returns householdId
             every { householdRepository.findById(householdId) } returns householdWithActor()
@@ -97,13 +100,15 @@ class StockRegisterServiceTest :
             every { stockRepository.findByProduct(product.id) } returns Stock(product, StockMovements(emptyList()))
             every { stockRegisterRepository.appendMovement(product.id, capture(appended)) } returns mockk(relaxed = true)
 
-            service.replenish(product.id, Quantity(3), Note(""), actor.id)
+            service.replenish(product.id, Quantity(3), Note(""), backdated, actor.id)
 
             verify { stockRepository.findByProduct(product.id) }
             check(appended.captured is StockMovement.Replenishment) { "appended movement must be a Replenishment" }
+            appended.captured.occurredAt shouldBe backdated
         }
 
-        test("consume は findByProduct で対象を load し消費 movement を append する") {
+        test("consume は渡された occurredAt をそのまま movement に記録する(バックデート)") {
+            val backdated = OccurredAt(LocalDateTime(2026, 6, 1, 9, 0))
             val seeded =
                 StockMovement.Replenishment(
                     MovementIdentity.Persisted(MovementId(1L)),
@@ -119,10 +124,11 @@ class StockRegisterServiceTest :
             every { stockRepository.findByProduct(product.id) } returns Stock(product, StockMovements(listOf(seeded)))
             every { stockRegisterRepository.appendMovement(product.id, capture(appended)) } returns mockk(relaxed = true)
 
-            service.consume(product.id, Quantity(2), Note(""), actor.id)
+            service.consume(product.id, Quantity(2), Note(""), backdated, actor.id)
 
             verify { stockRepository.findByProduct(product.id) }
             check(appended.captured is StockMovement.Consumption) { "appended movement must be a Consumption" }
+            appended.captured.occurredAt shouldBe backdated
         }
 
         test("replenish は product の世帯メンバーでなければ MembershipRequiredException") {
@@ -140,6 +146,6 @@ class StockRegisterServiceTest :
                         ),
                     ),
                 )
-            shouldThrow<MembershipRequiredException> { service.replenish(product.id, Quantity(1), Note(""), actor.id) }
+            shouldThrow<MembershipRequiredException> { service.replenish(product.id, Quantity(1), Note(""), OccurredAt.now(), actor.id) }
         }
     })

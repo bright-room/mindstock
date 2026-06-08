@@ -12,6 +12,7 @@ import net.brightroom.mindstock.domain.model.inventory.product.ProductId
 import net.brightroom.mindstock.domain.model.inventory.quantity.Quantity
 import net.brightroom.mindstock.domain.model.inventory.stock.Stocks
 import net.brightroom.mindstock.domain.model.inventory.stock.movement.Note
+import net.brightroom.mindstock.domain.model.inventory.stock.movement.OccurredAt
 import net.brightroom.mindstock.frontend.core.auth.ReauthController
 import net.brightroom.mindstock.frontend.core.rpc.RpcOutcome
 import net.brightroom.mindstock.frontend.core.rpc.errorText
@@ -24,8 +25,8 @@ import net.brightroom.mindstock.rpc.result.RpcError
 class InventoryViewModel(
     private val householdId: HouseholdId,
     private val loadStocks: suspend (HouseholdId) -> RpcOutcome<Stocks>,
-    private val replenishStock: suspend (ProductId, Quantity, Note) -> RpcOutcome<Unit>,
-    private val consumeStock: suspend (ProductId, Quantity, Note) -> RpcOutcome<Unit>,
+    private val replenishStock: suspend (ProductId, Quantity, Note, OccurredAt) -> RpcOutcome<Unit>,
+    private val consumeStock: suspend (ProductId, Quantity, Note, OccurredAt) -> RpcOutcome<Unit>,
     private val refresh: InventoryRefreshController,
     private val toast: ToastController,
     private val reauth: ReauthController,
@@ -71,13 +72,15 @@ class InventoryViewModel(
         productId: ProductId,
         quantity: Quantity,
         note: Note,
-    ) = write(replenishStock(productId, quantity, note), UiText(Res.string.toast_replenished))
+        occurredAt: OccurredAt,
+    ) = write(replenishStock(productId, quantity, note, occurredAt), UiText(Res.string.toast_replenished))
 
     suspend fun consume(
         productId: ProductId,
         quantity: Quantity,
         note: Note,
-    ) = write(consumeStock(productId, quantity, note), UiText(Res.string.toast_consumed))
+        occurredAt: OccurredAt,
+    ) = write(consumeStock(productId, quantity, note, occurredAt), UiText(Res.string.toast_consumed))
 
     private suspend fun write(
         outcome: RpcOutcome<Unit>,

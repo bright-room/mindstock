@@ -66,12 +66,12 @@ fun InventoryRoute(
         mode = mt?.second ?: MoveMode.Replenish,
         stock = mt?.first,
         onClose = { moveTarget = null },
-        onSubmit = { quantity, note ->
+        onSubmit = { quantity, note, occurredAt ->
             val (stock, mode) = mt ?: return@MoveSheet
             scope.launch {
                 when (mode) {
-                    MoveMode.Replenish -> homeViewModel.replenish(stock.product.id, Quantity(quantity), Note(note))
-                    MoveMode.Consume -> homeViewModel.consume(stock.product.id, Quantity(quantity), Note(note))
+                    MoveMode.Replenish -> homeViewModel.replenish(stock.product.id, Quantity(quantity), Note(note), occurredAt)
+                    MoveMode.Consume -> homeViewModel.consume(stock.product.id, Quantity(quantity), Note(note), occurredAt)
                 }
             }
             moveTarget = null
