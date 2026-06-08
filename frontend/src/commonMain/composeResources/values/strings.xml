@@ -220,6 +220,8 @@
     <string name="role_owner">オーナー</string>
     <string name="role_member">編集できる</string>
     <string name="role_viewer">閲覧のみ</string>
+    <string name="role_member_desc">在庫の補充・消費・商品の追加ができます。</string>
+    <string name="role_viewer_desc">在庫を見ることだけできます。記録は変更できません。</string>
     <string name="toast_household_created">世帯をつくりました</string>
     <string name="toast_household_joined">世帯に参加しました</string>
     <string name="settings_error_last_owner_leave">最後のオーナーは退出できません。先に別のメンバーをオーナーにしてください。</string>
@@ -256,6 +258,7 @@
     <!-- 世帯切替シート -->
     <string name="switcher_title">世帯を切り替え</string>
     <string name="switcher_desc">参加している世帯から選んで切り替えられます。いくつでも持てます。</string>
+    <string name="switcher_member_count">%1$d人</string>
     <string name="switcher_create">新しい世帯をつくる</string>
     <string name="switcher_create_sub">空の在庫から始めます</string>
     <string name="switcher_join">招待コードで参加</string>

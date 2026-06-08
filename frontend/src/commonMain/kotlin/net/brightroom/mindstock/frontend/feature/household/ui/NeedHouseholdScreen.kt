@@ -42,9 +42,9 @@ fun NeedHouseholdScreen(
             modifier =
                 Modifier
                     .fillMaxWidth()
-                    .clip(RoundedCornerShape(20.dp))
+                    .clip(RoundedCornerShape(tokens.radiusLg))
                     .background(tokens.surface)
-                    .border(1.dp, tokens.lineSoft, RoundedCornerShape(20.dp))
+                    .border(1.dp, tokens.lineSoft, RoundedCornerShape(tokens.radiusLg))
                     .padding(22.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {

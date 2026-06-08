@@ -16,15 +16,19 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.PathEffect
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.unit.dp
 import mindstock.frontend.generated.resources.Res
-import mindstock.frontend.generated.resources.settings_household_member_count
 import mindstock.frontend.generated.resources.switcher_create
 import mindstock.frontend.generated.resources.switcher_create_sub
 import mindstock.frontend.generated.resources.switcher_desc
 import mindstock.frontend.generated.resources.switcher_join
 import mindstock.frontend.generated.resources.switcher_join_sub
+import mindstock.frontend.generated.resources.switcher_member_count
 import mindstock.frontend.generated.resources.switcher_title
 import net.brightroom.mindstock.domain.model.household.HouseholdId
 import net.brightroom.mindstock.frontend.designsystem.atom.AppIcon
@@ -114,7 +118,7 @@ private fun HouseholdRow(
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 AppIcon(AppIconName.Users, contentDescription = null, size = 13.dp, tint = tokens.faint)
                 AppText(
-                    stringResource(Res.string.settings_household_member_count, summary.memberCount),
+                    stringResource(Res.string.switcher_member_count, summary.memberCount),
                     style = MindstockType.unitCaption(),
                     color = tokens.faint,
                 )
@@ -157,16 +161,20 @@ private fun SwitcherAction(
     modifier: Modifier = Modifier,
 ) {
     val tokens = LocalMindstockTokens.current
+    val dash = if (accent) tokens.accent else tokens.line
     Row(
         modifier =
             modifier
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(tokens.radiusLg))
                 .background(tokens.surface)
-                .border(
-                    BorderStroke(1.dp, if (accent) tokens.accent else tokens.line),
-                    RoundedCornerShape(tokens.radiusLg),
-                ).clickable { onClick() }
+                .drawBehind {
+                    drawRoundRect(
+                        color = dash,
+                        style = Stroke(width = 1.dp.toPx(), pathEffect = PathEffect.dashPathEffect(floatArrayOf(10f, 8f))),
+                        cornerRadius = CornerRadius(tokens.radiusLg.toPx()),
+                    )
+                }.clickable { onClick() }
                 .padding(horizontal = 14.dp, vertical = 13.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(13.dp),

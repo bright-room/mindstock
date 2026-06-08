@@ -32,8 +32,8 @@ import net.brightroom.mindstock.frontend.designsystem.atom.AppIcon
 import net.brightroom.mindstock.frontend.designsystem.atom.AppIconName
 import net.brightroom.mindstock.frontend.designsystem.atom.AppText
 import net.brightroom.mindstock.frontend.designsystem.atom.ButtonSize
+import net.brightroom.mindstock.frontend.designsystem.atom.CodeInput
 import net.brightroom.mindstock.frontend.designsystem.atom.Sheet
-import net.brightroom.mindstock.frontend.designsystem.atom.TextInput
 import net.brightroom.mindstock.frontend.designsystem.theme.LocalMindstockTokens
 import net.brightroom.mindstock.frontend.designsystem.theme.MindstockType
 import net.brightroom.mindstock.frontend.feature.household.NeedHouseholdUiState
@@ -53,7 +53,7 @@ fun JoinCodeSheet(
     Sheet(open = open, title = stringResource(Res.string.join_code_title), onClose = onClose) {
         Column(verticalArrangement = Arrangement.spacedBy(16.dp), modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp)) {
             AppText(stringResource(Res.string.join_code_sub), style = MindstockType.summarySub(), color = tokens.sub)
-            TextInput(
+            CodeInput(
                 value = code,
                 onValueChange = { code = it.uppercase().filter { c -> c.isLetterOrDigit() }.take(6) },
                 placeholder = stringResource(Res.string.join_code_placeholder),

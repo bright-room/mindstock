@@ -1,15 +1,21 @@
 package net.brightroom.mindstock.frontend.feature.household.ui
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
 import mindstock.frontend.generated.resources.Res
 import mindstock.frontend.generated.resources.create_household_busy
@@ -22,6 +28,7 @@ import mindstock.frontend.generated.resources.create_suggest_2
 import mindstock.frontend.generated.resources.create_suggest_3
 import mindstock.frontend.generated.resources.create_suggest_4
 import net.brightroom.mindstock.frontend.designsystem.atom.AppButton
+import net.brightroom.mindstock.frontend.designsystem.atom.AppIcon
 import net.brightroom.mindstock.frontend.designsystem.atom.AppIconName
 import net.brightroom.mindstock.frontend.designsystem.atom.AppText
 import net.brightroom.mindstock.frontend.designsystem.atom.ButtonSize
@@ -44,6 +51,12 @@ fun CreateHouseholdSheet(
     Sheet(open = open, title = stringResource(Res.string.create_household_title), onClose = onClose) {
         Column(verticalArrangement = Arrangement.spacedBy(16.dp), modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp)) {
             AppText(stringResource(Res.string.create_household_sub), style = MindstockType.summarySub(), color = tokens.sub)
+            Box(
+                modifier = Modifier.size(52.dp).clip(RoundedCornerShape(16.dp)).background(tokens.accentSoft),
+                contentAlignment = Alignment.Center,
+            ) {
+                AppIcon(AppIconName.Home, contentDescription = null, size = 26.dp, tint = tokens.accent)
+            }
             TextInput(
                 value = name,
                 onValueChange = { name = it },

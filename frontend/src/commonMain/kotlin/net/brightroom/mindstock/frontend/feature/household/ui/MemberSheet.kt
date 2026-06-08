@@ -17,7 +17,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import mindstock.frontend.generated.resources.Res
 import mindstock.frontend.generated.resources.member_owner_note
 import mindstock.frontend.generated.resources.member_remove
@@ -40,6 +42,7 @@ import net.brightroom.mindstock.frontend.designsystem.atom.SegmentedControl
 import net.brightroom.mindstock.frontend.designsystem.atom.Sheet
 import net.brightroom.mindstock.frontend.designsystem.theme.LocalMindstockTokens
 import net.brightroom.mindstock.frontend.designsystem.theme.MindstockType
+import net.brightroom.mindstock.frontend.designsystem.theme.avatarColorOf
 import net.brightroom.mindstock.frontend.feature.household.MemberRow
 import org.jetbrains.compose.resources.stringResource
 
@@ -64,10 +67,10 @@ fun MemberSheet(
                 horizontalArrangement = Arrangement.spacedBy(14.dp),
             ) {
                 Box(
-                    modifier = Modifier.size(52.dp).clip(RoundedCornerShape(99.dp)).background(tokens.accentSoft),
+                    modifier = Modifier.size(52.dp).clip(RoundedCornerShape(99.dp)).background(avatarColorOf(m.name)),
                     contentAlignment = Alignment.Center,
                 ) {
-                    AppText(m.name.take(1), style = MindstockType.summaryTitle(), color = tokens.accent)
+                    AppText(m.name.take(1), style = MindstockType.summaryTitle().copy(fontSize = 21.sp), color = Color.White)
                 }
                 Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(7.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -112,6 +115,12 @@ fun MemberSheet(
                         selectedKey = m.role.name,
                         onSelect = { onChangeRole(m.residentId, HouseholdMemberRole.valueOf(it)) },
                         modifier = Modifier.fillMaxWidth(),
+                    )
+                    AppText(
+                        stringResource(roleDescResource(m.role)),
+                        style = MindstockType.summarySub().copy(fontSize = 12.sp),
+                        color = tokens.faint,
+                        modifier = Modifier.padding(top = 10.dp),
                     )
                     if (confirm) {
                         Column(
