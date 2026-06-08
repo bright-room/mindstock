@@ -20,6 +20,12 @@ data class StockMovements(
     fun hasBaseMovement(id: MovementId): Boolean =
         list.any { (it is Replenishment || it is Consumption) && it.identity == MovementIdentity.Persisted(id) }
 
+    /**
+     * 全 movement を畳み込んだ現在の正味在庫数量。
+     * 補充(Replenishment)を加算・消費(Consumption)を減算し、訂正(Correction)は対象 movement の数量を
+     * 最新の訂正値で上書きしてから集計する(訂正自体は増減を持たない)。
+     * 値は 0 や(訂正途中の不整合では)負にもなり得るため Quantity(>0)ではなく Int を返す。
+     */
     fun netQuantity(): Int {
         val latestCorrection = latestCorrectionByTarget()
         return list.sumOf { movement ->
@@ -49,9 +55,13 @@ data class StockMovements(
     }
 
     /**
-     * 1 日あたりの消費ペース。消費(訂正反映後)が無ければ 0.0。
-     * トレーリング窓(直近 FORECAST_WINDOW_DAYS 日)に消費があり履歴が窓を満たすならその窓レート、
-     * そうでなければ全履歴平均(最初の movement→asOf を span とする)に fallback する。
+     * 消費履歴から推定した「1 日あたりの消費数量」(単位/日)。
+     *
+     * 何を元に: この movement 群の消費(Consumption、訂正反映後の実効数量)と各々の occurredAt。補充は数えない。
+     * 基準時刻 asOf からの相対で「直近」を判定する(frontend は now-JST、テストは固定値を渡す)。
+     * どう算出: トレーリング窓(直近 [FORECAST_WINDOW_DAYS] 日)に消費があり観測期間が窓を満たすならその窓の平均、
+     * そうでなければ(履歴が浅い/直近窓に消費が無い)全履歴平均(最初の補充・消費→asOf を span とする)に fallback。
+     * 何を返す: 消費ペース(Double, 単位/日)。消費実績が無ければ 0.0(= 予測不可)。
      */
     fun consumptionRatePerDay(asOf: LocalDateTime): Double {
         if (list.isEmpty()) return 0.0

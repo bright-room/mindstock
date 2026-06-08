@@ -89,9 +89,14 @@ data class Stock(
     fun latestMovement(): StockMovement = movements.list.lastOrNull() ?: throw ResourceNotFoundException("no movement")
 
     /**
-     * 現在の消費ペースから「あと約何日で在庫が尽きるか」を予測する。
-     * asOf は基準時刻(frontend は now-JST、テストは固定値)。
-     * 在庫 0 以下・消費実績なしは Unknown。
+     * 「あと約何日で在庫が尽きるか」の消費予測。
+     *
+     * 何を元に: この在庫の現在数量([currentQuantity])と消費履歴から推定した消費ペース
+     * ([StockMovements.consumptionRatePerDay])。基準時刻 asOf は「直近」判定と残日数算出の起点
+     * (frontend は now-JST、テストは固定値)。
+     * どう算出: `残日数 = 現在数量 ÷ 消費ペース` を四捨五入。
+     * 何を返す: [ConsumptionForecast]。在庫 0 以下、または消費実績が無く予測できない場合は
+     * [ConsumptionForecast.Unknown]、それ以外は [ConsumptionForecast.DaysRemaining]。
      */
     fun forecast(asOf: LocalDateTime): ConsumptionForecast {
         val quantity = currentQuantity()

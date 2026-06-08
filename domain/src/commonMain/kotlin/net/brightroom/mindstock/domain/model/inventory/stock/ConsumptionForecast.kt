@@ -14,6 +14,7 @@ sealed interface ConsumptionForecast {
     /** 現在のペースであと約 days 日で在庫が尽きる見込み。 */
     @Serializable
     data class DaysRemaining(
+        /** 在庫が尽きるまでの推定残日数。`現在の在庫数量 ÷ 1日あたり消費ペース` を四捨五入した日数(>= 0)。 */
         val days: Int,
     ) : ConsumptionForecast
 }
