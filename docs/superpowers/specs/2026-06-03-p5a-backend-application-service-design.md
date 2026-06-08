@@ -265,7 +265,7 @@ class StockRegisterService(
     fun replenish(productId: ProductId, quantity: Quantity, note: Note, actor: ResidentId) {
         val resident = residentRepository.findById(actor)
         val stock = stockRepository.findByProduct(productId)
-        val replenished = stock.replenish(quantity, OccurredAt.now(), resident, note)  // domain。occurredAt はサーバ確定
+        val replenished = stock.replenish(quantity, OccurredAt.now(), resident, note)  // ※当時のスケッチ。P6-4b で occurredAt はクライアント指定（引数化）に変更済み
         stockRegisterRepository.appendMovement(productId, replenished.latestMovement())
     }
 
