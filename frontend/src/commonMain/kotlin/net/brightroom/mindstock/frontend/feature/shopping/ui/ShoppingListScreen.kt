@@ -269,6 +269,7 @@ private fun ShopRow(
 ) {
     val tokens = LocalMindstockTokens.current
     val stock = entry.stock
+    val forecast = stock.forecast(LocalDateTime.now())
     val pid = stock.product.id
     val key = pid.toString()
     val isDone = done[key] == true
@@ -345,7 +346,6 @@ private fun ShopRow(
                         style = MindstockType.summarySub(),
                         color = tokens.faint,
                     )
-                    val forecast = stock.forecast(LocalDateTime.now())
                     if (forecast is ConsumptionForecast.DaysRemaining) {
                         AppText(
                             stringResource(Res.string.forecast_days_left_plain, forecast.days),

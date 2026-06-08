@@ -59,6 +59,7 @@ fun ForecastBanner(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         AppIcon(AppIconName.Trend, contentDescription = null, size = 17.dp, tint = tokens.accent)
+        // v1: 商品名は先頭語のみ切出し(モックも先頭語を強調)。多語名は途中で切れるため AnnotatedString 化は後続で検討。
         AppText(
             stringResource(
                 Res.string.forecast_banner,

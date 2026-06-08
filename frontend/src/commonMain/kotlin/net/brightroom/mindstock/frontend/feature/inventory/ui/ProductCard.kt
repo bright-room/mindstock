@@ -74,6 +74,7 @@ fun ProductCard(
         }
     val shape = RoundedCornerShape(22.dp)
     val qty = stock.currentQuantity()
+    val forecast = stock.forecast(LocalDateTime.now())
     Column(
         modifier =
             modifier
@@ -102,7 +103,6 @@ fun ProductCard(
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     StatusDot(color = statusColor, soft = statusSoft, label = statusLabel)
-                    val forecast = stock.forecast(LocalDateTime.now())
                     if (forecast is ConsumptionForecast.DaysRemaining) {
                         AppText(
                             stringResource(Res.string.forecast_days_left, forecast.days),
