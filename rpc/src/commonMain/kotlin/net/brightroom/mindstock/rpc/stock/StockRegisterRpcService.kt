@@ -20,7 +20,7 @@ interface StockRegisterRpcService {
         occurredAt: OccurredAt,
     ): RpcResult<Unit, RpcError>
 
-    /** 在庫を消費する(UC15)。occurredAt はクライアント指定(バックデート可)。 */
+    /** 在庫を消費する(UC15)。Stock は productId で特定。actor は session 由来、occurredAt はクライアント指定(バックデート可)。 */
     suspend fun consume(
         productId: ProductId,
         quantity: Quantity,
