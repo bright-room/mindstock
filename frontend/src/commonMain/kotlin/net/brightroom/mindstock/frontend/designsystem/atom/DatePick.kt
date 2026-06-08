@@ -35,6 +35,8 @@ import kotlinx.datetime.minus
 import kotlinx.datetime.toLocalDateTime
 import mindstock.frontend.generated.resources.Res
 import mindstock.frontend.generated.resources.date_day_before
+import mindstock.frontend.generated.resources.date_picker_cancel
+import mindstock.frontend.generated.resources.date_picker_ok
 import mindstock.frontend.generated.resources.date_picker_open_calendar
 import mindstock.frontend.generated.resources.date_today
 import mindstock.frontend.generated.resources.date_yesterday
@@ -109,10 +111,10 @@ fun DatePick(
                         onSelect(Instant.fromEpochMilliseconds(it).toLocalDateTime(TimeZone.UTC).date)
                     }
                     dialogOpen = false
-                }) { AppText("OK") }
+                }) { AppText(stringResource(Res.string.date_picker_ok)) }
             },
             dismissButton = {
-                TextButton(onClick = { dialogOpen = false }) { AppText("キャンセル") }
+                TextButton(onClick = { dialogOpen = false }) { AppText(stringResource(Res.string.date_picker_cancel)) }
             },
         ) {
             DatePicker(state = state)
