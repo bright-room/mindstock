@@ -21,6 +21,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
 import mindstock.frontend.generated.resources.Res
@@ -107,7 +108,7 @@ fun ActivityScreen(
                         item {
                             AppText(
                                 dayLabelText(group.label),
-                                style = MindstockType.statusLabel(),
+                                style = MindstockType.statusLabel().copy(fontSize = 12.sp, lineHeight = 12.sp),
                                 color = tokens.faint,
                                 modifier = Modifier.padding(start = 4.dp),
                             )
@@ -128,7 +129,7 @@ private fun DayCard(
     onOpenProduct: (ProductId) -> Unit,
 ) {
     val tokens = LocalMindstockTokens.current
-    val shape = RoundedCornerShape(18.dp)
+    val shape = RoundedCornerShape(22.dp)
     Column(
         modifier =
             Modifier
@@ -187,14 +188,24 @@ private fun ActivityRow(
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             AppText(
                 entry.product.name(),
-                style = MindstockType.cardTitle(),
+                style = MindstockType.cardTitle().copy(fontSize = 14.sp, lineHeight = 18.2f.sp),
                 color = tokens.ink,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
-            AppText(meta, style = MindstockType.summarySub(), color = tokens.faint, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            AppText(
+                meta,
+                style = MindstockType.summarySub().copy(fontSize = 12.sp, lineHeight = 12.sp),
+                color = tokens.faint,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
         }
-        AppText(hm(m.occurredAt()), style = MindstockType.summarySub(), color = tokens.faint)
+        AppText(
+            hm(m.occurredAt()),
+            style = MindstockType.summarySub().copy(fontSize = 11.5f.sp, lineHeight = 11.5f.sp),
+            color = tokens.faint,
+        )
     }
 }
 
