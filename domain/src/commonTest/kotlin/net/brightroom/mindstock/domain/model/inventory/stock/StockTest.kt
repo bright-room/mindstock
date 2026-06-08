@@ -67,7 +67,7 @@ class StockTest {
             emptyStock()
                 .replenish(Quantity(5), OccurredAt.now(), actor(), Note(""))
                 .consume(Quantity(2), OccurredAt.now(), actor(), Note(""))
-        stock.currentQuantity() shouldBe 3
+        stock.currentQuantity()() shouldBe 3
     }
 
     @Test
@@ -99,9 +99,9 @@ class StockTest {
     fun 訂正は対象変動の数量を上書きする() {
         // 補充5、消費3(id=10)→ 現在2。消費を1に訂正 → +5 - 1 = 4
         val stock = stockWith(persistedReplenishment(1, 5), persistedConsumption(10, 3))
-        stock.currentQuantity() shouldBe 2
+        stock.currentQuantity()() shouldBe 2
         val corrected = stock.correct(MovementId(10), Quantity(1), Reason("数え直し"), actor(), OccurredAt.now())
-        corrected.currentQuantity() shouldBe 4
+        corrected.currentQuantity()() shouldBe 4
     }
 
     @Test

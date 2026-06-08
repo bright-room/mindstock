@@ -66,7 +66,7 @@ fun MoveSheet(
     val isReplenish = mode == MoveMode.Replenish
     val title = stringResource(if (isReplenish) Res.string.move_title_replenish else Res.string.move_title_consume)
     val unit = stock.product.setting.unit()
-    val current = stock.currentQuantity()
+    val current = stock.currentQuantity()()
     var qty by remember(open, stock) { mutableStateOf(1) }
     var note by remember(open, stock) { mutableStateOf("") }
     val today = remember(open) { LocalDateTime.now().date }

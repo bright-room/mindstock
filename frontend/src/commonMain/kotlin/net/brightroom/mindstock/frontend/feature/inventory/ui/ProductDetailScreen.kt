@@ -190,7 +190,7 @@ fun ProductDetailScreen(
                     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                         Row(verticalAlignment = Alignment.Bottom) {
                             AppText(
-                                "${stock.currentQuantity()}",
+                                "${stock.currentQuantity()()}",
                                 style = MindstockType.bigQty().copy(fontSize = 46.sp, lineHeight = 41.4f.sp),
                                 color = if (status == StockStatus.在庫切れ) tokens.statusOut else tokens.ink,
                             )
@@ -213,7 +213,7 @@ fun ProductDetailScreen(
                 }
                 // モック準拠: 十分(ok)のバーは status色(緑)でなくアクセント(橙)。
                 StockLevelBar(
-                    qty = stock.currentQuantity(),
+                    qty = stock.currentQuantity()(),
                     min = stock.product.setting.minimumStock(),
                     color = if (status == StockStatus.十分) tokens.accent else statusColor,
                 )

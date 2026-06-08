@@ -308,6 +308,10 @@
     <string name="settings_toast_invite_issued">招待コードを発行しました</string>
     <string name="settings_toast_invite_revoked">招待コードを失効しました</string>
 
+    <!-- 消費予測 -->
+    <string name="forecast_days_left">· あと約%1$d日</string>
+    <string name="forecast_banner">%1$s はあと約 %2$d 日で切れる予測です</string>
+    <string name="forecast_days_left_plain">あと約%1$d日</string>
     <!-- welcome / sign-in splash -->
     <string name="welcome_tagline">暮らしの在庫を、ちょうどよく。</string>
     <string name="welcome_description">買い忘れも、買い過ぎも減らす。日用品のストックを家族とゆるやかに共有する在庫ノート。</string>

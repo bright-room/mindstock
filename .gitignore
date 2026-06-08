@@ -39,6 +39,7 @@ out/
 
 ### AI agents ###
 .claude/settings.local.json
+.claude/scheduled_tasks.lock
 
 ### KMP / Kotlin / local-dev ###
 .fleet/

@@ -5,6 +5,7 @@ import net.brightroom.mindstock.domain.exception.CannotArchiveWithStockException
 import net.brightroom.mindstock.domain.exception.InsufficientStockException
 import net.brightroom.mindstock.domain.exception.ResourceNotFoundException
 import net.brightroom.mindstock.domain.model.inventory.product.Product
+import net.brightroom.mindstock.domain.model.inventory.quantity.NetQuantity
 import net.brightroom.mindstock.domain.model.inventory.quantity.Quantity
 import net.brightroom.mindstock.domain.model.inventory.stock.movement.MovementId
 import net.brightroom.mindstock.domain.model.inventory.stock.movement.MovementIdentity
@@ -17,15 +18,16 @@ import net.brightroom.mindstock.domain.model.inventory.stock.movement.StockMovem
 import net.brightroom.mindstock.domain.model.inventory.stock.movement.StockMovement.Replenishment
 import net.brightroom.mindstock.domain.model.inventory.stock.movement.StockMovements
 import net.brightroom.mindstock.domain.model.resident.Resident
+import kotlin.math.roundToInt
 
 @Serializable
 data class Stock(
     val product: Product,
     val movements: StockMovements,
 ) {
-    fun currentQuantity(): Int = movements.netQuantity()
+    fun currentQuantity(): NetQuantity = movements.netQuantity()
 
-    fun status(): StockStatus = StockStatus.of(currentQuantity(), product.setting.minimumStock)
+    fun status(): StockStatus = StockStatus.of(currentQuantity()(), product.setting.minimumStock)
 
     fun replenish(
         quantity: Quantity,
@@ -40,7 +42,7 @@ data class Stock(
         actor: Resident,
         note: Note,
     ): Stock {
-        if (currentQuantity() < quantity()) {
+        if (currentQuantity()() < quantity()) {
             throw InsufficientStockException("cannot consume $quantity from stock of ${currentQuantity()}")
         }
         return Stock(product, movements.add(Consumption(MovementIdentity.Pending, quantity, occurredAt, actor, note)))
@@ -68,14 +70,14 @@ data class Stock(
                     reason = reason,
                 ),
             )
-        if (corrected.netQuantity() < 0) {
+        if (corrected.netQuantity()() < 0) {
             throw InsufficientStockException("correction would make stock negative: ${corrected.netQuantity()}")
         }
         return Stock(product, corrected)
     }
 
     fun archive(): Stock {
-        if (!Archivability.of(currentQuantity()).archivable) {
+        if (!Archivability.of(currentQuantity()()).archivable) {
             throw CannotArchiveWithStockException("cannot archive with stock: ${currentQuantity()}")
         }
         return Stock(product.archive(), movements)
@@ -85,4 +87,22 @@ data class Stock(
 
     /** 直近に追記した movement(replenish/consume/correct 後にこれを永続化する)。movement が無ければ ResourceNotFoundException。 */
     fun latestMovement(): StockMovement = movements.list.lastOrNull() ?: throw ResourceNotFoundException("no movement")
+
+    /**
+     * 「あと約何日で在庫が尽きるか」の消費予測。
+     *
+     * 何を元に: この在庫の現在数量([currentQuantity])と消費履歴から推定した消費ペース
+     * ([StockMovements.consumptionRatePerDay])。基準時刻 asOf は「直近」判定と残日数算出の起点
+     * (frontend は now-JST、テストは固定値)。
+     * どう算出: `残日数 = 現在数量 ÷ 消費ペース` を四捨五入。
+     * 何を返す: [ConsumptionForecast]。在庫 0 以下、または消費実績が無く予測できない場合は
+     * [ConsumptionForecast.Unknown]、それ以外は [ConsumptionForecast.DaysRemaining]。
+     */
+    fun forecast(asOf: EvaluatedTime): ConsumptionForecast {
+        val quantity = currentQuantity()
+        if (quantity() <= 0) return ConsumptionForecast.Unknown
+        val rate = movements.consumptionRatePerDay(asOf)
+        if (rate() <= 0.0) return ConsumptionForecast.Unknown
+        return ConsumptionForecast.DaysRemaining((quantity() / rate()).roundToInt())
+    }
 }

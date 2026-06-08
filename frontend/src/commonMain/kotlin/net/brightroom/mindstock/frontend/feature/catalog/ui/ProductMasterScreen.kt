@@ -191,7 +191,7 @@ private fun MasterStockRow(
                     stringResource(
                         Res.string.master_row_meta,
                         stock.product.setting.unit(),
-                        stock.currentQuantity(),
+                        stock.currentQuantity()(),
                         stock.product.setting.unit(),
                     ),
                 style = MindstockType.unitCaption(),

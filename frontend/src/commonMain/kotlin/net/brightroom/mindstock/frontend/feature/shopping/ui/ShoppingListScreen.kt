@@ -36,6 +36,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import mindstock.frontend.generated.resources.Res
 import mindstock.frontend.generated.resources.action_replenish
+import mindstock.frontend.generated.resources.forecast_days_left_plain
 import mindstock.frontend.generated.resources.loading
 import mindstock.frontend.generated.resources.shop_add_from_stock_sub
 import mindstock.frontend.generated.resources.shop_add_from_stock_title
@@ -56,6 +57,8 @@ import mindstock.frontend.generated.resources.status_ok
 import mindstock.frontend.generated.resources.status_out
 import net.brightroom.mindstock.domain.model.inventory.product.ProductId
 import net.brightroom.mindstock.domain.model.inventory.shopping.ShoppingEntry
+import net.brightroom.mindstock.domain.model.inventory.stock.ConsumptionForecast
+import net.brightroom.mindstock.domain.model.inventory.stock.EvaluatedTime
 import net.brightroom.mindstock.domain.model.inventory.stock.Stock
 import net.brightroom.mindstock.domain.model.inventory.stock.StockStatus
 import net.brightroom.mindstock.frontend.core.ui.resolve
@@ -265,6 +268,7 @@ private fun ShopRow(
 ) {
     val tokens = LocalMindstockTokens.current
     val stock = entry.stock
+    val forecast = stock.forecast(EvaluatedTime.now())
     val pid = stock.product.id
     val key = pid.toString()
     val isDone = done[key] == true
@@ -287,7 +291,7 @@ private fun ShopRow(
             StockStatus.残りわずか -> stringResource(Res.string.status_low)
             StockStatus.十分 -> stringResource(Res.string.status_ok)
         }
-    val qty = stock.currentQuantity()
+    val qty = stock.currentQuantity()()
     val min = stock.product.setting.minimumStock()
     val unit = stock.product.setting.unit()
     val shortage = max(1, min - qty + if (status == StockStatus.在庫切れ) min else 0)
@@ -341,6 +345,13 @@ private fun ShopRow(
                         style = MindstockType.summarySub(),
                         color = tokens.faint,
                     )
+                    if (forecast is ConsumptionForecast.DaysRemaining) {
+                        AppText(
+                            stringResource(Res.string.forecast_days_left_plain, forecast()),
+                            style = MindstockType.statusLabel().copy(fontWeight = FontWeight.SemiBold),
+                            color = tokens.accent,
+                        )
+                    }
                 }
             }
         }
