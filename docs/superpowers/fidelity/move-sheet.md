@@ -18,7 +18,7 @@
 
 | ID | 要素 | 状態 |
 |---|---|---|
-| D-MS-date | DatePick「いつの出来事？」(今日/昨日/おととい/cal) | `[backend]` occurredAt サーバ確定のため非表示。backend gap #1(occurredAt 設定)実装時に復活（トラック B 別PR） |
+| D-MS-date | DatePick「いつの出来事？」(今日/昨日/おととい/cal) | ✅ P6-4b トラックB #1 で実装済み(補充/消費に DatePick・クライアント指定 occurredAt・バックデート可。cal は本物の M3 DatePicker で過去日のみ選択可)。`2026-06-08-occurred-at-backdate-design.md` |
 
 ## メモ
 - Stepper 修正は CorrectionSheet（ProductDetail の訂正シート）にも波及＝モック準拠で改善。
