@@ -30,10 +30,12 @@ import androidx.compose.ui.unit.sp
 import kotlinx.datetime.DatePeriod
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
+import kotlinx.datetime.atStartOfDayIn
 import kotlinx.datetime.minus
 import kotlinx.datetime.toLocalDateTime
 import mindstock.frontend.generated.resources.Res
 import mindstock.frontend.generated.resources.date_day_before
+import mindstock.frontend.generated.resources.date_picker_open_calendar
 import mindstock.frontend.generated.resources.date_today
 import mindstock.frontend.generated.resources.date_yesterday
 import mindstock.frontend.generated.resources.move_when_label
@@ -80,13 +82,17 @@ fun DatePick(
                     modifier = Modifier.weight(1f),
                 )
             }
-            CalendarButton(onClick = { dialogOpen = true })
+            CalendarButton(
+                contentDescription = stringResource(Res.string.date_picker_open_calendar),
+                onClick = { dialogOpen = true },
+            )
         }
     }
 
     if (dialogOpen) {
         val state =
             rememberDatePickerState(
+                initialSelectedDateMillis = selected.atStartOfDayIn(TimeZone.UTC).toEpochMilliseconds(),
                 selectableDates =
                     object : SelectableDates {
                         override fun isSelectableDate(utcTimeMillis: Long): Boolean {
@@ -142,7 +148,10 @@ private fun DateChip(
 }
 
 @Composable
-private fun CalendarButton(onClick: () -> Unit) {
+private fun CalendarButton(
+    contentDescription: String,
+    onClick: () -> Unit,
+) {
     val tokens = LocalMindstockTokens.current
     val shape = RoundedCornerShape(12.dp)
     Box(
@@ -156,6 +165,6 @@ private fun CalendarButton(onClick: () -> Unit) {
                 .clickable(onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {
-        AppIcon(AppIconName.Calendar, contentDescription = "カレンダーで日付を選ぶ", size = 19.dp, tint = tokens.sub)
+        AppIcon(AppIconName.Calendar, contentDescription = contentDescription, size = 19.dp, tint = tokens.sub)
     }
 }
