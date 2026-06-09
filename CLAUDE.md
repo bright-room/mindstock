@@ -2,6 +2,10 @@
 
 家庭の在庫管理 SaaS。Kotlin Multiplatform プロジェクトとして、JVM バックエンドと Compose Multiplatform(Kotlin/Wasm)フロントエンドを `:shared` / `:rpc` / `:domain` の共有モジュール経由で繋ぐ。
 
+## コミュニケーション言語
+
+**ユーザとのやり取りは全て日本語で行う。** 応答・説明・質問・PR/commit メッセージ・コードコメントを含め、ユーザ向けの文章は日本語で書く(英語で返さない)。
+
 ## 技術スタック
 
 - Kotlin Multiplatform
