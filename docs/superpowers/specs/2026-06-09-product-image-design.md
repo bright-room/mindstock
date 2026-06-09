@@ -132,6 +132,7 @@ suspend fun imageUrl(productId: ProductId): RpcResult<ImageUrl, RpcError>
 **ImageField composable**(ProductSettings / MasterItemSheet。mock `screens-master.jsx:ImageField` 忠実):
 - Thumb 64px(radius 16)+ soft ボタン「画像を追加/変更」+ 画像有時 ghost「削除」+ 補助文「正方形がおすすめ。未設定ならアイコンを表示します。」
 - **ピッカー(最終段)**: wasmJs で DOM `<input type=file accept="image/*">` を生成 → `click()` → `FileReader.readAsArrayBuffer` → ByteArray → base64 → `uploadImage` RPC。kotlinx-browser interop。
+- **アップロードは単純同期**(ユーザ判断 2026-06-09): 選択→送信→完了までインジケータ(不定スピナー)で待つ。即プレビュー(楽観 UI)もクライアント側縮小も**入れない**。原本(最大8MB)を base64 で送るので大きい写真は数秒待ちが出うるが、低頻度・実装最小を優先。改善したくなったら A=即プレビュー+裏送信 / B=クライアント 1280px 縮小 を後付け(サーバ検証/512px/sha256 は不変なので追加は frontend 局所)。
 - 削除 → 既存 `changeImage(productId, ProductImage.None)`。
 
 ## 9. テスト
