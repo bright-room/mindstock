@@ -22,9 +22,9 @@ P6-4b トラック B backend gap #2。`docs/superpowers/specs/2026-06-08-p6-4-fr
 ## 2. 確定済みの方針(ユーザ判断・2026-06-09)
 
 - **保存先 = S3 互換オブジェクトストレージ。実装は Garage**(既存インフラで採用済み)。MinIO ではなく Garage を使う。DB(bytea)は不採用(DB 肥大/WAL を避け、SaaS のユーザアップロード画像の定石に寄せる)。
-- **転送経路 = 既存 WS-RPC に相乗り**(app-proxy)。新しい HTTP バイナリ面は作らない。配信は Compose/Skia 描画(DOM `<img>` 非使用)なので公開 URL は不要 → backend が Garage からバイト列を取得 → base64 で WS RPC 返却 → frontend で `ImageBitmap` に decode して `Image()` 描画。
-  - JSON での `ByteArray` 肥大(int 配列 ~4倍)対策 = **サーバ側リサイズ + 転送は base64 文字列**。
-  - presigned URL でブラウザから Garage 直 fetch する最適化は将来課題(Garage がブラウザから到達可能とは限らない・認証も別途要のため、今回は app-proxy)。
+- **アップロード = backend 経由**(検証/リサイズ/認可のため)。frontend → base64 で WS-RPC → backend が検証/リサイズ/sha256/Garage put。
+- **表示(配信)= presigned URL 直 fetch**(SaaS 定石)。backend は署名付き GET URL を RPC で発行するだけ → frontend(Ktor client)が Garage から直接生バイト fetch → `ImageBitmap` decode → `Image()` 描画(Compose/Skia なので DOM `<img>` 非使用)。backend 帯域を使わず並列/ブラウザキャッシュが効く。
+  - **要件**: Garage をクライアントから到達可能にし、**バケットに CORS**(web オリジン + GET 許可)を設定。Garage は `PutBucketCors` / presigned URL を実装済み(確認済み)。
 - **スコープ = backend 先行 → ピッカー最終**。アップロード/配信/表示の backend を先に作り検証、最後に Wasm の `input type=file` ピッカーを配線。1 PR 内で段階実装。
 
 ## 3. ストレージ(Garage / S3 互換)
@@ -46,6 +46,7 @@ P6-4b トラック B backend gap #2。`docs/superpowers/specs/2026-06-08-p6-4-fr
 
 - `garage`: `dxflrs/garage` イメージ。`config.toml`(`replication_factor=1` 単一ノード・`s3_region="garage"`・`rpc_secret`・`admin_token`)を bind mount。ポート 3900(S3)/3901(RPC)/3903(Admin)。
 - `garage-init`: 起動後に `garage layout assign -z dc1 -c 1G <node> && garage layout apply` → `garage bucket create <bucket>` → `garage key create` → `garage bucket allow --read --write` を冪等に実行し、生成クレデンシャルを `.env.garage`(repo ルート)へ書き出す(`zitadel-init` と同型)。
+- 加えて **バケット CORS** を設定(`PutBucketCors` で web オリジンからの GET を許可)。presigned URL をブラウザから fetch するため必須。ローカルは frontend dev origin(例 `http://localhost:8080`)を許可。
 
 ## 4. 画像処理(infrastructure・JVM)
 
@@ -80,11 +81,14 @@ P6-4b トラック B backend gap #2。`docs/superpowers/specs/2026-06-08-p6-4-fr
 新 Repository interface(`application/repository/product/`):
 ```kotlin
 interface ProductImageStorageRepository {
-    fun store(upload: RawImageUpload): ImageRef   // 処理 + sha256 + Garage put、ref 返す
-    fun load(ref: ImageRef): StoredImage          // Garage get。NoSuchKey → ResourceNotFoundException
+    fun store(upload: RawImageUpload): ImageRef     // 処理 + sha256 + Garage put、ref 返す
+    fun presignedUrl(ref: ImageRef): ImageUrl       // ref に対する署名付き GET URL を発行
 }
 ```
-実装 `ProductImageStorageDataSource`(infrastructure)は注入された `S3Client` で Garage と通信(put/get object)。aws-sdk-kotlin は suspend だが、Repository interface は同期シグネチャに揃える(他 DataSource と対称・呼び出し側は素通し)。内部で `runBlocking` か、もしくは Service/Controller の suspend 文脈から呼べるよう interface も `suspend` にするかは実装時に既存 DataSource(JDBC blocking)との対称性で決める。
+- 実装 `ProductImageStorageDataSource`(infrastructure)は注入された `S3Client` で Garage と通信。store = put object。`presignedUrl` = aws-sdk-kotlin の presign(`presignGetObject`、有効期限付き)。
+- **配信は presigned URL 方式なので backend は画像バイトを読まない**(store のみが put、読みは frontend が直 fetch)。`load(ref): StoredImage` は不要。
+- aws-sdk-kotlin は suspend。Repository interface を `suspend` にするか同期に揃えるかは既存 DataSource(JDBC blocking)との対称性で実装時に決める。
+- `ImageUrl` = presigned URL を運ぶ VO(`@JvmInline value class`)。配置(domain image pkg か application か)は plan で確定。
 
 Service:
 - **アップロード(write)** = `ProductRegisterService.uploadImage(productId, upload: RawImageUpload, actor)`:
@@ -92,8 +96,8 @@ Service:
   2. `ref = storage.store(upload)`
   3. `product = productRepository.find...`
   4. `productRegisterRepository.appendRevision(product.changeImage(ProductImage.Stored(ref)))`
-- **配信(read)** = `ProductService.loadImage(productId): StoredImage`:
-  - product の `image` が `Stored(ref)` → `storage.load(ref)` / `None` → `ResourceNotFoundException`(素通し)
+- **配信(read)** = `ProductService.imageUrl(productId): ImageUrl`:
+  - product の `image` が `Stored(ref)` → `storage.presignedUrl(ref)` / `None` → `ResourceNotFoundException`(素通し)
 - **削除** = 既存 `changeImage(productId, ProductImage.None)` をそのまま使う(新規不要)。
 
 ## 7. presentation 層(RPC)
@@ -107,11 +111,11 @@ suspend fun uploadImage(productId: ProductId, request: UploadImageRequest): RpcR
 ```
 `ProductRpcService` に追加:
 ```kotlin
-suspend fun loadImage(productId: ProductId): RpcResult<ProductImageResponse, RpcError>
-// ProductImageResponse(contentType: String, base64: String) — presentation/rpc/product/
+suspend fun imageUrl(productId: ProductId): RpcResult<ImageUrl, RpcError>
+// ImageUrl = presigned GET URL の VO。型一致なら Request/Response を作らず VO 直返し。
 ```
 - Controller: `uploadImage` で base64 decode → `RawImageUpload` → service。owner ガード。decode 失敗/上限超過 → `BadRequest`。
-- `loadImage` は registered ガード。画像未設定(`ResourceNotFoundException`)→ `RpcError.NotFound` → frontend はアイコン fallback。
+- `imageUrl` は registered ガード。画像未設定(`ResourceNotFoundException`)→ `RpcError.NotFound` → frontend はアイコン fallback。
 - 既存 `changeImage(Stored(ref))` のクライアント生成経路は使わない(ref をクライアントが作れないため)。`changeImage` は None(削除)用途で維持。
 
 ## 8. frontend
@@ -120,8 +124,9 @@ suspend fun loadImage(productId: ProductId): RpcResult<ProductImageResponse, Rpc
 - 引数に `image: ImageBitmap? = null` を追加。非 null なら `Image(bitmap, contentScale = Crop, clip + border)`。null なら既存ハッチ+アイコン(現状維持)。
 
 **画像ロード**(共有):
-- `loadImage(productId)` RPC → base64 decode → `org.jetbrains.skia.Image.makeFromEncoded(bytes).toComposeImageBitmap()` で `ImageBitmap` 化(wasmJs/js とも skiko)。
-- productId → ImageBitmap の簡易キャッシュ(再 render で再 fetch しない)。`Stored` を持つ商品のみ fetch、`None`/NotFound はアイコン fallback。
+- `imageUrl(productId)` RPC で presigned URL 取得 → **Ktor HttpClient で Garage から直接 GET**(生バイト)→ `org.jetbrains.skia.Image.makeFromEncoded(bytes).toComposeImageBitmap()` で `ImageBitmap` 化(wasmJs/js とも skiko)。
+- frontend に Ktor `HttpClient`(js engine)を1つ用意(presigned URL は query に署名を含むので追加ヘッダ不要)。
+- productId → ImageBitmap の簡易キャッシュ(再 render で再 fetch しない)。`Stored` を持つ商品のみ fetch、`None`/NotFound はアイコン fallback。presigned URL は有効期限付きなので、期限切れ時は再取得。
 - 配置: inventory の既存 ViewModel / refresh 経路に乗せる(商品ロード時に画像参照有無で遅延 fetch)。
 
 **ImageField composable**(ProductSettings / MasterItemSheet。mock `screens-master.jsx:ImageField` 忠実):
@@ -132,8 +137,8 @@ suspend fun loadImage(productId: ProductId): RpcResult<ProductImageResponse, Rpc
 ## 9. テスト
 
 - domain: `RawImageUpload`(空拒否)・`StoredImage`。画像処理(リサイズ/JPEG 再エンコード/sha256)は infra の純関数として単体テスト可(Garage 不要)。
-- infrastructure(integrationTest・既存同様 `@Tags("integration")` で compose の live Garage に `TEST_STORAGE_*` 経由で当てる): `ProductImageStorageDataSource` の store(リサイズ後 JPEG/sha256 ref/dedup)→ load 往復。不正バイト列拒否。
-- application: `uploadImage` が owner 認可 → ref を product revision に反映 / `loadImage` が None で NotFound(storage はモック)。
+- infrastructure(integrationTest・既存同様 `@Tags("integration")` で compose の live Garage に `TEST_STORAGE_*` 経由で当てる): `ProductImageStorageDataSource` の store(リサイズ後 JPEG/sha256 ref/dedup)→ presignedUrl 発行 → その URL を直 GET して同一バイトが返る往復。不正バイト列拒否。
+- application: `uploadImage` が owner 認可 → ref を product revision に反映 / `imageUrl` が None で NotFound(storage はモック)。
 - presentation: base64 decode・上限超過 → BadRequest。
 - frontend: ロード経路の VM 単体(Stored→fetch / None→skip)。ピッカーは描画 render-verify。
 
@@ -144,13 +149,15 @@ suspend fun loadImage(productId: ProductId): RpcResult<ProductImageResponse, Rpc
 3. infrastructure(`ProductImageStorageDataSource` 処理/sha256/Garage put・get/dedup)+ integrationTest
 4. application(`ProductImageStorageRepository` + `ProductRegisterService.uploadImage` / `ProductService.loadImage`)+ test
 5. presentation(RPC メソッド + Request/Response + Controller)+ test
-6. **backend 検証**: seed か RPC 直叩きで画像を入れ、`loadImage` 往復確認(Garage に object が入ること・revision に ref が乗ること)
+6. **backend 検証**: seed か RPC 直叩きで画像を入れ、`imageUrl` 発行 → その URL を直 GET して往復確認(Garage に object が入ること・revision に ref が乗ること・presigned URL がブラウザ/CLI から引けること)
 7. frontend Thumb 画像表示化 + ロード経路(seed 画像で Thumb 表示を render-verify)
 8. frontend ImageField + ピッカー(最終)・dev server 実描画で mock 突き合わせ
 
 ## 11. 留意点 / 既知の割り切り
 
-- JSON base64 転送: 512px JPEG ~30-50KB → base64 ~40-70KB。商品画像は hot path でないため許容。presigned URL 直 fetch は将来最適化。
+- base64 はアップロード(client→backend)のみ。512px に縮小済みを上げるわけではなく原本(最大 8MB)を base64 で送るので、上限内なら許容。**表示は presigned URL 直 fetch で生バイト**(base64 肥大なし)。
+- presigned URL 有効期限(例 15分〜1時間)とバケット CORS は plan で具体値確定。期限切れは frontend が再取得。
+- Garage をクライアントから到達可能にする必要(ローカルは `localhost:3900`、本番は公開 endpoint)。
 - orphan GC(参照されなくなった Garage オブジェクト)は将来課題。今回は append-only + dedup。
 - ByteArray を持つ `data class StoredImage` の equals は内容非保証(KDoc 明記)。
 - 入力フォーマットは ImageIO が decode 可能なもの全般(JPEG/PNG/GIF/BMP)。出力は JPEG 統一。
