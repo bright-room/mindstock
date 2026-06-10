@@ -55,17 +55,7 @@ P6-4b トラック B backend gap #2。`docs/superpowers/specs/2026-06-08-p6-4-fr
 - リサイズ: 最大辺 **512px** を超えたらアスペクト比維持で縮小(`Image.getScaledInstance` / `Graphics2D` 描画)。
 - 再エンコード: **JPEG 品質 ~0.85** で出力。出力 content_type は常に `image/jpeg`(透過は商品写真で稀・JPEG に統一)。
 - 入力上限: base64 デコード後 **8MB** 超は拒否(`RpcError.BadRequest`)。
-- 処理 + sha256 採番は infra(`ProductImageStorageDataSource`)で行い、Garage へ put する。
-
-## 4. 画像処理(infrastructure・JVM)
-
-`javax.imageio`(JDK 内蔵・**新規依存なし**):
-- decode: `ImageIO.read(bytes)`。decode 不能 → 不正画像として拒否(`IllegalArgumentException`)。
-- リサイズ: 最大辺 **512px** を超えたらアスペクト比維持で縮小(`Image.getScaledInstance` / `Graphics2D` 描画)。
-- 再エンコード: **JPEG 品質 ~0.85** で出力。出力 content_type は常に `image/jpeg`(透過は商品写真で稀・JPEG に統一)。
-- 入力上限: base64 デコード後 **8MB** 超は拒否(`RpcError.BadRequest`)。
-
-`product_images` の `bytes` は常に処理後 JPEG。
+- 処理 + sha256 採番は infra(`ProductImageStorageDataSource`)で行い、Garage へ put する。処理後の JPEG バイトは Garage オブジェクトの body として put し、Content-Type は `image/jpeg` 固定。DB には実体を持たない(`image_ref` に sha256 ref のみ)。
 
 ## 5. ドメイン
 
@@ -138,7 +128,7 @@ suspend fun imageUrl(productId: ProductId): RpcResult<ImageUrl, RpcError>
 
 ## 9. テスト
 
-- domain: `RawImageUpload`(空拒否)・`StoredImage`。画像処理(リサイズ/JPEG 再エンコード/sha256)は infra の純関数として単体テスト可(Garage 不要)。
+- domain: `RawImageUpload`(空拒否)・`ImageUrl`。画像処理(リサイズ/JPEG 再エンコード/sha256)は infra の純関数として単体テスト可(Garage 不要)。
 - infrastructure(integrationTest・既存同様 `@Tags("integration")` で compose の live Garage に `TEST_STORAGE_*` 経由で当てる): `ProductImageStorageDataSource` の store(リサイズ後 JPEG/sha256 ref/dedup)→ presignedUrl 発行 → その URL を直 GET して同一バイトが返る往復。不正バイト列拒否。
 - application: `uploadImage` が owner 認可 → ref を product revision に反映 / `imageUrl` が None で NotFound(storage はモック)。
 - presentation: base64 decode・上限超過 → BadRequest。
@@ -147,9 +137,9 @@ suspend fun imageUrl(productId: ProductId): RpcResult<ImageUrl, RpcError>
 ## 10. 実装順(1 PR 内・段階)
 
 1. **infra 準備**: `compose.yml` に Garage + `garage-init` 追加・config.toml・`.env.garage` 生成。aws-sdk-kotlin 依存追加・`external.storage.*` config・`S3Client` 起動配線。手動で put/get 疎通確認。
-2. domain(`RawImageUpload` / `StoredImage` / `ImageMediaType`)+ 画像処理純関数 + テスト
-3. infrastructure(`ProductImageStorageDataSource` 処理/sha256/Garage put・get/dedup)+ integrationTest
-4. application(`ProductImageStorageRepository` + `ProductRegisterService.uploadImage` / `ProductService.loadImage`)+ test
+2. domain(`RawImageUpload` / `ImageUrl`)+ 画像処理純関数 + テスト
+3. infrastructure(`ProductImageStorageDataSource` 処理/sha256/Garage put・presign)+ integrationTest
+4. application(`ProductImageStorageRepository` + `ProductRegisterService.uploadImage` / `ProductService.imageUrl`)+ test
 5. presentation(RPC メソッド + Request/Response + Controller)+ test
 6. **backend 検証**: seed か RPC 直叩きで画像を入れ、`imageUrl` 発行 → その URL を直 GET して往復確認(Garage に object が入ること・revision に ref が乗ること・presigned URL がブラウザ/CLI から引けること)
 7. frontend Thumb 画像表示化 + ロード経路(seed 画像で Thumb 表示を render-verify)
@@ -161,6 +151,5 @@ suspend fun imageUrl(productId: ProductId): RpcResult<ImageUrl, RpcError>
 - presigned URL 有効期限(例 15分〜1時間)とバケット CORS は plan で具体値確定。期限切れは frontend が再取得。
 - Garage をクライアントから到達可能にする必要(ローカルは `localhost:3900`、本番は公開 endpoint)。
 - orphan GC(参照されなくなった Garage オブジェクト)は将来課題。今回は append-only + dedup。
-- ByteArray を持つ `data class StoredImage` の equals は内容非保証(KDoc 明記)。
 - 入力フォーマットは ImageIO が decode 可能なもの全般(JPEG/PNG/GIF/BMP)。出力は JPEG 統一。
 - 本番は S3 互換 endpoint(既存 Garage インフラ)に `external.storage.*` を向ける。CI で integrationTest を回すには Garage(または S3 互換)を CI に立てる必要あり → CI 構成は実装時に確認(立てられなければ storage integ は手元/manual タグ運用にフォールバック)。
