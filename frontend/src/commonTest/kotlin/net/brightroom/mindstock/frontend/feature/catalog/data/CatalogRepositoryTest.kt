@@ -7,7 +7,9 @@ import net.brightroom.mindstock.domain.model.catalog.content.CatalogItemName
 import net.brightroom.mindstock.domain.model.catalog.item.CatalogItem
 import net.brightroom.mindstock.domain.model.catalog.item.CatalogItems
 import net.brightroom.mindstock.domain.model.household.HouseholdId
+import net.brightroom.mindstock.domain.model.inventory.product.ProductId
 import net.brightroom.mindstock.domain.model.inventory.product.Products
+import net.brightroom.mindstock.domain.model.inventory.product.image.ImageUrl
 import net.brightroom.mindstock.domain.model.inventory.shopping.ShoppingList
 import net.brightroom.mindstock.domain.model.inventory.stock.Stocks
 import net.brightroom.mindstock.frontend.core.rpc.RpcOutcome
@@ -32,6 +34,8 @@ private abstract class FakeArchiveProductRpc : ProductRpcService {
     override suspend fun listArchived(householdId: HouseholdId): RpcResult<Products, RpcError> = error("unused")
 
     override suspend fun shoppingList(householdId: HouseholdId): RpcResult<ShoppingList, RpcError> = error("unused")
+
+    override suspend fun imageUrl(productId: ProductId): RpcResult<ImageUrl, RpcError> = error("unused")
 }
 
 class CatalogRepositoryTest {
