@@ -45,7 +45,7 @@ P6-4b トラック B backend gap #2。`docs/superpowers/specs/2026-06-08-p6-4-fr
 `compose.yml` に Garage コンテナを追加(既存 postgres/zitadel と同じ宣言的パターン):
 
 - `garage`: `dxflrs/garage` イメージ。`config.toml`(`replication_factor=1` 単一ノード・`s3_region="garage"`・`rpc_secret`・`admin_token`)を bind mount。ポート 3900(S3)/3901(RPC)/3903(Admin)。
-- `garage-init`: 起動後に `garage layout assign -z dc1 -c 1G <node> && garage layout apply` → `garage bucket create <bucket>` → `garage key create` → `garage bucket allow --read --write` を冪等に実行し、生成クレデンシャルを `.env.garage`(repo ルート)へ書き出す(`zitadel-init` と同型)。
+- `garage-init`: 起動後に layout 確定 → bucket 作成 → **固定 dev アクセスキーを import** → bucket へ権限付与、を冪等に実行(admin API 経由。`dxflrs/garage` は scratch なので alpine + curl で叩く)。**クレデンシャルは固定**(`postgres` の mindstock/mindstock と同 posture)で `application.yaml` の `external.storage` デフォルトと一致させるため、`.env.garage` の生成・sourcing は不要。本番は環境変数で上書き。
 - 加えて **バケット CORS** を設定(`PutBucketCors` で web オリジンからの GET を許可)。presigned URL をブラウザから fetch するため必須。ローカルは frontend dev origin(例 `http://localhost:8080`)を許可。
 
 ## 4. 画像処理(infrastructure・JVM)
@@ -136,7 +136,7 @@ suspend fun imageUrl(productId: ProductId): RpcResult<ImageUrl, RpcError>
 
 ## 10. 実装順(1 PR 内・段階)
 
-1. **infra 準備**: `compose.yml` に Garage + `garage-init` 追加・config.toml・`.env.garage` 生成。aws-sdk-kotlin 依存追加・`external.storage.*` config・`S3Client` 起動配線。手動で put/get 疎通確認。
+1. **infra 準備**: `compose.yml` に Garage + `garage-init`(固定 dev キー import)追加・config.toml。aws-sdk-kotlin 依存追加・`external.storage.*` config(固定 dev クレデンシャルをデフォルト)・`S3Client` 起動配線。手動で put/get 疎通確認。
 2. domain(`RawImageUpload` / `ImageUrl`)+ 画像処理純関数 + テスト
 3. infrastructure(`ProductImageStorageDataSource` 処理/sha256/Garage put・presign)+ integrationTest
 4. application(`ProductImageStorageRepository` + `ProductRegisterService.uploadImage` / `ProductService.imageUrl`)+ test

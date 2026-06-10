@@ -25,6 +25,8 @@ external:
     endpoint: "$STORAGE_ENDPOINT:http://localhost:3900"
     region: "$STORAGE_REGION:garage"
     bucket: "$STORAGE_BUCKET:mindstock-images"
-    access-key: "$STORAGE_ACCESS_KEY"
-    secret-key: "$STORAGE_SECRET_KEY"
+    # access/secret は dev 用の固定値をデフォルトにする(docker/garage-init.sh が import する
+    # 固定キーと一致)。本番は環境変数で上書きする。postgres の mindstock/mindstock と同じ posture。
+    access-key: "$STORAGE_ACCESS_KEY:GKdeadbeefdeadbeefdeadbeef"
+    secret-key: "$STORAGE_SECRET_KEY:deadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef"
     cors-allowed-origins: "$STORAGE_CORS_ORIGINS:http://localhost:8080"

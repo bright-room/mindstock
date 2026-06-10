@@ -17,11 +17,15 @@ import javax.imageio.ImageIO
 @Tags("integration")
 class ProductImageStorageDataSourceTest :
     FunSpec({
-        // app と同じ env(.env.garage / external.storage.* と同一名)を読む。専用 TEST_ は作らない。
+        // app と同じ env(external.storage.* と同一名)を読む。専用 TEST_ は作らない。
+        // 既定値は docker/garage-init.sh が import する固定 dev キー = application.yaml デフォルトと一致。
+        // → docker compose up さえしていれば env を一切設定せずローカルでも CI でも回る。
         val endpoint = System.getenv("STORAGE_ENDPOINT") ?: "http://localhost:3900"
         val bucket = System.getenv("STORAGE_BUCKET") ?: "mindstock-images"
-        val ak = System.getenv("STORAGE_ACCESS_KEY") ?: error("STORAGE_ACCESS_KEY required")
-        val sk = System.getenv("STORAGE_SECRET_KEY") ?: error("STORAGE_SECRET_KEY required")
+        val ak = System.getenv("STORAGE_ACCESS_KEY") ?: "GKdeadbeefdeadbeefdeadbeef"
+        val sk =
+            System.getenv("STORAGE_SECRET_KEY")
+                ?: "deadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef"
 
         val s3 =
             S3Client {
