@@ -2,9 +2,14 @@ package net.brightroom.mindstock.configuration.external.storage
 
 import aws.sdk.kotlin.runtime.auth.credentials.StaticCredentialsProvider
 import aws.sdk.kotlin.services.s3.S3Client
+import aws.sdk.kotlin.services.s3.model.CorsConfiguration
+import aws.sdk.kotlin.services.s3.model.CorsRule
+import aws.sdk.kotlin.services.s3.model.PutBucketCorsRequest
 import aws.smithy.kotlin.runtime.net.url.Url
 import io.ktor.server.application.Application
+import io.ktor.server.application.ApplicationStarted
 import io.ktor.server.application.ApplicationStopped
+import io.ktor.server.application.log
 import io.ktor.server.plugins.di.annotations.Property
 import io.ktor.server.plugins.di.dependencies
 import kotlinx.coroutines.runBlocking
@@ -27,6 +32,38 @@ fun Application.storageConfigure(
                     secretAccessKey = properties.secretKey
                 }
         }
+
+    monitor.subscribe(ApplicationStarted) {
+        val origins =
+            properties.corsAllowedOrigins
+                .split(",")
+                .map { it.trim() }
+                .filter { it.isNotBlank() }
+        try {
+            runBlocking {
+                s3.putBucketCors(
+                    PutBucketCorsRequest {
+                        bucket = properties.bucket
+                        corsConfiguration =
+                            CorsConfiguration {
+                                corsRules =
+                                    listOf(
+                                        CorsRule {
+                                            allowedOrigins = origins
+                                            allowedMethods = listOf("GET", "HEAD")
+                                            allowedHeaders = listOf("*")
+                                            maxAgeSeconds = 3000
+                                        },
+                                    )
+                            }
+                    },
+                )
+            }
+            log.info("bucket CORS applied: origins=$origins")
+        } catch (e: Exception) {
+            log.warn("bucket CORS could not be applied (continuing startup): ${e.message}", e)
+        }
+    }
 
     monitor.subscribe(ApplicationStopped) {
         runBlocking { s3.close() }

@@ -10,4 +10,5 @@ data class StorageProperties(
     @SerialName("bucket") val bucket: String,
     @SerialName("access-key") val accessKey: String,
     @SerialName("secret-key") val secretKey: String,
+    @SerialName("cors-allowed-origins") val corsAllowedOrigins: String,
 )

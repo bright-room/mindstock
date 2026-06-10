@@ -27,3 +27,4 @@ external:
     bucket: "$STORAGE_BUCKET:mindstock-images"
     access-key: "$STORAGE_ACCESS_KEY"
     secret-key: "$STORAGE_SECRET_KEY"
+    cors-allowed-origins: "$STORAGE_CORS_ORIGINS:http://localhost:8080"
