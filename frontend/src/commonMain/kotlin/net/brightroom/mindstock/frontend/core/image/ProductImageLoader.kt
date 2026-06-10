@@ -3,6 +3,7 @@ package net.brightroom.mindstock.frontend.core.image
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -30,7 +31,13 @@ class ProductImageLoader(
     private val mutex = Mutex()
     private val cache = mutableMapOf<ProductId, ImageBitmap>()
 
-    /** productId の画像を取得。キャッシュ命中ならそれを返す。取得不能は null。 */
+    /**
+     * 画像の世代。[invalidate] で bump され、composition から [versionOf] で読むと snapshot 追跡されるので、
+     * 置換(Stored→Stored)のように productId/hasStoredImage が不変でも再 fetch のトリガになる。
+     */
+    private val versions = mutableStateMapOf<ProductId, Int>()
+
+    /** productId の画像を取得。キャッシュ命中ならそれを返す。取得不能・例外は null(→アイコン fallback)。 */
     suspend fun load(productId: ProductId): ImageBitmap? {
         mutex.withLock { cache[productId] }?.let { return it }
         val url =
@@ -38,30 +45,49 @@ class ProductImageLoader(
                 is RpcOutcome.Success -> out.value
                 is RpcOutcome.Failure -> return null
             }
-        val bitmap = http.get(url.invoke()).readRawBytes().decodeToImageBitmap()
+        // 期限切れ presigned URL・ネットワーク障害・不正バイトは null に倒す(KDoc の fallback 契約)。
+        val bytes =
+            try {
+                http.get(url.invoke()).readRawBytes()
+            } catch (_: Throwable) {
+                return null
+            }
+        val bitmap =
+            try {
+                bytes.decodeToImageBitmap()
+            } catch (_: Throwable) {
+                return null
+            }
         mutex.withLock { cache[productId] = bitmap }
         return bitmap
     }
 
-    /** キャッシュを破棄(upload 後の再ロード用)。 */
-    suspend fun invalidate(productId: ProductId) {
-        mutex.withLock { cache.remove(productId) }
-    }
+    /** キャッシュを破棄し世代を上げる(upload/削除/置換後の全画面再 fetch 用)。 */
+    suspend fun invalidate(productId: ProductId) =
+        mutex.withLock {
+            cache.remove(productId)
+            versions[productId] = (versions[productId] ?: 0) + 1
+        }
+
+    /** composition から読むと snapshot 追跡され、[invalidate] で再 fetch のトリガになる。 */
+    fun versionOf(productId: ProductId): Int = versions[productId] ?: 0
 }
 
 /**
  * [hasStoredImage] が true のとき [loader] で画像を読み込み返す。false なら null(アイコン fallback)。
+ * [ProductImageLoader.invalidate] による世代変化を購読し、置換時も再 fetch する。
  */
 @Composable
 fun rememberProductImage(
     loader: ProductImageLoader,
     productId: ProductId,
     hasStoredImage: Boolean,
-    reloadKey: Int = 0,
 ): ImageBitmap? {
+    if (!hasStoredImage) return null
+    val version = loader.versionOf(productId)
     var image by remember(productId) { mutableStateOf<ImageBitmap?>(null) }
-    LaunchedEffect(productId, hasStoredImage, reloadKey) {
-        image = if (hasStoredImage) loader.load(productId) else null
+    LaunchedEffect(productId, hasStoredImage, version) {
+        image = loader.load(productId)
     }
     return image
 }

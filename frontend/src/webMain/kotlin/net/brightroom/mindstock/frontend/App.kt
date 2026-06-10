@@ -643,10 +643,9 @@ private fun ProductSettingsSheetWithImage(
     val scope = rememberCoroutineScope()
     val productId = stock?.product?.id
     var stored by remember(productId) { mutableStateOf(stock?.product?.image is ProductImage.Stored) }
-    var reloadKey by remember(productId) { mutableStateOf(0) }
     val image =
         if (stock != null && productId != null) {
-            rememberProductImage(imageLoader, productId, stored, reloadKey)
+            rememberProductImage(imageLoader, productId, stored)
         } else {
             null
         }
@@ -671,7 +670,6 @@ private fun ProductSettingsSheetWithImage(
                     is RpcOutcome.Success -> {
                         imageLoader.invalidate(id)
                         stored = true
-                        reloadKey += 1
                         refresh.request()
                     }
 
@@ -688,7 +686,6 @@ private fun ProductSettingsSheetWithImage(
                     is RpcOutcome.Success -> {
                         imageLoader.invalidate(id)
                         stored = false
-                        reloadKey += 1
                         refresh.request()
                     }
 
