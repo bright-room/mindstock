@@ -8,6 +8,7 @@ import net.brightroom.mindstock.application.repository.household.HouseholdRegist
 import net.brightroom.mindstock.application.repository.household.HouseholdRepository
 import net.brightroom.mindstock.application.repository.invitation.InvitationRegisterRepository
 import net.brightroom.mindstock.application.repository.invitation.InvitationRepository
+import net.brightroom.mindstock.application.repository.product.ProductImageStorageRepository
 import net.brightroom.mindstock.application.repository.product.ProductRegisterRepository
 import net.brightroom.mindstock.application.repository.product.ProductRepository
 import net.brightroom.mindstock.application.repository.resident.ResidentRegisterRepository
@@ -29,6 +30,7 @@ import net.brightroom.mindstock.application.service.resident.ResidentRegisterSer
 import net.brightroom.mindstock.application.service.resident.ResidentService
 import net.brightroom.mindstock.application.service.stock.StockRegisterService
 import net.brightroom.mindstock.application.service.stock.StockService
+import net.brightroom.mindstock.configuration.external.storage.StorageBucket
 import net.brightroom.mindstock.infrastructure.datasource.catalog.CatalogDataSource
 import net.brightroom.mindstock.infrastructure.datasource.catalog.CatalogRegisterDataSource
 import net.brightroom.mindstock.infrastructure.datasource.household.HouseholdDataSource
@@ -43,6 +45,7 @@ import net.brightroom.mindstock.infrastructure.datasource.stock.StockDataSource
 import net.brightroom.mindstock.infrastructure.datasource.stock.StockRegisterDataSource
 import net.brightroom.mindstock.infrastructure.gateway.ExternalProductGateway
 import net.brightroom.mindstock.infrastructure.gateway.UnconfiguredProductGateway
+import net.brightroom.mindstock.infrastructure.storage.image.ProductImageStorageDataSource
 
 fun Application.dependenciesConfigure() {
     dependencies {
@@ -59,6 +62,9 @@ fun Application.dependenciesConfigure() {
         provide<ProductRegisterRepository> { ProductRegisterDataSource(resolve()) }
         provide<StockRepository> { StockDataSource(resolve(), resolve()) }
         provide<StockRegisterRepository> { StockRegisterDataSource(resolve()) }
+        provide<ProductImageStorageRepository> {
+            ProductImageStorageDataSource(resolve(), resolve<StorageBucket>().name)
+        }
 
         // Gateway
         provide<ExternalProductGateway> { UnconfiguredProductGateway() }
