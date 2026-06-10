@@ -2,6 +2,7 @@ package net.brightroom.mindstock.frontend.feature.inventory.data
 
 import net.brightroom.mindstock.domain.model.household.HouseholdId
 import net.brightroom.mindstock.domain.model.inventory.product.ProductId
+import net.brightroom.mindstock.domain.model.inventory.product.image.ImageUrl
 import net.brightroom.mindstock.domain.model.inventory.quantity.Quantity
 import net.brightroom.mindstock.domain.model.inventory.shopping.ShoppingList
 import net.brightroom.mindstock.domain.model.inventory.stock.Stocks
@@ -14,6 +15,7 @@ import net.brightroom.mindstock.frontend.core.rpc.RpcOutcome
 import net.brightroom.mindstock.frontend.core.rpc.toOutcome
 import net.brightroom.mindstock.rpc.product.ProductRegisterRpcService
 import net.brightroom.mindstock.rpc.product.ProductRpcService
+import net.brightroom.mindstock.rpc.product.UploadImageRequest
 import net.brightroom.mindstock.rpc.stock.ActivityFeed
 import net.brightroom.mindstock.rpc.stock.StockRegisterRpcService
 import net.brightroom.mindstock.rpc.stock.StockRpcService
@@ -59,4 +61,11 @@ class InventoryRepository(
         productId: ProductId,
         wanted: Boolean,
     ): RpcOutcome<Unit> = productRegisterService().setWanted(productId, wanted).toOutcome()
+
+    suspend fun imageUrl(productId: ProductId): RpcOutcome<ImageUrl> = productService().imageUrl(productId).toOutcome()
+
+    suspend fun uploadImage(
+        productId: ProductId,
+        base64: String,
+    ): RpcOutcome<Unit> = productRegisterService().uploadImage(productId, UploadImageRequest(base64)).toOutcome()
 }
