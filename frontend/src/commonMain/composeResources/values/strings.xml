@@ -145,6 +145,11 @@
     <string name="settings_title">商品の設定</string>
     <string name="settings_master_edit_title">商品マスタの編集</string>
     <string name="settings_name_immutable">商品名は変更できません。</string>
+    <string name="image_field_label_section">画像</string>
+    <string name="image_field_add">画像を追加</string>
+    <string name="image_field_change">画像を変更</string>
+    <string name="image_field_remove">削除</string>
+    <string name="image_field_hint">正方形がおすすめ。未設定ならアイコンを表示します。</string>
     <string name="settings_save">変更を保存</string>
     <string name="settings_archive">この商品をアーカイブ</string>
     <string name="settings_archive_blocked">在庫が %1$d%2$s 残っています。アーカイブは在庫が 0%2$s のときだけできます。先に使い切ってください。</string>
