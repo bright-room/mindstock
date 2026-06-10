@@ -30,7 +30,10 @@ import mindstock.frontend.generated.resources.master_hint
 import mindstock.frontend.generated.resources.master_row_meta
 import mindstock.frontend.generated.resources.master_subtitle
 import mindstock.frontend.generated.resources.master_title
+import net.brightroom.mindstock.domain.model.inventory.product.image.ProductImage
 import net.brightroom.mindstock.domain.model.inventory.stock.Stock
+import net.brightroom.mindstock.frontend.core.image.LocalProductImageLoader
+import net.brightroom.mindstock.frontend.core.image.rememberProductImage
 import net.brightroom.mindstock.frontend.core.ui.resolve
 import net.brightroom.mindstock.frontend.designsystem.atom.AddTile
 import net.brightroom.mindstock.frontend.designsystem.atom.AppIcon
@@ -178,7 +181,9 @@ private fun MasterStockRow(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(13.dp),
     ) {
-        Thumb(icon = glyphForProductName(stock.product.name()), size = 46.dp)
+        val loader = LocalProductImageLoader.current
+        val img = rememberProductImage(loader, stock.product.id, stock.product.image is ProductImage.Stored)
+        Thumb(icon = glyphForProductName(stock.product.name()), size = 46.dp, image = img)
         Column(modifier = Modifier.weight(1f)) {
             AppText(
                 text = stock.product.name(),
