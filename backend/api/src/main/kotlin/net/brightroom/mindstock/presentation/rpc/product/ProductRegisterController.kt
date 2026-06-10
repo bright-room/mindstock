@@ -1,3 +1,5 @@
+@file:OptIn(kotlin.io.encoding.ExperimentalEncodingApi::class)
+
 package net.brightroom.mindstock.presentation.rpc.product
 
 import net.brightroom.mindstock.application.scenario.product.AdoptProductScenario
@@ -9,10 +11,12 @@ import net.brightroom.mindstock.domain.model.household.HouseholdId
 import net.brightroom.mindstock.domain.model.inventory.product.Product
 import net.brightroom.mindstock.domain.model.inventory.product.ProductId
 import net.brightroom.mindstock.domain.model.inventory.product.image.ProductImage
+import net.brightroom.mindstock.domain.model.inventory.product.image.RawImageUpload
 import net.brightroom.mindstock.domain.model.inventory.product.setting.MinimumStock
 import net.brightroom.mindstock.domain.model.inventory.product.setting.ProductUnit
 import net.brightroom.mindstock.rpc.product.AddCustomProductRequest
 import net.brightroom.mindstock.rpc.product.ProductRegisterRpcService
+import net.brightroom.mindstock.rpc.product.UploadImageRequest
 import net.brightroom.mindstock.rpc.result.RpcError
 import net.brightroom.mindstock.rpc.result.RpcResult
 
@@ -21,6 +25,33 @@ class ProductRegisterController(
     private val adoptProductScenario: AdoptProductScenario,
     private val session: MindstockSession,
 ) : ProductRegisterRpcService {
+    private companion object {
+        const val MAX_UPLOAD_BYTES = 8 * 1024 * 1024
+    }
+
+    override suspend fun uploadImage(
+        productId: ProductId,
+        request: UploadImageRequest,
+    ): RpcResult<Unit, RpcError> =
+        requireRegistered(session) { residentId ->
+            val raw =
+                try {
+                    kotlin.io.encoding.Base64
+                        .decode(request.base64)
+                } catch (e: IllegalArgumentException) {
+                    return@requireRegistered RpcResult.Err(
+                        RpcError.BadRequest(field = "base64", reason = e.message ?: "invalid base64"),
+                    )
+                }
+            if (raw.size > MAX_UPLOAD_BYTES) {
+                return@requireRegistered RpcResult.Err(
+                    RpcError.BadRequest(field = "base64", reason = "image too large: ${raw.size} bytes"),
+                )
+            }
+            productRegisterService.uploadImage(productId, RawImageUpload(raw), residentId)
+            RpcResult.Ok(Unit)
+        }
+
     override suspend fun adopt(
         householdId: HouseholdId,
         catalogItemId: CatalogItemId,
