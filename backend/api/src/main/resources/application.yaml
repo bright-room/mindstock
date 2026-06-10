@@ -6,6 +6,7 @@ ktor:
     modules:
       - "net.brightroom.mindstock.configuration.migration.MigrationConfigurationKt.migrationConfigure"
       - "net.brightroom.mindstock.configuration.external.exposed.ExposedConfigurationKt.exposedConfigure"
+      - "net.brightroom.mindstock.configuration.external.storage.StorageConfigurationKt.storageConfigure"
       - "net.brightroom.mindstock.configuration.di.DependenciesConfigurationKt.dependenciesConfigure"
       - "net.brightroom.mindstock.configuration.routing.RoutingConfigurationKt.routingConfigure"
 
@@ -20,3 +21,9 @@ external:
       jdbc-url: "$DB_JDBC_URL:jdbc:postgresql://localhost:5432/mindstock"
       username: "$DB_USERNAME:mindstock"
       password: "$DB_PASSWORD:mindstock"
+  storage:
+    endpoint: "$STORAGE_ENDPOINT:http://localhost:3900"
+    region: "$STORAGE_REGION:garage"
+    bucket: "$STORAGE_BUCKET:mindstock-images"
+    access-key: "$STORAGE_ACCESS_KEY"
+    secret-key: "$STORAGE_SECRET_KEY"

@@ -31,6 +31,7 @@ dependencies {
     implementation(libs.flyway.database.postgresql)
     implementation(libs.auth0.java.jwt)
     implementation(libs.auth0.jwks.rsa)
+    implementation(libs.aws.sdk.kotlin.s3)
 
     testFixturesImplementation(projects.domain)
     testFixturesImplementation(testFixtures(projects.backend.core))
