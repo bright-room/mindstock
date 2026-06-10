@@ -28,6 +28,28 @@ dependencies {
     testImplementation(libs.kotest.runner.junit5)
     testImplementation(libs.kotest.assertions.core)
     testImplementation(libs.mockk)
+    testImplementation(ktorLib.client.cio)
+}
+
+tasks.test {
+    // Exclude "integration" and "manual" tagged specs by default.
+    // Override on the command line with -Dkotest.tags.exclude= (empty string) to run all.
+    systemProperty("kotest.tags.exclude", "integration | manual")
+}
+
+val integrationTest by tasks.registering(Test::class) {
+    group = "verification"
+    description = "Runs @Tags(\"integration\") specs against TEST_STORAGE_*."
+    // 外部ストレージに当てる統合テストはキャッシュさせず毎回実行する(stale 結果防止)。
+    doNotTrackState("integration tests run against a live external storage")
+    testClassesDirs = sourceSets["test"].output.classesDirs
+    classpath = sourceSets["test"].runtimeClasspath
+    shouldRunAfter(tasks.test)
+    systemProperty("kotest.tags.include", "integration")
+    systemProperty("kotest.tags.exclude", "manual")
+    // Forward TEST_STORAGE_* env vars to the test JVM
+    listOf("TEST_STORAGE_ENDPOINT", "TEST_STORAGE_BUCKET", "TEST_STORAGE_ACCESS_KEY", "TEST_STORAGE_SECRET_KEY")
+        .forEach { key -> System.getenv(key)?.let { environment(key, it) } }
 }
 
 exposed {
