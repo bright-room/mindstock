@@ -126,3 +126,44 @@ jobs:
           path: |
             **/build/reports/
             **/build/test-results/
+
+  storage-integration-test:
+    needs: lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        with:
+          persist-credentials: false
+
+      - name: Start Garage (S3-compatible storage)
+        # GHA の service container は checkout 前に起動するため config.toml を mount できず、
+        # layout/bucket/key の post-start 初期化もできない。よって repo の compose 定義
+        # (garage + garage-init)をそのまま使う。garage-init が .env.garage に資格情報を書く。
+        run: |
+          docker compose up -d garage
+          docker compose run --rm garage-init
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@50e97c2cd7a37755bbfafc9c5b7cafaece252f6e # v6
+
+      - name: Storage integration tests
+        # ブラウザ経路(CORS)ではなく JVM S3 クライアントの store→presign→GET 往復を検証する。
+        # CORS は JVM HTTP では強制されないため backend 起動は不要(bucket/key だけあればよい)。
+        run: |
+          set -a
+          . ./.env.garage
+          set +a
+          export TEST_STORAGE_ENDPOINT="$STORAGE_ENDPOINT" \
+                 TEST_STORAGE_BUCKET="$STORAGE_BUCKET" \
+                 TEST_STORAGE_ACCESS_KEY="$STORAGE_ACCESS_KEY" \
+                 TEST_STORAGE_SECRET_KEY="$STORAGE_SECRET_KEY"
+          ./gradlew :backend:core:integrationTest
+
+      - name: Upload reports on failure
+        if: failure()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: build-reports-storage-integration-test
+          path: |
+            **/build/reports/
+            **/build/test-results/
