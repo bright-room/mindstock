@@ -6,6 +6,7 @@ import io.kotest.matchers.shouldBe
 import io.mockk.every
 import io.mockk.mockk
 import net.brightroom.mindstock.application.repository.household.HouseholdRepository
+import net.brightroom.mindstock.application.repository.product.ProductImageStorageRepository
 import net.brightroom.mindstock.application.repository.product.ProductRepository
 import net.brightroom.mindstock.application.repository.stock.StockRepository
 import net.brightroom.mindstock.domain.exception.MembershipRequiredException
@@ -35,7 +36,8 @@ class ProductServiceTest :
         val stockRepository = mockk<StockRepository>()
         val productRepository = mockk<ProductRepository>()
         val householdRepository = mockk<HouseholdRepository>()
-        val service = ProductService(stockRepository, productRepository, householdRepository)
+        val imageStorage = mockk<ProductImageStorageRepository>()
+        val service = ProductService(stockRepository, productRepository, householdRepository, imageStorage)
 
         val actor = ResidentId.create()
         val member = Resident(actor, ResidentProfile(DisplayName("じぶん")))

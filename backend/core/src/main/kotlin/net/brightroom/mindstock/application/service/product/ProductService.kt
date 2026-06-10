@@ -1,10 +1,15 @@
 package net.brightroom.mindstock.application.service.product
 
 import net.brightroom.mindstock.application.repository.household.HouseholdRepository
+import net.brightroom.mindstock.application.repository.product.ProductImageStorageRepository
 import net.brightroom.mindstock.application.repository.product.ProductRepository
 import net.brightroom.mindstock.application.repository.stock.StockRepository
+import net.brightroom.mindstock.domain.exception.ResourceNotFoundException
 import net.brightroom.mindstock.domain.model.household.HouseholdId
+import net.brightroom.mindstock.domain.model.inventory.product.ProductId
 import net.brightroom.mindstock.domain.model.inventory.product.Products
+import net.brightroom.mindstock.domain.model.inventory.product.image.ImageUrl
+import net.brightroom.mindstock.domain.model.inventory.product.image.ProductImage
 import net.brightroom.mindstock.domain.model.inventory.shopping.ShoppingEntry
 import net.brightroom.mindstock.domain.model.inventory.shopping.ShoppingList
 import net.brightroom.mindstock.domain.model.inventory.stock.Stocks
@@ -14,7 +19,22 @@ class ProductService(
     private val stockRepository: StockRepository,
     private val productRepository: ProductRepository,
     private val householdRepository: HouseholdRepository,
+    private val imageStorage: ProductImageStorageRepository,
 ) {
+    /**
+     * 商品画像の presigned GET URL を返す。
+     *
+     * 認可は registered ガード(Controller 側)で担保し、ここで世帯メンバー越しの追加認可は課さない
+     * (productId は世帯一意・表示は member 全員可・presigned URL は短命)。
+     */
+    suspend fun imageUrl(productId: ProductId): ImageUrl {
+        val product = productRepository.findById(productId)
+        return when (val image = product.image) {
+            is ProductImage.Stored -> imageStorage.presignedUrl(image.ref)
+            ProductImage.None -> throw ResourceNotFoundException("product has no image: $productId")
+        }
+    }
+
     /** 在庫一覧(数量+status を見せるため Stock 集合)。 */
     fun list(
         householdId: HouseholdId,
