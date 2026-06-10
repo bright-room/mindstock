@@ -13,7 +13,8 @@ value class RawImageUpload(
         require(value.isNotEmpty()) { "RawImageUpload must not be empty" }
     }
 
-    operator fun invoke(): ByteArray = value
+    // ByteArray は可変参照のため、内部配列を直接返さず防御的コピーを返して不変性を保つ。
+    operator fun invoke(): ByteArray = value.copyOf()
 
     // ByteArray のデフォルト toString は `[B@hash` でログに無意味なため、サイズだけ可読化する。
     override fun toString(): String = "RawImageUpload(${value.size} bytes)"
