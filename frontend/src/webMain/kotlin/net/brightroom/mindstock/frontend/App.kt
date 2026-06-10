@@ -41,10 +41,11 @@ import net.brightroom.mindstock.frontend.auth.AuthConfig
 import net.brightroom.mindstock.frontend.auth.TokenStore
 import net.brightroom.mindstock.frontend.core.auth.AuthState
 import net.brightroom.mindstock.frontend.core.auth.ReauthController
+import net.brightroom.mindstock.frontend.core.image.ImagePickResult
 import net.brightroom.mindstock.frontend.core.image.LocalProductImageLoader
 import net.brightroom.mindstock.frontend.core.image.ProductImageLoader
 import net.brightroom.mindstock.frontend.core.image.ProductImageState
-import net.brightroom.mindstock.frontend.core.image.pickImageAsBase64
+import net.brightroom.mindstock.frontend.core.image.pickImage
 import net.brightroom.mindstock.frontend.core.image.rememberProductImage
 import net.brightroom.mindstock.frontend.core.rpc.RpcClientProvider
 import net.brightroom.mindstock.frontend.core.rpc.RpcOutcome
@@ -644,6 +645,8 @@ private fun ProductSettingsSheetWithImage(
     val scope = rememberCoroutineScope()
     val productId = stock?.product?.id
     var stored by remember(productId) { mutableStateOf(stock?.product?.image is ProductImage.Stored) }
+    // 画像更新(upload/remove)の進行中フラグ。再入を抑止して書込を 1 本に直列化する。
+    var imageBusy by remember(productId) { mutableStateOf(false) }
     val image =
         if (stock != null && productId != null) {
             (rememberProductImage(imageLoader, productId, stored) as? ProductImageState.Loaded)?.bitmap
@@ -665,33 +668,54 @@ private fun ProductSettingsSheetWithImage(
         image = image,
         onPickImage = {
             val id = productId ?: return@ProductSettingsSheet
-            scope.launch {
-                val base64 = pickImageAsBase64() ?: return@launch
-                when (val out = repository.uploadImage(id, base64)) {
-                    is RpcOutcome.Success -> {
-                        imageLoader.invalidate(id)
-                        stored = true
-                        refresh.request()
-                    }
+            if (!imageBusy) {
+                imageBusy = true
+                scope.launch {
+                    try {
+                        when (val r = pickImage()) {
+                            is ImagePickResult.Selected -> {
+                                when (val out = repository.uploadImage(id, r.base64)) {
+                                    is RpcOutcome.Success -> {
+                                        imageLoader.invalidate(id)
+                                        stored = true
+                                        refresh.request()
+                                    }
 
-                    is RpcOutcome.Failure -> {
-                        onFailure(out.error)
+                                    is RpcOutcome.Failure -> {
+                                        onFailure(out.error)
+                                    }
+                                }
+                            }
+
+                            ImagePickResult.Cancelled -> {
+                                Unit
+                            }
+                        }
+                    } finally {
+                        imageBusy = false
                     }
                 }
             }
         },
         onRemoveImage = {
             val id = productId ?: return@ProductSettingsSheet
-            scope.launch {
-                when (val out = repository.changeImage(id, ProductImage.None)) {
-                    is RpcOutcome.Success -> {
-                        imageLoader.invalidate(id)
-                        stored = false
-                        refresh.request()
-                    }
+            if (!imageBusy) {
+                imageBusy = true
+                scope.launch {
+                    try {
+                        when (val out = repository.changeImage(id, ProductImage.None)) {
+                            is RpcOutcome.Success -> {
+                                imageLoader.invalidate(id)
+                                stored = false
+                                refresh.request()
+                            }
 
-                    is RpcOutcome.Failure -> {
-                        onFailure(out.error)
+                            is RpcOutcome.Failure -> {
+                                onFailure(out.error)
+                            }
+                        }
+                    } finally {
+                        imageBusy = false
                     }
                 }
             }
