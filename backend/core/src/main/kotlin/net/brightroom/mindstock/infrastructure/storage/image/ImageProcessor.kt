@@ -54,18 +54,22 @@ object ImageProcessor {
 
     private fun encodeJpeg(img: BufferedImage): ByteArray {
         val writer = ImageIO.getImageWritersByFormatName("jpeg").next()
-        val out = ByteArrayOutputStream()
-        ImageIO.createImageOutputStream(out).use { ios ->
-            writer.output = ios
-            val param =
-                writer.defaultWriteParam.apply {
-                    compressionMode = ImageWriteParam.MODE_EXPLICIT
-                    compressionQuality = JPEG_QUALITY
-                }
-            writer.write(null, IIOImage(img, null, null), param)
+        // write が例外を投げてもネイティブエンコーダを解放するため finally で dispose する。
+        return try {
+            val out = ByteArrayOutputStream()
+            ImageIO.createImageOutputStream(out).use { ios ->
+                writer.output = ios
+                val param =
+                    writer.defaultWriteParam.apply {
+                        compressionMode = ImageWriteParam.MODE_EXPLICIT
+                        compressionQuality = JPEG_QUALITY
+                    }
+                writer.write(null, IIOImage(img, null, null), param)
+            }
+            out.toByteArray()
+        } finally {
+            writer.dispose()
         }
-        writer.dispose()
-        return out.toByteArray()
     }
 
     private fun sha256Hex(bytes: ByteArray): String =

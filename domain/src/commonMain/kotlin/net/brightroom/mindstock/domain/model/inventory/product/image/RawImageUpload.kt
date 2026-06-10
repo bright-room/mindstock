@@ -14,4 +14,7 @@ value class RawImageUpload(
     }
 
     operator fun invoke(): ByteArray = value
+
+    // ByteArray のデフォルト toString は `[B@hash` でログに無意味なため、サイズだけ可読化する。
+    override fun toString(): String = "RawImageUpload(${value.size} bytes)"
 }
