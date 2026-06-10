@@ -69,6 +69,7 @@ import net.brightroom.mindstock.domain.model.inventory.stock.movement.MovementId
 import net.brightroom.mindstock.domain.model.inventory.stock.movement.MovementIdentity
 import net.brightroom.mindstock.domain.model.inventory.stock.movement.StockMovement
 import net.brightroom.mindstock.frontend.core.image.LocalProductImageLoader
+import net.brightroom.mindstock.frontend.core.image.ProductImageState
 import net.brightroom.mindstock.frontend.core.image.rememberProductImage
 import net.brightroom.mindstock.frontend.core.ui.resolve
 import net.brightroom.mindstock.frontend.designsystem.atom.AppButton
@@ -170,7 +171,8 @@ fun ProductDetailScreen(
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 val loader = LocalProductImageLoader.current
-                val img = rememberProductImage(loader, stock.product.id, stock.product.image is ProductImage.Stored)
+                val imageState = rememberProductImage(loader, stock.product.id, stock.product.image is ProductImage.Stored)
+                val img = (imageState as? ProductImageState.Loaded)?.bitmap
                 Thumb(icon = glyphForProductName(stock.product.name()), size = 72.dp, radius = 22.dp, image = img)
                 AppText(
                     stock.product.name(),

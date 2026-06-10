@@ -43,6 +43,7 @@ import net.brightroom.mindstock.frontend.core.auth.AuthState
 import net.brightroom.mindstock.frontend.core.auth.ReauthController
 import net.brightroom.mindstock.frontend.core.image.LocalProductImageLoader
 import net.brightroom.mindstock.frontend.core.image.ProductImageLoader
+import net.brightroom.mindstock.frontend.core.image.ProductImageState
 import net.brightroom.mindstock.frontend.core.image.pickImageAsBase64
 import net.brightroom.mindstock.frontend.core.image.rememberProductImage
 import net.brightroom.mindstock.frontend.core.rpc.RpcClientProvider
@@ -645,7 +646,7 @@ private fun ProductSettingsSheetWithImage(
     var stored by remember(productId) { mutableStateOf(stock?.product?.image is ProductImage.Stored) }
     val image =
         if (stock != null && productId != null) {
-            rememberProductImage(imageLoader, productId, stored)
+            (rememberProductImage(imageLoader, productId, stored) as? ProductImageState.Loaded)?.bitmap
         } else {
             null
         }
