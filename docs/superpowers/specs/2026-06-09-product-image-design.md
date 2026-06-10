@@ -70,11 +70,12 @@ P6-4b トラック B backend gap #2。`docs/superpowers/specs/2026-06-08-p6-4-fr
 ## 5. ドメイン
 
 `domain/.../inventory/product/image/` に追加:
-- `RawImageUpload`(`@JvmInline value class`、ByteArray 単一フィールド、`init { require(非空) }`)— クライアントがアップロードした原バイト列。
-- `StoredImage`(`data class(bytes: ByteArray, mediaType: ImageMediaType)`)— 処理/保存済みの配信用コンテンツ。ByteArray を持つため equals/hashCode は本質比較しない旨を KDoc に明記(ドメインロジックで内容比較しない)。
-- `ImageMediaType`(`enum { JPEG }`。将来 PNG 等拡張余地)。
+- `RawImageUpload`(`@JvmInline value class`、ByteArray 単一フィールド、`init { require(非空) }`)— クライアントがアップロードした原バイト列。application 公開 API で primitive `ByteArray` を晒さないための VO。
+- `ImageUrl`(`@JvmInline value class`、String、`init { require(非空) }`)— presigned GET URL。`imageUrl` RPC の戻り値 VO。
 
 `ProductImage` / `ImageRef` / `Product.changeImage` は既存のまま再利用。
+
+**`StoredImage` / `ImageMediaType` は不要**: presigned URL 配信では backend は処理後バイトを読まない(frontend が Garage から直 fetch)。処理後の JPEG バイトは infra 内部の `ByteArray` のまま put し、Content-Type は `image/jpeg` 固定で付与する。
 
 ## 6. application 層
 
