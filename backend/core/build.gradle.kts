@@ -15,6 +15,7 @@ dependencies {
     implementation(libs.kotlinx.coroutines.core)
     implementation(libs.hikari)
     implementation(libs.kotlin.logging.jvm)
+    implementation(libs.aws.sdk.kotlin.s3)
 
     testFixturesImplementation(libs.exposed.core)
     testFixturesImplementation(libs.exposed.jdbc)
