@@ -78,5 +78,36 @@ services:
     entrypoint: ["sh", "/zitadel-init.sh"]
     restart: "no"
 
+  # ローカル開発用の S3 互換オブジェクトストレージ(商品画像の保管先)。
+  garage:
+    image: "dxflrs/garage:v2.3.0"
+    container_name: "mindstock-garage"
+    volumes:
+      - "./docker/garage.toml:/etc/garage.toml:ro"
+      - "mindstock-garage-meta:/var/lib/garage/meta"
+      - "mindstock-garage-data:/var/lib/garage/data"
+    ports:
+      - "3900:3900"
+      - "3903:3903"
+    restart: "unless-stopped"
+
+  # compose up 時に Garage を宣言的にセットアップする(冪等)。
+  # layout 設定 / bucket / access key を作成し、生成した STORAGE_* を
+  # repo ルートの .env.garage に書き出す。
+  # dxflrs/garage は scratch イメージで shell を持たないため、alpine で
+  # admin API(:3903)を curl 越しに叩く(zitadel-init と同じ方式)。
+  garage-init:
+    image: "alpine:3.23"
+    container_name: "mindstock-garage-init"
+    depends_on:
+      - garage
+    volumes:
+      - "./docker/garage-init.sh:/garage-init.sh:ro"
+      - "./:/output"
+    entrypoint: ["sh", "/garage-init.sh"]
+    restart: "no"
+
 volumes:
   mindstock-pgdata:
+  mindstock-garage-meta:
+  mindstock-garage-data:
