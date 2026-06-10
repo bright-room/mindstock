@@ -87,8 +87,9 @@ services:
       - "mindstock-garage-meta:/var/lib/garage/meta"
       - "mindstock-garage-data:/var/lib/garage/data"
     ports:
+      # S3 API のみ公開。admin API(3903)は compose ネットワーク内(garage-init)からのみ
+      # 到達すればよく、固定 admin_token と相まってホスト公開は不要・危険なので公開しない。
       - "3900:3900"
-      - "3903:3903"
     restart: "unless-stopped"
 
   # compose up 時に Garage を宣言的にセットアップする(冪等)。

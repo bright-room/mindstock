@@ -69,7 +69,16 @@ if [ -z "$AK" ]; then
 else
   echo "[garage-init] reuse key $KEY = $AK"
 fi
-SK="$(api GET "/v2/GetKeyInfo?id=$AK&showSecretKey=true" | jq -r '.secretAccessKey')"
+# 応答を一度変数に受けてから jq する(curl 失敗を空値として握り潰さない。
+# `api` は curl -f なので 5xx/通信断は非ゼロ終了し set -e で中断する)。
+KEYINFO="$(api GET "/v2/GetKeyInfo?id=$AK&showSecretKey=true")"
+SK="$(printf '%s' "$KEYINFO" | jq -r '.secretAccessKey')"
+
+# 致命: bucket/access/secret が空のまま .env.garage を書くと後段が静かに壊れるので明示的に弾く。
+if [ -z "$BID" ] || [ -z "$AK" ] || [ -z "$SK" ] || [ "$SK" = "null" ]; then
+  echo "[garage-init] ERROR: empty bucket/access/secret (BID=${BID:+set} AK=${AK:+set} SK=${SK:+set}); aborting"
+  exit 1
+fi
 
 # --- bucket への権限付与(冪等: 何度叩いても同じ状態に収束) ---
 api POST /v2/AllowBucketKey \
@@ -85,6 +94,6 @@ STORAGE_ACCESS_KEY=$AK
 STORAGE_SECRET_KEY=$SK
 EOF
 
-echo "[garage-init] wrote $OUT :"
-cat "$OUT"
+# 資格情報はログに残さない(docker compose logs に平文で出さない)。
+echo "[garage-init] wrote $OUT (bucket=$BUCKET; credentials hidden)"
 echo "[garage-init] done."
