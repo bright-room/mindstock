@@ -17,10 +17,11 @@ import javax.imageio.ImageIO
 @Tags("integration")
 class ProductImageStorageDataSourceTest :
     FunSpec({
-        val endpoint = System.getenv("TEST_STORAGE_ENDPOINT") ?: "http://localhost:3900"
-        val bucket = System.getenv("TEST_STORAGE_BUCKET") ?: "mindstock-images"
-        val ak = System.getenv("TEST_STORAGE_ACCESS_KEY") ?: error("TEST_STORAGE_ACCESS_KEY required")
-        val sk = System.getenv("TEST_STORAGE_SECRET_KEY") ?: error("TEST_STORAGE_SECRET_KEY required")
+        // app と同じ env(.env.garage / external.storage.* と同一名)を読む。専用 TEST_ は作らない。
+        val endpoint = System.getenv("STORAGE_ENDPOINT") ?: "http://localhost:3900"
+        val bucket = System.getenv("STORAGE_BUCKET") ?: "mindstock-images"
+        val ak = System.getenv("STORAGE_ACCESS_KEY") ?: error("STORAGE_ACCESS_KEY required")
+        val sk = System.getenv("STORAGE_SECRET_KEY") ?: error("STORAGE_SECRET_KEY required")
 
         val s3 =
             S3Client {
