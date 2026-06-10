@@ -57,9 +57,10 @@ fun rememberProductImage(
     loader: ProductImageLoader,
     productId: ProductId,
     hasStoredImage: Boolean,
+    reloadKey: Int = 0,
 ): ImageBitmap? {
     var image by remember(productId) { mutableStateOf<ImageBitmap?>(null) }
-    LaunchedEffect(productId, hasStoredImage) {
+    LaunchedEffect(productId, hasStoredImage, reloadKey) {
         image = if (hasStoredImage) loader.load(productId) else null
     }
     return image

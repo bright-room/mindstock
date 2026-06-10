@@ -19,12 +19,14 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import mindstock.frontend.generated.resources.Res
 import mindstock.frontend.generated.resources.add_product_min_caption
 import mindstock.frontend.generated.resources.add_product_min_label
 import mindstock.frontend.generated.resources.add_product_unit_label
+import mindstock.frontend.generated.resources.image_field_label_section
 import mindstock.frontend.generated.resources.settings_archive
 import mindstock.frontend.generated.resources.settings_archive_blocked
 import mindstock.frontend.generated.resources.settings_archive_note
@@ -44,6 +46,7 @@ import net.brightroom.mindstock.frontend.designsystem.atom.PrimaryButton
 import net.brightroom.mindstock.frontend.designsystem.atom.Sheet
 import net.brightroom.mindstock.frontend.designsystem.theme.LocalMindstockTokens
 import net.brightroom.mindstock.frontend.designsystem.theme.MindstockType
+import net.brightroom.mindstock.frontend.feature.inventory.glyphForProductName
 import org.jetbrains.compose.resources.stringResource
 
 /** 商品の単位/最低在庫/アーカイブを編集するモーダルボトムシート。 */
@@ -55,6 +58,9 @@ fun ProductSettingsSheet(
     onChangeUnit: (ProductUnit) -> Unit,
     onChangeMinimum: (MinimumStock) -> Unit,
     onArchive: () -> Unit,
+    image: ImageBitmap?,
+    onPickImage: () -> Unit,
+    onRemoveImage: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     if (stock == null) return
@@ -86,6 +92,22 @@ fun ProductSettingsSheet(
                     style = MindstockType.unitCaption(),
                     color = tokens.faint,
                     modifier = Modifier.padding(top = 4.dp),
+                )
+            }
+
+            // 1.5. Image section
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                AppText(
+                    text = stringResource(Res.string.image_field_label_section),
+                    style = MindstockType.sectionMeta(),
+                    color = tokens.faint,
+                    modifier = Modifier.padding(start = 2.dp),
+                )
+                ImageField(
+                    image = image,
+                    fallbackIcon = glyphForProductName(stock.product.name()),
+                    onPick = onPickImage,
+                    onRemove = onRemoveImage,
                 )
             }
 

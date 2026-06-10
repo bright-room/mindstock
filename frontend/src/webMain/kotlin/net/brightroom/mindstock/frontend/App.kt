@@ -25,6 +25,7 @@ import kotlinx.coroutines.launch
 import mindstock.frontend.generated.resources.Res
 import mindstock.frontend.generated.resources.loading
 import mindstock.frontend.generated.resources.need_household_title
+import net.brightroom.mindstock.domain.model.inventory.product.image.ProductImage
 import net.brightroom.mindstock.domain.model.inventory.quantity.Quantity
 import net.brightroom.mindstock.domain.model.inventory.stock.Stock
 import net.brightroom.mindstock.domain.model.inventory.stock.movement.Note
@@ -42,7 +43,12 @@ import net.brightroom.mindstock.frontend.core.auth.AuthState
 import net.brightroom.mindstock.frontend.core.auth.ReauthController
 import net.brightroom.mindstock.frontend.core.image.LocalProductImageLoader
 import net.brightroom.mindstock.frontend.core.image.ProductImageLoader
+import net.brightroom.mindstock.frontend.core.image.pickImageAsBase64
+import net.brightroom.mindstock.frontend.core.image.rememberProductImage
 import net.brightroom.mindstock.frontend.core.rpc.RpcClientProvider
+import net.brightroom.mindstock.frontend.core.rpc.RpcOutcome
+import net.brightroom.mindstock.frontend.core.rpc.errorText
+import net.brightroom.mindstock.frontend.core.rpc.requiresReauth
 import net.brightroom.mindstock.frontend.core.session.AppSession
 import net.brightroom.mindstock.frontend.core.ui.InventoryRefreshController
 import net.brightroom.mindstock.frontend.core.ui.ToastController
@@ -515,9 +521,14 @@ fun App() {
                                         onSelect = { settingsStock = it },
                                         modifier = Modifier.fillMaxSize(),
                                     )
-                                    ProductSettingsSheet(
+                                    ProductSettingsSheetWithImage(
                                         open = settingsStock != null,
                                         stock = settingsStock,
+                                        repository = repository,
+                                        imageLoader = imageLoader,
+                                        toast = toast,
+                                        reauth = reauth,
+                                        refresh = refresh,
                                         onClose = { settingsStock = null },
                                         onChangeUnit = { u ->
                                             settingsStock?.let { s -> scope.launch { masterVm.changeUnit(s.product.id, u) } }
@@ -573,9 +584,14 @@ fun App() {
                                                 reauth = reauth,
                                             )
                                         }
-                                    ProductSettingsSheet(
+                                    ProductSettingsSheetWithImage(
                                         open = true,
                                         stock = ov.stock,
+                                        repository = repository,
+                                        imageLoader = imageLoader,
+                                        toast = toast,
+                                        reauth = reauth,
+                                        refresh = refresh,
                                         onClose = { catalogOverlay = null },
                                         onChangeUnit = { u ->
                                             scope.launch { productSettingsVm.changeUnit(ov.stock.product.id, u) }
@@ -604,6 +620,85 @@ fun App() {
             }
         }
     }
+}
+
+/**
+ * [ProductSettingsSheet] に画像欄を配線したラッパ。ピッカー→アップロード/削除→
+ * loader 無効化 + ローカル state 更新 + 一覧 refresh で Thumb を即時反映する。
+ */
+@Composable
+private fun ProductSettingsSheetWithImage(
+    open: Boolean,
+    stock: Stock?,
+    repository: InventoryRepository,
+    imageLoader: ProductImageLoader,
+    toast: ToastController,
+    reauth: ReauthController,
+    refresh: InventoryRefreshController,
+    onClose: () -> Unit,
+    onChangeUnit: (net.brightroom.mindstock.domain.model.inventory.product.setting.ProductUnit) -> Unit,
+    onChangeMinimum: (net.brightroom.mindstock.domain.model.inventory.product.setting.MinimumStock) -> Unit,
+    onArchive: () -> Unit,
+) {
+    val scope = rememberCoroutineScope()
+    val productId = stock?.product?.id
+    var stored by remember(productId) { mutableStateOf(stock?.product?.image is ProductImage.Stored) }
+    var reloadKey by remember(productId) { mutableStateOf(0) }
+    val image =
+        if (stock != null && productId != null) {
+            rememberProductImage(imageLoader, productId, stored, reloadKey)
+        } else {
+            null
+        }
+
+    fun onFailure(error: net.brightroom.mindstock.rpc.result.RpcError) {
+        if (error.requiresReauth()) reauth.request() else toast.show(errorText(error))
+    }
+
+    ProductSettingsSheet(
+        open = open,
+        stock = stock,
+        onClose = onClose,
+        onChangeUnit = onChangeUnit,
+        onChangeMinimum = onChangeMinimum,
+        onArchive = onArchive,
+        image = image,
+        onPickImage = {
+            val id = productId ?: return@ProductSettingsSheet
+            scope.launch {
+                val base64 = pickImageAsBase64() ?: return@launch
+                when (val out = repository.uploadImage(id, base64)) {
+                    is RpcOutcome.Success -> {
+                        imageLoader.invalidate(id)
+                        stored = true
+                        reloadKey += 1
+                        refresh.request()
+                    }
+
+                    is RpcOutcome.Failure -> {
+                        onFailure(out.error)
+                    }
+                }
+            }
+        },
+        onRemoveImage = {
+            val id = productId ?: return@ProductSettingsSheet
+            scope.launch {
+                when (val out = repository.changeImage(id, ProductImage.None)) {
+                    is RpcOutcome.Success -> {
+                        imageLoader.invalidate(id)
+                        stored = false
+                        reloadKey += 1
+                        refresh.request()
+                    }
+
+                    is RpcOutcome.Failure -> {
+                        onFailure(out.error)
+                    }
+                }
+            }
+        },
+    )
 }
 
 private fun activeHouseholdName(s: AppSession.State): String =
