@@ -18,6 +18,7 @@ import kotlinx.coroutines.sync.withLock
 import net.brightroom.mindstock.domain.model.inventory.product.ProductId
 import net.brightroom.mindstock.domain.model.inventory.product.image.ImageUrl
 import net.brightroom.mindstock.frontend.core.rpc.RpcOutcome
+import kotlin.coroutines.cancellation.CancellationException
 
 /** 商品画像の表示状態。nullable を使わず不在/失敗をアイコン fallback として型で表す。 */
 sealed interface ProductImageState {
@@ -63,12 +64,16 @@ class ProductImageLoader(
         val bytes =
             try {
                 http.get(url.invoke()).readRawBytes()
+            } catch (e: CancellationException) {
+                throw e
             } catch (_: Throwable) {
                 return ProductImageState.Fallback
             }
         val bitmap =
             try {
                 bytes.decodeToImageBitmap()
+            } catch (e: CancellationException) {
+                throw e
             } catch (_: Throwable) {
                 return ProductImageState.Fallback
             }
