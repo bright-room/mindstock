@@ -27,6 +27,12 @@ interface ProductRegisterRpcService {
         request: AddCustomProductRequest,
     ): RpcResult<Product, RpcError>
 
+    /** 画像をアップロード(UC22, owner のみ)。原画像を base64 で送り、サーバが検証/縮小/保存する。 */
+    suspend fun uploadImage(
+        productId: ProductId,
+        request: UploadImageRequest,
+    ): RpcResult<Unit, RpcError>
+
     /** 単位を変更(UC22, owner のみ)。 */
     suspend fun changeUnit(
         productId: ProductId,
