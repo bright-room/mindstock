@@ -105,40 +105,12 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Set up Gradle
-        uses: gradle/actions/setup-gradle@50e97c2cd7a37755bbfafc9c5b7cafaece252f6e # v6
-
-      - name: Integration tests
-        # テスト用 HikariCP プールはキャップ済み(TestDataSource / E2E アプリプール)。
-        # default 並列度で接続枯渇しない。詳細は
-        # docs/superpowers/specs/2026-05-30-integration-test-pool-capping-design.md
-        env:
-          TEST_DB_URL: jdbc:postgresql://localhost:5432/mindstock_test
-          TEST_DB_USER: mindstock
-          TEST_DB_PASSWORD: mindstock
-        run: ./gradlew :backend:api:integrationTest
-
-      - name: Upload reports on failure
-        if: failure()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
-        with:
-          name: build-reports-integration-test
-          path: |
-            **/build/reports/
-            **/build/test-results/
-
-  storage-integration-test:
-    needs: lint
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
-        with:
-          persist-credentials: false
-
       - name: Start Garage (S3-compatible storage)
-        # GHA の service container は checkout 前に起動するため config.toml を mount できず、
-        # layout/bucket/key の post-start 初期化もできない。よって repo の compose 定義
-        # (garage + garage-init)をそのまま使う。garage-init が .env.garage に資格情報を書く。
+        # backend:core の storage 統合テスト用。GHA の service container は checkout 前に
+        # 起動するため config.toml を mount できず layout/bucket/key の post-start 初期化も
+        # できない。よって repo の compose 定義(garage + garage-init)を step で起動する。
+        # Postgres は GHA service container、Garage は compose step と流儀は異なるが同居可能。
+        # garage-init が .env.garage に資格情報を書き出す。
         run: |
           docker compose up -d garage
           docker compose run --rm garage-init
@@ -146,9 +118,17 @@ jobs:
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@50e97c2cd7a37755bbfafc9c5b7cafaece252f6e # v6
 
-      - name: Storage integration tests
-        # ブラウザ経路(CORS)ではなく JVM S3 クライアントの store→presign→GET 往復を検証する。
-        # CORS は JVM HTTP では強制されないため backend 起動は不要(bucket/key だけあればよい)。
+      - name: Integration tests
+        # backend:api は Postgres(service container)、backend:core は Garage(compose)に当てる。
+        # storage 側はブラウザ経路(CORS)でなく JVM S3 クライアントの store→presign→GET 往復を
+        # 検証する(CORS は JVM HTTP では強制されないため backend 起動は不要・bucket/key だけ要る)。
+        # テスト用 HikariCP プールはキャップ済み(TestDataSource / E2E アプリプール)。
+        # default 並列度で接続枯渇しない。詳細は
+        # docs/superpowers/specs/2026-05-30-integration-test-pool-capping-design.md
+        env:
+          TEST_DB_URL: jdbc:postgresql://localhost:5432/mindstock_test
+          TEST_DB_USER: mindstock
+          TEST_DB_PASSWORD: mindstock
         run: |
           set -a
           . ./.env.garage
@@ -157,13 +137,13 @@ jobs:
                  TEST_STORAGE_BUCKET="$STORAGE_BUCKET" \
                  TEST_STORAGE_ACCESS_KEY="$STORAGE_ACCESS_KEY" \
                  TEST_STORAGE_SECRET_KEY="$STORAGE_SECRET_KEY"
-          ./gradlew :backend:core:integrationTest
+          ./gradlew :backend:api:integrationTest :backend:core:integrationTest
 
       - name: Upload reports on failure
         if: failure()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
-          name: build-reports-storage-integration-test
+          name: build-reports-integration-test
           path: |
             **/build/reports/
             **/build/test-results/
