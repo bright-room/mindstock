@@ -36,4 +36,4 @@ run = "./gradlew :backend:api:run"
 
 [tasks.frontend]
 description = "frontend dev server を起動(:8080。/api を :8090 へプロキシ)"
-run = "./gradlew :frontend:jsBrowserDevelopmentRun --continuous"
+run = "./gradlew :frontend:wasmJsBrowserDevelopmentRun --continuous"

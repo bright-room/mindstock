@@ -113,3 +113,16 @@ fun rememberProductImage(
 
 val LocalProductImageLoader =
     staticCompositionLocalOf<ProductImageLoader> { error("ProductImageLoader not provided") }
+
+/**
+ * [LocalProductImageLoader] から商品サムネ用の bitmap を読む薄いヘルパ。
+ * Thumb を出す各画面が「loader 取得 → rememberProductImage → Loaded 取り出し」を毎回書かずに済むよう集約する。
+ */
+@Composable
+fun rememberProductThumbnail(
+    productId: ProductId,
+    hasStoredImage: Boolean,
+): ImageBitmap? {
+    val loader = LocalProductImageLoader.current
+    return (rememberProductImage(loader, productId, hasStoredImage) as? ProductImageState.Loaded)?.bitmap
+}

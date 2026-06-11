@@ -26,6 +26,8 @@ import mindstock.frontend.generated.resources.Res
 import mindstock.frontend.generated.resources.loading
 import mindstock.frontend.generated.resources.need_household_title
 import net.brightroom.mindstock.domain.model.inventory.product.image.ProductImage
+import net.brightroom.mindstock.domain.model.inventory.product.setting.MinimumStock
+import net.brightroom.mindstock.domain.model.inventory.product.setting.ProductUnit
 import net.brightroom.mindstock.domain.model.inventory.quantity.Quantity
 import net.brightroom.mindstock.domain.model.inventory.stock.Stock
 import net.brightroom.mindstock.domain.model.inventory.stock.movement.Note
@@ -44,13 +46,9 @@ import net.brightroom.mindstock.frontend.core.auth.ReauthController
 import net.brightroom.mindstock.frontend.core.image.ImagePickResult
 import net.brightroom.mindstock.frontend.core.image.LocalProductImageLoader
 import net.brightroom.mindstock.frontend.core.image.ProductImageLoader
-import net.brightroom.mindstock.frontend.core.image.ProductImageState
 import net.brightroom.mindstock.frontend.core.image.pickImage
-import net.brightroom.mindstock.frontend.core.image.rememberProductImage
+import net.brightroom.mindstock.frontend.core.image.rememberProductThumbnail
 import net.brightroom.mindstock.frontend.core.rpc.RpcClientProvider
-import net.brightroom.mindstock.frontend.core.rpc.RpcOutcome
-import net.brightroom.mindstock.frontend.core.rpc.errorText
-import net.brightroom.mindstock.frontend.core.rpc.requiresReauth
 import net.brightroom.mindstock.frontend.core.session.AppSession
 import net.brightroom.mindstock.frontend.core.ui.InventoryRefreshController
 import net.brightroom.mindstock.frontend.core.ui.ToastController
@@ -171,94 +169,94 @@ fun App() {
             }
         val imageLoader = remember { ProductImageLoader(http, fetchUrl = { pid -> repository.imageUrl(pid) }) }
 
-        CompositionLocalProvider(LocalProductImageLoader provides imageLoader) {
-            Box(Modifier.fillMaxSize()) {
-                when (state) {
-                    is AuthState.Booting -> {
-                        AppText(stringResource(Res.string.loading))
-                    }
+        Box(Modifier.fillMaxSize()) {
+            when (state) {
+                is AuthState.Booting -> {
+                    AppText(stringResource(Res.string.loading))
+                }
 
-                    is AuthState.Unauthenticated -> {
-                        WelcomeScreen(
-                            onSignIn = { scope.launch { deps.redirectToAuthorize() } },
-                            modifier = Modifier.fillMaxSize(),
-                        )
-                    }
+                is AuthState.Unauthenticated -> {
+                    WelcomeScreen(
+                        onSignIn = { scope.launch { deps.redirectToAuthorize() } },
+                        modifier = Modifier.fillMaxSize(),
+                    )
+                }
 
-                    is AuthState.Failed -> {
-                        AppText((state as AuthState.Failed).message)
-                    }
+                is AuthState.Failed -> {
+                    AppText((state as AuthState.Failed).message)
+                }
 
-                    is AuthState.NeedOnboarding -> {
-                        val onbVm =
-                            remember {
-                                OnboardingViewModel(
-                                    registerDisplayName = residentRepository::register,
-                                    createHousehold = householdRepository::create,
-                                    flow = vm,
-                                    toast = toast,
-                                    reauth = reauth,
-                                )
-                            }
-                        val onbState by onbVm.state.collectAsState()
-                        OnboardingScreen(
-                            state = onbState,
-                            onName = onbVm::setName,
-                            onHouseholdName = onbVm::setHouseholdName,
-                            onNext = onbVm::next,
-                            onBack = onbVm::back,
-                            onSubmit = { scope.launch { onbVm.submit() } },
-                            onSkip = {
-                                onbVm.setHouseholdName("")
-                                scope.launch { onbVm.submit() }
-                            },
-                            modifier = Modifier.fillMaxSize(),
-                        )
-                    }
+                is AuthState.NeedOnboarding -> {
+                    val onbVm =
+                        remember {
+                            OnboardingViewModel(
+                                registerDisplayName = residentRepository::register,
+                                createHousehold = householdRepository::create,
+                                flow = vm,
+                                toast = toast,
+                                reauth = reauth,
+                            )
+                        }
+                    val onbState by onbVm.state.collectAsState()
+                    OnboardingScreen(
+                        state = onbState,
+                        onName = onbVm::setName,
+                        onHouseholdName = onbVm::setHouseholdName,
+                        onNext = onbVm::next,
+                        onBack = onbVm::back,
+                        onSubmit = { scope.launch { onbVm.submit() } },
+                        onSkip = {
+                            onbVm.setHouseholdName("")
+                            scope.launch { onbVm.submit() }
+                        },
+                        modifier = Modifier.fillMaxSize(),
+                    )
+                }
 
-                    is AuthState.NeedHousehold -> {
-                        val nhVm =
-                            remember {
-                                NeedHouseholdViewModel(
-                                    createHousehold = householdRepository::create,
-                                    previewInvite = householdRepository::previewInvite,
-                                    joinByCode = householdRepository::join,
-                                    flow = vm,
-                                    toast = toast,
-                                    reauth = reauth,
-                                )
-                            }
-                        val nhState by nhVm.state.collectAsState()
-                        var sheet by remember { mutableStateOf<NeedHouseholdSheet?>(null) }
-                        NeedHouseholdScreen(
-                            onCreate = { sheet = NeedHouseholdSheet.Create },
-                            onJoin = {
-                                nhVm.clearPreview()
-                                sheet = NeedHouseholdSheet.Join
-                            },
-                            modifier = Modifier.fillMaxSize(),
-                        )
-                        CreateHouseholdSheet(
-                            open = sheet == NeedHouseholdSheet.Create,
-                            busy = nhState.busy,
-                            onClose = { sheet = null },
-                            onCreate = { name -> scope.launch { nhVm.create(name) } },
-                        )
-                        JoinCodeSheet(
-                            open = sheet == NeedHouseholdSheet.Join,
-                            state = nhState,
-                            onClose = {
-                                sheet = null
-                                nhVm.clearPreview()
-                            },
-                            onCodeChange = { code ->
-                                if (code.length == 6) scope.launch { nhVm.preview(code) } else nhVm.clearPreview()
-                            },
-                            onJoin = { code -> scope.launch { nhVm.join(code) } },
-                        )
-                    }
+                is AuthState.NeedHousehold -> {
+                    val nhVm =
+                        remember {
+                            NeedHouseholdViewModel(
+                                createHousehold = householdRepository::create,
+                                previewInvite = householdRepository::previewInvite,
+                                joinByCode = householdRepository::join,
+                                flow = vm,
+                                toast = toast,
+                                reauth = reauth,
+                            )
+                        }
+                    val nhState by nhVm.state.collectAsState()
+                    var sheet by remember { mutableStateOf<NeedHouseholdSheet?>(null) }
+                    NeedHouseholdScreen(
+                        onCreate = { sheet = NeedHouseholdSheet.Create },
+                        onJoin = {
+                            nhVm.clearPreview()
+                            sheet = NeedHouseholdSheet.Join
+                        },
+                        modifier = Modifier.fillMaxSize(),
+                    )
+                    CreateHouseholdSheet(
+                        open = sheet == NeedHouseholdSheet.Create,
+                        busy = nhState.busy,
+                        onClose = { sheet = null },
+                        onCreate = { name -> scope.launch { nhVm.create(name) } },
+                    )
+                    JoinCodeSheet(
+                        open = sheet == NeedHouseholdSheet.Join,
+                        state = nhState,
+                        onClose = {
+                            sheet = null
+                            nhVm.clearPreview()
+                        },
+                        onCodeChange = { code ->
+                            if (code.length == 6) scope.launch { nhVm.preview(code) } else nhVm.clearPreview()
+                        },
+                        onJoin = { code -> scope.launch { nhVm.join(code) } },
+                    )
+                }
 
-                    is AuthState.Ready -> {
+                is AuthState.Ready -> {
+                    CompositionLocalProvider(LocalProductImageLoader provides imageLoader) {
                         val householdId = sessionState.activeHouseholdId
                         if (householdId == null) {
                             AppText(stringResource(Res.string.need_household_title))
@@ -506,6 +504,9 @@ fun App() {
                                                 changeUnitOf = catalogRepository::changeUnit,
                                                 changeMinimumOf = catalogRepository::changeMinimum,
                                                 archiveProduct = catalogRepository::archive,
+                                                uploadImageOf = repository::uploadImage,
+                                                removeImageOf = repository::removeImage,
+                                                invalidateImage = imageLoader::invalidate,
                                                 refresh = refresh,
                                                 toast = toast,
                                                 reauth = reauth,
@@ -526,11 +527,7 @@ fun App() {
                                     ProductSettingsSheetWithImage(
                                         open = settingsStock != null,
                                         stock = settingsStock,
-                                        repository = repository,
-                                        imageLoader = imageLoader,
-                                        toast = toast,
-                                        reauth = reauth,
-                                        refresh = refresh,
+                                        viewModel = masterVm,
                                         onClose = { settingsStock = null },
                                         onChangeUnit = { u ->
                                             settingsStock?.let { s -> scope.launch { masterVm.changeUnit(s.product.id, u) } }
@@ -581,6 +578,9 @@ fun App() {
                                                 changeUnitOf = catalogRepository::changeUnit,
                                                 changeMinimumOf = catalogRepository::changeMinimum,
                                                 archiveProduct = catalogRepository::archive,
+                                                uploadImageOf = repository::uploadImage,
+                                                removeImageOf = repository::removeImage,
+                                                invalidateImage = imageLoader::invalidate,
                                                 refresh = refresh,
                                                 toast = toast,
                                                 reauth = reauth,
@@ -589,11 +589,7 @@ fun App() {
                                     ProductSettingsSheetWithImage(
                                         open = true,
                                         stock = ov.stock,
-                                        repository = repository,
-                                        imageLoader = imageLoader,
-                                        toast = toast,
-                                        reauth = reauth,
-                                        refresh = refresh,
+                                        viewModel = productSettingsVm,
                                         onClose = { catalogOverlay = null },
                                         onChangeUnit = { u ->
                                             scope.launch { productSettingsVm.changeUnit(ov.stock.product.id, u) }
@@ -611,13 +607,13 @@ fun App() {
                         }
                     }
                 }
-                // トースト全体オーバーレイ
-                Toast(message = toastMessage?.text?.resolve(), modifier = Modifier.align(Alignment.BottomCenter))
-                LaunchedEffect(toastMessage) {
-                    if (toastMessage != null) {
-                        delay(2500)
-                        toast.dismiss()
-                    }
+            }
+            // トースト全体オーバーレイ
+            Toast(message = toastMessage?.text?.resolve(), modifier = Modifier.align(Alignment.BottomCenter))
+            LaunchedEffect(toastMessage) {
+                if (toastMessage != null) {
+                    delay(2500)
+                    toast.dismiss()
                 }
             }
         }
@@ -625,21 +621,18 @@ fun App() {
 }
 
 /**
- * [ProductSettingsSheet] に画像欄を配線したラッパ。ピッカー→アップロード/削除→
- * loader 無効化 + ローカル state 更新 + 一覧 refresh で Thumb を即時反映する。
+ * [ProductSettingsSheet] に画像欄を配線したラッパ。RPC オーケストレーション(アップロード/削除・
+ * loader 無効化・一覧 refresh・エラー処理)は [ProductMasterViewModel] が持ち、ここはピッカー起動と
+ * 楽観表示フラグ([stored])・再入抑止だけを担う UI 配線に徹する。
  */
 @Composable
 private fun ProductSettingsSheetWithImage(
     open: Boolean,
     stock: Stock?,
-    repository: InventoryRepository,
-    imageLoader: ProductImageLoader,
-    toast: ToastController,
-    reauth: ReauthController,
-    refresh: InventoryRefreshController,
+    viewModel: ProductMasterViewModel,
     onClose: () -> Unit,
-    onChangeUnit: (net.brightroom.mindstock.domain.model.inventory.product.setting.ProductUnit) -> Unit,
-    onChangeMinimum: (net.brightroom.mindstock.domain.model.inventory.product.setting.MinimumStock) -> Unit,
+    onChangeUnit: (ProductUnit) -> Unit,
+    onChangeMinimum: (MinimumStock) -> Unit,
     onArchive: () -> Unit,
 ) {
     val scope = rememberCoroutineScope()
@@ -647,16 +640,7 @@ private fun ProductSettingsSheetWithImage(
     var stored by remember(productId) { mutableStateOf(stock?.product?.image is ProductImage.Stored) }
     // 画像更新(upload/remove)の進行中フラグ。再入を抑止して書込を 1 本に直列化する。
     var imageBusy by remember(productId) { mutableStateOf(false) }
-    val image =
-        if (stock != null && productId != null) {
-            (rememberProductImage(imageLoader, productId, stored) as? ProductImageState.Loaded)?.bitmap
-        } else {
-            null
-        }
-
-    fun onFailure(error: net.brightroom.mindstock.rpc.result.RpcError) {
-        if (error.requiresReauth()) reauth.request() else toast.show(errorText(error))
-    }
+    val image = if (productId != null) rememberProductThumbnail(productId, stored) else null
 
     ProductSettingsSheet(
         open = open,
@@ -673,23 +657,8 @@ private fun ProductSettingsSheetWithImage(
                 scope.launch {
                     try {
                         when (val r = pickImage()) {
-                            is ImagePickResult.Selected -> {
-                                when (val out = repository.uploadImage(id, r.base64)) {
-                                    is RpcOutcome.Success -> {
-                                        imageLoader.invalidate(id)
-                                        stored = true
-                                        refresh.request()
-                                    }
-
-                                    is RpcOutcome.Failure -> {
-                                        onFailure(out.error)
-                                    }
-                                }
-                            }
-
-                            ImagePickResult.Cancelled -> {
-                                Unit
-                            }
+                            is ImagePickResult.Selected -> if (viewModel.uploadImage(id, r.base64)) stored = true
+                            ImagePickResult.Cancelled -> Unit
                         }
                     } finally {
                         imageBusy = false
@@ -703,17 +672,7 @@ private fun ProductSettingsSheetWithImage(
                 imageBusy = true
                 scope.launch {
                     try {
-                        when (val out = repository.changeImage(id, ProductImage.None)) {
-                            is RpcOutcome.Success -> {
-                                imageLoader.invalidate(id)
-                                stored = false
-                                refresh.request()
-                            }
-
-                            is RpcOutcome.Failure -> {
-                                onFailure(out.error)
-                            }
-                        }
+                        if (viewModel.removeImage(id)) stored = false
                     } finally {
                         imageBusy = false
                     }

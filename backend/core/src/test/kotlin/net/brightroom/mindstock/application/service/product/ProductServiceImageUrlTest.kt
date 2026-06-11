@@ -30,7 +30,7 @@ class ProductServiceImageUrlTest :
         val service = ProductService(stockRepository, productRepository, householdRepository, imageStorage)
 
         test("imageUrl は Stored 画像なら presigned URL を返す") {
-            val ref = ImageRef("households/x/products/y.jpg")
+            val ref = ImageRef("e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855")
             val product =
                 Product
                     .custom(ProductName("水"), Barcode.Unlinked, ProductUnit("本"), MinimumStock(1))

@@ -3,7 +3,6 @@ package net.brightroom.mindstock.frontend.feature.inventory.data
 import net.brightroom.mindstock.domain.model.household.HouseholdId
 import net.brightroom.mindstock.domain.model.inventory.product.ProductId
 import net.brightroom.mindstock.domain.model.inventory.product.image.ImageUrl
-import net.brightroom.mindstock.domain.model.inventory.product.image.ProductImage
 import net.brightroom.mindstock.domain.model.inventory.quantity.Quantity
 import net.brightroom.mindstock.domain.model.inventory.shopping.ShoppingList
 import net.brightroom.mindstock.domain.model.inventory.stock.Stocks
@@ -70,8 +69,5 @@ class InventoryRepository(
         base64: String,
     ): RpcOutcome<Unit> = productRegisterService().uploadImage(productId, UploadImageRequest(base64)).toOutcome()
 
-    suspend fun changeImage(
-        productId: ProductId,
-        image: ProductImage,
-    ): RpcOutcome<Unit> = productRegisterService().changeImage(productId, image).toOutcome()
+    suspend fun removeImage(productId: ProductId): RpcOutcome<Unit> = productRegisterService().removeImage(productId).toOutcome()
 }

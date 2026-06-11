@@ -22,6 +22,9 @@ private fun vm(
     changeUnit: suspend (ProductId, ProductUnit) -> RpcOutcome<Unit> = { _, _ -> RpcOutcome.Success(Unit) },
     changeMin: suspend (ProductId, MinimumStock) -> RpcOutcome<Unit> = { _, _ -> RpcOutcome.Success(Unit) },
     archive: suspend (ProductId) -> RpcOutcome<Unit> = { RpcOutcome.Success(Unit) },
+    uploadImage: suspend (ProductId, String) -> RpcOutcome<Unit> = { _, _ -> RpcOutcome.Success(Unit) },
+    removeImage: suspend (ProductId) -> RpcOutcome<Unit> = { RpcOutcome.Success(Unit) },
+    invalidateImage: suspend (ProductId) -> Unit = {},
     refresh: InventoryRefreshController = InventoryRefreshController(),
     toast: ToastController = ToastController(),
     reauth: ReauthController = ReauthController(),
@@ -31,6 +34,9 @@ private fun vm(
     changeUnitOf = changeUnit,
     changeMinimumOf = changeMin,
     archiveProduct = archive,
+    uploadImageOf = uploadImage,
+    removeImageOf = removeImage,
+    invalidateImage = invalidateImage,
     refresh = refresh,
     toast = toast,
     reauth = reauth,
@@ -88,6 +94,33 @@ class ProductMasterViewModelTest {
             v.load()
             v.archive(ProductId.create())
             loads shouldBe 2
+        }
+
+    @Test fun upload_image_success_invalidates_and_returns_true() =
+        runTest {
+            var invalidated = 0
+            val v = vm(invalidateImage = { invalidated++ })
+            v.load()
+            v.uploadImage(ProductId.create(), "base64") shouldBe true
+            invalidated shouldBe 1
+        }
+
+    @Test fun upload_image_failure_returns_false_without_invalidate() =
+        runTest {
+            var invalidated = 0
+            val v =
+                vm(
+                    uploadImage = { _, _ -> RpcOutcome.Failure(RpcError.Internal("boom")) },
+                    invalidateImage = { invalidated++ },
+                )
+            v.uploadImage(ProductId.create(), "base64") shouldBe false
+            invalidated shouldBe 0
+        }
+
+    @Test fun remove_image_success_returns_true() =
+        runTest {
+            val v = vm()
+            v.removeImage(ProductId.create()) shouldBe true
         }
 
     @Test fun archive_unauthorized_requests_reauth() =

@@ -90,14 +90,14 @@ class ProductRegisterService(
         productRegisterRepository.appendRevision(product.changeMinimum(minimumStock))
     }
 
-    fun changeImage(
+    /** 画像を未設定に戻す。ref はクライアントが作れないため、設定は uploadImage 経由のみ・削除はこの None 専用経路に絞る。 */
+    fun removeImage(
         productId: ProductId,
-        image: ProductImage,
         actor: ResidentId,
     ) {
         authorizeProduct(productId, actor)
         val product = productRepository.findById(productId)
-        productRegisterRepository.appendRevision(product.changeImage(image))
+        productRegisterRepository.appendRevision(product.changeImage(ProductImage.None))
     }
 
     suspend fun uploadImage(

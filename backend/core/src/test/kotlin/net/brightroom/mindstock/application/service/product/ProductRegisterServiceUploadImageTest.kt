@@ -66,7 +66,7 @@ class ProductRegisterServiceUploadImageTest :
         test("uploadImage は store した ref を Stored 画像として appendRevision する") {
             val product = Product.custom(ProductName("水"), Barcode.Unlinked, ProductUnit("本"), MinimumStock(1))
             val upload = RawImageUpload(byteArrayOf(1, 2, 3))
-            val ref = ImageRef("households/x/products/y.jpg")
+            val ref = ImageRef("e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855")
             every { productRepository.householdOf(product.id) } returns householdId
             every { householdRepository.findById(householdId) } returns householdWithActor()
             every { productRepository.findById(product.id) } returns product

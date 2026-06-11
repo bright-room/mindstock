@@ -93,8 +93,8 @@ services:
     restart: "unless-stopped"
 
   # compose up 時に Garage を宣言的にセットアップする(冪等)。
-  # layout 設定 / bucket / access key を作成し、生成した STORAGE_* を
-  # repo ルートの .env.garage に書き出す。
+  # layout 設定 / bucket / 固定 dev アクセスキーを作成する。資格情報は固定値で
+  # application.yaml の external.storage デフォルトと一致するため、ファイル出力は不要。
   # dxflrs/garage は scratch イメージで shell を持たないため、alpine で
   # admin API(:3903)を curl 越しに叩く(zitadel-init と同じ方式)。
   garage-init:
@@ -104,7 +104,6 @@ services:
       - garage
     volumes:
       - "./docker/garage-init.sh:/garage-init.sh:ro"
-      - "./:/output"
     entrypoint: ["sh", "/garage-init.sh"]
     restart: "no"
 
