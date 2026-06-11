@@ -4,6 +4,7 @@ import io.ktor.server.application.Application
 import io.ktor.server.plugins.di.dependencies
 import net.brightroom.mindstock.application.repository.catalog.CatalogRegisterRepository
 import net.brightroom.mindstock.application.repository.catalog.CatalogRepository
+import net.brightroom.mindstock.application.repository.catalog.ExternalProductRepository
 import net.brightroom.mindstock.application.repository.household.HouseholdRegisterRepository
 import net.brightroom.mindstock.application.repository.household.HouseholdRepository
 import net.brightroom.mindstock.application.repository.invitation.InvitationRegisterRepository
@@ -43,9 +44,8 @@ import net.brightroom.mindstock.infrastructure.datasource.resident.ResidentDataS
 import net.brightroom.mindstock.infrastructure.datasource.resident.ResidentRegisterDataSource
 import net.brightroom.mindstock.infrastructure.datasource.stock.StockDataSource
 import net.brightroom.mindstock.infrastructure.datasource.stock.StockRegisterDataSource
-import net.brightroom.mindstock.infrastructure.gateway.ExternalProductGateway
-import net.brightroom.mindstock.infrastructure.gateway.UnconfiguredProductGateway
-import net.brightroom.mindstock.infrastructure.storage.image.ProductImageStorageDataSource
+import net.brightroom.mindstock.infrastructure.receive.catalog.UnconfiguredProductReceive
+import net.brightroom.mindstock.infrastructure.transfer.product.ProductImageTransfer
 
 fun Application.dependenciesConfigure() {
     dependencies {
@@ -63,11 +63,11 @@ fun Application.dependenciesConfigure() {
         provide<StockRepository> { StockDataSource(resolve(), resolve()) }
         provide<StockRegisterRepository> { StockRegisterDataSource(resolve()) }
         provide<ProductImageStorageRepository> {
-            ProductImageStorageDataSource(resolve(), resolve<StorageBucket>().name)
+            ProductImageTransfer(resolve(), resolve<StorageBucket>().name)
         }
 
-        // Gateway
-        provide<ExternalProductGateway> { UnconfiguredProductGateway() }
+        // 外部商品 API(受信 = master 未存在の補完)
+        provide<ExternalProductRepository> { UnconfiguredProductReceive() }
 
         // Service
         provide<ResidentService> { ResidentService(resolve()) }

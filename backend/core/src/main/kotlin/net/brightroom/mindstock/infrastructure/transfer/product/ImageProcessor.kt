@@ -1,5 +1,6 @@
-package net.brightroom.mindstock.infrastructure.storage.image
+package net.brightroom.mindstock.infrastructure.transfer.product
 
+import java.awt.Color
 import java.awt.RenderingHints
 import java.awt.image.BufferedImage
 import java.io.ByteArrayOutputStream
@@ -47,7 +48,7 @@ object ImageProcessor {
         if (src.type == BufferedImage.TYPE_INT_RGB) return src
         val dst = BufferedImage(src.width, src.height, BufferedImage.TYPE_INT_RGB)
         val g = dst.createGraphics()
-        g.drawImage(src, 0, 0, java.awt.Color.WHITE, null)
+        g.drawImage(src, 0, 0, Color.WHITE, null)
         g.dispose()
         return dst
     }

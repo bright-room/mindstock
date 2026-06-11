@@ -1,4 +1,4 @@
-package net.brightroom.mindstock.infrastructure.storage.image
+package net.brightroom.mindstock.infrastructure.transfer.product
 
 import aws.sdk.kotlin.runtime.auth.credentials.StaticCredentialsProvider
 import aws.sdk.kotlin.services.s3.S3Client
@@ -15,7 +15,7 @@ import java.io.ByteArrayOutputStream
 import javax.imageio.ImageIO
 
 @Tags("integration")
-class ProductImageStorageDataSourceTest :
+class ProductImageTransferTest :
     FunSpec({
         // app と同じ env(external.storage.* と同一名)を読む。専用 TEST_ は作らない。
         // 既定値は docker/garage-init.sh が import する固定 dev キー = application.yaml デフォルトと一致。
@@ -38,7 +38,7 @@ class ProductImageStorageDataSourceTest :
                         secretAccessKey = sk
                     }
             }
-        val ds = ProductImageStorageDataSource(s3, bucket)
+        val ds = ProductImageTransfer(s3, bucket)
 
         fun png(): ByteArray {
             val out = ByteArrayOutputStream()

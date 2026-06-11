@@ -1,4 +1,4 @@
-package net.brightroom.mindstock.infrastructure.storage.image
+package net.brightroom.mindstock.infrastructure.transfer.product
 
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.FunSpec
