@@ -62,11 +62,13 @@ import mindstock.frontend.generated.resources.loading
 import mindstock.frontend.generated.resources.status_low
 import mindstock.frontend.generated.resources.status_ok
 import mindstock.frontend.generated.resources.status_out
+import net.brightroom.mindstock.domain.model.inventory.product.image.ProductImage
 import net.brightroom.mindstock.domain.model.inventory.stock.Stock
 import net.brightroom.mindstock.domain.model.inventory.stock.StockStatus
 import net.brightroom.mindstock.domain.model.inventory.stock.movement.MovementId
 import net.brightroom.mindstock.domain.model.inventory.stock.movement.MovementIdentity
 import net.brightroom.mindstock.domain.model.inventory.stock.movement.StockMovement
+import net.brightroom.mindstock.frontend.core.image.rememberProductThumbnail
 import net.brightroom.mindstock.frontend.core.ui.resolve
 import net.brightroom.mindstock.frontend.designsystem.atom.AppButton
 import net.brightroom.mindstock.frontend.designsystem.atom.AppIcon
@@ -166,7 +168,8 @@ fun ProductDetailScreen(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                Thumb(icon = glyphForProductName(stock.product.name()), size = 72.dp, radius = 22.dp)
+                val img = rememberProductThumbnail(stock.product.id, stock.product.image is ProductImage.Stored)
+                Thumb(icon = glyphForProductName(stock.product.name()), size = 72.dp, radius = 22.dp, image = img)
                 AppText(
                     stock.product.name(),
                     style = MindstockType.summaryTitle().copy(fontSize = 19.sp),

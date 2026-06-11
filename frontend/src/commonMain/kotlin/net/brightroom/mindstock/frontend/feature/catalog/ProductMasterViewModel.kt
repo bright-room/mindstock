@@ -27,6 +27,9 @@ class ProductMasterViewModel(
     private val changeUnitOf: suspend (ProductId, ProductUnit) -> RpcOutcome<Unit>,
     private val changeMinimumOf: suspend (ProductId, MinimumStock) -> RpcOutcome<Unit>,
     private val archiveProduct: suspend (ProductId) -> RpcOutcome<Unit>,
+    private val uploadImageOf: suspend (ProductId, String) -> RpcOutcome<Unit>,
+    private val removeImageOf: suspend (ProductId) -> RpcOutcome<Unit>,
+    private val invalidateImage: suspend (ProductId) -> Unit,
     private val refresh: InventoryRefreshController,
     private val toast: ToastController,
     private val reauth: ReauthController,
@@ -60,6 +63,35 @@ class ProductMasterViewModel(
     ) = write(changeMinimumOf(productId, minimumStock), UiText(Res.string.toast_settings_saved))
 
     suspend fun archive(productId: ProductId) = write(archiveProduct(productId), UiText(Res.string.toast_archived))
+
+    /** 画像をアップロードし、成功なら true。loader キャッシュを無効化して一覧を更新する。 */
+    suspend fun uploadImage(
+        productId: ProductId,
+        base64: String,
+    ): Boolean = imageWrite(uploadImageOf(productId, base64), productId)
+
+    /** 画像を削除し、成功なら true。 */
+    suspend fun removeImage(productId: ProductId): Boolean = imageWrite(removeImageOf(productId), productId)
+
+    // 画像書込の共通後処理。成功時は loader 無効化 → 一覧再読込 → 全画面 refresh。成功可否を呼び出し側に返し、
+    // シート側の楽観表示(stored フラグ)を更新できるようにする。トーストは出さない(画像は即時反映で十分)。
+    private suspend fun imageWrite(
+        outcome: RpcOutcome<Unit>,
+        productId: ProductId,
+    ): Boolean =
+        when (outcome) {
+            is RpcOutcome.Success -> {
+                invalidateImage(productId)
+                load()
+                refresh.request()
+                true
+            }
+
+            is RpcOutcome.Failure -> {
+                handleFailure(outcome.error)
+                false
+            }
+        }
 
     private suspend fun write(
         outcome: RpcOutcome<Unit>,

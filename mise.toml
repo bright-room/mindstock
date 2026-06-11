@@ -11,4 +11,29 @@ TEST_DB_PASSWORD = "mindstock"
 # Zitadel の AUTH_*(AUTH_ISSUER / AUTH_CLIENT_ID / AUTH_AUDIENCE / AUTH_PROJECT_ID /
 # AUTH_REDIRECT_URI / AUTH_POST_LOGOUT_REDIRECT_URI / AUTH_JWKS_URL)は
 # `docker compose up` が生成する .env.zitadel から読む(直書きしない)。
+# Storage(Garage)の STORAGE_* は固定 dev キーを application.yaml のデフォルトに持つので
+# ここでは何も要らない(docker compose up で Garage が立ち上がっていれば動く)。
 _.file = ".env.zitadel"
+
+# --- ローカル開発タスク(`mise run <name>`) ---
+
+[tasks.up]
+description = "依存を起動し初期化(Postgres/Zitadel/Garage + .env.zitadel 生成・Garage 固定キー import)"
+# 初期化(zitadel-init / garage-init)を foreground で完了させてから戻る。完了後に backend/frontend を起動できる。
+run = """
+docker compose up -d --wait postgres zitadel garage
+docker compose run --rm zitadel-init
+docker compose run --rm garage-init
+"""
+
+[tasks.down]
+description = "依存を停止(データは残す。完全初期化は `docker compose down -v`)"
+run = "docker compose down"
+
+[tasks.backend]
+description = "backend を起動(:8090。AUTH_* は .env.zitadel、DB/Storage は application.yaml デフォルト)"
+run = "./gradlew :backend:api:run"
+
+[tasks.frontend]
+description = "frontend dev server を起動(:8080。/api を :8090 へプロキシ)"
+run = "./gradlew :frontend:wasmJsBrowserDevelopmentRun --continuous"

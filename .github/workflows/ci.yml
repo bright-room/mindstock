@@ -86,29 +86,28 @@ jobs:
   integration-test:
     needs: lint
     runs-on: ubuntu-latest
-    services:
-      postgres:
-        image: postgres:18.4-alpine
-        env:
-          POSTGRES_USER: mindstock
-          POSTGRES_PASSWORD: mindstock
-          POSTGRES_DB: mindstock_test
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd "pg_isready -U mindstock -d mindstock_test"
-          --health-interval 5s
-          --health-timeout 5s
-          --health-retries 5
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
         with:
           persist-credentials: false
 
+      - name: Start services (Postgres + Garage) via compose
+        # dev と同じ compose 定義を CI でも使い provisioning を一本化する。
+        # postgres: docker/postgres-init.sh が initdb で mindstock_test を作る(--wait で healthy 待ち)。
+        # garage:   garage-init が layout/bucket/固定 dev キーを用意する(資格情報は固定で
+        #           application.yaml デフォルト = テスト既定値と一致するため env 注入は不要)。
+        run: |
+          docker compose up -d --wait postgres garage
+          docker compose run --rm garage-init
+
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@50e97c2cd7a37755bbfafc9c5b7cafaece252f6e # v6
 
       - name: Integration tests
+        # backend:api は Postgres(mindstock_test)、backend:core は Garage に当てる。
+        # storage は app と同じ STORAGE_* を読み、既定値は garage-init の固定キーと一致するため
+        # ここで storage の env を設定する必要はない。JVM S3 クライアントの store→presign→GET
+        # 往復を検証する(CORS は JVM HTTP では強制されないため backend 起動は不要)。
         # テスト用 HikariCP プールはキャップ済み(TestDataSource / E2E アプリプール)。
         # default 並列度で接続枯渇しない。詳細は
         # docs/superpowers/specs/2026-05-30-integration-test-pool-capping-design.md
@@ -116,7 +115,7 @@ jobs:
           TEST_DB_URL: jdbc:postgresql://localhost:5432/mindstock_test
           TEST_DB_USER: mindstock
           TEST_DB_PASSWORD: mindstock
-        run: ./gradlew :backend:api:integrationTest
+        run: ./gradlew :backend:api:integrationTest :backend:core:integrationTest
 
       - name: Upload reports on failure
         if: failure()

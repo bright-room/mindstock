@@ -2,18 +2,18 @@ package net.brightroom.mindstock.application.service.catalog
 
 import net.brightroom.mindstock.application.repository.catalog.CatalogRegisterRepository
 import net.brightroom.mindstock.application.repository.catalog.CatalogRepository
+import net.brightroom.mindstock.application.repository.catalog.ExternalProductRepository
 import net.brightroom.mindstock.domain.exception.ResourceNotFoundException
 import net.brightroom.mindstock.domain.model.barcode.Jan
 import net.brightroom.mindstock.domain.model.catalog.content.CatalogItemName
 import net.brightroom.mindstock.domain.model.catalog.item.CatalogItem
 import net.brightroom.mindstock.domain.model.catalog.item.CatalogItemId
 import net.brightroom.mindstock.domain.model.catalog.item.CatalogItems
-import net.brightroom.mindstock.infrastructure.gateway.ExternalProductGateway
 
 class CatalogService(
     private val catalogRepository: CatalogRepository,
     private val catalogRegisterRepository: CatalogRegisterRepository,
-    private val externalProductGateway: ExternalProductGateway,
+    private val externalProductRepository: ExternalProductRepository,
 ) {
     fun search(
         name: CatalogItemName,
@@ -28,8 +28,8 @@ class CatalogService(
         try {
             catalogRepository.findByJan(jan)
         } catch (e: ResourceNotFoundException) {
-            val fetched = externalProductGateway.fetch(jan)
-            catalogRegisterRepository.register(fetched)
-            fetched
+            val received = externalProductRepository.findByJan(jan)
+            catalogRegisterRepository.register(received)
+            received
         }
 }

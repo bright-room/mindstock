@@ -1,4 +1,5 @@
 [versions]
+aws-sdk-kotlin = "1.5.56"
 kotlin = "2.3.21"
 kotlincrypto-random = "0.6.0"
 kotlinx-coroutines = "1.11.0"
@@ -43,6 +44,8 @@ flyway-database-postgresql = { module = "org.flywaydb:flyway-database-postgresql
 
 logback-classic = { module = "ch.qos.logback:logback-classic", version.ref = "logback" }
 kotlin-logging-jvm = { module = "io.github.oshai:kotlin-logging-jvm", version.ref = "kotlin-logging" }
+
+aws-sdk-kotlin-s3 = { module = "aws.sdk.kotlin:s3", version.ref = "aws-sdk-kotlin" }
 
 auth0-java-jwt = { module = "com.auth0:java-jwt", version = "4.5.2" }
 auth0-jwks-rsa = { module = "com.auth0:jwks-rsa", version = "0.24.1" }

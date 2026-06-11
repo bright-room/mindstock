@@ -1,6 +1,7 @@
 package net.brightroom.mindstock.application.service.product
 
 import net.brightroom.mindstock.application.repository.household.HouseholdRepository
+import net.brightroom.mindstock.application.repository.product.ProductImageStorageRepository
 import net.brightroom.mindstock.application.repository.product.ProductRegisterRepository
 import net.brightroom.mindstock.application.repository.product.ProductRepository
 import net.brightroom.mindstock.application.repository.stock.StockRepository
@@ -12,6 +13,7 @@ import net.brightroom.mindstock.domain.model.inventory.product.Product
 import net.brightroom.mindstock.domain.model.inventory.product.ProductId
 import net.brightroom.mindstock.domain.model.inventory.product.ProductName
 import net.brightroom.mindstock.domain.model.inventory.product.image.ProductImage
+import net.brightroom.mindstock.domain.model.inventory.product.image.RawImageUpload
 import net.brightroom.mindstock.domain.model.inventory.product.setting.MinimumStock
 import net.brightroom.mindstock.domain.model.inventory.product.setting.ProductUnit
 import net.brightroom.mindstock.domain.model.resident.identity.ResidentId
@@ -21,6 +23,7 @@ class ProductRegisterService(
     private val productRegisterRepository: ProductRegisterRepository,
     private val stockRepository: StockRepository,
     private val householdRepository: HouseholdRepository,
+    private val imageStorage: ProductImageStorageRepository,
 ) {
     private fun authorize(
         householdId: HouseholdId,
@@ -87,14 +90,25 @@ class ProductRegisterService(
         productRegisterRepository.appendRevision(product.changeMinimum(minimumStock))
     }
 
-    fun changeImage(
+    /** 画像を未設定に戻す。ref はクライアントが作れないため、設定は uploadImage 経由のみ・削除はこの None 専用経路に絞る。 */
+    fun removeImage(
         productId: ProductId,
-        image: ProductImage,
         actor: ResidentId,
     ) {
         authorizeProduct(productId, actor)
         val product = productRepository.findById(productId)
-        productRegisterRepository.appendRevision(product.changeImage(image))
+        productRegisterRepository.appendRevision(product.changeImage(ProductImage.None))
+    }
+
+    suspend fun uploadImage(
+        productId: ProductId,
+        upload: RawImageUpload,
+        actor: ResidentId,
+    ) {
+        authorizeProduct(productId, actor)
+        val ref = imageStorage.store(upload)
+        val product = productRepository.findById(productId)
+        productRegisterRepository.appendRevision(product.changeImage(ProductImage.Stored(ref)))
     }
 
     /** 在庫 0 のときのみ可。ガードは Stock.archive() が担保する。 */

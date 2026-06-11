@@ -4,10 +4,12 @@ import io.ktor.server.application.Application
 import io.ktor.server.plugins.di.dependencies
 import net.brightroom.mindstock.application.repository.catalog.CatalogRegisterRepository
 import net.brightroom.mindstock.application.repository.catalog.CatalogRepository
+import net.brightroom.mindstock.application.repository.catalog.ExternalProductRepository
 import net.brightroom.mindstock.application.repository.household.HouseholdRegisterRepository
 import net.brightroom.mindstock.application.repository.household.HouseholdRepository
 import net.brightroom.mindstock.application.repository.invitation.InvitationRegisterRepository
 import net.brightroom.mindstock.application.repository.invitation.InvitationRepository
+import net.brightroom.mindstock.application.repository.product.ProductImageStorageRepository
 import net.brightroom.mindstock.application.repository.product.ProductRegisterRepository
 import net.brightroom.mindstock.application.repository.product.ProductRepository
 import net.brightroom.mindstock.application.repository.resident.ResidentRegisterRepository
@@ -29,6 +31,7 @@ import net.brightroom.mindstock.application.service.resident.ResidentRegisterSer
 import net.brightroom.mindstock.application.service.resident.ResidentService
 import net.brightroom.mindstock.application.service.stock.StockRegisterService
 import net.brightroom.mindstock.application.service.stock.StockService
+import net.brightroom.mindstock.configuration.external.storage.StorageBucket
 import net.brightroom.mindstock.infrastructure.datasource.catalog.CatalogDataSource
 import net.brightroom.mindstock.infrastructure.datasource.catalog.CatalogRegisterDataSource
 import net.brightroom.mindstock.infrastructure.datasource.household.HouseholdDataSource
@@ -41,8 +44,8 @@ import net.brightroom.mindstock.infrastructure.datasource.resident.ResidentDataS
 import net.brightroom.mindstock.infrastructure.datasource.resident.ResidentRegisterDataSource
 import net.brightroom.mindstock.infrastructure.datasource.stock.StockDataSource
 import net.brightroom.mindstock.infrastructure.datasource.stock.StockRegisterDataSource
-import net.brightroom.mindstock.infrastructure.gateway.ExternalProductGateway
-import net.brightroom.mindstock.infrastructure.gateway.UnconfiguredProductGateway
+import net.brightroom.mindstock.infrastructure.receive.catalog.UnconfiguredProductReceive
+import net.brightroom.mindstock.infrastructure.transfer.product.ProductImageTransfer
 
 fun Application.dependenciesConfigure() {
     dependencies {
@@ -59,9 +62,12 @@ fun Application.dependenciesConfigure() {
         provide<ProductRegisterRepository> { ProductRegisterDataSource(resolve()) }
         provide<StockRepository> { StockDataSource(resolve(), resolve()) }
         provide<StockRegisterRepository> { StockRegisterDataSource(resolve()) }
+        provide<ProductImageStorageRepository> {
+            ProductImageTransfer(resolve(), resolve<StorageBucket>().name)
+        }
 
-        // Gateway
-        provide<ExternalProductGateway> { UnconfiguredProductGateway() }
+        // 外部商品 API(受信 = master 未存在の補完)
+        provide<ExternalProductRepository> { UnconfiguredProductReceive() }
 
         // Service
         provide<ResidentService> { ResidentService(resolve()) }
@@ -71,8 +77,8 @@ fun Application.dependenciesConfigure() {
         provide<HouseholdRegisterService> { HouseholdRegisterService(resolve(), resolve(), resolve()) }
         provide<InvitationService> { InvitationService(resolve()) }
         provide<InvitationRegisterService> { InvitationRegisterService(resolve()) }
-        provide<ProductService> { ProductService(resolve(), resolve(), resolve()) }
-        provide<ProductRegisterService> { ProductRegisterService(resolve(), resolve(), resolve(), resolve()) }
+        provide<ProductService> { ProductService(resolve(), resolve(), resolve(), resolve()) }
+        provide<ProductRegisterService> { ProductRegisterService(resolve(), resolve(), resolve(), resolve(), resolve()) }
         provide<StockService> { StockService(resolve(), resolve(), resolve()) }
         provide<StockRegisterService> { StockRegisterService(resolve(), resolve(), resolve(), resolve(), resolve()) }
 

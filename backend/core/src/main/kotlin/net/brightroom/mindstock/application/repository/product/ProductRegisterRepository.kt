@@ -19,7 +19,7 @@ interface ProductRegisterRepository {
         householdId: HouseholdId,
     )
 
-    /** 変更後の Product 全状態を product_revisions に 1 行 append(changeUnit/changeMinimum/changeImage/archive/unarchive)。 */
+    /** 変更後の Product 全状態を product_revisions に 1 行 append(changeUnit/changeMinimum/uploadImage/removeImage/archive/unarchive)。 */
     fun appendRevision(product: Product)
 
     /** 手動希望フラグを product_wanted_events に append。 */

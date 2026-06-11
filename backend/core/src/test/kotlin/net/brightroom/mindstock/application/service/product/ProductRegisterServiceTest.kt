@@ -7,6 +7,7 @@ import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
 import net.brightroom.mindstock.application.repository.household.HouseholdRepository
+import net.brightroom.mindstock.application.repository.product.ProductImageStorageRepository
 import net.brightroom.mindstock.application.repository.product.ProductRegisterRepository
 import net.brightroom.mindstock.application.repository.product.ProductRepository
 import net.brightroom.mindstock.application.repository.stock.StockRepository
@@ -38,7 +39,9 @@ class ProductRegisterServiceTest :
         val productRegisterRepository = mockk<ProductRegisterRepository>(relaxed = true)
         val stockRepository = mockk<StockRepository>()
         val householdRepository = mockk<HouseholdRepository>()
-        val service = ProductRegisterService(productRepository, productRegisterRepository, stockRepository, householdRepository)
+        val imageStorage = mockk<ProductImageStorageRepository>()
+        val service =
+            ProductRegisterService(productRepository, productRegisterRepository, stockRepository, householdRepository, imageStorage)
         val householdId = HouseholdId.create()
         val actor = ResidentId.create()
         val jan = Jan("4901234567894")

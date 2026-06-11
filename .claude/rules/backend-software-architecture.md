@@ -19,7 +19,7 @@ mindstock の層責務と依存方向。Controller / Scenario / Service / Reposi
         application (Scenario, Service, Repository interface)
               ▲
               │
-        infrastructure (DataSource = Repository 実装)
+        infrastructure (Repository 実装 = DataSource[DB] / Transfer[送信] / Receive[受信])
 
   domain (model, value object, exception) ← 全層が依存可能・横断
   configuration (Ktor plugin / DI / routing / tx ヘルパー)
@@ -73,6 +73,18 @@ mindstock の層責務と依存方向。Controller / Scenario / Service / Reposi
 - INSERT 後は RETURNING 相当(`insertAndGetId` + hydration)で読み戻して domain object を返す
 - 行が無かった場合は `ResourceNotFoundException` を throw する(Service / Scenario は素通しの前提)
 
+### 外部システム実装(infrastructure・Transfer / Receive)
+
+DB ではない外部システム(S3 / Garage、外部 API 等)との境界の実装。DataSource(DB 専用)とは別系統で扱う。
+
+- **interface は通常どおり Repository**(`application/repository/<ctx>/<Name>Repository`)。「DB か外部か」を application 層に漏らさず、application からは常に Repository に見える。Reader / Writer 分離(`<Name>Repository` / `<Name>RegisterRepository`)も同じ
+  - **interface を `infrastructure` 側に置かない**。application が infrastructure を import する逆方向依存になる(過去にこの層違反を踏んだ)
+- **実装は通信方向で分類し `infrastructure/{transfer,receive}/<ctx>/` に置く**:
+  - `transfer`(送信): 自システムから外部へデータを送り出す(例: 画像バイトを Garage へ put)
+  - `receive`(受信): 外部からデータを取り込む(例: JAN で外部商品 API を照会して CatalogItem を得る)
+- **実装クラス名は「目的 + 方向 suffix `{Transfer|Receive}`」**。`DataSource` のように機械的な接尾辞や安易な `Register` を付けず、「何を目的とし、メソッドが何をするか」が伝わる意味のある名前にする
+- トランザクション境界は持たない(DB ではない)。不在 / 障害は DataSource と同じく `ResourceNotFoundException` 等で表現し、Service / Scenario は素通し
+
 ### パッケージ境界の判断軸
 
 - **サブパッケージを切る基準は「概念区別」**(優先):
@@ -98,6 +110,7 @@ mindstock の層責務と依存方向。Controller / Scenario / Service / Reposi
 - Service に null チェックを散らすと、infrastructure の不在表現と Service の判断が二重化する。infrastructure に「不在は例外」を集めることで Service / Scenario / Controller の本流を直線的に保つ
 - Repository interface で例外を約束しないのは、interface は「呼び方」を示すものであり「実装の挙動」を縛らないため。実装側(infrastructure)で適切な例外を throw する
 - ファイル数を「機械的な分割トリガー」ではなく「概念見直しのトリガー」とするのは、ファイル数の増加が往々にして集約や責務の混在を示すサインだから
+- 外部システムの境界 interface を application 側(Repository)に置くのは、application が「DB か外部か」を知らずに済ませるため。interface を infrastructure に置くと application → infrastructure の逆方向依存になり層が崩れる。実装を `transfer` / `receive` に分けるのは、外部 I/O の向き(送信 / 受信)が責務とテスト観点(何を送るか / 何を受けるか)を分けるから。`DataSource` を共用しないのは、DB(トランザクション境界・RETURNING)と外部 I/O では実装規約が異なるため
 
 ## How to apply
 
@@ -159,6 +172,36 @@ fun replenish(stockId: StockId, qty: Quantity) {
 // アンチパターン
 fun findActive(): List<Product> = ...           // ← Products を返す
 fun count(householdId: HouseholdId): Int = ...  // ← 専用 VO を返すか、ユースケース次第で集約に折り畳む
+```
+
+### ✅ 外部システム境界(interface=Repository / 実装=Transfer・Receive)
+
+```kotlin
+// interface は application 側に Repository として置く(DB か外部かを application に漏らさない)
+// application/repository/catalog/ExternalProductRepository.kt
+interface ExternalProductRepository {
+    fun findByJan(jan: Jan): CatalogItem  // master 不在 JAN を外部から補完(参照=受信)
+}
+
+// 受信(receive): 外部から取り込む。infrastructure/receive/<ctx>/<目的>Receive
+// infrastructure/receive/catalog/UnconfiguredProductReceive.kt
+class UnconfiguredProductReceive : ExternalProductRepository {
+    override fun findByJan(jan: Jan): CatalogItem = throw ResourceNotFoundException("...: $jan")
+}
+
+// 送信(transfer): 外部へ送り出す。infrastructure/transfer/<ctx>/<目的>Transfer
+// infrastructure/transfer/product/ProductImageTransfer.kt
+class ProductImageTransfer(private val s3: S3Client, private val bucket: String) : ProductImageStorageRepository {
+    override suspend fun store(upload: RawImageUpload): ImageRef { /* Garage へ put */ }
+}
+```
+
+### ❌ 外部境界の interface を infrastructure に置く
+
+```kotlin
+// アンチパターン: interface を infrastructure に置くと application が infra を import する逆方向依存になる
+// infrastructure/gateway/ExternalProductGateway.kt  ← application/repository/<ctx>/ へ置くべき
+interface ExternalProductGateway { fun fetch(jan: Jan): CatalogItem }
 ```
 
 ## 関連
