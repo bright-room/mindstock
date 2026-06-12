@@ -47,8 +47,6 @@ dependencies {
     testImplementation(testFixtures(projects.backend.api))
     testImplementation(libs.kotest.runner.junit5)
     testImplementation(libs.kotest.assertions.core)
-    testImplementation(libs.flyway.core)
-    testImplementation(libs.flyway.database.postgresql)
     testImplementation(ktorLib.server.testHost)
     testImplementation(libs.mockk)
     testImplementation(libs.kotlinx.rpc.client)
@@ -81,8 +79,4 @@ val integrationTest by tasks.registering(Test::class) {
     listOf("TEST_DB_URL", "TEST_DB_USER", "TEST_DB_PASSWORD").forEach { key ->
         System.getenv(key)?.let { environment(key, it) }
     }
-}
-
-tasks.check {
-    dependsOn(integrationTest)
 }

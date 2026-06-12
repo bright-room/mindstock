@@ -3,7 +3,9 @@ package net.brightroom.mindstock.application.service.stock
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
+import io.mockk.Runs
 import io.mockk.every
+import io.mockk.just
 import io.mockk.mockk
 import io.mockk.slot
 import io.mockk.verify
@@ -83,7 +85,7 @@ class StockRegisterServiceTest :
             every { stockRepository.findByMovement(baseId) } returns Stock(product, StockMovements(listOf(base)))
 
             val appended = slot<StockMovement>()
-            every { stockRegisterRepository.appendMovement(product.id, capture(appended)) } returns base
+            every { stockRegisterRepository.appendMovement(product.id, capture(appended)) } just Runs
 
             service.correct(baseId, Quantity(3), Reason("数え間違い"), actor.id)
 
@@ -98,7 +100,7 @@ class StockRegisterServiceTest :
             every { householdRepository.findById(householdId) } returns householdWithActor()
             every { residentRepository.findById(actor.id) } returns actor
             every { stockRepository.findByProduct(product.id) } returns Stock(product, StockMovements(emptyList()))
-            every { stockRegisterRepository.appendMovement(product.id, capture(appended)) } returns mockk(relaxed = true)
+            every { stockRegisterRepository.appendMovement(product.id, capture(appended)) } just Runs
 
             service.replenish(product.id, Quantity(3), Note(""), backdated, actor.id)
 
@@ -122,7 +124,7 @@ class StockRegisterServiceTest :
             every { householdRepository.findById(householdId) } returns householdWithActor()
             every { residentRepository.findById(actor.id) } returns actor
             every { stockRepository.findByProduct(product.id) } returns Stock(product, StockMovements(listOf(seeded)))
-            every { stockRegisterRepository.appendMovement(product.id, capture(appended)) } returns mockk(relaxed = true)
+            every { stockRegisterRepository.appendMovement(product.id, capture(appended)) } just Runs
 
             service.consume(product.id, Quantity(2), Note(""), backdated, actor.id)
 

@@ -1,5 +1,4 @@
 ktor:
-  environment: "$KTOR_ENV:LOCAL"
   deployment:
     port: "$PORT:8080"
   application:

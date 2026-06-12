@@ -106,18 +106,5 @@ class AuthClient(
                 ).joinToString("&") { (k, v) -> "$k=${v.encodeURLParameter()}" }
             return "$issuer/oauth/v2/authorize?$q"
         }
-
-        fun endSessionUrl(
-            issuer: String,
-            idToken: String,
-            postLogoutRedirectUri: String,
-        ): String {
-            val q =
-                listOf(
-                    "id_token_hint" to idToken,
-                    "post_logout_redirect_uri" to postLogoutRedirectUri,
-                ).joinToString("&") { (k, v) -> "$k=${v.encodeURLParameter()}" }
-            return "$issuer/oidc/v1/end_session?$q"
-        }
     }
 }
