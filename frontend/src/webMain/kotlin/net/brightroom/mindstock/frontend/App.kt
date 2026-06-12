@@ -32,6 +32,7 @@ import net.brightroom.mindstock.domain.model.inventory.product.image.ProductImag
 import net.brightroom.mindstock.domain.model.inventory.product.setting.MinimumStock
 import net.brightroom.mindstock.domain.model.inventory.product.setting.ProductUnit
 import net.brightroom.mindstock.domain.model.inventory.quantity.Quantity
+import net.brightroom.mindstock.domain.model.inventory.stock.EvaluatedTime
 import net.brightroom.mindstock.domain.model.inventory.stock.Stock
 import net.brightroom.mindstock.domain.model.inventory.stock.movement.Note
 import net.brightroom.mindstock.domain.model.inventory.stock.movement.OccurredAt
@@ -77,12 +78,15 @@ import net.brightroom.mindstock.frontend.feature.household.ui.CreateHouseholdShe
 import net.brightroom.mindstock.frontend.feature.household.ui.HouseholdSwitcher
 import net.brightroom.mindstock.frontend.feature.household.ui.JoinCodeSheet
 import net.brightroom.mindstock.frontend.feature.household.ui.NeedHouseholdScreen
+import net.brightroom.mindstock.frontend.feature.inventory.InventoryUiState
 import net.brightroom.mindstock.frontend.feature.inventory.InventoryViewModel
 import net.brightroom.mindstock.frontend.feature.inventory.ProductDetailViewModel
 import net.brightroom.mindstock.frontend.feature.inventory.data.InventoryRepository
 import net.brightroom.mindstock.frontend.feature.inventory.ui.DetailTarget
 import net.brightroom.mindstock.frontend.feature.inventory.ui.InventoryRoute
 import net.brightroom.mindstock.frontend.feature.inventory.ui.ProductDetailOverlay
+import net.brightroom.mindstock.frontend.feature.notification.stockAlerts
+import net.brightroom.mindstock.frontend.feature.notification.ui.NotifSheet
 import net.brightroom.mindstock.frontend.feature.onboarding.OnboardingViewModel
 import net.brightroom.mindstock.frontend.feature.onboarding.ui.OnboardingScreen
 import net.brightroom.mindstock.frontend.feature.resident.data.ResidentRepository
@@ -409,6 +413,14 @@ private fun ReadyContent(
                 reauth = reauth,
             )
         }
+    val homeState by homeVm.state.collectAsState()
+    // ベルのバッジ/シートを全タブで正しくするため、Stock タブに入る前に在庫をロードする。
+    LaunchedEffect(householdId) { homeVm.load() }
+    val alerts =
+        (homeState as? InventoryUiState.Content)
+            ?.let { stockAlerts(it.stocks, EvaluatedTime.now()) }
+            ?: emptyList()
+    var notifOpen by remember(householdId) { mutableStateOf(false) }
     val shopVm =
         remember(householdId) {
             ShoppingListViewModel(
@@ -438,7 +450,7 @@ private fun ReadyContent(
         onSelectTab = { selectedTab = it },
         onAdd = { catalogOverlay.value = CatalogOverlay.AddProduct },
         onOpenSwitcher = { settingsSheet.value = SettingsSheet.Switcher },
-        onBell = {},
+        onBell = { notifOpen = true },
         displayName = sessionState.displayName?.invoke() ?: "",
         householdName = shellHousehold?.profile?.name?.invoke() ?: "",
         stockContent = {
@@ -452,6 +464,8 @@ private fun ReadyContent(
                 memberCount = shellHousehold?.members?.size() ?: 1,
                 onShop = { selectedTab = Tab.Shop },
                 onOpenSettings = { selectedTab = Tab.Profile },
+                onBell = { notifOpen = true },
+                hasAlerts = alerts.isNotEmpty(),
             )
         },
         shopContent = {
@@ -490,6 +504,15 @@ private fun ReadyContent(
                 onOpenSwitcher = { settingsSheet.value = SettingsSheet.Switcher },
                 onLogout = { reauth.request() },
             )
+        },
+    )
+    NotifSheet(
+        open = notifOpen,
+        alerts = alerts,
+        onClose = { notifOpen = false },
+        onOpen = { stock ->
+            notifOpen = false
+            opened.value = DetailTarget(stock.product.id, stock)
         },
     )
 }
