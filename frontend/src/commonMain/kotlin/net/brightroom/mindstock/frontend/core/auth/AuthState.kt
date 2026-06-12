@@ -1,5 +1,7 @@
 package net.brightroom.mindstock.frontend.core.auth
 
+import net.brightroom.mindstock.frontend.core.ui.UiText
+
 /** 起動〜認証の画面状態。 */
 sealed interface AuthState {
     /** 起動処理中(callback 交換 or token 検証 or me() 問い合わせ)。 */
@@ -19,6 +21,6 @@ sealed interface AuthState {
 
     /** 失敗。message を表示し再ログイン可能に。 */
     data class Failed(
-        val message: String,
+        val message: UiText,
     ) : AuthState
 }

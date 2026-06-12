@@ -13,13 +13,14 @@ import net.brightroom.mindstock.domain.model.inventory.product.setting.MinimumSt
 import net.brightroom.mindstock.domain.model.inventory.product.setting.ProductUnit
 import net.brightroom.mindstock.domain.model.inventory.stock.Stocks
 import net.brightroom.mindstock.frontend.core.auth.ReauthController
+import net.brightroom.mindstock.frontend.core.image.ImagePickResult
+import net.brightroom.mindstock.frontend.core.image.pickImage
 import net.brightroom.mindstock.frontend.core.rpc.RpcOutcome
 import net.brightroom.mindstock.frontend.core.rpc.errorText
-import net.brightroom.mindstock.frontend.core.rpc.requiresReauth
+import net.brightroom.mindstock.frontend.core.ui.FailureHandler
 import net.brightroom.mindstock.frontend.core.ui.InventoryRefreshController
 import net.brightroom.mindstock.frontend.core.ui.ToastController
 import net.brightroom.mindstock.frontend.core.ui.UiText
-import net.brightroom.mindstock.rpc.result.RpcError
 
 class ProductMasterViewModel(
     private val householdId: HouseholdId,
@@ -34,8 +35,14 @@ class ProductMasterViewModel(
     private val toast: ToastController,
     private val reauth: ReauthController,
 ) : ViewModel() {
+    private val failure = FailureHandler(reauth, toast)
+
     private val _state = MutableStateFlow<ProductMasterUiState>(ProductMasterUiState.Loading)
     val state: StateFlow<ProductMasterUiState> = _state.asStateFlow()
+
+    // 画像更新(upload/remove)の進行中フラグ。再入を抑止して書込を 1 本に直列化する。
+    private val _imageBusy = MutableStateFlow(false)
+    val imageBusy: StateFlow<Boolean> = _imageBusy.asStateFlow()
 
     suspend fun load() {
         _state.value = ProductMasterUiState.Loading
@@ -46,7 +53,7 @@ class ProductMasterViewModel(
                 }
 
                 is RpcOutcome.Failure -> {
-                    handleFailure(out.error)
+                    failure.onLoadFailure(out.error)
                     ProductMasterUiState.Error(errorText(out.error))
                 }
             }
@@ -73,6 +80,34 @@ class ProductMasterViewModel(
     /** 画像を削除し、成功なら true。 */
     suspend fun removeImage(productId: ProductId): Boolean = imageWrite(removeImageOf(productId), productId)
 
+    /**
+     * ピッカー起動 → 選択時のみアップロード。再入中(busy)は無視して false。
+     * アップロード成功なら true(呼び出し側のシートは楽観表示を Stored に倒す)。Cancelled/失敗は false。
+     */
+    suspend fun pickAndUploadImage(productId: ProductId): Boolean {
+        if (_imageBusy.value) return false
+        _imageBusy.value = true
+        try {
+            return when (val r = pickImage()) {
+                is ImagePickResult.Selected -> uploadImage(productId, r.base64)
+                ImagePickResult.Cancelled -> false
+            }
+        } finally {
+            _imageBusy.value = false
+        }
+    }
+
+    /** 画像削除。再入中(busy)は無視して false。削除成功なら true(シートは楽観表示を無しに倒す)。 */
+    suspend fun removeImageFor(productId: ProductId): Boolean {
+        if (_imageBusy.value) return false
+        _imageBusy.value = true
+        try {
+            return removeImage(productId)
+        } finally {
+            _imageBusy.value = false
+        }
+    }
+
     // 画像書込の共通後処理。成功時は loader 無効化 → 一覧再読込 → 全画面 refresh。成功可否を呼び出し側に返し、
     // シート側の楽観表示(stored フラグ)を更新できるようにする。トーストは出さない(画像は即時反映で十分)。
     private suspend fun imageWrite(
@@ -88,7 +123,7 @@ class ProductMasterViewModel(
             }
 
             is RpcOutcome.Failure -> {
-                handleFailure(outcome.error)
+                failure.onMutationFailure(outcome.error)
                 false
             }
         }
@@ -105,12 +140,8 @@ class ProductMasterViewModel(
             }
 
             is RpcOutcome.Failure -> {
-                handleFailure(outcome.error)
+                failure.onMutationFailure(outcome.error)
             }
         }
-    }
-
-    private fun handleFailure(error: RpcError) {
-        if (error.requiresReauth()) reauth.request() else toast.show(errorText(error))
     }
 }

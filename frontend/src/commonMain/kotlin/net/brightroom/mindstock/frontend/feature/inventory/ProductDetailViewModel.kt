@@ -23,7 +23,7 @@ import net.brightroom.mindstock.domain.model.inventory.stock.movement.StockMovem
 import net.brightroom.mindstock.frontend.core.auth.ReauthController
 import net.brightroom.mindstock.frontend.core.rpc.RpcOutcome
 import net.brightroom.mindstock.frontend.core.rpc.errorText
-import net.brightroom.mindstock.frontend.core.rpc.requiresReauth
+import net.brightroom.mindstock.frontend.core.ui.FailureHandler
 import net.brightroom.mindstock.frontend.core.ui.InventoryRefreshController
 import net.brightroom.mindstock.frontend.core.ui.ToastController
 import net.brightroom.mindstock.frontend.core.ui.UiText
@@ -43,6 +43,8 @@ class ProductDetailViewModel(
     private val toast: ToastController,
     private val reauth: ReauthController,
 ) : ViewModel() {
+    private val failure = FailureHandler(reauth, toast)
+
     private val _state = MutableStateFlow<ProductDetailUiState>(ProductDetailUiState.Loading)
     val state: StateFlow<ProductDetailUiState> = _state.asStateFlow()
 
@@ -62,7 +64,7 @@ class ProductDetailViewModel(
                 }
 
                 is RpcOutcome.Failure -> {
-                    handleFailure(out.error)
+                    failure.onLoadFailure(out.error)
                     _state.value = ProductDetailUiState.Error(errorText(out.error))
                     return
                 }
@@ -81,7 +83,7 @@ class ProductDetailViewModel(
                 }
 
                 is RpcOutcome.Failure -> {
-                    handleFailure(out.error)
+                    failure.onLoadFailure(out.error)
                     _state.value = ProductDetailUiState.Error(errorText(out.error))
                     return
                 }
@@ -127,12 +129,8 @@ class ProductDetailViewModel(
             }
 
             is RpcOutcome.Failure -> {
-                handleFailure(outcome.error)
+                failure.onMutationFailure(outcome.error)
             }
         }
-    }
-
-    private fun handleFailure(error: RpcError) {
-        if (error.requiresReauth()) reauth.request() else toast.show(errorText(error))
     }
 }

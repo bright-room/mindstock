@@ -29,8 +29,8 @@ import net.brightroom.mindstock.frontend.app.isOwner
 import net.brightroom.mindstock.frontend.core.auth.ReauthController
 import net.brightroom.mindstock.frontend.core.rpc.RpcOutcome
 import net.brightroom.mindstock.frontend.core.rpc.errorText
-import net.brightroom.mindstock.frontend.core.rpc.requiresReauth
 import net.brightroom.mindstock.frontend.core.session.AppSession
+import net.brightroom.mindstock.frontend.core.ui.FailureHandler
 import net.brightroom.mindstock.frontend.core.ui.ToastController
 import net.brightroom.mindstock.frontend.core.ui.UiText
 import net.brightroom.mindstock.rpc.result.RpcError
@@ -49,6 +49,8 @@ class SettingsViewModel(
     private val toast: ToastController,
     private val reauth: ReauthController,
 ) : ViewModel() {
+    private val failure = FailureHandler(reauth, toast)
+
     private data class LocalState(
         val issuedInvite: Invitation? = null,
         val submitting: Boolean = false,
@@ -107,7 +109,7 @@ class SettingsViewModel(
                 }
 
                 is RpcOutcome.Failure -> {
-                    failWith(r.error, null)
+                    failure.onMutationFailure(r.error)
                 }
             }
         }
@@ -153,7 +155,7 @@ class SettingsViewModel(
                 }
 
                 is RpcOutcome.Failure -> {
-                    failWith(r.error, Res.string.settings_error_last_owner_leave)
+                    failure.onMutationFailure(r.error, Res.string.settings_error_last_owner_leave)
                 }
             }
         }
@@ -169,7 +171,7 @@ class SettingsViewModel(
                 }
 
                 is RpcOutcome.Failure -> {
-                    failWith(r.error, null)
+                    failure.onMutationFailure(r.error)
                 }
             }
         }
@@ -185,7 +187,7 @@ class SettingsViewModel(
                 }
 
                 is RpcOutcome.Failure -> {
-                    failWith(r.error, null)
+                    failure.onMutationFailure(r.error)
                 }
             }
         }
@@ -207,25 +209,9 @@ class SettingsViewModel(
             }
 
             is RpcOutcome.Failure -> {
-                failWith(outcome.error, lastOwner)
+                failure.onMutationFailure(outcome.error, lastOwner)
             }
         }
-    }
-
-    /** Conflict かつ lastOwner 文言が指定されていれば専用文言、それ以外は errorText / reauth。 */
-    private fun failWith(
-        error: RpcError,
-        lastOwner: StringResource?,
-    ) {
-        if (error.requiresReauth()) {
-            reauth.request()
-            return
-        }
-        if (error is RpcError.Conflict && lastOwner != null) {
-            toast.show(UiText(lastOwner))
-            return
-        }
-        toast.show(errorText(error))
     }
 
     /** 操作中フラグを立て、完了/失敗を問わず必ず下ろす。 */

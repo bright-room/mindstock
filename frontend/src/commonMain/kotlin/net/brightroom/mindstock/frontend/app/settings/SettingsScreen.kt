@@ -72,14 +72,15 @@ import net.brightroom.mindstock.frontend.designsystem.atom.AppButton
 import net.brightroom.mindstock.frontend.designsystem.atom.AppIcon
 import net.brightroom.mindstock.frontend.designsystem.atom.AppIconName
 import net.brightroom.mindstock.frontend.designsystem.atom.AppText
+import net.brightroom.mindstock.frontend.designsystem.atom.AvatarBadge
 import net.brightroom.mindstock.frontend.designsystem.atom.ButtonVariant
 import net.brightroom.mindstock.frontend.designsystem.atom.EmptyState
+import net.brightroom.mindstock.frontend.designsystem.atom.SectionLabel
 import net.brightroom.mindstock.frontend.designsystem.atom.TextInput
 import net.brightroom.mindstock.frontend.designsystem.atom.Toggle
 import net.brightroom.mindstock.frontend.designsystem.theme.LocalMindstockTokens
 import net.brightroom.mindstock.frontend.designsystem.theme.MindstockType
 import net.brightroom.mindstock.frontend.designsystem.theme.ShadowLevel
-import net.brightroom.mindstock.frontend.designsystem.theme.avatarColorOf
 import net.brightroom.mindstock.frontend.designsystem.theme.softShadow
 import net.brightroom.mindstock.frontend.feature.household.MemberRow
 import net.brightroom.mindstock.frontend.feature.household.SettingsUiState
@@ -130,7 +131,11 @@ fun SettingsScreen(
         )
 
         // 3. household section
-        SectionLabel(stringResource(Res.string.settings_section_household))
+        SectionLabel(
+            stringResource(Res.string.settings_section_household),
+            modifier = Modifier.padding(start = 4.dp, end = 4.dp, bottom = 10.dp),
+            style = MindstockType.summarySub(),
+        )
         if (state.activeId == null) {
             NoHouseholdFallback(onOpenSwitcher = onOpenSwitcher)
         } else {
@@ -150,7 +155,11 @@ fun SettingsScreen(
         }
 
         // 5. preferences
-        SectionLabel(stringResource(Res.string.settings_section_preferences))
+        SectionLabel(
+            stringResource(Res.string.settings_section_preferences),
+            modifier = Modifier.padding(start = 4.dp, end = 4.dp, bottom = 10.dp),
+            style = MindstockType.summarySub(),
+        )
         Card {
             ToggleRow(
                 icon = AppIconName.Bell,
@@ -168,7 +177,11 @@ fun SettingsScreen(
 
         // 6. other
         if (state.activeId != null) {
-            SectionLabel(stringResource(Res.string.settings_section_other))
+            SectionLabel(
+                stringResource(Res.string.settings_section_other),
+                modifier = Modifier.padding(start = 4.dp, end = 4.dp, bottom = 10.dp),
+                style = MindstockType.summarySub(),
+            )
             Card {
                 LinkRow(
                     icon = AppIconName.Trend,
@@ -529,12 +542,7 @@ private fun MemberRowItem(
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         // mock 準拠: メンバーアバターは利用者別色で塗りつぶし + 白頭文字。
-        Box(
-            modifier = Modifier.size(38.dp).clip(RoundedCornerShape(99.dp)).background(avatarColorOf(member.name)),
-            contentAlignment = Alignment.Center,
-        ) {
-            AppText(member.name.take(1), style = MindstockType.cardTitle().copy(fontSize = 15.sp), color = tokens.onAccent)
-        }
+        AvatarBadge(member.name, size = 38.dp, textSize = 15.sp)
         Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(5.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(7.dp)) {
                 AppText(
@@ -614,17 +622,6 @@ private fun MasterEntryCard(onOpenMaster: () -> Unit) {
         }
         AppIcon(AppIconName.ChevronRight, contentDescription = null, size = 17.dp, tint = tokens.faint)
     }
-}
-
-@Composable
-private fun SectionLabel(text: String) {
-    val tokens = LocalMindstockTokens.current
-    AppText(
-        text,
-        style = MindstockType.summarySub(),
-        color = tokens.faint,
-        modifier = Modifier.padding(start = 4.dp, end = 4.dp, bottom = 10.dp),
-    )
 }
 
 @Composable

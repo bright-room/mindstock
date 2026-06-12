@@ -30,7 +30,7 @@ object MindstockType {
         letterSpacingEm: Float = 0f,
         features: String? = null,
     ) = TextStyle(
-        fontFamily = notoSansJpFamily(),
+        fontFamily = LocalNotoSansJpFamily.current,
         fontWeight = weight,
         fontSize = size.sp,
         lineHeight = (size * lineHeight).sp,

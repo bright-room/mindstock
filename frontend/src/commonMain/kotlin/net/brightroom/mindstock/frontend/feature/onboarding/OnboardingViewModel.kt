@@ -61,11 +61,13 @@ class OnboardingViewModel(
     /** 確認 step の確定: 登録 → (世帯あり: 作成→enterApp / なし: needHousehold)。 */
     suspend fun submit() {
         val current = _state.value
-        val displayName = runCatching { DisplayName(current.name) }.getOrNull()
-        if (displayName == null) {
-            toast.show(errorText(RpcError.BadRequest("displayName", "invalid")))
-            return
-        }
+        val displayName =
+            try {
+                DisplayName(current.name)
+            } catch (_: IllegalArgumentException) {
+                toast.show(errorText(RpcError.BadRequest("displayName", "invalid")))
+                return
+            }
         _state.update { it.copy(submitting = true) }
 
         when (val reg = registerDisplayName(displayName)) {
@@ -84,12 +86,14 @@ class OnboardingViewModel(
                     flow.needHousehold()
                     return
                 }
-                val householdName = runCatching { HouseholdName(rawHousehold) }.getOrNull()
-                if (householdName == null) {
-                    toast.show(errorText(RpcError.BadRequest("householdName", "invalid")))
-                    _state.update { it.copy(submitting = false) }
-                    return
-                }
+                val householdName =
+                    try {
+                        HouseholdName(rawHousehold)
+                    } catch (_: IllegalArgumentException) {
+                        toast.show(errorText(RpcError.BadRequest("householdName", "invalid")))
+                        _state.update { it.copy(submitting = false) }
+                        return
+                    }
                 when (val created = createHousehold(householdName)) {
                     is RpcOutcome.Success -> {
                         enterOrEscape(created.value)

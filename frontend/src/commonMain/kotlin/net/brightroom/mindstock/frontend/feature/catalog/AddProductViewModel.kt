@@ -20,8 +20,7 @@ import net.brightroom.mindstock.domain.model.inventory.product.setting.MinimumSt
 import net.brightroom.mindstock.domain.model.inventory.product.setting.ProductUnit
 import net.brightroom.mindstock.frontend.core.auth.ReauthController
 import net.brightroom.mindstock.frontend.core.rpc.RpcOutcome
-import net.brightroom.mindstock.frontend.core.rpc.errorText
-import net.brightroom.mindstock.frontend.core.rpc.requiresReauth
+import net.brightroom.mindstock.frontend.core.ui.FailureHandler
 import net.brightroom.mindstock.frontend.core.ui.InventoryRefreshController
 import net.brightroom.mindstock.frontend.core.ui.ToastController
 import net.brightroom.mindstock.frontend.core.ui.UiText
@@ -39,6 +38,8 @@ class AddProductViewModel(
     private val toast: ToastController,
     private val reauth: ReauthController,
 ) : ViewModel() {
+    private val failure = FailureHandler(reauth, toast)
+
     private val _state = MutableStateFlow<AddProductUiState>(AddProductUiState.Browsing())
     val state: StateFlow<AddProductUiState> = _state.asStateFlow()
 
@@ -56,7 +57,7 @@ class AddProductViewModel(
                 }
 
                 is RpcOutcome.Failure -> {
-                    handleFailure(out.error)
+                    failure.onMutationFailure(out.error)
                     AddProductUiState.Browsing(phase = BrowsePhase.Idle)
                 }
             }
@@ -76,7 +77,7 @@ class AddProductViewModel(
                     if (out.error is RpcError.NotFound) {
                         AddProductUiState.CustomForm(seedName = "", jan = jan, nameLocked = false)
                     } else {
-                        handleFailure(out.error)
+                        failure.onMutationFailure(out.error)
                         AddProductUiState.Browsing(phase = BrowsePhase.Idle)
                     }
                 }
@@ -127,14 +128,10 @@ class AddProductViewModel(
 
             is RpcOutcome.Failure -> {
                 // 失敗時はフォーム状態を意図的に保持し、ユーザが再試行できるようにする。
-                // Unauthorized は handleFailure 経由でアプリ層の再認証(ページ遷移)を起こすため、
+                // Unauthorized は failure 経由でアプリ層の再認証(ページ遷移)を起こすため、
                 // フォーム状態を残したままで問題ない。
-                handleFailure(outcome.error)
+                failure.onMutationFailure(outcome.error)
             }
         }
-    }
-
-    private fun handleFailure(error: RpcError) {
-        if (error.requiresReauth()) reauth.request() else toast.show(errorText(error))
     }
 }

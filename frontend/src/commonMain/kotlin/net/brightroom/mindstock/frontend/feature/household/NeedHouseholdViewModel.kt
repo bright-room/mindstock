@@ -16,6 +16,7 @@ import net.brightroom.mindstock.frontend.core.auth.ReauthController
 import net.brightroom.mindstock.frontend.core.rpc.RpcOutcome
 import net.brightroom.mindstock.frontend.core.rpc.errorText
 import net.brightroom.mindstock.frontend.core.rpc.requiresReauth
+import net.brightroom.mindstock.frontend.core.ui.FailureHandler
 import net.brightroom.mindstock.frontend.core.ui.ToastController
 import net.brightroom.mindstock.frontend.core.ui.UiText
 import net.brightroom.mindstock.rpc.household.InvitationPreview
@@ -29,17 +30,21 @@ class NeedHouseholdViewModel(
     private val toast: ToastController,
     private val reauth: ReauthController,
 ) : ViewModel() {
+    private val failure = FailureHandler(reauth, toast)
+
     private val _state = MutableStateFlow(NeedHouseholdUiState())
     val state: StateFlow<NeedHouseholdUiState> = _state.asStateFlow()
 
     fun clearPreview() = _state.update { it.copy(preview = null, previewError = null) }
 
     suspend fun create(rawName: String) {
-        val name = runCatching { HouseholdName(rawName.trim()) }.getOrNull()
-        if (name == null) {
-            toast.show(errorText(RpcError.BadRequest("householdName", "invalid")))
-            return
-        }
+        val name =
+            try {
+                HouseholdName(rawName.trim())
+            } catch (_: IllegalArgumentException) {
+                toast.show(errorText(RpcError.BadRequest("householdName", "invalid")))
+                return
+            }
         _state.update { it.copy(busy = true) }
         when (val out = createHousehold(name)) {
             is RpcOutcome.Success -> {
@@ -47,7 +52,7 @@ class NeedHouseholdViewModel(
             }
 
             is RpcOutcome.Failure -> {
-                handleFailure(out.error)
+                failure.onMutationFailure(out.error)
                 _state.update { it.copy(busy = false) }
             }
         }
@@ -88,7 +93,7 @@ class NeedHouseholdViewModel(
             }
 
             is RpcOutcome.Failure -> {
-                handleFailure(out.error)
+                failure.onMutationFailure(out.error)
                 _state.update { it.copy(busy = false) }
             }
         }
@@ -107,9 +112,5 @@ class NeedHouseholdViewModel(
             toast.show(errorText(RpcError.Internal("enter failed")))
             _state.update { it.copy(busy = false) }
         }
-    }
-
-    private fun handleFailure(error: RpcError) {
-        if (error.requiresReauth()) reauth.request() else toast.show(errorText(error))
     }
 }

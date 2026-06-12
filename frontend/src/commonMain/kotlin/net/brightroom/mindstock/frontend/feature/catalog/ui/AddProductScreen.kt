@@ -62,6 +62,7 @@ import net.brightroom.mindstock.frontend.designsystem.atom.MiniStepper
 import net.brightroom.mindstock.frontend.designsystem.atom.NavIconButton
 import net.brightroom.mindstock.frontend.designsystem.atom.PrimaryButton
 import net.brightroom.mindstock.frontend.designsystem.atom.SearchField
+import net.brightroom.mindstock.frontend.designsystem.atom.SectionLabel
 import net.brightroom.mindstock.frontend.designsystem.atom.TextInput
 import net.brightroom.mindstock.frontend.designsystem.atom.Thumb
 import net.brightroom.mindstock.frontend.designsystem.theme.LocalMindstockTokens
@@ -376,7 +377,7 @@ private fun AdoptFormContent(
         }
 
         // Name section (locked)
-        SectionLabel(stringResource(Res.string.add_product_name_label))
+        SectionLabel(stringResource(Res.string.add_product_name_label), modifier = Modifier.padding(start = 2.dp))
         Column {
             Row(
                 modifier =
@@ -518,7 +519,7 @@ private fun CustomFormContent(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(6.dp),
         ) {
-            SectionLabel(stringResource(Res.string.add_product_name_label))
+            SectionLabel(stringResource(Res.string.add_product_name_label), modifier = Modifier.padding(start = 2.dp))
             if (!nameLocked) {
                 AppIcon(AppIconName.Pencil, contentDescription = null, size = 13.dp, tint = tokens.faint)
             }
@@ -651,15 +652,4 @@ private fun CustomFormContent(
 
         Spacer(Modifier.height(24.dp))
     }
-}
-
-@Composable
-private fun SectionLabel(text: String) {
-    val tokens = LocalMindstockTokens.current
-    AppText(
-        text = text,
-        style = MindstockType.sectionMeta(),
-        color = tokens.faint,
-        modifier = Modifier.padding(start = 2.dp),
-    )
 }

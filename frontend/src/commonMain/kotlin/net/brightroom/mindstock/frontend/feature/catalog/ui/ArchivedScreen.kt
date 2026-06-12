@@ -131,7 +131,7 @@ fun ArchivedScreen(
                     AppText(
                         text = state.text.resolve(),
                         style = MindstockType.sectionMeta(),
-                        color = tokens.sub,
+                        color = tokens.statusOut,
                     )
                 }
 

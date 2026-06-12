@@ -7,7 +7,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -17,7 +16,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import mindstock.frontend.generated.resources.Res
@@ -36,13 +34,13 @@ import net.brightroom.mindstock.frontend.designsystem.atom.AppButton
 import net.brightroom.mindstock.frontend.designsystem.atom.AppIcon
 import net.brightroom.mindstock.frontend.designsystem.atom.AppIconName
 import net.brightroom.mindstock.frontend.designsystem.atom.AppText
+import net.brightroom.mindstock.frontend.designsystem.atom.AvatarBadge
 import net.brightroom.mindstock.frontend.designsystem.atom.ButtonVariant
 import net.brightroom.mindstock.frontend.designsystem.atom.SegOption
 import net.brightroom.mindstock.frontend.designsystem.atom.SegmentedControl
 import net.brightroom.mindstock.frontend.designsystem.atom.Sheet
 import net.brightroom.mindstock.frontend.designsystem.theme.LocalMindstockTokens
 import net.brightroom.mindstock.frontend.designsystem.theme.MindstockType
-import net.brightroom.mindstock.frontend.designsystem.theme.avatarColorOf
 import net.brightroom.mindstock.frontend.feature.household.MemberRow
 import org.jetbrains.compose.resources.stringResource
 
@@ -66,12 +64,7 @@ fun MemberSheet(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(14.dp),
             ) {
-                Box(
-                    modifier = Modifier.size(52.dp).clip(RoundedCornerShape(99.dp)).background(avatarColorOf(m.name)),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    AppText(m.name.take(1), style = MindstockType.summaryTitle().copy(fontSize = 21.sp), color = Color.White)
-                }
+                AvatarBadge(m.name, size = 52.dp, textSize = 21.sp, style = MindstockType.summaryTitle())
                 Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(7.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         AppText(m.name, style = MindstockType.summaryTitle(), color = tokens.ink)

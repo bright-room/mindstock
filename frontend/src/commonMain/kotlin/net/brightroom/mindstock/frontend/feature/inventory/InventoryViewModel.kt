@@ -16,11 +16,10 @@ import net.brightroom.mindstock.domain.model.inventory.stock.movement.OccurredAt
 import net.brightroom.mindstock.frontend.core.auth.ReauthController
 import net.brightroom.mindstock.frontend.core.rpc.RpcOutcome
 import net.brightroom.mindstock.frontend.core.rpc.errorText
-import net.brightroom.mindstock.frontend.core.rpc.requiresReauth
+import net.brightroom.mindstock.frontend.core.ui.FailureHandler
 import net.brightroom.mindstock.frontend.core.ui.InventoryRefreshController
 import net.brightroom.mindstock.frontend.core.ui.ToastController
 import net.brightroom.mindstock.frontend.core.ui.UiText
-import net.brightroom.mindstock.rpc.result.RpcError
 
 class InventoryViewModel(
     private val householdId: HouseholdId,
@@ -31,8 +30,12 @@ class InventoryViewModel(
     private val toast: ToastController,
     private val reauth: ReauthController,
 ) : ViewModel() {
-    private val _state = MutableStateFlow<InventoryUiState>(InventoryUiState.Loading)
-    val state: StateFlow<InventoryUiState> = _state.asStateFlow()
+    private val failure = FailureHandler(reauth, toast)
+
+    // 最後の取得結果。null = 未ロード(= Loading)。collect されず recomputeState() で同期読みするだけの
+    // imperative な可変ホルダーなので reactive を示唆する StateFlow ではなく素の var にする。
+    // private sentinel なので nullable を許容
+    private var lastLoadResult: RpcOutcome<Stocks>? = null
 
     // view / query は load() の再フェッチ（補充消費後）でも保持するため独立した source of truth に持つ。
     private val _view = MutableStateFlow(StockView.List)
@@ -41,31 +44,34 @@ class InventoryViewModel(
     private val _query = MutableStateFlow("")
     val query: StateFlow<String> = _query.asStateFlow()
 
-    suspend fun load() {
-        _state.value = InventoryUiState.Loading
-        _state.value =
-            when (val out = loadStocks(householdId)) {
-                is RpcOutcome.Success -> {
-                    InventoryUiState.Content(out.value, _view.value, _query.value)
-                }
+    private val _state = MutableStateFlow<InventoryUiState>(InventoryUiState.Loading)
+    val state: StateFlow<InventoryUiState> = _state.asStateFlow()
 
-                is RpcOutcome.Failure -> {
-                    handleFailure(out.error)
-                    InventoryUiState.Error(errorText(out.error))
-                }
+    /** lastLoadResult / _view / _query の 3 source から状態を合成して _state へ即時反映する。 */
+    private fun recomputeState() {
+        _state.value =
+            when (val result = lastLoadResult) {
+                null -> InventoryUiState.Loading
+                is RpcOutcome.Success -> InventoryUiState.Content(result.value, _view.value, _query.value)
+                is RpcOutcome.Failure -> InventoryUiState.Error(errorText(result.error))
             }
+    }
+
+    suspend fun load() {
+        val out = loadStocks(householdId)
+        if (out is RpcOutcome.Failure) failure.onLoadFailure(out.error)
+        lastLoadResult = out
+        recomputeState()
     }
 
     fun setView(v: StockView) {
         _view.value = v
-        val s = _state.value
-        if (s is InventoryUiState.Content) _state.value = s.copy(view = v)
+        recomputeState()
     }
 
     fun setQuery(query: String) {
         _query.value = query
-        val s = _state.value
-        if (s is InventoryUiState.Content) _state.value = s.copy(query = query)
+        recomputeState()
     }
 
     suspend fun replenish(
@@ -94,16 +100,8 @@ class InventoryViewModel(
             }
 
             is RpcOutcome.Failure -> {
-                handleFailure(outcome.error)
+                failure.onMutationFailure(outcome.error)
             }
-        }
-    }
-
-    private fun handleFailure(error: RpcError) {
-        if (error.requiresReauth()) {
-            reauth.request()
-        } else {
-            toast.show(errorText(error))
         }
     }
 }

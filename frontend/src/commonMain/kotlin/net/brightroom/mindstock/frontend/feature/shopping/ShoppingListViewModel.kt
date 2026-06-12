@@ -13,24 +13,26 @@ import net.brightroom.mindstock.domain.model.inventory.product.ProductId
 import net.brightroom.mindstock.domain.model.inventory.quantity.Quantity
 import net.brightroom.mindstock.domain.model.inventory.shopping.ShoppingList
 import net.brightroom.mindstock.domain.model.inventory.stock.movement.Note
+import net.brightroom.mindstock.domain.model.inventory.stock.movement.OccurredAt
 import net.brightroom.mindstock.frontend.core.auth.ReauthController
 import net.brightroom.mindstock.frontend.core.rpc.RpcOutcome
 import net.brightroom.mindstock.frontend.core.rpc.errorText
-import net.brightroom.mindstock.frontend.core.rpc.requiresReauth
+import net.brightroom.mindstock.frontend.core.ui.FailureHandler
 import net.brightroom.mindstock.frontend.core.ui.InventoryRefreshController
 import net.brightroom.mindstock.frontend.core.ui.ToastController
 import net.brightroom.mindstock.frontend.core.ui.UiText
-import net.brightroom.mindstock.rpc.result.RpcError
 
 class ShoppingListViewModel(
     private val householdId: HouseholdId,
     private val loadShoppingList: suspend (HouseholdId) -> RpcOutcome<ShoppingList>,
     private val setWantedFlag: suspend (ProductId, Boolean) -> RpcOutcome<Unit>,
-    private val replenishStock: suspend (ProductId, Quantity, Note) -> RpcOutcome<Unit>,
+    private val replenishStock: suspend (ProductId, Quantity, Note, OccurredAt) -> RpcOutcome<Unit>,
     private val refresh: InventoryRefreshController,
     private val toast: ToastController,
     private val reauth: ReauthController,
 ) : ViewModel() {
+    private val failure = FailureHandler(reauth, toast)
+
     private val _state = MutableStateFlow<ShoppingListUiState>(ShoppingListUiState.Loading)
     val state: StateFlow<ShoppingListUiState> = _state.asStateFlow()
 
@@ -43,7 +45,7 @@ class ShoppingListViewModel(
                 }
 
                 is RpcOutcome.Failure -> {
-                    handleFailure(out.error)
+                    failure.onLoadFailure(out.error)
                     ShoppingListUiState.Error(errorText(out.error))
                 }
             }
@@ -61,7 +63,8 @@ class ShoppingListViewModel(
         productId: ProductId,
         quantity: Quantity,
         note: Note,
-    ) = write(replenishStock(productId, quantity, note), UiText(Res.string.toast_replenished))
+        occurredAt: OccurredAt,
+    ) = write(replenishStock(productId, quantity, note, occurredAt), UiText(Res.string.toast_replenished))
 
     private suspend fun write(
         outcome: RpcOutcome<Unit>,
@@ -75,12 +78,8 @@ class ShoppingListViewModel(
             }
 
             is RpcOutcome.Failure -> {
-                handleFailure(outcome.error)
+                failure.onMutationFailure(outcome.error)
             }
         }
-    }
-
-    private fun handleFailure(error: RpcError) {
-        if (error.requiresReauth()) reauth.request() else toast.show(errorText(error))
     }
 }
