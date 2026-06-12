@@ -1,5 +1,7 @@
 package net.brightroom.mindstock.domain.model.inventory.stock
 
+import net.brightroom.mindstock.domain.model.inventory.quantity.NetQuantity
+
 enum class Archivability(
     val archivable: Boolean,
 ) {
@@ -8,6 +10,6 @@ enum class Archivability(
     ;
 
     companion object {
-        fun of(currentQuantity: Int): Archivability = if (currentQuantity == 0) 可能 else 在庫あり
+        fun of(currentQuantity: NetQuantity): Archivability = if (currentQuantity() == 0) 可能 else 在庫あり
     }
 }

@@ -27,7 +27,7 @@ data class Stock(
 ) {
     fun currentQuantity(): NetQuantity = movements.netQuantity()
 
-    fun status(): StockStatus = StockStatus.of(currentQuantity()(), product.setting.minimumStock)
+    fun status(): StockStatus = StockStatus.of(currentQuantity(), product.setting.minimumStock)
 
     fun replenish(
         quantity: Quantity,
@@ -77,7 +77,7 @@ data class Stock(
     }
 
     fun archive(): Stock {
-        if (!Archivability.of(currentQuantity()()).archivable) {
+        if (!Archivability.of(currentQuantity()).archivable) {
             throw CannotArchiveWithStockException("cannot archive with stock: ${currentQuantity()}")
         }
         return Stock(product.archive(), movements)
