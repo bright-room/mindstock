@@ -33,6 +33,8 @@ fun InventoryRoute(
     memberCount: Int = 1,
     onShop: () -> Unit = {},
     onOpenSettings: () -> Unit = {},
+    onBell: () -> Unit = {},
+    hasAlerts: Boolean = false,
     modifier: Modifier = Modifier,
 ) {
     val scope = rememberCoroutineScope()
@@ -57,6 +59,8 @@ fun InventoryRoute(
         onAddProduct = onAddProduct,
         onShop = onShop,
         onOpenSettings = onOpenSettings,
+        onBell = onBell,
+        hasAlerts = hasAlerts,
         modifier = modifier,
     )
 
