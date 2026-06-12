@@ -242,17 +242,17 @@ class HouseholdDataSource(
                     ResidentId(row[ResidentsTable.id]) to row[dnSub[ResidentDisplayNamesTable.displayName]]
                 }
 
-        // Step 3: groupBy 世帯 → HouseholdMember リストに変換
-        return memberRows
-            .groupBy { it.householdId }
-            .mapValues { (_, rows) ->
-                rows.map { memberRow ->
-                    val displayName =
-                        displayNames[memberRow.residentId]
-                            ?: throw ResourceNotFoundException("resident display name not found: ${memberRow.residentId}")
-                    val resident = Resident(memberRow.residentId, ResidentProfile(DisplayName(displayName)))
-                    HouseholdMember(resident, memberRow.role)
-                }
+        // Step 3: 世帯 → HouseholdMember リストに変換。メンバー不在の世帯も空リストで必ずキーに含める
+        // (返却 Map は常に全 ids をキーに持つ。呼び出し側で欠落を気にしなくてよい)
+        val rowsByHousehold = memberRows.groupBy { it.householdId }
+        return ids.associateWith { id ->
+            (rowsByHousehold[id] ?: emptyList()).map { memberRow ->
+                val displayName =
+                    displayNames[memberRow.residentId]
+                        ?: throw ResourceNotFoundException("resident display name not found: ${memberRow.residentId}")
+                val resident = Resident(memberRow.residentId, ResidentProfile(DisplayName(displayName)))
+                HouseholdMember(resident, memberRow.role)
             }
+        }
     }
 }

@@ -6,6 +6,7 @@ import io.kotest.matchers.shouldBe
 import net.brightroom.mindstock.domain.model.barcode.Barcode
 import net.brightroom.mindstock.domain.model.household.Household
 import net.brightroom.mindstock.domain.model.household.HouseholdName
+import net.brightroom.mindstock.domain.model.household.member.HouseholdMemberRole
 import net.brightroom.mindstock.domain.model.inventory.product.Product
 import net.brightroom.mindstock.domain.model.inventory.product.ProductName
 import net.brightroom.mindstock.domain.model.inventory.product.setting.MinimumStock
@@ -132,5 +133,55 @@ class StockDataSourceTest :
             val breadStock = stocks.list.first { it.product.id == bread.id }
             breadStock.movements.size() shouldBe 0
             breadStock.currentQuantity()() shouldBe 0
+        }
+
+        test("listByHousehold: 商品ごとに別 actor の movement でも actor が取り違わない") {
+            // owner(たろう)の世帯に member(はなこ)を追加し、商品ごとに別 actor が操作する
+            val owner =
+                residentRegister.registerResident(
+                    AuthIdentity(AuthProvider.ZITADEL, AuthSubject("sub-owner-cross")),
+                    DisplayName("たろう"),
+                )
+            val member =
+                residentRegister.registerResident(
+                    AuthIdentity(AuthProvider.ZITADEL, AuthSubject("sub-member-cross")),
+                    DisplayName("はなこ"),
+                )
+            val household = Household.create(HouseholdName("混在世帯"), owner)
+            householdRegister.registerHousehold(household)
+            householdRegister.joinMember(
+                household.id,
+                member,
+                HouseholdMemberRole.メンバー,
+            )
+
+            val milk = Product.custom(ProductName("牛乳"), Barcode.Unlinked, ProductUnit("個"), MinimumStock(0))
+            val egg = Product.custom(ProductName("卵"), Barcode.Unlinked, ProductUnit("パック"), MinimumStock(0))
+            productRegister.registerCustom(milk, household.id)
+            productRegister.registerCustom(egg, household.id)
+
+            // 牛乳は owner、卵は member が補充
+            stockRegister.appendMovement(
+                milk.id,
+                StockMovement.Replenishment(MovementIdentity.Pending, Quantity(1), OccurredAt.now(), owner, Note("")),
+            )
+            stockRegister.appendMovement(
+                egg.id,
+                StockMovement.Replenishment(MovementIdentity.Pending, Quantity(1), OccurredAt.now(), member, Note("")),
+            )
+
+            val stocks = stockDataSource.listByHousehold(household.id)
+
+            // 一括 actor 解決(resolveActors)が product をまたいで actor を取り違えないこと
+            stocks.list
+                .first { it.product.id == milk.id }
+                .movements.list
+                .single()
+                .actor.profile.displayName shouldBe DisplayName("たろう")
+            stocks.list
+                .first { it.product.id == egg.id }
+                .movements.list
+                .single()
+                .actor.profile.displayName shouldBe DisplayName("はなこ")
         }
     })
