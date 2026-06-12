@@ -456,6 +456,23 @@ fun App() {
                                     modifier = Modifier.fillMaxSize(),
                                 )
                             }
+                            // Master/Settings 両オーバーレイで共有する単一 VM(二重生成を避ける)。
+                            val productMasterVm =
+                                remember(householdId) {
+                                    ProductMasterViewModel(
+                                        householdId = householdId,
+                                        loadStocks = repository::list,
+                                        changeUnitOf = catalogRepository::changeUnit,
+                                        changeMinimumOf = catalogRepository::changeMinimum,
+                                        archiveProduct = catalogRepository::archive,
+                                        uploadImageOf = repository::uploadImage,
+                                        removeImageOf = repository::removeImage,
+                                        invalidateImage = imageLoader::invalidate,
+                                        refresh = refresh,
+                                        toast = toast,
+                                        reauth = reauth,
+                                    )
+                                }
                             when (val ov = catalogOverlay) {
                                 null -> {
                                     Unit
@@ -498,25 +515,9 @@ fun App() {
                                 }
 
                                 is CatalogOverlay.Master -> {
-                                    val masterVm =
-                                        remember(householdId) {
-                                            ProductMasterViewModel(
-                                                householdId = householdId,
-                                                loadStocks = repository::list,
-                                                changeUnitOf = catalogRepository::changeUnit,
-                                                changeMinimumOf = catalogRepository::changeMinimum,
-                                                archiveProduct = catalogRepository::archive,
-                                                uploadImageOf = repository::uploadImage,
-                                                removeImageOf = repository::removeImage,
-                                                invalidateImage = imageLoader::invalidate,
-                                                refresh = refresh,
-                                                toast = toast,
-                                                reauth = reauth,
-                                            )
-                                        }
-                                    val mState by masterVm.state.collectAsState()
+                                    val mState by productMasterVm.state.collectAsState()
                                     var settingsStock by remember { mutableStateOf<Stock?>(null) }
-                                    LoadWithRefresh(masterVm, refresh) { masterVm.load() }
+                                    LoadWithRefresh(productMasterVm, refresh) { productMasterVm.load() }
                                     ProductMasterScreen(
                                         state = mState,
                                         householdName = activeHouseholdName(sessionState),
@@ -528,18 +529,20 @@ fun App() {
                                     ProductSettingsSheetWithImage(
                                         open = settingsStock != null,
                                         stock = settingsStock,
-                                        viewModel = masterVm,
+                                        viewModel = productMasterVm,
                                         onClose = { settingsStock = null },
                                         onChangeUnit = { u ->
-                                            settingsStock?.let { s -> scope.launch { masterVm.changeUnit(s.product.id, u) } }
+                                            settingsStock?.let { s ->
+                                                scope.launch { productMasterVm.changeUnit(s.product.id, u) }
+                                            }
                                         },
                                         onChangeMinimum = { m ->
                                             settingsStock?.let { s ->
-                                                scope.launch { masterVm.changeMinimum(s.product.id, m) }
+                                                scope.launch { productMasterVm.changeMinimum(s.product.id, m) }
                                             }
                                         },
                                         onArchive = {
-                                            settingsStock?.let { s -> scope.launch { masterVm.archive(s.product.id) } }
+                                            settingsStock?.let { s -> scope.launch { productMasterVm.archive(s.product.id) } }
                                             settingsStock = null
                                         },
                                     )
@@ -570,35 +573,19 @@ fun App() {
                                 }
 
                                 is CatalogOverlay.Settings -> {
-                                    val productSettingsVm =
-                                        remember(householdId) {
-                                            ProductMasterViewModel(
-                                                householdId = householdId,
-                                                loadStocks = repository::list,
-                                                changeUnitOf = catalogRepository::changeUnit,
-                                                changeMinimumOf = catalogRepository::changeMinimum,
-                                                archiveProduct = catalogRepository::archive,
-                                                uploadImageOf = repository::uploadImage,
-                                                removeImageOf = repository::removeImage,
-                                                invalidateImage = imageLoader::invalidate,
-                                                refresh = refresh,
-                                                toast = toast,
-                                                reauth = reauth,
-                                            )
-                                        }
                                     ProductSettingsSheetWithImage(
                                         open = true,
                                         stock = ov.stock,
-                                        viewModel = productSettingsVm,
+                                        viewModel = productMasterVm,
                                         onClose = { catalogOverlay = null },
                                         onChangeUnit = { u ->
-                                            scope.launch { productSettingsVm.changeUnit(ov.stock.product.id, u) }
+                                            scope.launch { productMasterVm.changeUnit(ov.stock.product.id, u) }
                                         },
                                         onChangeMinimum = { m ->
-                                            scope.launch { productSettingsVm.changeMinimum(ov.stock.product.id, m) }
+                                            scope.launch { productMasterVm.changeMinimum(ov.stock.product.id, m) }
                                         },
                                         onArchive = {
-                                            scope.launch { productSettingsVm.archive(ov.stock.product.id) }
+                                            scope.launch { productMasterVm.archive(ov.stock.product.id) }
                                             catalogOverlay = null
                                         },
                                     )
