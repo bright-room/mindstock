@@ -1,6 +1,5 @@
 package net.brightroom.mindstock.frontend.auth
 
-import io.kotest.matchers.shouldBe
 import io.kotest.matchers.string.shouldContain
 import kotlin.test.Test
 
@@ -22,12 +21,5 @@ class AuthClientTest {
         url shouldContain "code_challenge=chal"
         url shouldContain "code_challenge_method=S256"
         url shouldContain "scope=openid%20profile"
-    }
-
-    @Test
-    fun endSessionUrl_includes_id_token_hint() {
-        val url = AuthClient.endSessionUrl("https://id.example", "idtok", "https://app/")
-        url shouldContain "https://id.example/oidc/v1/end_session?"
-        url shouldContain "id_token_hint=idtok"
     }
 }

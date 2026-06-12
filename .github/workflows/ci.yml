@@ -70,7 +70,6 @@ jobs:
         # WasmJs compile で OOM したら -Pkotlin.daemon.jvmargs=-Xmx6144M を付与する。
         env:
           AUTH_CLIENT_ID: ci-placeholder
-          AUTH_AUDIENCE: ci-placeholder
           AUTH_PROJECT_ID: ci-placeholder
         run: ./gradlew jsTest wasmJsTest
 
