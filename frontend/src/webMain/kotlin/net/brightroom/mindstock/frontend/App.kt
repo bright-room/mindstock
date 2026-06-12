@@ -283,7 +283,7 @@ fun App() {
                                         householdId = householdId,
                                         loadShoppingList = repository::shoppingList,
                                         setWantedFlag = repository::setWanted,
-                                        replenishStock = { pid, q, n -> repository.replenish(pid, q, n, OccurredAt.now()) },
+                                        replenishStock = repository::replenish,
                                         refresh = refresh,
                                         toast = toast,
                                         reauth = reauth,
@@ -361,7 +361,9 @@ fun App() {
                                         state = shopState,
                                         onOpenProduct = { pid, seed -> opened = DetailTarget(pid, seed) },
                                         onSetWanted = { pid, w -> scope.launch { shopVm.setWanted(pid, w) } },
-                                        onReplenish = { pid, q, n -> scope.launch { shopVm.replenish(pid, Quantity(q), Note(n)) } },
+                                        onReplenish = { pid, q, n ->
+                                            scope.launch { shopVm.replenish(pid, Quantity(q), Note(n), OccurredAt.now()) }
+                                        },
                                     )
                                 },
                                 activityContent = {

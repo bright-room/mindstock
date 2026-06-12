@@ -13,6 +13,7 @@ import net.brightroom.mindstock.domain.model.inventory.product.ProductId
 import net.brightroom.mindstock.domain.model.inventory.quantity.Quantity
 import net.brightroom.mindstock.domain.model.inventory.shopping.ShoppingList
 import net.brightroom.mindstock.domain.model.inventory.stock.movement.Note
+import net.brightroom.mindstock.domain.model.inventory.stock.movement.OccurredAt
 import net.brightroom.mindstock.frontend.core.auth.ReauthController
 import net.brightroom.mindstock.frontend.core.rpc.RpcOutcome
 import net.brightroom.mindstock.frontend.core.rpc.errorText
@@ -25,7 +26,7 @@ class ShoppingListViewModel(
     private val householdId: HouseholdId,
     private val loadShoppingList: suspend (HouseholdId) -> RpcOutcome<ShoppingList>,
     private val setWantedFlag: suspend (ProductId, Boolean) -> RpcOutcome<Unit>,
-    private val replenishStock: suspend (ProductId, Quantity, Note) -> RpcOutcome<Unit>,
+    private val replenishStock: suspend (ProductId, Quantity, Note, OccurredAt) -> RpcOutcome<Unit>,
     private val refresh: InventoryRefreshController,
     private val toast: ToastController,
     private val reauth: ReauthController,
@@ -62,7 +63,8 @@ class ShoppingListViewModel(
         productId: ProductId,
         quantity: Quantity,
         note: Note,
-    ) = write(replenishStock(productId, quantity, note), UiText(Res.string.toast_replenished))
+        occurredAt: OccurredAt,
+    ) = write(replenishStock(productId, quantity, note, occurredAt), UiText(Res.string.toast_replenished))
 
     private suspend fun write(
         outcome: RpcOutcome<Unit>,

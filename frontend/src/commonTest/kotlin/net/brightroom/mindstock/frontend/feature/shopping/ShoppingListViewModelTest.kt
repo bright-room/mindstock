@@ -10,6 +10,7 @@ import net.brightroom.mindstock.domain.model.inventory.product.ProductId
 import net.brightroom.mindstock.domain.model.inventory.quantity.Quantity
 import net.brightroom.mindstock.domain.model.inventory.shopping.ShoppingList
 import net.brightroom.mindstock.domain.model.inventory.stock.movement.Note
+import net.brightroom.mindstock.domain.model.inventory.stock.movement.OccurredAt
 import net.brightroom.mindstock.frontend.core.auth.ReauthController
 import net.brightroom.mindstock.frontend.core.rpc.RpcOutcome
 import net.brightroom.mindstock.frontend.core.ui.InventoryRefreshController
@@ -20,7 +21,7 @@ import kotlin.test.Test
 private fun vm(
     loadShoppingList: suspend (HouseholdId) -> RpcOutcome<ShoppingList> = { RpcOutcome.Success(ShoppingList(emptyList())) },
     setWanted: suspend (ProductId, Boolean) -> RpcOutcome<Unit> = { _, _ -> RpcOutcome.Success(Unit) },
-    replenish: suspend (ProductId, Quantity, Note) -> RpcOutcome<Unit> = { _, _, _ -> RpcOutcome.Success(Unit) },
+    replenish: suspend (ProductId, Quantity, Note, OccurredAt) -> RpcOutcome<Unit> = { _, _, _, _ -> RpcOutcome.Success(Unit) },
     refresh: InventoryRefreshController = InventoryRefreshController(),
     toast: ToastController = ToastController(),
     reauth: ReauthController = ReauthController(),
