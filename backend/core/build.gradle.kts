@@ -50,6 +50,9 @@ val integrationTest by tasks.registering(Test::class) {
     // app と同一の STORAGE_* env(external.storage.* / application.yaml デフォルト)を test JVM へ転送する。
     listOf("STORAGE_ENDPOINT", "STORAGE_BUCKET", "STORAGE_ACCESS_KEY", "STORAGE_SECRET_KEY")
         .forEach { key -> System.getenv(key)?.let { environment(key, it) } }
+    // DataSource(DB)統合テスト用の TEST_DB_* も転送する(未設定なら TestDatabase が既定値へフォールバック)。
+    listOf("TEST_DB_URL", "TEST_DB_USER", "TEST_DB_PASSWORD")
+        .forEach { key -> System.getenv(key)?.let { environment(key, it) } }
 }
 
 exposed {
