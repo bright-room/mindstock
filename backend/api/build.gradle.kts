@@ -47,8 +47,6 @@ dependencies {
     testImplementation(testFixtures(projects.backend.api))
     testImplementation(libs.kotest.runner.junit5)
     testImplementation(libs.kotest.assertions.core)
-    testImplementation(libs.flyway.core)
-    testImplementation(libs.flyway.database.postgresql)
     testImplementation(ktorLib.server.testHost)
     testImplementation(libs.mockk)
     testImplementation(libs.kotlinx.rpc.client)

@@ -18,10 +18,6 @@ kotlin {
             implementation(libs.compose.adaptive)
             implementation(libs.compose.ui)
             implementation(libs.compose.components.resources)
-            implementation(libs.material3.adaptive.navigation.suite)
-            implementation(libs.navigation.compose)
-
-            implementation(libs.compose.ui.tooling.preview)
 
             implementation(libs.lifecycle.viewmodel)
             implementation(libs.lifecycle.viewmodel.compose)

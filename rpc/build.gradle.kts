@@ -22,10 +22,5 @@ kotlin {
                 implementation(libs.kotest.assertions.core)
             }
         }
-        jvmTest {
-            dependencies {
-                implementation(libs.kotest.runner.junit5)
-            }
-        }
     }
 }
