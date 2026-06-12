@@ -38,11 +38,13 @@ class NeedHouseholdViewModel(
     fun clearPreview() = _state.update { it.copy(preview = null, previewError = null) }
 
     suspend fun create(rawName: String) {
-        val name = runCatching { HouseholdName(rawName.trim()) }.getOrNull()
-        if (name == null) {
-            toast.show(errorText(RpcError.BadRequest("householdName", "invalid")))
-            return
-        }
+        val name =
+            try {
+                HouseholdName(rawName.trim())
+            } catch (_: IllegalArgumentException) {
+                toast.show(errorText(RpcError.BadRequest("householdName", "invalid")))
+                return
+            }
         _state.update { it.copy(busy = true) }
         when (val out = createHousehold(name)) {
             is RpcOutcome.Success -> {
