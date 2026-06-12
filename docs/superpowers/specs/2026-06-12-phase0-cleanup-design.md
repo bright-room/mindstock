@@ -22,7 +22,7 @@
 3. **0-11**: 親プランの「domain・rpc の jvmTest ソースセット **自体が不存在**」は **誤り**。`kmp-shared` convention(`build-logic/src/main/kotlin/net.brightroom.mindstock.kmp-shared.gradle.kts:11`)が `jvm()` ターゲットを宣言しており jvmTest は実在する。`kotest-runner-junit5` は commonTest spec を JVM ターゲットで走らせる JUnit5 エンジンを供給している可能性があるため、**検証付き条件削除**とする(下記 0-11)。
 4. **0-12**: `endSessionUrl()` 削除に伴い、**対応テスト `AuthClientTest.kt:27-32` も道連れ削除**が必要。
 5. **0-6**: 親プランは「8 行削除」だが、`LocalTime.kt` はこの 1 関数だけのファイル。関数だけ消すと orphan import が残る → **ファイルごと削除**。
-6. **0-4 / 0-5**: enum メソッド削除時、`;`(enum body セパレータ)の後始末が要る。機械的に行削除すると dangling `;` でコンパイルエラー → 下記の after を正とする。
+6. **0-4 / 0-5(不採用・2026-06-12 ユーザ判断)**: 区分(enum)の判定は区分内にカプセル化し、呼び出し側で `== 値` の外部比較(外側で判定)はしない方針により、`isアーカイブ済()` / `is有効()` の削除は**撤回**(現状維持)。`usable()` も `validity.is有効()` のまま。本フェーズで実コードに残る domain の掃除は **0-6(`LocalTime.now()` 削除)のみ**。
 
 ---
 
@@ -73,56 +73,15 @@ ktor:
 
 ---
 
-### 0-4 `ProductStatus.isアーカイブ済()` の削除
+### 0-4 `ProductStatus.isアーカイブ済()` の削除 — **不採用(2026-06-12 ユーザ判断)**
 
-**根拠**: 参照ゼロ(`grep -rn 'isアーカイブ済' domain backend frontend` が定義行のみ)。testing.md「単に値を返すだけのアクセサはテスト不要」に該当する死メソッド。
-
-**操作**: `domain/.../inventory/product/ProductStatus.kt` を以下に。
-
-after(全文):
-
-```kotlin
-package net.brightroom.mindstock.domain.model.inventory.product
-
-import kotlinx.serialization.Serializable
-
-@Serializable
-enum class ProductStatus {
-    採用中,
-    アーカイブ済,
-}
-```
-
-> メソッドと共に enum body セパレータ `;` も削除する(残すとコンパイルエラー)。
+当初は「参照ゼロの死メソッド」として削除予定だったが、**区分(enum)の判定はその区分の中にカプセル化し、呼び出し側で `== アーカイブ済` のような外部比較(外側で判定)はしない**という設計方針により**削除を撤回**。`fun isアーカイブ済(): Boolean = this == アーカイブ済` は**現状維持**(参照ゼロでも区分の意図を表すメソッドとして残す)。コード変更なし。
 
 ---
 
-### 0-5 `InvitationValidity.is有効()` の削除(`Invitation.usable()` へインライン)
+### 0-5 `InvitationValidity.is有効()` の削除 — **不採用(2026-06-12 ユーザ判断)**
 
-**根拠**: `is有効()` の唯一の呼び出し元は `Invitation.kt:14` の `usable()`。インライン化すれば `is有効()` は死ぬ。enum `InvitationValidity` 自体は永続化・hydration で多数使用中のため残す。
-
-**操作**:
-1. `domain/.../household/invitation/Invitation.kt:14` を変更:
-
-```kotlin
-    fun usable(): Boolean = validity == InvitationValidity.有効
-```
-
-2. `domain/.../household/invitation/InvitationValidity.kt` を以下に:
-
-```kotlin
-package net.brightroom.mindstock.domain.model.household.invitation
-
-import kotlinx.serialization.Serializable
-
-@Serializable
-enum class InvitationValidity {
-    有効,
-    無効,
-}
-```
-
-**残参照確認**: `grep -rn 'is有効' domain backend frontend` が空。`InvitationTest.kt:12-13` の `usable()` 検証は挙動不変で green を維持。
+当初は「唯一の呼び出し元 `usable()` にインライン化して `is有効()` を死なせる」予定だったが、0-4 と同じ方針(区分の判定はカプセル化・外側で `== 有効` 比較しない)により**削除を撤回**。`InvitationValidity.is有効()` は**現状維持**し、`Invitation.usable()` も `validity.is有効()`(区分に判定を委ねる形)の**まま維持**。コード変更なし。`InvitationTest.kt` の `usable()` 検証は green を維持。
 
 ---
 

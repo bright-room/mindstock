@@ -47,6 +47,7 @@
 - **`:backend:schedules`**: プレースホルダのまま**維持**(トラック B gap #4「通知」のバッチで使用予定のため削除しない)
 - **トラック B(occurredAt / 消費予測 / 通知)との順序**: domain/application を触るフェーズ 0〜2 を先に完了させてからトラック B を再開する(コンフリクト回避)
 - **primitive 許容のルール改訂案は不採用**: ルール監査員は「`limit: Int` / `wanted: Boolean` はルール例外として許容」を提案したが、VO 原則をドキュメント緩和で逃げない方針(working agreement)に従い**フェーズ 1 の VO 化を維持**。ただし**述語の Boolean 戻り値**(`usable()` / `isBelow()` / `existsByJan()` 等)は VO 原則の対象外(データ値でなく判定結果)としてルールに明記する
+- **区分(enum)の判定はカプセル化する(ユーザ判断 2026-06-12)**: 区分の状態判定は区分内の述語メソッド(`ProductStatus.isアーカイブ済()` / `InvitationValidity.is有効()` 等)で表現し、呼び出し側で `status == アーカイブ済` のような **外部での `==` 比較(外側で判定)はしない**(tell-don't-ask)。**参照ゼロでも区分の意図を表す述語メソッドは死コード扱いで消さない**。これにより 0-4 / 0-5(述語削除案)は不採用。**フェーズ R で `domain-guideline.md` に明文化**(述語の Boolean 戻り値が VO 原則対象外である点と併記)
 - **ルール整備(フェーズ R)はフェーズ 1 より先に完了させる**: ルールは編集時に自動ロードされ、以降のフェーズの実行エージェントが誤サンプル(コンパイル不能なコード例)を踏むため
 - **`kotlin-js-store` lockfile はコミット管理に切替**(ignore 解除)。Kotlin/JS の依存再現性を担保する標準慣行
 - **Zitadel masterkey は環境変数化**(dev デフォルト値付き `${ZITADEL_MASTERKEY:-...}`)。本番流用を構造的に阻止する
@@ -107,8 +108,8 @@
 | 0-1 | `backend/api/.../configuration/Environment.kt` + `application.yaml:2` | enum 全 13 行削除(参照ゼロ確認済)。併せて `application.yaml` の `environment: "$KTOR_ENV:LOCAL"` 行も削除(読む側ゼロの死変数) |
 | 0-2 | `frontend/.../core/navigation/Route.kt` | sealed interface Route 全 14 行削除(タブ切替は AppShell の Tab enum で完結。参照ゼロ確認済) |
 | 0-3 | `frontend/.../feature/inventory/ui/StockHomePreview.kt` | ファイルごと削除(111 行。ハーネス撤去時の取り残し。参照ゼロ確認済) |
-| 0-4 | `domain/.../inventory/product/ProductStatus.kt:11` | `isアーカイブ済()` 削除(参照ゼロ) |
-| 0-5 | `domain/.../household/invitation/InvitationValidity.kt:11` | `is有効()` を `Invitation.usable()` にインライン化して削除 |
+| 0-4 | (不採用) | `isアーカイブ済()` 削除案は**撤回**(2026-06-12 ユーザ判断)。区分の判定は区分内にカプセル化し外側で `==` 比較しない方針。参照ゼロでも現状維持。コード変更なし |
+| 0-5 | (不採用) | `is有効()` のインライン削除案は**撤回**(0-4 と同方針)。`InvitationValidity.is有効()` と `Invitation.usable()=validity.is有効()` を現状維持。コード変更なし |
 | 0-6 | `shared/.../extensions/kotlinx/datetime/LocalTime.kt` | `LocalTime.now()` 8 行削除(全モジュール参照ゼロ) |
 | 0-7 | `backend/core/.../StockRegisterRepository.kt` + `StockRegisterDataSource.kt` | `appendMovement` 戻り値を `Unit` 化し `rebindIdentity`(約 20 行)を削除。呼び出し元 3 箇所(StockRegisterService.kt:39,53,67)は全て戻り値無視を確認済 |
 | 0-8 | `backend/api/build.gradle.kts:86-88` | `tasks.check { dependsOn(integrationTest) }` を削除(integrationTest は CI job と明示実行のみに) |
