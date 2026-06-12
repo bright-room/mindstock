@@ -19,7 +19,8 @@ tasks.named<Test>("test") {
 
 // @Tags("integration") のみを実行する統合テストタスク(core / api 共通の受け皿)。
 // 外部依存(DB / Garage)に当てるためキャッシュさせず毎回実行する。
-// 環境変数は providers.environmentVariable で lazy 評価し、configuration cache の不要な無効化を避ける。
+// 環境変数は System.getenv ではなく providers.environmentVariable で読み、Gradle が build input として
+// 追跡できるようにする(未追跡読みによる configuration cache の不要な無効化を避ける)。
 tasks.register<Test>("integrationTest") {
     group = "verification"
     description = "Runs @Tags(\"integration\") specs against live external dependencies (TEST_DB_* / STORAGE_*)."
