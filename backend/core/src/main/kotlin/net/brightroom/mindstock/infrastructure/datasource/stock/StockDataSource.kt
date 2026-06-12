@@ -56,10 +56,8 @@ class StockDataSource(
     override fun listByHousehold(householdId: HouseholdId): Stocks =
         transaction(database) {
             val products = productDataSource.listByHousehold(householdId).list
-            // NOTE(P5): per-product loadMovements で 2N+1 クエリ。世帯の商品数が多いと効く。
-            // P5 で stock_movements を product_id IN (...) で一括取得し product ごとに group + actor も全体一括、に最適化する
-            // (実 DB + 結合テストで grouping を検証してから。P4 は機能的に正しい現状で確定)。
-            Stocks(products.map { p -> Stock(p, loadMovements(p.id)) })
+            val movementsByProduct = loadMovementsByProducts(products.map { it.id })
+            Stocks(products.map { p -> Stock(p, movementsByProduct[p.id] ?: StockMovements(emptyList())) })
         }
 
     override fun historyOf(productId: ProductId): StockMovements = transaction(database) { loadMovements(productId) }
@@ -75,19 +73,7 @@ class StockDataSource(
                 .toList()
         if (rows.isEmpty()) return StockMovements(emptyList())
 
-        // actor をバッチ解決(actor_resident_id IN (...) × 最新 display_name)
-        val actorIds = rows.map { it[StockMovementsTable.actorResidentId] }.toSet()
-        val (dnSub, dnRefs) = latestResidentDisplayNames()
-        val actors: Map<Uuid, Resident> =
-            ResidentsTable
-                .join(dnSub, JoinType.INNER, onColumn = ResidentsTable.id, otherColumn = dnSub[ResidentDisplayNamesTable.residentId])
-                .selectAll()
-                .where { (ResidentsTable.id inList actorIds) and (dnSub[dnRefs.rn] eq 1L) }
-                .associate { row ->
-                    val rid = row[ResidentsTable.id]
-                    rid to Resident(ResidentId(rid), ResidentProfile(DisplayName(row[dnSub[ResidentDisplayNamesTable.displayName]])))
-                }
-
+        val actors = resolveActors(rows.map { it[StockMovementsTable.actorResidentId] }.toSet())
         val movements =
             rows.map { row ->
                 val residentId = row[StockMovementsTable.actorResidentId]
@@ -97,5 +83,55 @@ class StockDataSource(
                 row.toStockMovement(actor)
             }
         return StockMovements(movements)
+    }
+
+    /**
+     * 複数 product の movement を一括取得する。product_id IN (...) で 1 クエリ発行し、
+     * product ごとに groupBy して返す。movement の無い product はキーに現れない。
+     */
+    private fun loadMovementsByProducts(productIds: List<ProductId>): Map<ProductId, StockMovements> {
+        if (productIds.isEmpty()) return emptyMap()
+
+        val rows =
+            StockMovementsTable
+                .selectAll()
+                .where { StockMovementsTable.productId inList productIds.map { it() } }
+                // product_id ASC, id ASC = product ごとに追記順を保つ
+                .orderBy(StockMovementsTable.productId to SortOrder.ASC, StockMovementsTable.id to SortOrder.ASC)
+                .toList()
+        if (rows.isEmpty()) return emptyMap()
+
+        val actors = resolveActors(rows.map { it[StockMovementsTable.actorResidentId] }.toSet())
+        return rows
+            .groupBy { ProductId(it[StockMovementsTable.productId]) }
+            .mapValues { (_, productRows) ->
+                StockMovements(
+                    productRows.map { row ->
+                        val residentId = row[StockMovementsTable.actorResidentId]
+                        val actor =
+                            actors[residentId]
+                                ?: throw ResourceNotFoundException("display name not found for resident: $residentId")
+                        row.toStockMovement(actor)
+                    },
+                )
+            }
+    }
+
+    /**
+     * actor_resident_id のセットから Resident を一括解決する(最新 display_name JOIN)。
+     * 空セットは早期リターンで空 Map を返す。
+     */
+    private fun resolveActors(actorIds: Set<Uuid>): Map<Uuid, Resident> {
+        if (actorIds.isEmpty()) return emptyMap()
+
+        val (dnSub, dnRefs) = latestResidentDisplayNames()
+        return ResidentsTable
+            .join(dnSub, JoinType.INNER, onColumn = ResidentsTable.id, otherColumn = dnSub[ResidentDisplayNamesTable.residentId])
+            .selectAll()
+            .where { (ResidentsTable.id inList actorIds) and (dnSub[dnRefs.rn] eq 1L) }
+            .associate { row ->
+                val rid = row[ResidentsTable.id]
+                rid to Resident(ResidentId(rid), ResidentProfile(DisplayName(row[dnSub[ResidentDisplayNamesTable.displayName]])))
+            }
     }
 }
