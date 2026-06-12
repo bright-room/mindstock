@@ -55,6 +55,10 @@ jobs:
         uses: gradle/actions/setup-gradle@50e97c2cd7a37755bbfafc9c5b7cafaece252f6e # v6
 
       - name: Unit tests (JVM)
+        # test と jvmTest は対象が分離している(重複ではない):
+        #   test    → :backend:* (kotlin-jvm モジュール)
+        #   jvmTest → :domain / :rpc / :shared (KMP モジュール。test タスクを持たない)
+        # どちらを外しても片方のモジュール群のテストが CI から落ちるため両方必須。
         run: ./gradlew test jvmTest
 
       - name: Upload reports on failure
