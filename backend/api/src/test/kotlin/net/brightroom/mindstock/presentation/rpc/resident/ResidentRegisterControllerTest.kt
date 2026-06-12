@@ -18,6 +18,7 @@ import net.brightroom.mindstock.domain.model.resident.profile.DisplayName
 import net.brightroom.mindstock.domain.model.resident.profile.ResidentProfile
 import net.brightroom.mindstock.rpc.result.RpcError
 import net.brightroom.mindstock.rpc.result.RpcResult
+import net.brightroom.mindstock.testfixtures.buildRegisteredSession
 import kotlin.time.Clock
 import kotlin.time.Duration.Companion.hours
 import kotlin.uuid.Uuid
@@ -28,7 +29,7 @@ class ResidentRegisterControllerTest :
         val residentId = ResidentId.create()
         val exp = Clock.System.now().plus(1.hours)
 
-        val registeredSession = MindstockSession.Registered(identity, residentId, exp, Uuid.random())
+        val registeredSession = buildRegisteredSession(residentId, identity, exp)
         val unregisteredSession = MindstockSession.Unregistered(identity, exp, Uuid.random())
 
         val displayName = DisplayName("じぶん")
