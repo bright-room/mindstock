@@ -1,3 +1,5 @@
+import net.brightroom.mindstock.gradle.IntegrationTestDbLock
+
 plugins {
     id("org.jetbrains.kotlin.jvm")
     id("net.brightroom.mindstock.spotless")
@@ -10,6 +12,14 @@ kotlin {
 tasks.withType<Test>().configureEach {
     useJUnitPlatform()
 }
+
+// 統合テストが共有する単一 test DB(mindstock_test)へのアクセスを直列化する共有 BuildService。
+// registerIfAbsent は名前でビルド全体に 1 インスタンスを共有するため、全モジュールの integrationTest が
+// 同じロックを参照する。maxParallelUsages=1 でモジュール横断の同時実行を抑止する(IntegrationTestDbLock 参照)。
+val integrationTestDbLock =
+    gradle.sharedServices.registerIfAbsent("integrationTestDbLock", IntegrationTestDbLock::class.java) {
+        maxParallelUsages.set(1)
+    }
 
 // 通常 test は integration/manual タグを除外(全 JVM モジュール共通)。
 // -Dkotest.tags.exclude= (空文字) で全件実行に上書きできる。
@@ -25,6 +35,8 @@ tasks.register<Test>("integrationTest") {
     group = "verification"
     description = "Runs @Tags(\"integration\") specs against live external dependencies (local mindstock_test DB / STORAGE_*)."
     doNotTrackState("integration tests run against live external dependencies")
+    // 共有 test DB(mindstock_test)へのアクセスをモジュール横断で直列化する(全表 TRUNCATE の相互汚染防止)。
+    usesService(integrationTestDbLock)
     val testSourceSet = sourceSets["test"]
     testClassesDirs = testSourceSet.output.classesDirs
     classpath = testSourceSet.runtimeClasspath
