@@ -14,7 +14,7 @@ import androidx.compose.ui.unit.dp
 import net.brightroom.mindstock.frontend.designsystem.theme.ShadowLevel
 import net.brightroom.mindstock.frontend.designsystem.theme.softShadow
 
-/** 円形アイコンボタン（戻る/設定 等の chrome 用）。 */
+/** 円形アイコンボタン。現状は [Stepper] の増減（±）ボタンに使う。 */
 @Composable
 fun RoundBtn(
     icon: AppIconName,

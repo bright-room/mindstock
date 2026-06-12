@@ -13,6 +13,8 @@ import io.ktor.server.application.log
 import io.ktor.server.plugins.di.annotations.Property
 import io.ktor.server.plugins.di.dependencies
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withTimeout
+import kotlin.time.Duration.Companion.seconds
 
 data class StorageBucket(
     val name: String,
@@ -36,28 +38,29 @@ fun Application.storageConfigure(
     monitor.subscribe(ApplicationStarted) {
         val origins =
             properties.corsAllowedOrigins
-                .split(",")
                 .map { it.trim() }
                 .filter { it.isNotBlank() }
         try {
             runBlocking {
-                s3.putBucketCors(
-                    PutBucketCorsRequest {
-                        bucket = properties.bucket
-                        corsConfiguration =
-                            CorsConfiguration {
-                                corsRules =
-                                    listOf(
-                                        CorsRule {
-                                            allowedOrigins = origins
-                                            allowedMethods = listOf("GET", "HEAD")
-                                            allowedHeaders = listOf("*")
-                                            maxAgeSeconds = 3000
-                                        },
-                                    )
-                            }
-                    },
-                )
+                withTimeout(10.seconds) {
+                    s3.putBucketCors(
+                        PutBucketCorsRequest {
+                            bucket = properties.bucket
+                            corsConfiguration =
+                                CorsConfiguration {
+                                    corsRules =
+                                        listOf(
+                                            CorsRule {
+                                                allowedOrigins = origins
+                                                allowedMethods = listOf("GET", "HEAD")
+                                                allowedHeaders = listOf("*")
+                                                maxAgeSeconds = 3000
+                                            },
+                                        )
+                                }
+                        },
+                    )
+                }
             }
             log.info("bucket CORS applied: origins=$origins")
         } catch (e: Exception) {
