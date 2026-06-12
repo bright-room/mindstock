@@ -65,13 +65,14 @@ mindstock の層責務と依存方向。Controller / Scenario / Service / Reposi
 - Reader / Writer 分離:
   - 読み: `<Ctx>Repository`
   - 書き: `<Ctx>RegisterRepository`
-- Hydration ロジックは `<Aggregate>Hydration.kt` の internal extension に集約(命名: `ResultRow.to<Aggregate>()`)
+- Hydration ロジックは `<Aggregate>Hydration.kt` の internal extension に集約。単一行マッピングは `ResultRow.to<Aggregate>()`、**複数テーブルを組み立てる集約は `assemble<Aggregate>(...)` 形も許容**(例: `assembleHousehold()` / `assembleInvitation()`。member や validity event を別テーブルから組み立てる)
 
 ### DataSource(infrastructure)
 
 - 各メソッドは `transaction(database) { }` で自前にトランザクション境界を張る(`tx()` ヘルパー / `ExposedTransactionPlugin` は廃止。取り回しの煩雑さ回避)。`Database` はコンストラクタ注入する
 - INSERT 後は RETURNING 相当(`insertAndGetId` + hydration)で読み戻して domain object を返す
 - 行が無かった場合は `ResourceNotFoundException` を throw する(Service / Scenario は素通しの前提)
+- 永続化メタの「現在時刻」は `Created.now()`(`infrastructure/datasource/Created.kt`)で取得し、**原則 `transaction(database) { }` ブロックの内側で呼ぶ**(挿入時刻とトランザクション境界を揃える)。例外的に retry ループでトランザクションを跨いで同一時刻を使いたい場合のみ外側で取得してよい(現状 `InvitationRegisterDataSource.issue` がこれに該当)。フェーズ 3-5 で「原則 tx 内」へ統一予定
 
 ### 外部システム実装(infrastructure・Transfer / Receive)
 
@@ -98,7 +99,6 @@ DB ではない外部システム(S3 / Garage、外部 API 等)との境界の�
 
 - Controller / Scenario / Service / Repository / DataSource は **同じコンテキスト名のプレフィックス** を持つ
   - 例: `StockController` / `RegisterStockScenario` / `StockService` + `StockRegisterService` / `StockRepository` + `StockRegisterRepository` / `StockDataSource` + `StockRegisterDataSource`
-- `Handler` 命名は採用しない(`Service` / `Scenario` に統一済み)
 
 ## Why
 
