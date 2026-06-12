@@ -10,8 +10,7 @@ import net.brightroom.mindstock.rpc.resident.ResidentRegisterRpcService
 class ResidentRepository(
     private val residentRegisterService: () -> ResidentRegisterRpcService,
 ) {
-    suspend fun register(displayName: DisplayName): RpcOutcome<Resident> =
-        residentRegisterService().registerDisplayName(displayName).toOutcome()
+    suspend fun register(displayName: DisplayName): RpcOutcome<Resident> = residentRegisterService().register(displayName).toOutcome()
 
     suspend fun rename(displayName: DisplayName): RpcOutcome<Unit> = residentRegisterService().rename(displayName).toOutcome()
 }

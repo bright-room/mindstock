@@ -12,7 +12,7 @@ interface ResidentRegisterRepository {
         displayName: DisplayName,
     ): Resident
 
-    /** display_name を 1 行 append(registerDisplayName/rename 兼用)。 */
+    /** display_name を 1 行 append(register/rename 兼用)。 */
     fun appendDisplayName(
         residentId: ResidentId,
         displayName: DisplayName,

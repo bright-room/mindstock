@@ -15,7 +15,7 @@ import kotlin.test.Test
 private class FakeResidentRegisterService(
     private val result: RpcResult<Resident, RpcError>,
 ) : ResidentRegisterRpcService {
-    override suspend fun registerDisplayName(displayName: DisplayName): RpcResult<Resident, RpcError> = result
+    override suspend fun register(displayName: DisplayName): RpcResult<Resident, RpcError> = result
 
     override suspend fun rename(displayName: DisplayName): RpcResult<Unit, RpcError> = RpcResult.Ok(Unit)
 }

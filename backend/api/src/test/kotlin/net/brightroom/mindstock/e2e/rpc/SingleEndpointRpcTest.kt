@@ -154,11 +154,11 @@ class SingleEndpointRpcTest :
             }
         }
 
-        test("未登録: whoami=Unregistered / registerDisplayName 成立 / rename は Unauthorized") {
+        test("未登録: whoami=Unregistered / register 成立 / rename は Unauthorized") {
             runBlocking {
                 withConn(registered = false) { sessionSvc, registerSvc ->
                     sessionSvc.whoami() shouldBe RpcResult.Ok(SessionStatus.Unregistered)
-                    registerSvc.registerDisplayName(DisplayName("Alice")).shouldBeInstanceOf<RpcResult.Ok<Resident>>()
+                    registerSvc.register(DisplayName("Alice")).shouldBeInstanceOf<RpcResult.Ok<Resident>>()
                     val r = registerSvc.rename(DisplayName("Bob"))
                     (r as RpcResult.Err).error.shouldBeInstanceOf<RpcError.Unauthorized>()
                 }

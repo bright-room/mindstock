@@ -14,7 +14,7 @@ class ResidentRegisterController(
     private val residentRegisterService: ResidentRegisterService,
     private val session: MindstockSession,
 ) : ResidentRegisterRpcService {
-    override suspend fun registerDisplayName(displayName: DisplayName): RpcResult<Resident, RpcError> =
+    override suspend fun register(displayName: DisplayName): RpcResult<Resident, RpcError> =
         allowUnregistered(session) {
             when (session) {
                 is MindstockSession.Registered -> RpcResult.Err(RpcError.Conflict(reason = "already registered"))
