@@ -4,10 +4,8 @@ java = "openjdk-25"
 [env]
 # backend dev port (frontend dev server takes 8080)
 PORT = "8090"
-# Test DB (postgres-init.sh が postgres:5432 上に mindstock_test を作成)
-TEST_DB_URL = "jdbc:postgresql://localhost:5432/mindstock_test"
-TEST_DB_USER = "mindstock"
-TEST_DB_PASSWORD = "mindstock"
+# 統合テストの DB(mindstock_test)はテスト専用の固定フィクスチャ。接続情報は TestDatabase の定数が持つので
+# env は不要(postgres-init.sh が postgres:5432 上に mindstock_test を作成する)。
 # Zitadel の AUTH_*(AUTH_ISSUER / AUTH_CLIENT_ID / AUTH_AUDIENCE / AUTH_PROJECT_ID /
 # AUTH_REDIRECT_URI / AUTH_POST_LOGOUT_REDIRECT_URI / AUTH_JWKS_URL)は
 # `docker compose up` が生成する .env.zitadel から読む(直書きしない)。

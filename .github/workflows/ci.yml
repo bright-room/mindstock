@@ -152,16 +152,13 @@ jobs:
 
       - name: Integration tests
         # backend:api は Postgres(mindstock_test)、backend:core は Garage に当てる。
+        # DB(mindstock_test)はテスト専用の固定フィクスチャで TestDatabase の定数に当たる(env 不要)。
         # storage は app と同じ STORAGE_* を読み、既定値は garage-init の固定キーと一致するため
-        # ここで storage の env を設定する必要はない。JVM S3 クライアントの store→presign→GET
+        # ここで storage の env を設定する必要もない。JVM S3 クライアントの store→presign→GET
         # 往復を検証する(CORS は JVM HTTP では強制されないため backend 起動は不要)。
         # テスト用 HikariCP プールはキャップ済み(TestDataSource / E2E アプリプール)。
         # default 並列度で接続枯渇しない。詳細は
         # docs/superpowers/specs/2026-05-30-integration-test-pool-capping-design.md
-        env:
-          TEST_DB_URL: jdbc:postgresql://localhost:5432/mindstock_test
-          TEST_DB_USER: mindstock
-          TEST_DB_PASSWORD: mindstock
         run: ./gradlew :backend:api:integrationTest :backend:core:integrationTest
 
       - name: Dump compose logs on failure
