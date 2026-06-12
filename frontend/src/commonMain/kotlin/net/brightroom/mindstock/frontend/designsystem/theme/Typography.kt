@@ -26,8 +26,11 @@ internal val LocalNotoSansJpFamily =
 
 // 注: Compose Resources の Font() は @Composable のため remember {} 内では呼べない
 // (androidx の非 Composable Font() とは異なる)。Font() は @Composable 文脈の本体直下に
-// 出し、安定な結果から組む FontFamily(...) の組み立てだけを remember {} で memoize する。
-// これで MindstockTheme が再コンポーズしても family は 1 度しか構築されない。
+// 出し、FontFamily(...) の組み立てだけを remember で memoize する。
+// remember のキーは **各 Font を列挙する**: Font() は非同期ロードで、バイト到着時に
+// 返す Font の参照が更新される。キー無し remember だとロード前の Font で組んだ family を
+// 作り直さず、フォントが永遠に適用されない(全文字が豆腐になる)。Font をキーにすることで
+// 「無関係な再コンポーズでは再構築しない」かつ「ロード完了時には作り直す」を両立する。
 @Composable
 internal fun notoSansJpFamily(): FontFamily {
     val thin = Font(Res.font.NotoSansJP_Thin, FontWeight.Thin, FontStyle.Normal)
@@ -39,7 +42,7 @@ internal fun notoSansJpFamily(): FontFamily {
     val bold = Font(Res.font.NotoSansJP_Bold, FontWeight.Bold, FontStyle.Normal)
     val extraBold = Font(Res.font.NotoSansJP_ExtraBold, FontWeight.ExtraBold, FontStyle.Normal)
     val black = Font(Res.font.NotoSansJP_Black, FontWeight.Black, FontStyle.Normal)
-    return remember {
+    return remember(thin, extraLight, light, regular, medium, semiBold, bold, extraBold, black) {
         FontFamily(thin, extraLight, light, regular, medium, semiBold, bold, extraBold, black)
     }
 }
