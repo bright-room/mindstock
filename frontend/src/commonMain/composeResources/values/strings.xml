@@ -317,6 +317,14 @@
     <string name="forecast_days_left">· あと約%1$d日</string>
     <string name="forecast_banner">%1$s はあと約 %2$d 日で切れる予測です</string>
     <string name="forecast_days_left_plain">あと約%1$d日</string>
+
+    <!-- お知らせ -->
+    <string name="notif_title">お知らせ</string>
+    <string name="notif_subtitle">在庫減少のお知らせ（将来は Web Push で端末に通知）</string>
+    <string name="notif_alert_out">在庫を切らしています</string>
+    <string name="notif_alert_low">そろそろ補充どきです</string>
+    <string name="notif_alert_soon">あと約%1$d日で切れそうです</string>
+
     <!-- welcome / sign-in splash -->
     <string name="welcome_tagline">暮らしの在庫を、ちょうどよく。</string>
     <string name="welcome_description">買い忘れも、買い過ぎも減らす。日用品のストックを家族とゆるやかに共有する在庫ノート。</string>
