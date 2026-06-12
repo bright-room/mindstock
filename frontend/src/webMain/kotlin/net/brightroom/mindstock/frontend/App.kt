@@ -6,6 +6,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -19,12 +20,14 @@ import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.plugins.websocket.WebSockets
 import io.ktor.serialization.kotlinx.json.json
 import kotlinx.browser.window
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import mindstock.frontend.generated.resources.Res
 import mindstock.frontend.generated.resources.loading
 import mindstock.frontend.generated.resources.need_household_title
+import net.brightroom.mindstock.domain.model.household.HouseholdId
 import net.brightroom.mindstock.domain.model.inventory.product.setting.MinimumStock
 import net.brightroom.mindstock.domain.model.inventory.product.setting.ProductUnit
 import net.brightroom.mindstock.domain.model.inventory.quantity.Quantity
@@ -262,41 +265,13 @@ fun App() {
                         } else {
                             val owner =
                                 isOwner(sessionState.households, sessionState.activeHouseholdId, sessionState.residentId)
-                            var opened by remember { mutableStateOf<DetailTarget?>(null) }
-                            var catalogOverlay by remember { mutableStateOf<CatalogOverlay?>(null) }
-                            val homeVm =
-                                remember(householdId) {
-                                    InventoryViewModel(
-                                        householdId = householdId,
-                                        loadStocks = repository::list,
-                                        replenishStock = repository::replenish,
-                                        consumeStock = repository::consume,
-                                        refresh = refresh,
-                                        toast = toast,
-                                        reauth = reauth,
-                                    )
-                                }
-                            val shopVm =
-                                remember(householdId) {
-                                    ShoppingListViewModel(
-                                        householdId = householdId,
-                                        loadShoppingList = repository::shoppingList,
-                                        setWantedFlag = repository::setWanted,
-                                        replenishStock = repository::replenish,
-                                        refresh = refresh,
-                                        toast = toast,
-                                        reauth = reauth,
-                                    )
-                                }
-                            val activityVm =
-                                remember(householdId) {
-                                    ActivityViewModel(
-                                        householdId = householdId,
-                                        loadActivity = repository::activity,
-                                        toast = toast,
-                                        reauth = reauth,
-                                    )
-                                }
+                            // 各 content 関数で共有する状態は呼び出し側(ここ)に hoist する。
+                            val openedState = remember { mutableStateOf<DetailTarget?>(null) }
+                            val catalogOverlayState = remember { mutableStateOf<CatalogOverlay?>(null) }
+                            val settingsSheetState = remember { mutableStateOf<SettingsSheet?>(null) }
+                            // 世帯作成/参加 or 切替が成立して active が変わったら、開いていたシートを閉じる。
+                            LaunchedEffect(householdId) { settingsSheetState.value = null }
+                            // 設定タブ画面と世帯スイッチャの両方で使う単一 VM。
                             val settingsVm =
                                 remember(householdId, sessionState.residentId) {
                                     SettingsViewModel(
@@ -313,146 +288,6 @@ fun App() {
                                         reauth = reauth,
                                     )
                                 }
-                            var settingsSheet by remember { mutableStateOf<SettingsSheet?>(null) }
-                            val settingsHhVm =
-                                remember(householdId) {
-                                    NeedHouseholdViewModel(
-                                        createHousehold = householdRepository::create,
-                                        previewInvite = householdRepository::previewInvite,
-                                        joinByCode = householdRepository::join,
-                                        flow = vm,
-                                        toast = toast,
-                                        reauth = reauth,
-                                    )
-                                }
-                            val settingsHhState by settingsHhVm.state.collectAsState()
-                            // 世帯作成/参加 or 切替が成立して active が変わったら、開いていたシートを閉じる。
-                            LaunchedEffect(householdId) { settingsSheet = null }
-                            var selectedTab by remember { mutableStateOf(Tab.Stock) }
-                            val shellHousehold =
-                                sessionState.households?.list?.firstOrNull { it.id == householdId }
-                            AppShell(
-                                selectedTab = selectedTab,
-                                onSelectTab = { selectedTab = it },
-                                onAdd = { catalogOverlay = CatalogOverlay.AddProduct },
-                                onOpenSwitcher = { settingsSheet = SettingsSheet.Switcher },
-                                onBell = {},
-                                displayName = sessionState.displayName?.invoke() ?: "",
-                                householdName = shellHousehold?.profile?.name?.invoke() ?: "",
-                                stockContent = {
-                                    InventoryRoute(
-                                        homeViewModel = homeVm,
-                                        refresh = refresh,
-                                        onOpenProduct = { pid, seed -> opened = DetailTarget(pid, seed) },
-                                        onAddProduct = { catalogOverlay = CatalogOverlay.AddProduct },
-                                        displayName = sessionState.displayName?.invoke() ?: "",
-                                        householdName = shellHousehold?.profile?.name?.invoke() ?: "",
-                                        memberCount = shellHousehold?.members?.size() ?: 1,
-                                        onShop = { selectedTab = Tab.Shop },
-                                        onOpenSettings = { selectedTab = Tab.Profile },
-                                    )
-                                },
-                                shopContent = {
-                                    val shopState by shopVm.state.collectAsState()
-                                    LoadWithRefresh(shopVm, refresh) { shopVm.load() }
-                                    ShoppingListScreen(
-                                        state = shopState,
-                                        onOpenProduct = { pid, seed -> opened = DetailTarget(pid, seed) },
-                                        onSetWanted = { pid, w -> scope.launch { shopVm.setWanted(pid, w) } },
-                                        onReplenish = { pid, q, n ->
-                                            scope.launch { shopVm.replenish(pid, Quantity(q), Note(n), OccurredAt.now()) }
-                                        },
-                                    )
-                                },
-                                activityContent = {
-                                    val activityState by activityVm.state.collectAsState()
-                                    LoadWithRefresh(activityVm, refresh) { activityVm.load() }
-                                    ActivityScreen(
-                                        state = activityState,
-                                        onOpenProduct = { pid -> opened = DetailTarget(pid, null) },
-                                    )
-                                },
-                                profileContent = {
-                                    val sState by settingsVm.state.collectAsState()
-                                    SettingsScreen(
-                                        state = sState,
-                                        onRenameDisplayName = { scope.launch { settingsVm.renameDisplayName(it) } },
-                                        onRenameHousehold = { scope.launch { settingsVm.renameHousehold(it) } },
-                                        onChangeRole = { t, r -> scope.launch { settingsVm.changeRole(t, r) } },
-                                        onRemoveMember = { scope.launch { settingsVm.removeMember(it) } },
-                                        onLeave = { scope.launch { settingsVm.leave() } },
-                                        onIssueInvite = { scope.launch { settingsVm.createInvite(it) } },
-                                        onRevokeInvite = { scope.launch { settingsVm.revokeInvite() } },
-                                        onOpenMaster = { catalogOverlay = CatalogOverlay.Master },
-                                        onOpenArchived = { catalogOverlay = CatalogOverlay.Archived },
-                                        onOpenSwitcher = { settingsSheet = SettingsSheet.Switcher },
-                                        onLogout = { reauth.request() },
-                                    )
-                                },
-                            )
-                            HouseholdSwitcher(
-                                open = settingsSheet == SettingsSheet.Switcher,
-                                households = settingsVm.state.value.households,
-                                onClose = { settingsSheet = null },
-                                onChoose = { id ->
-                                    settingsVm.switchHousehold(id)
-                                    settingsSheet = null
-                                },
-                                onCreate = { settingsSheet = SettingsSheet.Create },
-                                onJoin = {
-                                    settingsHhVm.clearPreview()
-                                    settingsSheet = SettingsSheet.Join
-                                },
-                            )
-                            CreateHouseholdSheet(
-                                open = settingsSheet == SettingsSheet.Create,
-                                busy = settingsHhState.busy,
-                                onClose = { settingsSheet = null },
-                                onCreate = { name -> scope.launch { settingsHhVm.create(name) } },
-                            )
-                            JoinCodeSheet(
-                                open = settingsSheet == SettingsSheet.Join,
-                                state = settingsHhState,
-                                onClose = {
-                                    settingsSheet = null
-                                    settingsHhVm.clearPreview()
-                                },
-                                onCodeChange = { code ->
-                                    if (code.length == 6) scope.launch { settingsHhVm.preview(code) } else settingsHhVm.clearPreview()
-                                },
-                                onJoin = { code -> scope.launch { settingsHhVm.join(code) } },
-                            )
-                            val target = opened
-                            if (target != null) {
-                                ProductDetailOverlay(
-                                    target = target,
-                                    viewModelFactory = { t ->
-                                        ProductDetailViewModel(
-                                            householdId = householdId,
-                                            productId = t.productId,
-                                            seed = t.seed,
-                                            loadShoppingList = repository::shoppingList,
-                                            loadHistory = repository::history,
-                                            replenishStock = repository::replenish,
-                                            consumeStock = repository::consume,
-                                            correctMovement = repository::correct,
-                                            setWantedFlag = repository::setWanted,
-                                            refresh = refresh,
-                                            toast = toast,
-                                            reauth = reauth,
-                                        )
-                                    },
-                                    refresh = refresh,
-                                    onBack = { opened = null },
-                                    onOpenSettings =
-                                        if (owner) {
-                                            { target.seed?.let { catalogOverlay = CatalogOverlay.Settings(it) } }
-                                        } else {
-                                            null
-                                        },
-                                    modifier = Modifier.fillMaxSize(),
-                                )
-                            }
                             // Master/Settings 両オーバーレイで共有する単一 VM(二重生成を避ける)。
                             val productMasterVm =
                                 remember(householdId) {
@@ -470,124 +305,42 @@ fun App() {
                                         reauth = reauth,
                                     )
                                 }
-                            when (val ov = catalogOverlay) {
-                                null -> {
-                                    Unit
-                                }
-
-                                is CatalogOverlay.AddProduct -> {
-                                    val addVm =
-                                        remember(householdId) {
-                                            AddProductViewModel(
-                                                searchCatalog = catalogRepository::search,
-                                                lookupJan = catalogRepository::lookupByJan,
-                                                adoptProduct = { id, u, m -> catalogRepository.adopt(householdId, id, u, m) },
-                                                addCustomProduct = { req -> catalogRepository.addCustom(householdId, req) },
-                                                refresh = refresh,
-                                                toast = toast,
-                                                reauth = reauth,
-                                            )
-                                        }
-                                    val addState by addVm.state.collectAsState()
-                                    LaunchedEffect(addState) {
-                                        if (addState is AddProductUiState.Done) catalogOverlay = null
-                                    }
-                                    AddProductScreen(
-                                        state = addState,
-                                        onQuery = { scope.launch { addVm.search(it) } },
-                                        onLookupJan = { scope.launch { addVm.lookupByJan(it) } },
-                                        onPickCatalog = { addVm.pickCatalog(it) },
-                                        onPickCustom = { addVm.pickCustom(it) },
-                                        onBack = {
-                                            if (addState is AddProductUiState.Browsing) {
-                                                catalogOverlay = null
-                                            } else {
-                                                addVm.backToBrowsing()
-                                            }
-                                        },
-                                        onAdopt = { item, u, m -> scope.launch { addVm.adopt(item, u, m) } },
-                                        onAddCustom = { name, jan, u, m -> scope.launch { addVm.addCustom(name, jan, u, m) } },
-                                        modifier = Modifier.fillMaxSize(),
-                                    )
-                                }
-
-                                is CatalogOverlay.Master -> {
-                                    val mState by productMasterVm.state.collectAsState()
-                                    var settingsStock by remember { mutableStateOf<Stock?>(null) }
-                                    LoadWithRefresh(productMasterVm, refresh) { productMasterVm.load() }
-                                    ProductMasterScreen(
-                                        state = mState,
-                                        householdName = activeHouseholdName(sessionState),
-                                        onBack = { catalogOverlay = null },
-                                        onAdd = { catalogOverlay = CatalogOverlay.AddProduct },
-                                        onSelect = { settingsStock = it },
-                                        modifier = Modifier.fillMaxSize(),
-                                    )
-                                    ProductSettingsSheetWithImage(
-                                        open = settingsStock != null,
-                                        stock = settingsStock,
-                                        viewModel = productMasterVm,
-                                        onClose = { settingsStock = null },
-                                        onChangeUnit = { u ->
-                                            settingsStock?.let { s ->
-                                                scope.launch { productMasterVm.changeUnit(s.product.id, u) }
-                                            }
-                                        },
-                                        onChangeMinimum = { m ->
-                                            settingsStock?.let { s ->
-                                                scope.launch { productMasterVm.changeMinimum(s.product.id, m) }
-                                            }
-                                        },
-                                        onArchive = {
-                                            settingsStock?.let { s -> scope.launch { productMasterVm.archive(s.product.id) } }
-                                            settingsStock = null
-                                        },
-                                    )
-                                }
-
-                                is CatalogOverlay.Archived -> {
-                                    val archVm =
-                                        remember(householdId) {
-                                            ArchivedViewModel(
-                                                householdId = householdId,
-                                                loadArchived = catalogRepository::listArchived,
-                                                unarchiveProduct = catalogRepository::unarchive,
-                                                refresh = refresh,
-                                                toast = toast,
-                                                reauth = reauth,
-                                            )
-                                        }
-                                    val aState by archVm.state.collectAsState()
-                                    LoadWithRefresh(archVm, refresh) { archVm.load() }
-                                    ArchivedScreen(
-                                        state = aState,
-                                        householdName = activeHouseholdName(sessionState),
-                                        canRestore = owner,
-                                        onBack = { catalogOverlay = null },
-                                        onRestore = { pid -> scope.launch { archVm.unarchive(pid) } },
-                                        modifier = Modifier.fillMaxSize(),
-                                    )
-                                }
-
-                                is CatalogOverlay.Settings -> {
-                                    ProductSettingsSheetWithImage(
-                                        open = true,
-                                        stock = ov.stock,
-                                        viewModel = productMasterVm,
-                                        onClose = { catalogOverlay = null },
-                                        onChangeUnit = { u ->
-                                            scope.launch { productMasterVm.changeUnit(ov.stock.product.id, u) }
-                                        },
-                                        onChangeMinimum = { m ->
-                                            scope.launch { productMasterVm.changeMinimum(ov.stock.product.id, m) }
-                                        },
-                                        onArchive = {
-                                            scope.launch { productMasterVm.archive(ov.stock.product.id) }
-                                            catalogOverlay = null
-                                        },
-                                    )
-                                }
-                            }
+                            ReadyContent(
+                                householdId = householdId,
+                                sessionState = sessionState,
+                                owner = owner,
+                                settingsVm = settingsVm,
+                                repository = repository,
+                                refresh = refresh,
+                                toast = toast,
+                                reauth = reauth,
+                                scope = scope,
+                                opened = openedState,
+                                catalogOverlay = catalogOverlayState,
+                                settingsSheet = settingsSheetState,
+                            )
+                            HouseholdSheets(
+                                householdId = householdId,
+                                authFlow = vm,
+                                householdRepository = householdRepository,
+                                settingsVm = settingsVm,
+                                toast = toast,
+                                reauth = reauth,
+                                scope = scope,
+                                settingsSheet = settingsSheetState,
+                            )
+                            CatalogOverlayContent(
+                                householdId = householdId,
+                                sessionState = sessionState,
+                                owner = owner,
+                                productMasterVm = productMasterVm,
+                                catalogRepository = catalogRepository,
+                                refresh = refresh,
+                                toast = toast,
+                                reauth = reauth,
+                                scope = scope,
+                                catalogOverlay = catalogOverlayState,
+                            )
                         }
                     }
                 }
@@ -613,6 +366,351 @@ private fun LoadWithRefresh(
 ) {
     LaunchedEffect(key) { load() }
     LaunchedEffect(refresh) { refresh.signal.collect { load() } }
+}
+
+/**
+ * 在庫/買い物/活動/設定の 4 タブシェルと、商品詳細オーバーレイ。各タブ用 VM を生成し配線する。
+ * 状態([opened] / [catalogOverlay] / [settingsSheet])は呼び出し側で hoist されたものを受ける。
+ */
+@Composable
+private fun ReadyContent(
+    householdId: HouseholdId,
+    sessionState: AppSession.State,
+    owner: Boolean,
+    settingsVm: SettingsViewModel,
+    repository: InventoryRepository,
+    refresh: InventoryRefreshController,
+    toast: ToastController,
+    reauth: ReauthController,
+    scope: CoroutineScope,
+    opened: MutableState<DetailTarget?>,
+    catalogOverlay: MutableState<CatalogOverlay?>,
+    settingsSheet: MutableState<SettingsSheet?>,
+) {
+    val homeVm =
+        remember(householdId) {
+            InventoryViewModel(
+                householdId = householdId,
+                loadStocks = repository::list,
+                replenishStock = repository::replenish,
+                consumeStock = repository::consume,
+                refresh = refresh,
+                toast = toast,
+                reauth = reauth,
+            )
+        }
+    val shopVm =
+        remember(householdId) {
+            ShoppingListViewModel(
+                householdId = householdId,
+                loadShoppingList = repository::shoppingList,
+                setWantedFlag = repository::setWanted,
+                replenishStock = repository::replenish,
+                refresh = refresh,
+                toast = toast,
+                reauth = reauth,
+            )
+        }
+    val activityVm =
+        remember(householdId) {
+            ActivityViewModel(
+                householdId = householdId,
+                loadActivity = repository::activity,
+                toast = toast,
+                reauth = reauth,
+            )
+        }
+    var selectedTab by remember { mutableStateOf(Tab.Stock) }
+    val shellHousehold =
+        sessionState.households?.list?.firstOrNull { it.id == householdId }
+    AppShell(
+        selectedTab = selectedTab,
+        onSelectTab = { selectedTab = it },
+        onAdd = { catalogOverlay.value = CatalogOverlay.AddProduct },
+        onOpenSwitcher = { settingsSheet.value = SettingsSheet.Switcher },
+        onBell = {},
+        displayName = sessionState.displayName?.invoke() ?: "",
+        householdName = shellHousehold?.profile?.name?.invoke() ?: "",
+        stockContent = {
+            InventoryRoute(
+                homeViewModel = homeVm,
+                refresh = refresh,
+                onOpenProduct = { pid, seed -> opened.value = DetailTarget(pid, seed) },
+                onAddProduct = { catalogOverlay.value = CatalogOverlay.AddProduct },
+                displayName = sessionState.displayName?.invoke() ?: "",
+                householdName = shellHousehold?.profile?.name?.invoke() ?: "",
+                memberCount = shellHousehold?.members?.size() ?: 1,
+                onShop = { selectedTab = Tab.Shop },
+                onOpenSettings = { selectedTab = Tab.Profile },
+            )
+        },
+        shopContent = {
+            val shopState by shopVm.state.collectAsState()
+            LoadWithRefresh(shopVm, refresh) { shopVm.load() }
+            ShoppingListScreen(
+                state = shopState,
+                onOpenProduct = { pid, seed -> opened.value = DetailTarget(pid, seed) },
+                onSetWanted = { pid, w -> scope.launch { shopVm.setWanted(pid, w) } },
+                onReplenish = { pid, q, n ->
+                    scope.launch { shopVm.replenish(pid, Quantity(q), Note(n), OccurredAt.now()) }
+                },
+            )
+        },
+        activityContent = {
+            val activityState by activityVm.state.collectAsState()
+            LoadWithRefresh(activityVm, refresh) { activityVm.load() }
+            ActivityScreen(
+                state = activityState,
+                onOpenProduct = { pid -> opened.value = DetailTarget(pid, null) },
+            )
+        },
+        profileContent = {
+            val sState by settingsVm.state.collectAsState()
+            SettingsScreen(
+                state = sState,
+                onRenameDisplayName = { scope.launch { settingsVm.renameDisplayName(it) } },
+                onRenameHousehold = { scope.launch { settingsVm.renameHousehold(it) } },
+                onChangeRole = { t, r -> scope.launch { settingsVm.changeRole(t, r) } },
+                onRemoveMember = { scope.launch { settingsVm.removeMember(it) } },
+                onLeave = { scope.launch { settingsVm.leave() } },
+                onIssueInvite = { scope.launch { settingsVm.createInvite(it) } },
+                onRevokeInvite = { scope.launch { settingsVm.revokeInvite() } },
+                onOpenMaster = { catalogOverlay.value = CatalogOverlay.Master },
+                onOpenArchived = { catalogOverlay.value = CatalogOverlay.Archived },
+                onOpenSwitcher = { settingsSheet.value = SettingsSheet.Switcher },
+                onLogout = { reauth.request() },
+            )
+        },
+    )
+    val target = opened.value
+    if (target != null) {
+        ProductDetailOverlay(
+            target = target,
+            viewModelFactory = { t ->
+                ProductDetailViewModel(
+                    householdId = householdId,
+                    productId = t.productId,
+                    seed = t.seed,
+                    loadShoppingList = repository::shoppingList,
+                    loadHistory = repository::history,
+                    replenishStock = repository::replenish,
+                    consumeStock = repository::consume,
+                    correctMovement = repository::correct,
+                    setWantedFlag = repository::setWanted,
+                    refresh = refresh,
+                    toast = toast,
+                    reauth = reauth,
+                )
+            },
+            refresh = refresh,
+            onBack = { opened.value = null },
+            onOpenSettings =
+                if (owner) {
+                    { target.seed?.let { catalogOverlay.value = CatalogOverlay.Settings(it) } }
+                } else {
+                    null
+                },
+            modifier = Modifier.fillMaxSize(),
+        )
+    }
+}
+
+/**
+ * 世帯スイッチャ・世帯作成・参加コードの 3 シート。切替/作成/参加用の [NeedHouseholdViewModel] を生成し、
+ * スイッチャの一覧と切替は [settingsVm] を使う。シート開閉状態は呼び出し側で hoist された [settingsSheet]。
+ */
+@Composable
+private fun HouseholdSheets(
+    householdId: HouseholdId,
+    authFlow: AuthViewModel,
+    householdRepository: HouseholdRepository,
+    settingsVm: SettingsViewModel,
+    toast: ToastController,
+    reauth: ReauthController,
+    scope: CoroutineScope,
+    settingsSheet: MutableState<SettingsSheet?>,
+) {
+    val settingsHhVm =
+        remember(householdId) {
+            NeedHouseholdViewModel(
+                createHousehold = householdRepository::create,
+                previewInvite = householdRepository::previewInvite,
+                joinByCode = householdRepository::join,
+                flow = authFlow,
+                toast = toast,
+                reauth = reauth,
+            )
+        }
+    val settingsHhState by settingsHhVm.state.collectAsState()
+    HouseholdSwitcher(
+        open = settingsSheet.value == SettingsSheet.Switcher,
+        households = settingsVm.state.value.households,
+        onClose = { settingsSheet.value = null },
+        onChoose = { id ->
+            settingsVm.switchHousehold(id)
+            settingsSheet.value = null
+        },
+        onCreate = { settingsSheet.value = SettingsSheet.Create },
+        onJoin = {
+            settingsHhVm.clearPreview()
+            settingsSheet.value = SettingsSheet.Join
+        },
+    )
+    CreateHouseholdSheet(
+        open = settingsSheet.value == SettingsSheet.Create,
+        busy = settingsHhState.busy,
+        onClose = { settingsSheet.value = null },
+        onCreate = { name -> scope.launch { settingsHhVm.create(name) } },
+    )
+    JoinCodeSheet(
+        open = settingsSheet.value == SettingsSheet.Join,
+        state = settingsHhState,
+        onClose = {
+            settingsSheet.value = null
+            settingsHhVm.clearPreview()
+        },
+        onCodeChange = { code ->
+            if (code.length == 6) scope.launch { settingsHhVm.preview(code) } else settingsHhVm.clearPreview()
+        },
+        onJoin = { code -> scope.launch { settingsHhVm.join(code) } },
+    )
+}
+
+/**
+ * 商品追加/マスタ/アーカイブ/設定シートのオーバーレイ群。表示中の種別は [catalogOverlay] で切り替わる。
+ * Master/Settings は呼び出し側で単一生成された [productMasterVm] を共有する。
+ */
+@Composable
+private fun CatalogOverlayContent(
+    householdId: HouseholdId,
+    sessionState: AppSession.State,
+    owner: Boolean,
+    productMasterVm: ProductMasterViewModel,
+    catalogRepository: CatalogRepository,
+    refresh: InventoryRefreshController,
+    toast: ToastController,
+    reauth: ReauthController,
+    scope: CoroutineScope,
+    catalogOverlay: MutableState<CatalogOverlay?>,
+) {
+    when (val ov = catalogOverlay.value) {
+        null -> {
+            Unit
+        }
+
+        is CatalogOverlay.AddProduct -> {
+            val addVm =
+                remember(householdId) {
+                    AddProductViewModel(
+                        searchCatalog = catalogRepository::search,
+                        lookupJan = catalogRepository::lookupByJan,
+                        adoptProduct = { id, u, m -> catalogRepository.adopt(householdId, id, u, m) },
+                        addCustomProduct = { req -> catalogRepository.addCustom(householdId, req) },
+                        refresh = refresh,
+                        toast = toast,
+                        reauth = reauth,
+                    )
+                }
+            val addState by addVm.state.collectAsState()
+            LaunchedEffect(addState) {
+                if (addState is AddProductUiState.Done) catalogOverlay.value = null
+            }
+            AddProductScreen(
+                state = addState,
+                onQuery = { scope.launch { addVm.search(it) } },
+                onLookupJan = { scope.launch { addVm.lookupByJan(it) } },
+                onPickCatalog = { addVm.pickCatalog(it) },
+                onPickCustom = { addVm.pickCustom(it) },
+                onBack = {
+                    if (addState is AddProductUiState.Browsing) {
+                        catalogOverlay.value = null
+                    } else {
+                        addVm.backToBrowsing()
+                    }
+                },
+                onAdopt = { item, u, m -> scope.launch { addVm.adopt(item, u, m) } },
+                onAddCustom = { name, jan, u, m -> scope.launch { addVm.addCustom(name, jan, u, m) } },
+                modifier = Modifier.fillMaxSize(),
+            )
+        }
+
+        is CatalogOverlay.Master -> {
+            val mState by productMasterVm.state.collectAsState()
+            var settingsStock by remember { mutableStateOf<Stock?>(null) }
+            LoadWithRefresh(productMasterVm, refresh) { productMasterVm.load() }
+            ProductMasterScreen(
+                state = mState,
+                householdName = activeHouseholdName(sessionState),
+                onBack = { catalogOverlay.value = null },
+                onAdd = { catalogOverlay.value = CatalogOverlay.AddProduct },
+                onSelect = { settingsStock = it },
+                modifier = Modifier.fillMaxSize(),
+            )
+            ProductSettingsSheetWithImage(
+                open = settingsStock != null,
+                stock = settingsStock,
+                viewModel = productMasterVm,
+                onClose = { settingsStock = null },
+                onChangeUnit = { u ->
+                    settingsStock?.let { s ->
+                        scope.launch { productMasterVm.changeUnit(s.product.id, u) }
+                    }
+                },
+                onChangeMinimum = { m ->
+                    settingsStock?.let { s ->
+                        scope.launch { productMasterVm.changeMinimum(s.product.id, m) }
+                    }
+                },
+                onArchive = {
+                    settingsStock?.let { s -> scope.launch { productMasterVm.archive(s.product.id) } }
+                    settingsStock = null
+                },
+            )
+        }
+
+        is CatalogOverlay.Archived -> {
+            val archVm =
+                remember(householdId) {
+                    ArchivedViewModel(
+                        householdId = householdId,
+                        loadArchived = catalogRepository::listArchived,
+                        unarchiveProduct = catalogRepository::unarchive,
+                        refresh = refresh,
+                        toast = toast,
+                        reauth = reauth,
+                    )
+                }
+            val aState by archVm.state.collectAsState()
+            LoadWithRefresh(archVm, refresh) { archVm.load() }
+            ArchivedScreen(
+                state = aState,
+                householdName = activeHouseholdName(sessionState),
+                canRestore = owner,
+                onBack = { catalogOverlay.value = null },
+                onRestore = { pid -> scope.launch { archVm.unarchive(pid) } },
+                modifier = Modifier.fillMaxSize(),
+            )
+        }
+
+        is CatalogOverlay.Settings -> {
+            ProductSettingsSheetWithImage(
+                open = true,
+                stock = ov.stock,
+                viewModel = productMasterVm,
+                onClose = { catalogOverlay.value = null },
+                onChangeUnit = { u ->
+                    scope.launch { productMasterVm.changeUnit(ov.stock.product.id, u) }
+                },
+                onChangeMinimum = { m ->
+                    scope.launch { productMasterVm.changeMinimum(ov.stock.product.id, m) }
+                },
+                onArchive = {
+                    scope.launch { productMasterVm.archive(ov.stock.product.id) }
+                    catalogOverlay.value = null
+                },
+            )
+        }
+    }
 }
 
 /**
