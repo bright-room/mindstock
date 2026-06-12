@@ -136,7 +136,7 @@ class StockRegisterService(
     private val stockRepository: StockRepository,
     private val stockRegisterRepository: StockRegisterRepository,
 ) {
-    fun replenish(stockId: StockId, quantity: Quantity, note: Note, actor: UserId) {
+    fun replenish(stockId: StockId, quantity: Quantity, note: Note, actor: ResidentId) {
         val stock = stockRepository.findById(stockId)  // 不在は infra が例外を throw、Service は素通し
         val replenished = stock.replenish(quantity, note, actor)  // domain method がロジックを持つ
         stockRegisterRepository.appendMovement(stockId, replenished.latestMovement())
