@@ -25,7 +25,6 @@ import kotlinx.coroutines.launch
 import mindstock.frontend.generated.resources.Res
 import mindstock.frontend.generated.resources.loading
 import mindstock.frontend.generated.resources.need_household_title
-import net.brightroom.mindstock.domain.model.inventory.product.image.ProductImage
 import net.brightroom.mindstock.domain.model.inventory.product.setting.MinimumStock
 import net.brightroom.mindstock.domain.model.inventory.product.setting.ProductUnit
 import net.brightroom.mindstock.domain.model.inventory.quantity.Quantity
@@ -43,10 +42,8 @@ import net.brightroom.mindstock.frontend.auth.AuthConfig
 import net.brightroom.mindstock.frontend.auth.TokenStore
 import net.brightroom.mindstock.frontend.core.auth.AuthState
 import net.brightroom.mindstock.frontend.core.auth.ReauthController
-import net.brightroom.mindstock.frontend.core.image.ImagePickResult
 import net.brightroom.mindstock.frontend.core.image.LocalProductImageLoader
 import net.brightroom.mindstock.frontend.core.image.ProductImageLoader
-import net.brightroom.mindstock.frontend.core.image.pickImage
 import net.brightroom.mindstock.frontend.core.image.rememberProductThumbnail
 import net.brightroom.mindstock.frontend.core.rpc.RpcClientProvider
 import net.brightroom.mindstock.frontend.core.session.AppSession
@@ -619,9 +616,9 @@ private fun LoadWithRefresh(
 }
 
 /**
- * [ProductSettingsSheet] に画像欄を配線したラッパ。RPC オーケストレーション(アップロード/削除・
- * loader 無効化・一覧 refresh・エラー処理)は [ProductMasterViewModel] が持ち、ここはピッカー起動と
- * 楽観表示フラグ([stored])・再入抑止だけを担う UI 配線に徹する。
+ * [ProductSettingsSheet] に画像欄を配線したラッパ。画像状態(楽観表示フラグ・再入抑止)と RPC
+ * オーケストレーション(ピッカー起動/アップロード/削除・loader 無効化・一覧 refresh・エラー処理)は
+ * [ProductMasterViewModel] が持ち、ここは VM の状態を購読して描画とイベント委譲に徹する表示専任。
  */
 @Composable
 private fun ProductSettingsSheetWithImage(
@@ -635,9 +632,9 @@ private fun ProductSettingsSheetWithImage(
 ) {
     val scope = rememberCoroutineScope()
     val productId = stock?.product?.id
-    var stored by remember(productId) { mutableStateOf(stock?.product?.image is ProductImage.Stored) }
-    // 画像更新(upload/remove)の進行中フラグ。再入を抑止して書込を 1 本に直列化する。
-    var imageBusy by remember(productId) { mutableStateOf(false) }
+    val stored by viewModel.imageStored.collectAsState()
+    // 表示対象が変わったら楽観フラグを stock の現状で初期化する。
+    LaunchedEffect(productId) { viewModel.beginImageEdit(stock) }
     val image = if (productId != null) rememberProductThumbnail(productId, stored) else null
 
     ProductSettingsSheet(
@@ -650,32 +647,11 @@ private fun ProductSettingsSheetWithImage(
         image = image,
         onPickImage = {
             val id = productId ?: return@ProductSettingsSheet
-            if (!imageBusy) {
-                imageBusy = true
-                scope.launch {
-                    try {
-                        when (val r = pickImage()) {
-                            is ImagePickResult.Selected -> if (viewModel.uploadImage(id, r.base64)) stored = true
-                            ImagePickResult.Cancelled -> Unit
-                        }
-                    } finally {
-                        imageBusy = false
-                    }
-                }
-            }
+            scope.launch { viewModel.pickAndUploadImage(id) }
         },
         onRemoveImage = {
             val id = productId ?: return@ProductSettingsSheet
-            if (!imageBusy) {
-                imageBusy = true
-                scope.launch {
-                    try {
-                        if (viewModel.removeImage(id)) stored = false
-                    } finally {
-                        imageBusy = false
-                    }
-                }
-            }
+            scope.launch { viewModel.removeImageFor(id) }
         },
     )
 }
