@@ -331,4 +331,7 @@
     <string name="sidebar_add_product">商品を追加</string>
     <string name="sidebar_notifications">お知らせ</string>
     <string name="avatar_fallback_initial">あ</string>
+    <!-- 認証エラー -->
+    <string name="auth_failed_login">ログインに失敗しました</string>
+    <string name="auth_failed_boot">起動に失敗しました</string>
 </resources>

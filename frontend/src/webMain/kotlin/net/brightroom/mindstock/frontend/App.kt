@@ -55,6 +55,7 @@ import net.brightroom.mindstock.frontend.core.ui.ToastController
 import net.brightroom.mindstock.frontend.core.ui.resolve
 import net.brightroom.mindstock.frontend.designsystem.atom.AppText
 import net.brightroom.mindstock.frontend.designsystem.atom.Toast
+import net.brightroom.mindstock.frontend.designsystem.theme.LocalMindstockTokens
 import net.brightroom.mindstock.frontend.designsystem.theme.MindstockTheme
 import net.brightroom.mindstock.frontend.feature.activity.ActivityViewModel
 import net.brightroom.mindstock.frontend.feature.activity.ui.ActivityScreen
@@ -183,7 +184,8 @@ fun App() {
                 }
 
                 is AuthState.Failed -> {
-                    AppText((state as AuthState.Failed).message)
+                    val tokens = LocalMindstockTokens.current
+                    AppText((state as AuthState.Failed).message.resolve(), color = tokens.statusOut)
                 }
 
                 is AuthState.NeedOnboarding -> {

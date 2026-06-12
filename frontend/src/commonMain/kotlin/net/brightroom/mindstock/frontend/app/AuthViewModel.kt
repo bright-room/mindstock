@@ -5,12 +5,16 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import mindstock.frontend.generated.resources.Res
+import mindstock.frontend.generated.resources.auth_failed_boot
+import mindstock.frontend.generated.resources.auth_failed_login
 import net.brightroom.mindstock.domain.model.household.HouseholdId
 import net.brightroom.mindstock.domain.model.household.Households
 import net.brightroom.mindstock.domain.model.resident.Resident
 import net.brightroom.mindstock.domain.model.resident.profile.DisplayName
 import net.brightroom.mindstock.frontend.auth.Tokens
 import net.brightroom.mindstock.frontend.core.auth.AuthState
+import net.brightroom.mindstock.frontend.core.ui.UiText
 import net.brightroom.mindstock.rpc.session.SessionStatus
 
 /**
@@ -76,7 +80,7 @@ class AuthViewModel(
     suspend fun boot() {
         if (deps.currentPath() == "/auth/callback") {
             runCatching { deps.handleCallback() }
-                .onFailure { _state.value = AuthState.Failed("ログインに失敗しました") }
+                .onFailure { _state.value = AuthState.Failed(UiText(Res.string.auth_failed_login)) }
             // 成功時は replace("/") で再起動するため state は Booting のまま離脱
             return
         }
@@ -113,7 +117,7 @@ class AuthViewModel(
         } catch (_: Exception) {
             // 登録状態は whoami が明示的に返すため、ここに来るのは通信失敗等の本当のエラー。
             // Error(OOM 等)は捕捉しない(回復不能なのでクラッシュさせる)。
-            _state.value = AuthState.Failed("起動に失敗しました")
+            _state.value = AuthState.Failed(UiText(Res.string.auth_failed_boot))
         }
     }
 
