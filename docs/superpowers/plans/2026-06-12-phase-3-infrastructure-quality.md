@@ -17,6 +17,10 @@
 - **実行コマンド**: `./gradlew :backend:core:integrationTest`(通常の `./gradlew :backend:core:test` は `kotest.tags.exclude=integration` で本フェーズのテストを除外するので、リファクタの安全網としては integrationTest を回す)。
 - 各タスクのコミットメッセージに issue/PR 番号を書かない(working agreement)。
 
+### 既知の制約: 共有 DB の TRUNCATE と並列実行(フェーズ 5-5 で対処)
+
+`TestDatabase.clean()` は単一の `mindstock_test` を全表 TRUNCATE する共有 DB 方式。`org.gradle.parallel=true`(workers.max=4)のため、**複数モジュールの `integrationTest` が同一 DB に同時 TRUNCATE すると flaky になりうる**。本フェーズ時点では実害なし(`backend:api:integrationTest` は `@Tags("integration")` テスト 0 件の空実行で DB に触れず、Kotest は並列未設定で JVM 内 spec は逐次)。ただし将来 `api` に DB 統合テストが入り `./gradlew integrationTest`(name-matching で両モジュール起動)を並列で回すと顕在化する。**フェーズ 5-5 の `integrationTest` convention 統合時に、モジュール横断の直列化(`mustRunAfter`)かモジュール別スキーマ分離で対処する**(本フェーズでは api が空のため先回りガードは入れない)。
+
 ## ファイル構成(本フェーズで作成/変更)
 
 **作成:**
@@ -874,19 +878,19 @@ git commit -m "test(infra): Product / Invitation DataSource の Hydration round-
         residentId: ResidentId,
         role: HouseholdMemberRole,
         status: MembershipStatus,
-        recordedAt: kotlinx.datetime.LocalDateTime,
+        recordedAt: LocalDateTime,
     ) {
         HouseholdMembershipEventsTable.insert {
             it[HouseholdMembershipEventsTable.householdId] = householdId()
             it[HouseholdMembershipEventsTable.residentId] = residentId()
             it[HouseholdMembershipEventsTable.role] = role
             it[HouseholdMembershipEventsTable.status] = status
-            it[recordedAt] = recordedAt
+            it[HouseholdMembershipEventsTable.recordedAt] = recordedAt
         }
     }
 ```
 
-> `recordedAt` の型は `Created` を直接渡す形でもよいが、tx 内で `Created.now()()` を呼んで `LocalDateTime` を渡す方が呼び出し側がすっきりする。実装時、既存コードが `it[recordedAt] = createdTime()`(= `LocalDateTime`)なので引数型は `LocalDateTime` に合わせる。`import kotlinx.datetime.LocalDateTime` を足してシグネチャを `recordedAt: LocalDateTime` にしてよい。
+> `recordedAt` 列への代入は **必ずカラムオブジェクトで明示修飾**する(`it[HouseholdMembershipEventsTable.recordedAt]`)。`it[recordedAt]` だと引数 `recordedAt: LocalDateTime` とカラムが同名でシャドーイングし Exposed DSL が壊れる。型は `import kotlinx.datetime.LocalDateTime` を足して `recordedAt: LocalDateTime`(完全修飾でなく短縮)にする。tx 内で `Created.now()()`(= `LocalDateTime`)を渡す。
 
 - [ ] **Step 2: 3 メソッド + registerHousehold ループを helper 呼び出しに置換**
 
