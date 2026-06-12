@@ -16,7 +16,7 @@ kotlinx-rpc 0.10.x と Ktor WebSocket を組み合わせた RPC 層の規約。`
 - **`@kotlinx.rpc.annotations.Rpc` を必ず付ける**。`RemoteService` 継承は使わない(0.10.x で `@Deprecated(ERROR)`)
 - service interface は `<Ctx>RpcService` suffix、実装(Controller)は `<Ctx>Controller`(`presentation.rpc.<ctx>` パッケージ)
 - メソッド名は domain command 名そのまま(`Query` / `Command` suffix を付けない)
-- 認証なし public service(`UserPublicRpcService` 等)は別 interface に分離
+- 未登録 Resident でも呼べるメソッド(`register` / `whoami` 等)は **interface を分離せず、各メソッド内のガードヘルパーで宣言** する(`allowUnregistered` を付ける)。デフォルトは `requireRegistered`(フェイルクローズ)。`MindstockAuthPlugin` が JWT を検証済みなので、登録要件だけをメソッド単位で表現する
 
 ### Service 実装(Controller)の lifecycle
 
@@ -38,6 +38,8 @@ kotlinx-rpc 0.10.x と Ktor WebSocket を組み合わせた RPC 層の規約。`
 - Controller / Service は transaction を意識しない(DataSource が境界を持つ)
 - `Database` は起動配線(P5)で生成し DataSource にコンストラクタ注入する
 - 旧 `tx()` / plugin 方式は P4 で撤廃(WS upgrade 時 1 回しか張れない plugin 制約と、RPC method ごとに張り直す煩雑さを DataSource 自前境界で解消)
+
+> **注(暫定)**: 在庫の補正(`correct`)等で記録する `OccurredAt` は現状サーバ側で `OccurredAt.now()` を生成している。本来クライアント入力(実際に起きた時刻)であるべきで、トラック B「occurredAt 対応」で見直す予定。それまではサーバ生成が現仕様。
 
 ### RPC 戻り値
 
@@ -64,6 +66,25 @@ kotlinx-serialization の標準 deserialize は `data class` / `@JvmInline value
   - `requireRegistered` — デフォルト(フェイルクローズ)。未登録の場合は `RpcError.Unauthorized`
   - `allowUnregistered` — `register` / `whoami` 等のみに付ける
   - ガードヘルパーの実装は `configuration/guard/SessionGuard.kt`
+
+#### runGuarded の例外 → RpcError 翻訳
+
+`requireRegistered` / `allowUnregistered` は内部で `runGuarded`(`configuration/guard/SessionGuard.kt`)を通し、block 内で投げられたドメイン例外を以下のとおり `RpcError` に翻訳する。**ドメイン/Service は `RpcError` を知らず、例外を投げるだけ**でよい(presentation 境界で翻訳される):
+
+| 例外 | RpcError |
+|---|---|
+| `IllegalArgumentException`(VO 値域・不変条件) | `BadRequest` |
+| `ResourceNotFoundException` | `NotFound` |
+| `OwnerRequiredException` | `Unauthorized` |
+| `MembershipRequiredException` | `Unauthorized` |
+| `LastOwnerException` | `Conflict` |
+| `DuplicateJanException` | `Conflict` |
+| `CannotArchiveWithStockException` | `Conflict` |
+| `InsufficientStockException` | `Conflict` |
+| `InvitationInvalidException` | `Conflict` |
+| その他(`Throwable`) | `Internal`(構造化ログに記録) |
+
+新しいドメイン例外を足したら、このマップ(`SessionGuard.kt`)に翻訳を追加する。翻訳漏れは `Internal` に落ちる。
 
 ## Why
 
