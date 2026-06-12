@@ -10,7 +10,7 @@ paths:
 ## Rule
 
 - 移植可能なコード(UI・ViewModel・テーマ・デザイン部品・RPC ラッパ・認証ロジック本体)は **`commonMain`** に置く。
-- platform 依存は **`expect/actual` でのみ**逃がす。現状で actual が要るもの: PKCE の乱数/SHA-256/base64url(`secureRandomBytes`/`sha256`/`base64UrlNoPad`)、`SessionStorage`、ブラウザ遷移/コールバック取得(`BrowserNav`)。
+- platform 依存は **`expect/actual` でのみ**逃がす。現状で actual が要るもの: PKCE の乱数/SHA-256/base64url(`auth/Pkce.kt` の internal expect `secureRandomBytes`/`sha256`/`base64UrlNoPad`、actual は `jsMain/auth/PkceJs.kt` / `wasmJsMain/auth/PkceWasmJs.kt`)、`SessionStorage`、ブラウザ遷移/コールバック取得(`BrowserNav`)、設定の永続化(`core/preference/PreferenceStore.kt`、actual は `PreferenceStore.js.kt` / `PreferenceStore.wasmJs.kt`)、画像ピッカー(`core/image/ImagePicker.kt` の `pickImage()`)。
 - **落とし穴(明記)**: 現ターゲットは `js` と `wasmJs` の **web 2 種のみ**。両方 web なので `commonMain` に `kotlinx.browser.window` 等の web 前提を書いてもコンパイルが通る。これは移植性の保証にならない。web 固有 API を `commonMain` に直書きしない — 必ず `expect/actual` か platform source set へ。
 
 ## Why

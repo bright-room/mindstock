@@ -23,7 +23,7 @@
 - `:domain` — 純粋なドメインモデル(集約・VO・例外)。KMP common。外部依存は kotlin stdlib / kotlinx-serialization / kotlinx-datetime + `:shared`(共通の日時/シリアライズ ext。`:shared` は `:domain` に依存しないので循環しない)
 - `:rpc` — RPC interface 定義(`@Rpc` service interface、`RpcError`、`RpcResult`)。KMP common
 - `:shared` — frontend と backend 双方で使う薄い共通ロジック(`KrpcJson` / `CustomJson` 等)。KMP common + wasmJs
-- `:backend:core` — application 層 interface(Repository / Service interface)+ infrastructure DataSource 実装(Exposed)。JVM
+- `:backend:core` — application 層 interface(Repository / Service / Scenario interface)+ infrastructure 実装(DataSource[DB] / Transfer[送信] / Receive[受信]、Exposed)。JVM
 - `:backend:api` — Ktor 起動モジュール(`configuration/`, `presentation/rpc/`)。JVM
 - `:backend:schedules` — スケジュール処理(バッチ・cron 等)。JVM
 - `:frontend` — Compose Multiplatform / Kotlin/Wasm の UI
@@ -33,7 +33,7 @@
 - Backend 起動: `./gradlew :backend:api:run`
 - Frontend dev server: `./gradlew :frontend:wasmJsBrowserDevelopmentRun`
 - 単体テスト: `./gradlew test`
-- 統合テスト: `./gradlew integrationTest`
+- 統合テスト: `./gradlew :backend:core:integrationTest`(Garage 等の外部依存・`@Tags("integration")`。`./gradlew integrationTest` でも name-matching で起動する。要 `STORAGE_*` 環境変数 / `mise run up`)
 - フル build: `./gradlew build`
 
 ## 絶対に守る原則

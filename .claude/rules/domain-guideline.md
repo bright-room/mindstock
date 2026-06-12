@@ -17,18 +17,18 @@ mindstock のドメインモデルはリッチドメインモデル指向。テ�
 - `kotlinx-serialization`(`@Serializable`, `@SerialName`)
 - `kotlinx-datetime`
 - `:shared` モジュール(共通の日時/シリアライズ ext。例: `LocalDateTime.now()`。`:shared` は `:domain` に依存しないため循環しない)
+- `org.kotlincrypto.random`(CSPRNG。`CryptoRand.Default.nextBytes(...)`。例: `InvitationCode.generate()` の招待コード乱数。`domain/build.gradle.kts` の `libs.kotlincrypto.crypto.rand`)
 
 新規依存(サードパーティ)が必要に思えた時は「外して複雑化しないか / 取り込んでも品質を保てるか」で個別判断。ユーザに事前確認する。
 
-### リッチドメイン 7 原則
+### リッチドメイン 6 原則
 
 1. **behavior-rich**: 集約に「なぜ存在するか / 何ができるか」を言語化できないなら貧血。メソッドや composition で責務を持たせるか、概念ごと削る
 2. **集約は object graph**: 子を `XxxId` で持たず、子モデルそのものを保持。Repository が JOIN で hydrate する
 3. **composition 優先**: 集約間で「ID 参照」を取る前に composition を検討。同一トランザクション/文脈なら composition、完全に別文脈なら ID 参照可
-4. **`id` は private**: ドメインロジック内で `a.id == b.id` 比較を書かない。Equality は本質属性で。永続化用には `internal` getter で Repository に渡す
-5. **`createdAt` は集約ルートから削除**(インフラメタ扱い)
-6. **不変更新**: 操作メソッドは新インスタンスを返す。可変 setter は持たない
-7. **fact クラスは domain から消える**: append-only な履歴行は Repository 内部の永続化単位として残し、ドメインでは「現在状態」を持つ集約ルートに集約。履歴閲覧は別 read model
+4. **`createdAt` は集約ルートから削除**(インフラメタ扱い)
+5. **不変更新**: 操作メソッドは新インスタンスを返す。可変 setter は持たない
+6. **fact クラスは domain から消える**: append-only な履歴行は Repository 内部の永続化単位として残し、ドメインでは「現在状態」を持つ集約ルートに集約。履歴閲覧は別 read model
 
 ### Value Object 規約
 
@@ -48,10 +48,16 @@ value class Quantity(private val value: Int) {
 }
 ```
 
+### 述語メソッドと区分(enum)の判定
+
+- **述語メソッドの Boolean 戻り値は VO 原則の対象外**。公開 API の引数・戻り値は VO で表すのが原則だが、`usable()` / `isBelow(other)` / `existsByJan(jan)` / `isAllowed()` のような「判定結果」は **データ値ではないため `Boolean` のまま返してよい**。VO で包まない。
+- **区分(enum)の状態判定は区分内の述語メソッドで表現し、呼び出し側で `==` 比較しない**(tell-don't-ask)。`status == ProductStatus.アーカイブ済` のような外側での `==` 比較を書かず、`status.isアーカイブ済()` のように区分自身に述語を持たせる。判定ロジックの所在を区分に集約することで、状態追加時の影響範囲を区分内に閉じる。
+- **区分の意図を表す述語メソッドは、参照ゼロでも死コード扱いで削除しない**。`InvitationValidity.is有効()` 等は「区分が表現すべき意味」であり、現時点で呼び出し元が無くても残す。
+
 ### ファクトリ関数の方針
 
 - **意味のあるファクトリは持ってよい**。クロック呼び出し・UUID 生成のような **副作用を伴う / コンストラクタだけでは作れない** 生成ロジックを wrap する目的のものが該当
-  - 例: `UserId.create()` が `Uuid.uuidv7()` を呼んで生成
+  - 例: `ResidentId.create()` が `Uuid.generateV7()` を呼んで生成
   - 例: `OccurredAt.now()` が `:shared` の `LocalDateTime.now()` を呼ぶ
 - **意味のないファクトリは NG**。`Quantity.of(123)` のような、コンストラクタ `Quantity(123)` と等価なものを別名で持たない(API の二重化になる)
 
@@ -59,7 +65,7 @@ value class Quantity(private val value: Int) {
 
 - UUID 系(集約ルート): `value class ProductId(private val value: Uuid)`、バリデーション無し
 - Long 系(履歴テーブル): `value class StockReplenishmentId(private val value: Long)`、`init` で非負強制
-- ID 発番は呼び出し側責任。`UserId.create()` で UUIDv7 生成
+- ID 発番は呼び出し側責任。`ResidentId.create()` で UUIDv7 生成
 
 ### ファーストクラスコレクション(First-class Collection)
 
@@ -87,13 +93,12 @@ data class Stocks(val list: List<Stock>) {
 ### sealed interface でポリモフィズム
 
 - 列挙的な variant を扱う型は sealed interface + subclass で表現する。`type` フィールドや null を使った状態判別はしない
-- sealed interface の subclass に `@JvmInline value class` 使用可(Kotlin 2.x)
+- **`@Serializable` で polymorphic serialize する sealed interface の variant に `@JvmInline value class` を使ってはならない**。value class は wire 上「中身の生値」に unwrap され type discriminator を載せられず、deserialize 時に variant を復元できず静かに壊れる(過去に遭遇)。variant は `data class` か `object` で表現する。`@Serializable` を付けない(永続化/通信に乗せない)sealed なら value class variant でも可
 - polymorphic serialization は kotlinx-serialization 標準(type discriminator + FQN)。カスタム discriminator は導入しない
 
 ## Why
 
 - 貧血モデルは「テーブル定義の写し」になり、ロジックが Service に流出する
-- `id` を public にして `a.id == b.id` で比較すると、識別の意味が漏れ、本質属性での equality が書かれなくなる
 - `createdAt` を集約に持たせると、永続化前の「createdAt = null」状態を扱わないといけなくなる
 - VO の意味のないファクトリ関数(`Quantity.of(...)`)は、呼び出し側が `Quantity(123)` も使えてしまい二重化する。`init` で完結させればコンストラクタ一本道。一方、UUID 生成のように「副作用を含む生成」はコンストラクタには書けないので、ファクトリとして名前と責務を明示すべき
 - ファーストクラスコレクションの「件数」は集合自体の振る舞いであり、内部 List の `size` プロパティをそのまま使うのは「ファーストクラスコレクションとして集合の意味を持たせた」ことに反する。`fun size()` を集合の API として明示する
@@ -105,18 +110,16 @@ data class Stocks(val list: List<Stock>) {
 
 ```kotlin
 data class Stock(
-    private val id: StockId,
+    val id: StockId,
     val product: Product,
     val movements: StockMovements,
 ) {
-    fun replenish(quantity: Quantity, note: Note, actor: UserId): Stock {
+    fun replenish(quantity: Quantity, note: Note, actor: ResidentId): Stock {
         require(!product.archived) { "cannot replenish archived product: ${product.name}" }
         return copy(movements = movements + StockMovement.Replenishment(quantity, note, actor, OccurredAt.now()))
     }
 
     fun currentQuantity(): Quantity = movements.netQuantity()
-
-    internal fun id(): StockId = id  // Repository に渡す用
 }
 ```
 
@@ -124,12 +127,12 @@ data class Stock(
 
 ```kotlin
 @Serializable @JvmInline
-value class UserId(private val value: Uuid) {
+value class ResidentId(private val value: Uuid) {
     operator fun invoke(): Uuid = value
     override fun toString(): String = value.toString()
 
     companion object {
-        fun create(): UserId = UserId(Uuid.uuidv7())  // 副作用ありの生成は factory として明示
+        fun create(): ResidentId = ResidentId(Uuid.generateV7())  // 副作用ありの生成は factory として明示
     }
 }
 ```
@@ -151,7 +154,7 @@ value class Quantity(private val value: Int) {
 ```kotlin
 // アンチパターン
 data class Stock(
-    val id: StockId,              // ← public
+    val id: StockId,
     val productId: ProductId,     // ← ID 参照のみ、composition していない
     val quantity: Int,            // ← VO ではなく primitive
     val createdAt: Instant,       // ← インフラメタが集約に

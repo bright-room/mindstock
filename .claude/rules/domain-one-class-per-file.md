@@ -13,6 +13,7 @@ paths:
 - **sealed 階層は例外**: sealed interface とその variant は「1 つの概念単位」として同一ファイルに置く(variant を sealed の中にネストする)。トップレベルに variant を並べない。
 - `companion object`・同一型に属する nested helper は同居してよい。
 - ファイル名は含まれるトップレベル型名と一致させる。
+- 本ルールの適用範囲は **`domain/` のみ**(frontmatter の path フィルタどおり)。infrastructure(DataSource / Hydration / Table 定義の同居等)や presentation は対象外 — それらは技術的凝集(同一テーブル群・同一エンドポイント)でまとめてよい。
 
 ## Why
 
