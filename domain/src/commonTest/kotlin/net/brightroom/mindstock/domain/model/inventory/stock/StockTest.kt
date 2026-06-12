@@ -2,6 +2,7 @@ package net.brightroom.mindstock.domain.model.inventory.stock
 
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.matchers.shouldBe
+import net.brightroom.mindstock.domain.exception.ArchivedProductMovementException
 import net.brightroom.mindstock.domain.exception.CannotArchiveWithStockException
 import net.brightroom.mindstock.domain.exception.InsufficientStockException
 import net.brightroom.mindstock.domain.exception.ResourceNotFoundException
@@ -93,6 +94,22 @@ class StockTest {
     @Test
     fun 在庫がゼロならアーカイブできる() {
         emptyStock().archive().product.status shouldBe ProductStatus.アーカイブ済
+    }
+
+    @Test
+    fun アーカイブ済みの商品は補充できない() {
+        val archived = emptyStock().archive()
+        shouldThrow<ArchivedProductMovementException> {
+            archived.replenish(Quantity(1), OccurredAt.now(), actor(), Note(""))
+        }
+    }
+
+    @Test
+    fun アーカイブ済みの商品は消費できない() {
+        val archived = emptyStock().archive()
+        shouldThrow<ArchivedProductMovementException> {
+            archived.consume(Quantity(1), OccurredAt.now(), actor(), Note(""))
+        }
     }
 
     @Test

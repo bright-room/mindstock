@@ -6,17 +6,17 @@
 
 ---
 
-## 1. アーカイブ後も在庫操作ができてしまう
+## 1. アーカイブ後も在庫操作ができてしまう 【解決済 2026-06-13】
 
 - **発見**: 2026-06-08(ユーザ実機)
 - **再現**: 在庫の詳細画面(ProductDetail オーバーレイ)→ 歯車 → 商品設定シート → アーカイブする。
 - **期待**: アーカイブした商品は在庫として存在しないので、補充・消費はできない(導線が閉じる/操作が拒否される)。
-- **実際**: アーカイブ後も ProductDetail オーバーレイが開いたまま残り、補充・消費ボタンが押せてしまう。アーカイブ済み商品に在庫が積める。
+- **実際(修正前)**: アーカイブ後も ProductDetail オーバーレイが開いたまま残り、補充・消費ボタンが押せてしまう。アーカイブ済み商品に在庫が積める。
 
-- **推定原因(調査メモ)**:
-  - **frontend**: `frontend/src/webMain/.../App.kt` の `CatalogOverlay.Settings` の `onArchive`(~580-583 行)が `catalogOverlay = null`(設定シートを閉じる)だけで、**親の `opened`(ProductDetailOverlay)を閉じていない**。アーカイブ後も詳細オーバーレイが残り、補充/消費が活きる。アーカイブ成功時に `opened = null` も必要。
-    - 補足: ProductMaster 経由(`CatalogOverlay.Settings` でなく Master のリスト → 設定)のアーカイブは詳細を開いていないので影響なし。詳細起点(歯車)のみの導線バグ。
-  - **backend(要確認)**: ドメインに「アーカイブ済み(=`採用中` でない)商品の在庫変動を拒否する」ガードがあるか未確認。`domain/.../inventory/stock/Stock.kt` には `CannotArchiveWithStockException`(在庫があるとアーカイブ不可=アーカイブ時 qty0 前提)はあるが、`replenish`/`consume` 側に `ProductStatus.採用中` 要求は見当たらない。frontend を閉じても、API を直接叩けばアーカイブ済みに積めるなら**ドメイン不変条件としてのガードも追加**を検討(フェイルセーフ)。
+- **対応(2026-06-13)**: frontend 導線 + domain 不変条件の 2 系統で修正。
+  - **frontend**: `App.kt` の詳細(歯車)起点アーカイブ(`CatalogOverlay.Settings` の `onArchive`)で `catalogOverlay` に加えて `opened`(詳細オーバーレイ)も閉じる。`CatalogOverlayContent` に `opened` を渡す配線を追加。
+  - **domain(フェイルセーフ)**: `Stock.replenish`/`consume` が `product.status.isアーカイブ済()` を見て `ArchivedProductMovementException` を throw。API 直叩きでもアーカイブ済みに積めない。RPC では `SessionGuard` が同例外を `RpcError.Conflict` に翻訳。
+  - **対象外**: `correct`(訂正)は履歴修正なのでガードしない。ProductMaster 経由のアーカイブは元々詳細を開いていないので影響なし。
 
 ---
 

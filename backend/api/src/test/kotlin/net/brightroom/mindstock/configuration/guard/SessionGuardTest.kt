@@ -8,6 +8,7 @@ import io.kotest.matchers.shouldBe
 import io.kotest.matchers.types.shouldBeInstanceOf
 import kotlinx.coroutines.CancellationException
 import net.brightroom.mindstock.configuration.auth.MindstockSession
+import net.brightroom.mindstock.domain.exception.ArchivedProductMovementException
 import net.brightroom.mindstock.domain.exception.DuplicateJanException
 import net.brightroom.mindstock.domain.exception.MembershipRequiredException
 import net.brightroom.mindstock.domain.exception.ResourceNotFoundException
@@ -101,6 +102,11 @@ class SessionGuardTest :
 
         test("DuplicateJanException は Conflict") {
             val r = requireRegistered<Unit>(registered()) { throw DuplicateJanException("dup") }
+            (r as RpcResult.Err).error.shouldBeInstanceOf<RpcError.Conflict>()
+        }
+
+        test("ArchivedProductMovementException は Conflict") {
+            val r = requireRegistered<Unit>(registered()) { throw ArchivedProductMovementException("archived") }
             (r as RpcResult.Err).error.shouldBeInstanceOf<RpcError.Conflict>()
         }
 

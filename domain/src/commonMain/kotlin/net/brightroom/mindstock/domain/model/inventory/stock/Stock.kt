@@ -1,6 +1,7 @@
 package net.brightroom.mindstock.domain.model.inventory.stock
 
 import kotlinx.serialization.Serializable
+import net.brightroom.mindstock.domain.exception.ArchivedProductMovementException
 import net.brightroom.mindstock.domain.exception.CannotArchiveWithStockException
 import net.brightroom.mindstock.domain.exception.InsufficientStockException
 import net.brightroom.mindstock.domain.exception.ResourceNotFoundException
@@ -34,7 +35,12 @@ data class Stock(
         occurredAt: OccurredAt,
         actor: Resident,
         note: Note,
-    ): Stock = Stock(product, movements.add(Replenishment(MovementIdentity.Pending, quantity, occurredAt, actor, note)))
+    ): Stock {
+        if (product.status.isアーカイブ済()) {
+            throw ArchivedProductMovementException("cannot replenish archived product: ${product.id}")
+        }
+        return Stock(product, movements.add(Replenishment(MovementIdentity.Pending, quantity, occurredAt, actor, note)))
+    }
 
     fun consume(
         quantity: Quantity,
@@ -42,6 +48,9 @@ data class Stock(
         actor: Resident,
         note: Note,
     ): Stock {
+        if (product.status.isアーカイブ済()) {
+            throw ArchivedProductMovementException("cannot consume archived product: ${product.id}")
+        }
         if (currentQuantity()() < quantity()) {
             throw InsufficientStockException("cannot consume $quantity from stock of ${currentQuantity()}")
         }
