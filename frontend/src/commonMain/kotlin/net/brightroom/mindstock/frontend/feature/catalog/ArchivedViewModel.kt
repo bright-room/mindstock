@@ -12,11 +12,10 @@ import net.brightroom.mindstock.domain.model.inventory.product.Products
 import net.brightroom.mindstock.frontend.core.auth.ReauthController
 import net.brightroom.mindstock.frontend.core.rpc.RpcOutcome
 import net.brightroom.mindstock.frontend.core.rpc.errorText
-import net.brightroom.mindstock.frontend.core.rpc.requiresReauth
+import net.brightroom.mindstock.frontend.core.ui.FailureHandler
 import net.brightroom.mindstock.frontend.core.ui.InventoryRefreshController
 import net.brightroom.mindstock.frontend.core.ui.ToastController
 import net.brightroom.mindstock.frontend.core.ui.UiText
-import net.brightroom.mindstock.rpc.result.RpcError
 
 class ArchivedViewModel(
     private val householdId: HouseholdId,
@@ -26,6 +25,8 @@ class ArchivedViewModel(
     private val toast: ToastController,
     private val reauth: ReauthController,
 ) : ViewModel() {
+    private val failure = FailureHandler(reauth, toast)
+
     private val _state = MutableStateFlow<ArchivedUiState>(ArchivedUiState.Loading)
     val state: StateFlow<ArchivedUiState> = _state.asStateFlow()
 
@@ -38,7 +39,7 @@ class ArchivedViewModel(
                 }
 
                 is RpcOutcome.Failure -> {
-                    handleFailure(out.error)
+                    failure.onLoadFailure(out.error)
                     ArchivedUiState.Error(errorText(out.error))
                 }
             }
@@ -53,12 +54,8 @@ class ArchivedViewModel(
             }
 
             is RpcOutcome.Failure -> {
-                handleFailure(out.error)
+                failure.onMutationFailure(out.error)
             }
         }
-    }
-
-    private fun handleFailure(error: RpcError) {
-        if (error.requiresReauth()) reauth.request() else toast.show(errorText(error))
     }
 }

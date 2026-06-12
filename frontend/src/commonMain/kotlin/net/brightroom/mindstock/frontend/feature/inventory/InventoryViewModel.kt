@@ -16,11 +16,10 @@ import net.brightroom.mindstock.domain.model.inventory.stock.movement.OccurredAt
 import net.brightroom.mindstock.frontend.core.auth.ReauthController
 import net.brightroom.mindstock.frontend.core.rpc.RpcOutcome
 import net.brightroom.mindstock.frontend.core.rpc.errorText
-import net.brightroom.mindstock.frontend.core.rpc.requiresReauth
+import net.brightroom.mindstock.frontend.core.ui.FailureHandler
 import net.brightroom.mindstock.frontend.core.ui.InventoryRefreshController
 import net.brightroom.mindstock.frontend.core.ui.ToastController
 import net.brightroom.mindstock.frontend.core.ui.UiText
-import net.brightroom.mindstock.rpc.result.RpcError
 
 class InventoryViewModel(
     private val householdId: HouseholdId,
@@ -33,6 +32,8 @@ class InventoryViewModel(
 ) : ViewModel() {
     private val _state = MutableStateFlow<InventoryUiState>(InventoryUiState.Loading)
     val state: StateFlow<InventoryUiState> = _state.asStateFlow()
+
+    private val failure = FailureHandler(reauth, toast)
 
     // view / query は load() の再フェッチ（補充消費後）でも保持するため独立した source of truth に持つ。
     private val _view = MutableStateFlow(StockView.List)
@@ -50,7 +51,7 @@ class InventoryViewModel(
                 }
 
                 is RpcOutcome.Failure -> {
-                    handleFailure(out.error)
+                    failure.onLoadFailure(out.error)
                     InventoryUiState.Error(errorText(out.error))
                 }
             }
@@ -94,16 +95,8 @@ class InventoryViewModel(
             }
 
             is RpcOutcome.Failure -> {
-                handleFailure(outcome.error)
+                failure.onMutationFailure(outcome.error)
             }
-        }
-    }
-
-    private fun handleFailure(error: RpcError) {
-        if (error.requiresReauth()) {
-            reauth.request()
-        } else {
-            toast.show(errorText(error))
         }
     }
 }

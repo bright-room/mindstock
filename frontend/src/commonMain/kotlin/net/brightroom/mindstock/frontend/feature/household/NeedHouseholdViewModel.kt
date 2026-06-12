@@ -16,6 +16,7 @@ import net.brightroom.mindstock.frontend.core.auth.ReauthController
 import net.brightroom.mindstock.frontend.core.rpc.RpcOutcome
 import net.brightroom.mindstock.frontend.core.rpc.errorText
 import net.brightroom.mindstock.frontend.core.rpc.requiresReauth
+import net.brightroom.mindstock.frontend.core.ui.FailureHandler
 import net.brightroom.mindstock.frontend.core.ui.ToastController
 import net.brightroom.mindstock.frontend.core.ui.UiText
 import net.brightroom.mindstock.rpc.household.InvitationPreview
@@ -29,6 +30,8 @@ class NeedHouseholdViewModel(
     private val toast: ToastController,
     private val reauth: ReauthController,
 ) : ViewModel() {
+    private val failure = FailureHandler(reauth, toast)
+
     private val _state = MutableStateFlow(NeedHouseholdUiState())
     val state: StateFlow<NeedHouseholdUiState> = _state.asStateFlow()
 
@@ -47,7 +50,7 @@ class NeedHouseholdViewModel(
             }
 
             is RpcOutcome.Failure -> {
-                handleFailure(out.error)
+                failure.onMutationFailure(out.error)
                 _state.update { it.copy(busy = false) }
             }
         }
@@ -88,7 +91,7 @@ class NeedHouseholdViewModel(
             }
 
             is RpcOutcome.Failure -> {
-                handleFailure(out.error)
+                failure.onMutationFailure(out.error)
                 _state.update { it.copy(busy = false) }
             }
         }
@@ -107,9 +110,5 @@ class NeedHouseholdViewModel(
             toast.show(errorText(RpcError.Internal("enter failed")))
             _state.update { it.copy(busy = false) }
         }
-    }
-
-    private fun handleFailure(error: RpcError) {
-        if (error.requiresReauth()) reauth.request() else toast.show(errorText(error))
     }
 }
