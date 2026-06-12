@@ -4,7 +4,7 @@ java = "openjdk-25"
 [env]
 # backend dev port (frontend dev server takes 8080)
 PORT = "8090"
-# Test DB (postgres-test service on port 5433)
+# Test DB (postgres-init.sh が postgres:5432 上に mindstock_test を作成)
 TEST_DB_URL = "jdbc:postgresql://localhost:5432/mindstock_test"
 TEST_DB_USER = "mindstock"
 TEST_DB_PASSWORD = "mindstock"

@@ -39,7 +39,7 @@ tasks.test {
 
 val integrationTest by tasks.registering(Test::class) {
     group = "verification"
-    description = "Runs @Tags(\"integration\") specs against the Garage storage in .env.garage (STORAGE_*)."
+    description = "Runs @Tags(\"integration\") specs against the Garage storage (STORAGE_* / application.yaml デフォルト)."
     // 外部ストレージに当てる統合テストはキャッシュさせず毎回実行する(stale 結果防止)。
     doNotTrackState("integration tests run against a live external storage")
     testClassesDirs = sourceSets["test"].output.classesDirs
@@ -58,6 +58,6 @@ exposed {
         fileDirectory.set(
             layout.projectDirectory.dir("src/main/resources/db/migration").asFile,
         )
-        testContainersImageName.set("postgres:18.0-alpine")
+        testContainersImageName.set("postgres:18.4-alpine")
     }
 }
