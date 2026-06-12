@@ -1,6 +1,7 @@
 package net.brightroom.mindstock.domain.model.catalog.content
 
 import kotlinx.serialization.Serializable
+import net.brightroom.mindstock.domain.support.requireTrimmedWithin
 import kotlin.jvm.JvmInline
 
 @Serializable
@@ -9,9 +10,7 @@ value class CatalogItemName private constructor(
     private val value: String,
 ) {
     init {
-        require(value.isNotEmpty() && value.length <= MAX_LENGTH && value == value.trim()) {
-            "CatalogItemName must be 1..$MAX_LENGTH chars after trim"
-        }
+        value.requireTrimmedWithin(MAX_LENGTH, "CatalogItemName")
     }
 
     operator fun invoke(): String = value
