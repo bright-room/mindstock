@@ -36,6 +36,18 @@ mindstock のテスト方針。**意味のあるテストだけを書く**。テ
 
 **「この関数が壊れたらビジネス的に困るか?」** で判断する。困る(値域・判定・計算・抽出・遷移・前提崩れ)なら書く。困らない(保持・転送・自動生成)なら書かない。ロジックを持たない VO/集約はテスト無しでよく、コンパイルが通ることで足りる。
 
+### 統合テスト(外部システム依存)
+
+- DB / Garage(S3)等の外部依存を伴うテストは **`@Tags("integration")`**(Kotest)をクラスに付け、`io.kotest.core.spec.style.FunSpec` で書く(backend JVM のみ。commonTest 不可)。
+- 実行: `./gradlew :backend:core:integrationTest`(Gradle の name-matching で `./gradlew integrationTest` でも各モジュールの同名タスクが起動する。`:backend:api:integrationTest` は現状 `@Tags("integration")` テスト 0 件で空実行)。通常の `./gradlew test` は `kotest.tags.exclude = "integration | manual"` で integration を除外するため、DB/Garage なしでも green。
+- Garage 連携テストは `STORAGE_ENDPOINT` / `STORAGE_BUCKET` / `STORAGE_ACCESS_KEY` / `STORAGE_SECRET_KEY` を環境変数から読む(`integrationTest` タスクが app と同じ env を test JVM へ転送)。既存例: `ProductImageTransferTest`(`@Tags("integration")` + `FunSpec`)。
+- DataSource(DB)層の統合テストは現状ゼロ。フェーズ 3-1 で Hydration round-trip テストとして追加予定(その際に DB 接続用の env / testcontainers 構成も本節へ追記する)。
+
+### Scenario / Service / Controller のテスト方針
+
+- **Service / Scenario**: `FunSpec` + mockk で Repository をスタブし、(a) 主要ハッピーパス、(b) 非メンバー操作等の例外伝播を検証する。ビジネスロジック自体は domain テストが担うので、Service テストは orchestration(呼ぶ順・例外の素通し)に絞る。
+- **Controller**: Controller にロジック(ガード分岐・例外翻訳)が**なければテスト不要**。薄い委譲だけの Controller にテストを書かない(委譲テストは保守コストだけ増やす)。ガードや分岐を足した時に、その分岐と同時にテストを書く。
+
 ## Why
 
 - 意味のないテストは保守コストだけ増やし、実装変更のたびに機械的な追従を強いる(変更の二度手間)
@@ -58,7 +70,7 @@ fun rejects_blank() {
 ```kotlin
 @Test
 fun member_cannot_manage_household() {
-    RolePermissions.allows(HouseholdMemberRole.メンバー, HouseholdCapability.世帯管理) shouldBe false
+    RolePermissions(HouseholdMemberRole.メンバー, HouseholdCapability.世帯管理).isAllowed() shouldBe false
 }
 ```
 
