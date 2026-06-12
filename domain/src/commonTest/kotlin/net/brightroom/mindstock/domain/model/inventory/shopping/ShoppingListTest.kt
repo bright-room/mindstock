@@ -12,6 +12,7 @@ import net.brightroom.mindstock.domain.model.inventory.product.setting.ProductUn
 import net.brightroom.mindstock.domain.model.inventory.product.setting.StockingPolicy
 import net.brightroom.mindstock.domain.model.inventory.quantity.Quantity
 import net.brightroom.mindstock.domain.model.inventory.stock.Stock
+import net.brightroom.mindstock.domain.model.inventory.stock.Stocks
 import net.brightroom.mindstock.domain.model.inventory.stock.movement.Note
 import net.brightroom.mindstock.domain.model.inventory.stock.movement.OccurredAt
 import net.brightroom.mindstock.domain.model.inventory.stock.movement.StockMovements
@@ -40,6 +41,18 @@ class ShoppingListTest {
             )
         val base = Stock(product, StockMovements(emptyList()))
         return if (quantity > 0) base.replenish(Quantity(quantity), OccurredAt.now(), actor(), Note("")) else base
+    }
+
+    @Test
+    fun fromは希望商品集合に含まれる商品だけ手動希望フラグを立てる() {
+        val wanted = stock("水", minimum = 1, quantity = 0)
+        val other = stock("米", minimum = 1, quantity = 0)
+        val stocks = Stocks(listOf(wanted, other))
+
+        val list = ShoppingList.from(stocks, setOf(wanted.product.id))
+
+        list.list.map { it.stock.product.id to it.manuallyWanted() } shouldBe
+            listOf(wanted.product.id to true, other.product.id to false)
     }
 
     @Test
