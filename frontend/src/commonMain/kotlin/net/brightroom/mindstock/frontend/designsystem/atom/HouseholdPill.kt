@@ -19,10 +19,13 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import mindstock.frontend.generated.resources.Res
+import mindstock.frontend.generated.resources.household_member_count
 import net.brightroom.mindstock.frontend.designsystem.theme.LocalMindstockTokens
 import net.brightroom.mindstock.frontend.designsystem.theme.MindstockType
 import net.brightroom.mindstock.frontend.designsystem.theme.ShadowLevel
 import net.brightroom.mindstock.frontend.designsystem.theme.softShadow
+import org.jetbrains.compose.resources.stringResource
 
 /**
  * 世帯名 + 人数 + シェブロンの丸ピル（在庫ヘッダ）。
@@ -67,7 +70,7 @@ fun HouseholdPill(
             modifier = Modifier.weight(1f, fill = false),
         )
         AppText(
-            "$memberCount 人",
+            stringResource(Res.string.household_member_count, memberCount),
             style = MindstockType.statusLabel().copy(fontSize = 11f.sp, lineHeight = 11f.sp),
             color = tokens.faint,
         )
