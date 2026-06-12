@@ -47,7 +47,7 @@ val integrationTest by tasks.registering(Test::class) {
     shouldRunAfter(tasks.test)
     systemProperty("kotest.tags.include", "integration")
     systemProperty("kotest.tags.exclude", "manual")
-    // app と同一の STORAGE_* env(.env.garage / external.storage.*)を test JVM へ転送する。
+    // app と同一の STORAGE_* env(external.storage.* / application.yaml デフォルト)を test JVM へ転送する。
     listOf("STORAGE_ENDPOINT", "STORAGE_BUCKET", "STORAGE_ACCESS_KEY", "STORAGE_SECRET_KEY")
         .forEach { key -> System.getenv(key)?.let { environment(key, it) } }
 }
