@@ -357,8 +357,7 @@ fun App() {
                                 },
                                 shopContent = {
                                     val shopState by shopVm.state.collectAsState()
-                                    LaunchedEffect(shopVm) { shopVm.load() }
-                                    LaunchedEffect(refresh) { refresh.signal.collect { shopVm.load() } }
+                                    LoadWithRefresh(shopVm, refresh) { shopVm.load() }
                                     ShoppingListScreen(
                                         state = shopState,
                                         onOpenProduct = { pid, seed -> opened = DetailTarget(pid, seed) },
@@ -370,8 +369,7 @@ fun App() {
                                 },
                                 activityContent = {
                                     val activityState by activityVm.state.collectAsState()
-                                    LaunchedEffect(activityVm) { activityVm.load() }
-                                    LaunchedEffect(refresh) { refresh.signal.collect { activityVm.load() } }
+                                    LoadWithRefresh(activityVm, refresh) { activityVm.load() }
                                     ActivityScreen(
                                         state = activityState,
                                         onOpenProduct = { pid -> opened = DetailTarget(pid, null) },
@@ -518,8 +516,7 @@ fun App() {
                                         }
                                     val mState by masterVm.state.collectAsState()
                                     var settingsStock by remember { mutableStateOf<Stock?>(null) }
-                                    LaunchedEffect(masterVm) { masterVm.load() }
-                                    LaunchedEffect(refresh) { refresh.signal.collect { masterVm.load() } }
+                                    LoadWithRefresh(masterVm, refresh) { masterVm.load() }
                                     ProductMasterScreen(
                                         state = mState,
                                         householdName = activeHouseholdName(sessionState),
@@ -561,8 +558,7 @@ fun App() {
                                             )
                                         }
                                     val aState by archVm.state.collectAsState()
-                                    LaunchedEffect(archVm) { archVm.load() }
-                                    LaunchedEffect(refresh) { refresh.signal.collect { archVm.load() } }
+                                    LoadWithRefresh(archVm, refresh) { archVm.load() }
                                     ArchivedScreen(
                                         state = aState,
                                         householdName = activeHouseholdName(sessionState),
@@ -622,6 +618,17 @@ fun App() {
             }
         }
     }
+}
+
+/** load() の初回実行と refresh シグナル購読での再 load をまとめる定型ヘルパー。 */
+@Composable
+private fun LoadWithRefresh(
+    key: Any?,
+    refresh: InventoryRefreshController,
+    load: suspend () -> Unit,
+) {
+    LaunchedEffect(key) { load() }
+    LaunchedEffect(refresh) { refresh.signal.collect { load() } }
 }
 
 /**
