@@ -353,6 +353,7 @@ fun App() {
                                 toast = toast,
                                 reauth = reauth,
                                 scope = scope,
+                                opened = openedState,
                                 catalogOverlay = catalogOverlayState,
                             )
                         }
@@ -644,6 +645,7 @@ private fun CatalogOverlayContent(
     toast: ToastController,
     reauth: ReauthController,
     scope: CoroutineScope,
+    opened: MutableState<DetailTarget?>,
     catalogOverlay: MutableState<CatalogOverlay?>,
 ) {
     when (val ov = catalogOverlay.value) {
@@ -760,6 +762,9 @@ private fun CatalogOverlayContent(
                 onArchive = {
                     scope.launch { productMasterVm.archive(ov.stock.product.id) }
                     catalogOverlay.value = null
+                    // 詳細(歯車)起点のアーカイブ。詳細オーバーレイも閉じないと
+                    // アーカイブ済み商品に補充/消費できてしまう。
+                    opened.value = null
                 },
             )
         }

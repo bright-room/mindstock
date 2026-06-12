@@ -6,6 +6,7 @@ import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.supervisorScope
 import net.brightroom.mindstock.configuration.auth.MindstockSession
+import net.brightroom.mindstock.domain.exception.ArchivedProductMovementException
 import net.brightroom.mindstock.domain.exception.CannotArchiveWithStockException
 import net.brightroom.mindstock.domain.exception.DuplicateJanException
 import net.brightroom.mindstock.domain.exception.InsufficientStockException
@@ -76,6 +77,8 @@ private suspend fun <T : Any> runGuarded(
         RpcResult.Err(RpcError.Conflict(reason = e.message ?: "cannot archive with stock"))
     } catch (e: InsufficientStockException) {
         RpcResult.Err(RpcError.Conflict(reason = e.message ?: "insufficient stock"))
+    } catch (e: ArchivedProductMovementException) {
+        RpcResult.Err(RpcError.Conflict(reason = e.message ?: "archived product movement"))
     } catch (e: InvitationInvalidException) {
         RpcResult.Err(RpcError.Conflict(reason = e.message ?: "invitation invalid"))
     } catch (e: Throwable) {
