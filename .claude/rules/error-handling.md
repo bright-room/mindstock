@@ -30,6 +30,27 @@ stdlib `IllegalArgumentException`(`init { require(...) }` で throw)。Domain VO
 
 Repository が throw した例外を **Service / Scenario が catch して再投げするような書き方をしない**。Repository の戻り値の null チェックも Service / Scenario で書かない(不在は infrastructure 側が例外で表現する)。例外はそのまま上の層に伝播させる。
 
+### 素通し原則の許容例外
+
+「Repository の例外を catch して詰め替えない」が原則だが、以下は **catch が設計上の意味を持つ** ため許容する:
+
+- **不在を別戦略のトリガーにする catch**: 不在(`ResourceNotFoundException`)を「次の手段に切り替える合図」として使う場合。例: `CatalogService.lookupByJan`(`backend/core/.../application/service/catalog/CatalogService.kt`)は master 不在を catch して外部 API へフォールバックし、得た結果を cache する。これは「例外の握り潰し」ではなく「不在 → 別経路」という業務フローなので可。
+
+  ```kotlin
+  fun lookupByJan(jan: Jan): CatalogItem =
+      try {
+          catalogRepository.findByJan(jan)
+      } catch (e: ResourceNotFoundException) {
+          val received = externalProductRepository.findByJan(jan)  // 不在 → 外部から受信
+          catalogRegisterRepository.register(received)             // cache
+          received
+      }
+  ```
+
+- **configuration 層(認証 plugin 等)での例外吸収**: `configuration/auth/MindstockAuthPlugin` のような Ktor plugin は presentation/application の外側の glue であり、例外を `RpcError` でなく HTTP ステータス / ハンドシェイク拒否 / ログで処理してよい。`runGuarded` の翻訳マップ(`backend-rpc-and-transactions.md` 参照)は RPC method 内の話で、configuration 層には適用されない。
+
+- **`private fun` の nullable 戻り値(クラス内 sentinel 用途)**: 公開 API の `T?` は禁止だが、同一クラス内に閉じた `private fun` が「見つからなければ次へ」の内部制御に nullable を使うのは可(型シグネチャが外に漏れない)。公開境界(`internal`/`public`)に nullable を出す場合のみ事前承認が要る。
+
 ## Why
 
 - Nullable は「呼び出し側で必ず分岐すべき情報」を型から消す。例外 or sealed 型なら、不在の意味と理由が型シグネチャに現れて無視できなくなる
