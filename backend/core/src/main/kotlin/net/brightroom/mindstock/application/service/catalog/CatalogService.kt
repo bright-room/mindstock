@@ -5,6 +5,7 @@ import net.brightroom.mindstock.application.repository.catalog.CatalogRepository
 import net.brightroom.mindstock.application.repository.catalog.ExternalProductRepository
 import net.brightroom.mindstock.domain.exception.ResourceNotFoundException
 import net.brightroom.mindstock.domain.model.barcode.Jan
+import net.brightroom.mindstock.domain.model.catalog.SearchLimit
 import net.brightroom.mindstock.domain.model.catalog.content.CatalogItemName
 import net.brightroom.mindstock.domain.model.catalog.item.CatalogItem
 import net.brightroom.mindstock.domain.model.catalog.item.CatalogItemId
@@ -17,7 +18,7 @@ class CatalogService(
 ) {
     fun search(
         name: CatalogItemName,
-        limit: Int,
+        limit: SearchLimit,
     ): CatalogItems = catalogRepository.search(name, limit)
 
     /** 内部用(adopt の item 解決)。 */

@@ -4,6 +4,7 @@ import net.brightroom.mindstock.application.service.catalog.CatalogService
 import net.brightroom.mindstock.configuration.auth.MindstockSession
 import net.brightroom.mindstock.configuration.guard.requireRegistered
 import net.brightroom.mindstock.domain.model.barcode.Jan
+import net.brightroom.mindstock.domain.model.catalog.SearchLimit
 import net.brightroom.mindstock.domain.model.catalog.content.CatalogItemName
 import net.brightroom.mindstock.domain.model.catalog.item.CatalogItem
 import net.brightroom.mindstock.domain.model.catalog.item.CatalogItems
@@ -17,7 +18,7 @@ class CatalogController(
 ) : CatalogRpcService {
     override suspend fun search(
         name: CatalogItemName,
-        limit: Int,
+        limit: SearchLimit,
     ): RpcResult<CatalogItems, RpcError> = requireRegistered(session) { _ -> RpcResult.Ok(catalogService.search(name, limit)) }
 
     override suspend fun lookupByJan(jan: Jan): RpcResult<CatalogItem, RpcError> =

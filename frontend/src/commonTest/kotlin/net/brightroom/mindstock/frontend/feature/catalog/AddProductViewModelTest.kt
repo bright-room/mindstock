@@ -6,6 +6,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import net.brightroom.mindstock.domain.model.barcode.Jan
+import net.brightroom.mindstock.domain.model.catalog.SearchLimit
 import net.brightroom.mindstock.domain.model.catalog.content.CatalogItemName
 import net.brightroom.mindstock.domain.model.catalog.item.CatalogItem
 import net.brightroom.mindstock.domain.model.catalog.item.CatalogItemId
@@ -29,7 +30,7 @@ private fun item() = CatalogItem(CatalogItemId.create(), sampleJan, CatalogItemN
 private fun adoptedProduct(): Product = Product.adopt(item(), ProductUnit("個"), MinimumStock(1))
 
 private fun vm(
-    search: suspend (CatalogItemName, Int) -> RpcOutcome<CatalogItems> = { _, _ -> RpcOutcome.Success(CatalogItems(emptyList())) },
+    search: suspend (CatalogItemName, SearchLimit) -> RpcOutcome<CatalogItems> = { _, _ -> RpcOutcome.Success(CatalogItems(emptyList())) },
     lookup: suspend (Jan) -> RpcOutcome<CatalogItem> = { RpcOutcome.Success(item()) },
     adopt: suspend (CatalogItemId, ProductUnit, MinimumStock) -> RpcOutcome<Product> = { _, _, _ -> RpcOutcome.Success(adoptedProduct()) },
     addCustom: suspend (AddCustomProductRequest) -> RpcOutcome<Product> = { RpcOutcome.Success(adoptedProduct()) },
