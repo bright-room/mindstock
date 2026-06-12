@@ -416,6 +416,9 @@ private fun ReadyContent(
     val homeState by homeVm.state.collectAsState()
     // ベルのバッジ/シートを全タブで正しくするため、Stock タブに入る前に在庫をロードする。
     LaunchedEffect(householdId) { homeVm.load() }
+    // Shop/Activity 等 Stock タブ以外にいても在庫変更でバッジが更新されるよう、
+    // InventoryRoute と同じ refresh シグナルをここでも購読する(ベルは全タブ表示のため)。
+    LaunchedEffect(refresh) { refresh.signal.collect { homeVm.load() } }
     val alerts =
         (homeState as? InventoryUiState.Content)
             ?.let { stockAlerts(it.stocks, EvaluatedTime.now()) }
