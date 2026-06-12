@@ -1,4 +1,4 @@
-@file:OptIn(kotlin.uuid.ExperimentalUuidApi::class, kotlin.time.ExperimentalTime::class)
+@file:OptIn(kotlin.uuid.ExperimentalUuidApi::class)
 
 package net.brightroom.mindstock.presentation.rpc.household
 
@@ -11,7 +11,6 @@ import net.brightroom.mindstock.application.scenario.household.JoinHouseholdScen
 import net.brightroom.mindstock.application.scenario.invitation.CreateInvitationScenario
 import net.brightroom.mindstock.application.scenario.invitation.RevokeInvitationScenario
 import net.brightroom.mindstock.application.service.household.HouseholdRegisterService
-import net.brightroom.mindstock.configuration.auth.MindstockSession
 import net.brightroom.mindstock.domain.model.household.Household
 import net.brightroom.mindstock.domain.model.household.HouseholdId
 import net.brightroom.mindstock.domain.model.household.HouseholdName
@@ -21,27 +20,15 @@ import net.brightroom.mindstock.domain.model.household.member.HouseholdMemberRol
 import net.brightroom.mindstock.domain.model.household.member.Members
 import net.brightroom.mindstock.domain.model.resident.Resident
 import net.brightroom.mindstock.domain.model.resident.identity.ResidentId
-import net.brightroom.mindstock.domain.model.resident.identity.auth.AuthIdentity
-import net.brightroom.mindstock.domain.model.resident.identity.auth.AuthProvider
-import net.brightroom.mindstock.domain.model.resident.identity.auth.AuthSubject
 import net.brightroom.mindstock.domain.model.resident.profile.DisplayName
 import net.brightroom.mindstock.domain.model.resident.profile.ResidentProfile
 import net.brightroom.mindstock.rpc.result.RpcResult
-import kotlin.time.Clock
-import kotlin.time.Duration.Companion.hours
-import kotlin.uuid.Uuid
+import net.brightroom.mindstock.testfixtures.buildRegisteredSession
 
 class HouseholdRegisterControllerTest :
     FunSpec({
-        val identity = AuthIdentity(AuthProvider.ZITADEL, AuthSubject("sub"))
         val residentId = ResidentId.create()
-        val session =
-            MindstockSession.Registered(
-                identity,
-                residentId,
-                Clock.System.now().plus(1.hours),
-                Uuid.random(),
-            )
+        val session = buildRegisteredSession(residentId)
 
         val householdRegisterService = mockk<HouseholdRegisterService>(relaxed = true)
         val createInvitationScenario = mockk<CreateInvitationScenario>(relaxed = true)

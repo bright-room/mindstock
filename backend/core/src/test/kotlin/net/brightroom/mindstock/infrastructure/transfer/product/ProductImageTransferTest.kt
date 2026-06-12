@@ -29,7 +29,7 @@ class ProductImageTransferTest :
 
         val s3 =
             S3Client {
-                region = "garage"
+                region = System.getenv("STORAGE_REGION") ?: "garage"
                 endpointUrl = Url.parse(endpoint)
                 forcePathStyle = true
                 credentialsProvider =

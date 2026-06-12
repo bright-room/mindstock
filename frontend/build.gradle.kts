@@ -31,8 +31,6 @@ kotlin {
             implementation(ktorLib.client.core)
             implementation(ktorLib.client.contentNegotiation)
             implementation(ktorLib.serialization.kotlinx.json)
-
-            implementation(npm("@js-joda/timezone", "2.3.0"))
         }
         commonTest.dependencies {
             implementation(kotlin("test"))

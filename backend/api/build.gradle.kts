@@ -56,27 +56,5 @@ dependencies {
     testImplementation(ktorLib.client.contentNegotiation)
 }
 
-tasks.test {
-    // Exclude "integration" and "manual" tagged specs by default.
-    // Override on the command line with -Dkotest.tags.exclude= (empty string) to run all.
-    systemProperty("kotest.tags.exclude", "integration | manual")
-}
-
-val integrationTest by tasks.registering(Test::class) {
-    group = "verification"
-    description = "Runs @Tags(\"integration\") specs against TEST_DB_URL."
-    // 外部 DB に当てる統合テストはキャッシュさせず毎回実行する(stale 結果防止)。
-    // doNotTrackState は UP-TO-DATE チェックとビルドキャッシュの両方を無効化する。
-    doNotTrackState("integration tests run against a live external DB")
-    testClassesDirs = sourceSets["test"].output.classesDirs
-    classpath = sourceSets["test"].runtimeClasspath
-    shouldRunAfter(tasks.test)
-    // Run only "integration" tagged specs.
-    systemProperty("kotest.tags.include", "integration")
-    // Exclude "manual" maintenance specs.
-    systemProperty("kotest.tags.exclude", "manual")
-    // Forward TEST_DB_* env vars to the test JVM
-    listOf("TEST_DB_URL", "TEST_DB_USER", "TEST_DB_PASSWORD").forEach { key ->
-        System.getenv(key)?.let { environment(key, it) }
-    }
-}
+// 注: api の integrationTest は現状 @Tags("integration") のテストが 0 件で空実行(将来の e2e 受け皿)。
+// タスク定義は kotlin-jvm convention(ktor-server 経由で継承)に集約済み。

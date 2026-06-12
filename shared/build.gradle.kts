@@ -11,11 +11,9 @@ kotlin {
             implementation(libs.kotlinx.datetime)
         }
 
-        jsMain.dependencies {
-            implementation(npm("@js-joda/timezone", "2.3.0"))
-        }
-
-        wasmJsMain.dependencies {
+        // webMain(default hierarchy template の web グループ = js + wasmJs の親)に
+        // 一本化。両ターゲットへ伝播するため jsMain/wasmJsMain で重複宣言しない。
+        webMain.dependencies {
             implementation(npm("@js-joda/timezone", "2.3.0"))
         }
     }

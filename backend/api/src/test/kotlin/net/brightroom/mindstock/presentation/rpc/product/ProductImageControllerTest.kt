@@ -1,8 +1,4 @@
-@file:OptIn(
-    kotlin.uuid.ExperimentalUuidApi::class,
-    kotlin.time.ExperimentalTime::class,
-    kotlin.io.encoding.ExperimentalEncodingApi::class,
-)
+@file:OptIn(kotlin.uuid.ExperimentalUuidApi::class, kotlin.io.encoding.ExperimentalEncodingApi::class)
 
 package net.brightroom.mindstock.presentation.rpc.product
 
@@ -19,22 +15,16 @@ import io.mockk.slot
 import net.brightroom.mindstock.application.scenario.product.AdoptProductScenario
 import net.brightroom.mindstock.application.service.product.ProductRegisterService
 import net.brightroom.mindstock.application.service.product.ProductService
-import net.brightroom.mindstock.configuration.auth.MindstockSession
 import net.brightroom.mindstock.domain.exception.ResourceNotFoundException
 import net.brightroom.mindstock.domain.model.inventory.product.ProductId
 import net.brightroom.mindstock.domain.model.inventory.product.image.ImageUrl
 import net.brightroom.mindstock.domain.model.inventory.product.image.RawImageUpload
 import net.brightroom.mindstock.domain.model.resident.identity.ResidentId
-import net.brightroom.mindstock.domain.model.resident.identity.auth.AuthIdentity
-import net.brightroom.mindstock.domain.model.resident.identity.auth.AuthProvider
-import net.brightroom.mindstock.domain.model.resident.identity.auth.AuthSubject
 import net.brightroom.mindstock.rpc.product.UploadImageRequest
 import net.brightroom.mindstock.rpc.result.RpcError
 import net.brightroom.mindstock.rpc.result.RpcResult
+import net.brightroom.mindstock.testfixtures.buildRegisteredSession
 import kotlin.io.encoding.Base64
-import kotlin.time.Clock
-import kotlin.time.Duration.Companion.hours
-import kotlin.uuid.Uuid
 
 /**
  * 画像 RPC(uploadImage / imageUrl)の Controller 単体テスト。
@@ -45,15 +35,8 @@ import kotlin.uuid.Uuid
  */
 class ProductImageControllerTest :
     FunSpec({
-        val identity = AuthIdentity(AuthProvider.ZITADEL, AuthSubject("sub"))
         val residentId = ResidentId.create()
-        val session =
-            MindstockSession.Registered(
-                identity,
-                residentId,
-                Clock.System.now().plus(1.hours),
-                Uuid.random(),
-            )
+        val session = buildRegisteredSession(residentId)
 
         // RawImageUpload は ByteArray を包む value class で、空配列を拒否する(init require)。
         // mockk の any()/capture は型の「ダミー値」を reflective に生成するため、空配列で

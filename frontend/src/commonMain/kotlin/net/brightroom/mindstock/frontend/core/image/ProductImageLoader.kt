@@ -97,7 +97,7 @@ class ProductImageLoader(
  * [ProductImageLoader.invalidate] による世代変化を購読し、置換時も再 fetch する。
  */
 @Composable
-fun rememberProductImage(
+internal fun rememberProductImage(
     loader: ProductImageLoader,
     productId: ProductId,
     hasStoredImage: Boolean,
