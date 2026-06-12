@@ -511,7 +511,7 @@ private fun ReadyContent(
         alerts = alerts,
         onClose = { notifOpen = false },
         onOpen = { stock ->
-            notifOpen = false
+            // シートを閉じるのは onClose の責務(AlertRow が onOpen の前に onClose を呼ぶ)。
             opened.value = DetailTarget(stock.product.id, stock)
         },
     )

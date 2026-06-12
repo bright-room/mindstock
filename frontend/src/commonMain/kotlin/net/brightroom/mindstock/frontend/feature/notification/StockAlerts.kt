@@ -14,6 +14,10 @@ private const val SOON_DAYS = 5
 /**
  * 在庫からお知らせ用アラートを導出する。mock app/screens-c.jsx NotifSheet と同条件。
  * status 優先(在庫切れ/残りわずかは forecast によらず status 理由)。十分なら forecast<=5 のみ拾う。
+ *
+ * 非 @Composable の純粋なドメイン→表示変換。`feature/` 直下に置くのは意図的で、
+ * 既存の同種関数(`inventory/StockSummary.kt` の stockSummaryOf、`activity/ActivityGrouping.kt` の
+ * groupedByDay 等)と同じ配置方針に揃えている。
  */
 fun stockAlerts(
     stocks: Stocks,
