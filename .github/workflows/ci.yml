@@ -92,6 +92,15 @@ jobs:
           AUTH_PROJECT_ID: ci-placeholder
         run: ./gradlew jsTest wasmJsTest
 
+      - name: Production wasm build (成果物コンパイル検証)
+        # テストは成果物の破損(本番 wasm compile)を検知しない。本番ビルドの compile だけ検証する
+        # (フル wasmJsBrowserDistribution は重く OOM 実績があるため compile タスクに留める)。
+        # OOM したら run に -Pkotlin.daemon.jvmargs=-Xmx6144M を付与する。
+        env:
+          AUTH_CLIENT_ID: ci-placeholder
+          AUTH_PROJECT_ID: ci-placeholder
+        run: ./gradlew compileProductionExecutableKotlinWasmJs
+
       - name: Upload reports on failure
         if: failure()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
