@@ -51,7 +51,7 @@ value class Quantity(private val value: Int) {
 ### ファクトリ関数の方針
 
 - **意味のあるファクトリは持ってよい**。クロック呼び出し・UUID 生成のような **副作用を伴う / コンストラクタだけでは作れない** 生成ロジックを wrap する目的のものが該当
-  - 例: `UserId.create()` が `Uuid.uuidv7()` を呼んで生成
+  - 例: `ResidentId.create()` が `Uuid.generateV7()` を呼んで生成
   - 例: `OccurredAt.now()` が `:shared` の `LocalDateTime.now()` を呼ぶ
 - **意味のないファクトリは NG**。`Quantity.of(123)` のような、コンストラクタ `Quantity(123)` と等価なものを別名で持たない(API の二重化になる)
 
@@ -129,7 +129,7 @@ value class UserId(private val value: Uuid) {
     override fun toString(): String = value.toString()
 
     companion object {
-        fun create(): UserId = UserId(Uuid.uuidv7())  // 副作用ありの生成は factory として明示
+        fun create(): UserId = UserId(Uuid.generateV7())  // 副作用ありの生成は factory として明示
     }
 }
 ```

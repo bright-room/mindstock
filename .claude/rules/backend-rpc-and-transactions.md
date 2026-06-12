@@ -22,7 +22,7 @@ kotlinx-rpc 0.10.x と Ktor WebSocket を組み合わせた RPC 層の規約。`
 
 - **WebSocket 接続単位で 1 度だけ instantiate**(`registerService<T> { factory }` の factory は接続確立時に 1 回呼ばれる)
 - factory は **非 suspend**。Ktor DI の `dependencies.resolve<T>()` は suspend なので、`RoutingConfiguration` で `val handler by dependencies` で **先に解決** し factory closure 内で参照する
-- `ApplicationCall` は `this.applicationCall`(`configuration.auth.applicationCall` extension)で取得
+- `MindstockSession` は `sessionOf(call)`(`configuration/auth/SessionAccess.kt`)で取得する。`call.attributes[MindstockSessionKey]` を読み出す薄いヘルパーで、`applicationCall` という extension は存在しない
 - 認証 user は constructor で `MindstockSession` を受けて参照する
 
 ### Json 分離
