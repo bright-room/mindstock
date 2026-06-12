@@ -79,7 +79,11 @@ private suspend fun <T : Any> runGuarded(
     } catch (e: InvitationInvalidException) {
         RpcResult.Err(RpcError.Conflict(reason = e.message ?: "invitation invalid"))
     } catch (e: Throwable) {
-        logger.error(e) { "unhandled exception during RPC call_id=${session.callId}" }
+        val residentId = (session as? MindstockSession.Registered)?.residentId
+        logger.error(e) {
+            "unhandled exception during RPC call_id=${session.callId} " +
+                "auth_subject=${session.identity.subject} resident_id=$residentId"
+        }
         RpcResult.Err(RpcError.Internal(reason = "unexpected server error"))
     }
 }
