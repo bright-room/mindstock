@@ -17,11 +17,11 @@ enum class ShoppingNeed(
     companion object {
         fun judge(
             status: StockStatus,
-            manuallyWanted: Boolean,
+            manuallyWanted: Wanted,
         ): ShoppingNeed =
             when {
                 status != StockStatus.十分 -> 在庫不足
-                manuallyWanted -> 手動希望
+                manuallyWanted() -> 手動希望
                 else -> 不要
             }
     }

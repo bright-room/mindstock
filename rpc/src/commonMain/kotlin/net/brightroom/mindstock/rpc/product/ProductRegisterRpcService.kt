@@ -7,6 +7,7 @@ import net.brightroom.mindstock.domain.model.inventory.product.Product
 import net.brightroom.mindstock.domain.model.inventory.product.ProductId
 import net.brightroom.mindstock.domain.model.inventory.product.setting.MinimumStock
 import net.brightroom.mindstock.domain.model.inventory.product.setting.ProductUnit
+import net.brightroom.mindstock.domain.model.inventory.shopping.Wanted
 import net.brightroom.mindstock.rpc.result.RpcError
 import net.brightroom.mindstock.rpc.result.RpcResult
 
@@ -56,6 +57,6 @@ interface ProductRegisterRpcService {
     /** 手動の買い物希望フラグを設定/解除(UC19,20)。ProductId は global UUID で世帯一意のため householdId は不要。 */
     suspend fun setWanted(
         productId: ProductId,
-        wanted: Boolean,
+        wanted: Wanted,
     ): RpcResult<Unit, RpcError>
 }

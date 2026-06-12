@@ -5,6 +5,7 @@ import net.brightroom.mindstock.domain.model.inventory.product.ProductId
 import net.brightroom.mindstock.domain.model.inventory.product.image.ImageUrl
 import net.brightroom.mindstock.domain.model.inventory.quantity.Quantity
 import net.brightroom.mindstock.domain.model.inventory.shopping.ShoppingList
+import net.brightroom.mindstock.domain.model.inventory.shopping.Wanted
 import net.brightroom.mindstock.domain.model.inventory.stock.Stocks
 import net.brightroom.mindstock.domain.model.inventory.stock.movement.MovementId
 import net.brightroom.mindstock.domain.model.inventory.stock.movement.Note
@@ -60,7 +61,7 @@ class InventoryRepository(
     suspend fun setWanted(
         productId: ProductId,
         wanted: Boolean,
-    ): RpcOutcome<Unit> = productRegisterService().setWanted(productId, wanted).toOutcome()
+    ): RpcOutcome<Unit> = productRegisterService().setWanted(productId, Wanted(wanted)).toOutcome()
 
     suspend fun imageUrl(productId: ProductId): RpcOutcome<ImageUrl> = productService().imageUrl(productId).toOutcome()
 

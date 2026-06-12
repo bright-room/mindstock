@@ -7,6 +7,7 @@ import net.brightroom.mindstock.domain.model.catalog.item.CatalogItemId
 import net.brightroom.mindstock.domain.model.household.HouseholdId
 import net.brightroom.mindstock.domain.model.inventory.product.Product
 import net.brightroom.mindstock.domain.model.inventory.product.ProductId
+import net.brightroom.mindstock.domain.model.inventory.shopping.Wanted
 import net.brightroom.mindstock.infrastructure.datasource.Created
 import net.brightroom.mindstock.infrastructure.datasource.schemas.ProductBarcodesTable
 import net.brightroom.mindstock.infrastructure.datasource.schemas.ProductCatalogLinksTable
@@ -59,13 +60,13 @@ class ProductRegisterDataSource(
 
     override fun setWanted(
         productId: ProductId,
-        wanted: Boolean,
+        wanted: Wanted,
     ) {
         transaction(database) {
             val createdTime = Created.now()
             ProductWantedEventsTable.insert {
                 it[ProductWantedEventsTable.productId] = productId()
-                it[ProductWantedEventsTable.wanted] = wanted
+                it[ProductWantedEventsTable.wanted] = wanted()
                 it[recordedAt] = createdTime()
             }
         }

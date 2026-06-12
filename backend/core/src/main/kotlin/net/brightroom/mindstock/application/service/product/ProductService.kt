@@ -12,6 +12,7 @@ import net.brightroom.mindstock.domain.model.inventory.product.image.ImageUrl
 import net.brightroom.mindstock.domain.model.inventory.product.image.ProductImage
 import net.brightroom.mindstock.domain.model.inventory.shopping.ShoppingEntry
 import net.brightroom.mindstock.domain.model.inventory.shopping.ShoppingList
+import net.brightroom.mindstock.domain.model.inventory.shopping.Wanted
 import net.brightroom.mindstock.domain.model.inventory.stock.Stocks
 import net.brightroom.mindstock.domain.model.resident.identity.ResidentId
 
@@ -65,6 +66,6 @@ class ProductService(
                 .list
                 .map { it.id }
                 .toSet()
-        return ShoppingList(stocks.list.map { ShoppingEntry(it, it.product.id in wantedIds) })
+        return ShoppingList(stocks.list.map { ShoppingEntry(it, Wanted(it.product.id in wantedIds)) })
     }
 }

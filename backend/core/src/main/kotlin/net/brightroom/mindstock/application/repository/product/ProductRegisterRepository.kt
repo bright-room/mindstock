@@ -4,6 +4,7 @@ import net.brightroom.mindstock.domain.model.catalog.item.CatalogItemId
 import net.brightroom.mindstock.domain.model.household.HouseholdId
 import net.brightroom.mindstock.domain.model.inventory.product.Product
 import net.brightroom.mindstock.domain.model.inventory.product.ProductId
+import net.brightroom.mindstock.domain.model.inventory.shopping.Wanted
 
 interface ProductRegisterRepository {
     /** マスタ採用: products + 初回 revision + product_catalog_links を 1 tx で INSERT。 */
@@ -25,6 +26,6 @@ interface ProductRegisterRepository {
     /** 手動希望フラグを product_wanted_events に append。 */
     fun setWanted(
         productId: ProductId,
-        wanted: Boolean,
+        wanted: Wanted,
     )
 }

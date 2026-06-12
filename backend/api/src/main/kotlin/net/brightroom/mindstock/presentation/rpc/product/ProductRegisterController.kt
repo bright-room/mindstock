@@ -13,6 +13,7 @@ import net.brightroom.mindstock.domain.model.inventory.product.ProductId
 import net.brightroom.mindstock.domain.model.inventory.product.image.RawImageUpload
 import net.brightroom.mindstock.domain.model.inventory.product.setting.MinimumStock
 import net.brightroom.mindstock.domain.model.inventory.product.setting.ProductUnit
+import net.brightroom.mindstock.domain.model.inventory.shopping.Wanted
 import net.brightroom.mindstock.rpc.product.AddCustomProductRequest
 import net.brightroom.mindstock.rpc.product.ProductRegisterRpcService
 import net.brightroom.mindstock.rpc.product.UploadImageRequest
@@ -126,7 +127,7 @@ class ProductRegisterController(
 
     override suspend fun setWanted(
         productId: ProductId,
-        wanted: Boolean,
+        wanted: Wanted,
     ): RpcResult<Unit, RpcError> =
         requireRegistered(session) { residentId ->
             productRegisterService.setWanted(productId, wanted, residentId)

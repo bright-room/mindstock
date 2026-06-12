@@ -23,6 +23,7 @@ import net.brightroom.mindstock.domain.model.inventory.product.ProductName
 import net.brightroom.mindstock.domain.model.inventory.product.Products
 import net.brightroom.mindstock.domain.model.inventory.product.setting.MinimumStock
 import net.brightroom.mindstock.domain.model.inventory.product.setting.ProductUnit
+import net.brightroom.mindstock.domain.model.inventory.shopping.Wanted
 import net.brightroom.mindstock.domain.model.inventory.stock.Stock
 import net.brightroom.mindstock.domain.model.inventory.stock.Stocks
 import net.brightroom.mindstock.domain.model.inventory.stock.movement.StockMovements
@@ -72,7 +73,7 @@ class ProductServiceTest :
 
             val list = service.shoppingList(householdId, actor)
 
-            list.list.first { it.stock.product.id == wanted.id }.manuallyWanted shouldBe true
-            list.list.first { it.stock.product.id == other.id }.manuallyWanted shouldBe false
+            list.list.first { it.stock.product.id == wanted.id }.manuallyWanted shouldBe Wanted(true)
+            list.list.first { it.stock.product.id == other.id }.manuallyWanted shouldBe Wanted(false)
         }
     })
