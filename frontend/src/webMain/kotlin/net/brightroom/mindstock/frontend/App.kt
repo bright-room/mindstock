@@ -28,6 +28,7 @@ import mindstock.frontend.generated.resources.Res
 import mindstock.frontend.generated.resources.loading
 import mindstock.frontend.generated.resources.need_household_title
 import net.brightroom.mindstock.domain.model.household.HouseholdId
+import net.brightroom.mindstock.domain.model.inventory.product.image.ProductImage
 import net.brightroom.mindstock.domain.model.inventory.product.setting.MinimumStock
 import net.brightroom.mindstock.domain.model.inventory.product.setting.ProductUnit
 import net.brightroom.mindstock.domain.model.inventory.quantity.Quantity
@@ -740,9 +741,10 @@ private fun CatalogOverlayContent(
 }
 
 /**
- * [ProductSettingsSheet] に画像欄を配線したラッパ。画像状態(楽観表示フラグ・再入抑止)と RPC
- * オーケストレーション(ピッカー起動/アップロード/削除・loader 無効化・一覧 refresh・エラー処理)は
- * [ProductMasterViewModel] が持ち、ここは VM の状態を購読して描画とイベント委譲に徹する表示専任。
+ * [ProductSettingsSheet] に画像欄を配線したラッパ。RPC オーケストレーション(ピッカー起動/アップロード/
+ * 削除・loader 無効化・一覧 refresh・エラー処理)と再入抑止(busy)は [ProductMasterViewModel] が持つ。
+ * 楽観表示フラグ([stored])は「今開いているシートの productId キーの view state」なのでここでローカルに同期
+ * 保持し(共有 VM 由来の stale を避ける)、VM の成否 Boolean を受けて更新する。
  */
 @Composable
 private fun ProductSettingsSheetWithImage(
@@ -756,9 +758,8 @@ private fun ProductSettingsSheetWithImage(
 ) {
     val scope = rememberCoroutineScope()
     val productId = stock?.product?.id
-    val stored by viewModel.imageStored.collectAsState()
-    // 表示対象が変わったら楽観フラグを stock の現状で初期化する。
-    LaunchedEffect(productId) { viewModel.beginImageEdit(stock) }
+    // 楽観表示フラグ。productId キーで stock の現状から同期シードする(初フレームから正しい表示)。
+    var stored by remember(productId) { mutableStateOf(stock?.product?.image is ProductImage.Stored) }
     val image = if (productId != null) rememberProductThumbnail(productId, stored) else null
 
     ProductSettingsSheet(
@@ -771,11 +772,11 @@ private fun ProductSettingsSheetWithImage(
         image = image,
         onPickImage = {
             val id = productId ?: return@ProductSettingsSheet
-            scope.launch { viewModel.pickAndUploadImage(id) }
+            scope.launch { if (viewModel.pickAndUploadImage(id)) stored = true }
         },
         onRemoveImage = {
             val id = productId ?: return@ProductSettingsSheet
-            scope.launch { viewModel.removeImageFor(id) }
+            scope.launch { if (viewModel.removeImageFor(id)) stored = false }
         },
     )
 }

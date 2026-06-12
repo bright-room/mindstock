@@ -9,10 +9,8 @@ import mindstock.frontend.generated.resources.toast_archived
 import mindstock.frontend.generated.resources.toast_settings_saved
 import net.brightroom.mindstock.domain.model.household.HouseholdId
 import net.brightroom.mindstock.domain.model.inventory.product.ProductId
-import net.brightroom.mindstock.domain.model.inventory.product.image.ProductImage
 import net.brightroom.mindstock.domain.model.inventory.product.setting.MinimumStock
 import net.brightroom.mindstock.domain.model.inventory.product.setting.ProductUnit
-import net.brightroom.mindstock.domain.model.inventory.stock.Stock
 import net.brightroom.mindstock.domain.model.inventory.stock.Stocks
 import net.brightroom.mindstock.frontend.core.auth.ReauthController
 import net.brightroom.mindstock.frontend.core.image.ImagePickResult
@@ -41,10 +39,6 @@ class ProductMasterViewModel(
 
     private val _state = MutableStateFlow<ProductMasterUiState>(ProductMasterUiState.Loading)
     val state: StateFlow<ProductMasterUiState> = _state.asStateFlow()
-
-    // 設定シートの画像欄の楽観表示フラグ。upload で true / remove で false にし、シートの即時反映に使う。
-    private val _imageStored = MutableStateFlow(false)
-    val imageStored: StateFlow<Boolean> = _imageStored.asStateFlow()
 
     // 画像更新(upload/remove)の進行中フラグ。再入を抑止して書込を 1 本に直列化する。
     private val _imageBusy = MutableStateFlow(false)
@@ -86,31 +80,29 @@ class ProductMasterViewModel(
     /** 画像を削除し、成功なら true。 */
     suspend fun removeImage(productId: ProductId): Boolean = imageWrite(removeImageOf(productId), productId)
 
-    /** 設定シートの表示対象が変わったとき、楽観表示フラグを stock の現状で初期化する。 */
-    fun beginImageEdit(stock: Stock?) {
-        _imageStored.value = stock?.product?.image is ProductImage.Stored
-    }
-
-    /** ピッカー起動 → 選択時のみアップロード。再入中は無視。成功時に楽観フラグを true にする。 */
-    suspend fun pickAndUploadImage(productId: ProductId) {
-        if (_imageBusy.value) return
+    /**
+     * ピッカー起動 → 選択時のみアップロード。再入中(busy)は無視して false。
+     * アップロード成功なら true(呼び出し側のシートは楽観表示を Stored に倒す)。Cancelled/失敗は false。
+     */
+    suspend fun pickAndUploadImage(productId: ProductId): Boolean {
+        if (_imageBusy.value) return false
         _imageBusy.value = true
         try {
-            when (val r = pickImage()) {
-                is ImagePickResult.Selected -> if (uploadImage(productId, r.base64)) _imageStored.value = true
-                ImagePickResult.Cancelled -> Unit
+            return when (val r = pickImage()) {
+                is ImagePickResult.Selected -> uploadImage(productId, r.base64)
+                ImagePickResult.Cancelled -> false
             }
         } finally {
             _imageBusy.value = false
         }
     }
 
-    /** 画像削除。再入中は無視。成功時に楽観フラグを false にする。 */
-    suspend fun removeImageFor(productId: ProductId) {
-        if (_imageBusy.value) return
+    /** 画像削除。再入中(busy)は無視して false。削除成功なら true(シートは楽観表示を無しに倒す)。 */
+    suspend fun removeImageFor(productId: ProductId): Boolean {
+        if (_imageBusy.value) return false
         _imageBusy.value = true
         try {
-            if (removeImage(productId)) _imageStored.value = false
+            return removeImage(productId)
         } finally {
             _imageBusy.value = false
         }
