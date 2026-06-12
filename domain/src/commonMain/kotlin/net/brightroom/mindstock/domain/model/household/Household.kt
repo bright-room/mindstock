@@ -90,6 +90,8 @@ data class Household(
      * 非メンバーは MembershipRequiredException、メンバーだが マスタ管理 capability を持たなければ OwnerRequiredException。
      */
     fun requireCanManageMaster(by: ResidentId) {
+        // 順序が前提: requireCapability 内の roleOf は非メンバーに ResourceNotFoundException を投げるため、
+        // 先に requireMember で非メンバーを MembershipRequiredException として弾く。
         requireMember(by)
         requireCapability(by, HouseholdCapability.マスタ管理)
     }
