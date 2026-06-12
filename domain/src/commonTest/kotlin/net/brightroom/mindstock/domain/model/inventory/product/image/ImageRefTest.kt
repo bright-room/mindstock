@@ -5,6 +5,11 @@ import kotlin.test.Test
 
 class ImageRefTest {
     @Test
+    fun 空文字列は拒否する() {
+        shouldThrow<IllegalArgumentException> { ImageRef("") }
+    }
+
+    @Test
     fun 空白のみは拒否する() {
         shouldThrow<IllegalArgumentException> { ImageRef("  ") }
     }
