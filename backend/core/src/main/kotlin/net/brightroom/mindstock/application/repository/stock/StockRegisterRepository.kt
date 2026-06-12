@@ -4,9 +4,9 @@ import net.brightroom.mindstock.domain.model.inventory.product.ProductId
 import net.brightroom.mindstock.domain.model.inventory.stock.movement.StockMovement
 
 interface StockRegisterRepository {
-    /** stock_movements に 1 行 INSERT し、採番された id で Persisted な StockMovement を返す。 */
+    /** stock_movements に 1 行 INSERT する。 */
     fun appendMovement(
         productId: ProductId,
         movement: StockMovement,
-    ): StockMovement
+    )
 }
