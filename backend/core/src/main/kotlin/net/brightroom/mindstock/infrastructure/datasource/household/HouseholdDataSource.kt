@@ -10,6 +10,7 @@ import net.brightroom.mindstock.domain.model.household.HouseholdName
 import net.brightroom.mindstock.domain.model.household.HouseholdProfile
 import net.brightroom.mindstock.domain.model.household.Households
 import net.brightroom.mindstock.domain.model.household.member.HouseholdMember
+import net.brightroom.mindstock.domain.model.household.member.HouseholdMemberRole
 import net.brightroom.mindstock.domain.model.household.member.Members
 import net.brightroom.mindstock.domain.model.resident.Resident
 import net.brightroom.mindstock.domain.model.resident.identity.ResidentId
@@ -40,11 +41,16 @@ class HouseholdDataSource(
 
     override fun listByResident(residentId: ResidentId): Households =
         transaction(database) {
-            // current メンバーである household_id を集める(membership window rn=1 & status=所属)
             val ids = currentHouseholdIds(residentId)
-            // 1 resident は通常 1〜数世帯のみ所属するため per-household hydrate(1+3N)で許容。
-            // 世帯数が増えるなら householdId IN (...) の一括ロードに切り替える(P5 でプロファイル後判断)。
-            Households(ids.map { hydrate(it) })
+            if (ids.isEmpty()) return@transaction Households(emptyList())
+            val names = latestHouseholdNames(ids)
+            val membersByHousehold = currentMembersByHouseholds(ids)
+            Households(
+                ids.map { id ->
+                    val name = names[id] ?: throw ResourceNotFoundException("household not found: $id")
+                    Household(id, HouseholdProfile(name), Members(membersByHousehold[id] ?: emptyList()))
+                },
+            )
         }
 
     private fun currentHouseholdIds(residentId: ResidentId): List<HouseholdId> {
@@ -155,5 +161,98 @@ class HouseholdDataSource(
             val resident = Resident(residentId, ResidentProfile(DisplayName(displayName)))
             HouseholdMember(resident, role)
         }
+    }
+
+    /** 複数世帯の最新名を一括取得。HouseholdId → HouseholdName のマップを返す。 */
+    private fun latestHouseholdNames(ids: List<HouseholdId>): Map<HouseholdId, HouseholdName> {
+        if (ids.isEmpty()) return emptyMap() // inList(emptyList()) で不正 IN () を生成しない(loadMovementsByProducts と同じ慣行)
+        val rn =
+            rowNumber()
+                .over()
+                .partitionBy(HouseholdNamesTable.householdId)
+                .orderBy(HouseholdNamesTable.id to SortOrder.DESC)
+        val rnAlias = rn.alias("rn")
+        val sub =
+            HouseholdNamesTable
+                .select(HouseholdNamesTable.householdId, HouseholdNamesTable.name, rnAlias)
+                .where { HouseholdNamesTable.householdId inList ids.map { it() } }
+                .alias("latest_names_bulk")
+        return sub
+            .selectAll()
+            .where { sub[rnAlias] eq 1L }
+            .associate { HouseholdId(it[sub[HouseholdNamesTable.householdId]]) to HouseholdName(it[sub[HouseholdNamesTable.name]]) }
+    }
+
+    /** 複数世帯の現メンバーを一括取得。HouseholdId → List<HouseholdMember> のマップを返す。 */
+    private fun currentMembersByHouseholds(ids: List<HouseholdId>): Map<HouseholdId, List<HouseholdMember>> {
+        if (ids.isEmpty()) return emptyMap() // inList(emptyList()) で不正 IN () を生成しない(loadMovementsByProducts と同じ慣行)
+
+        // Step 1: current membership rows(window rn=1 & status=所属) → (householdId, residentId, role)
+        data class MemberRow(
+            val householdId: HouseholdId,
+            val residentId: ResidentId,
+            val role: HouseholdMemberRole,
+        )
+
+        val rn =
+            rowNumber()
+                .over()
+                .partitionBy(HouseholdMembershipEventsTable.householdId, HouseholdMembershipEventsTable.residentId)
+                .orderBy(HouseholdMembershipEventsTable.id to SortOrder.DESC)
+        val rnAlias = rn.alias("rn")
+        val mSub =
+            HouseholdMembershipEventsTable
+                .select(
+                    HouseholdMembershipEventsTable.householdId,
+                    HouseholdMembershipEventsTable.residentId,
+                    HouseholdMembershipEventsTable.role,
+                    HouseholdMembershipEventsTable.status,
+                    rnAlias,
+                ).where { HouseholdMembershipEventsTable.householdId inList ids.map { it() } }
+                .alias("latest_members_bulk")
+
+        val memberRows =
+            mSub
+                .selectAll()
+                .where {
+                    (mSub[rnAlias] eq 1L) and
+                        (mSub[HouseholdMembershipEventsTable.status] eq MembershipStatus.所属)
+                }.orderBy(mSub[HouseholdMembershipEventsTable.residentId] to SortOrder.ASC)
+                .map { row ->
+                    MemberRow(
+                        householdId = HouseholdId(row[mSub[HouseholdMembershipEventsTable.householdId]]),
+                        residentId = ResidentId(row[mSub[HouseholdMembershipEventsTable.residentId]]),
+                        role = row[mSub[HouseholdMembershipEventsTable.role]],
+                    )
+                }
+
+        if (memberRows.isEmpty()) return ids.associateWith { emptyList() }
+
+        // Step 2: 各メンバーの最新 display_name をバッチロード
+        val memberResidentIds = memberRows.map { it.residentId }.distinct()
+        val (dnSub, dnRefs) = latestResidentDisplayNames()
+        val displayNames: Map<ResidentId, String> =
+            ResidentsTable
+                .join(dnSub, JoinType.INNER, onColumn = ResidentsTable.id, otherColumn = dnSub[ResidentDisplayNamesTable.residentId])
+                .select(ResidentsTable.id, dnSub[ResidentDisplayNamesTable.displayName])
+                .where {
+                    (ResidentsTable.id inList memberResidentIds.map { it() }) and
+                        (dnSub[dnRefs.rn] eq 1L)
+                }.associate { row ->
+                    ResidentId(row[ResidentsTable.id]) to row[dnSub[ResidentDisplayNamesTable.displayName]]
+                }
+
+        // Step 3: groupBy 世帯 → HouseholdMember リストに変換
+        return memberRows
+            .groupBy { it.householdId }
+            .mapValues { (_, rows) ->
+                rows.map { memberRow ->
+                    val displayName =
+                        displayNames[memberRow.residentId]
+                            ?: throw ResourceNotFoundException("resident display name not found: ${memberRow.residentId}")
+                    val resident = Resident(memberRow.residentId, ResidentProfile(DisplayName(displayName)))
+                    HouseholdMember(resident, memberRow.role)
+                }
+            }
     }
 }
