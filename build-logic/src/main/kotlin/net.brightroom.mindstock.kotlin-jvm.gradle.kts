@@ -33,7 +33,7 @@ tasks.register<Test>("integrationTest") {
     systemProperty("kotest.tags.exclude", "manual")
     // storage は app と同じ external.storage.*(STORAGE_*)の env を読むため、設定時のみ test JVM へ転送する。
     // DB は TestDatabase の定数(固定フィクスチャ mindstock_test)に当たるので転送する env はない。
-    listOf("STORAGE_ENDPOINT", "STORAGE_BUCKET", "STORAGE_ACCESS_KEY", "STORAGE_SECRET_KEY")
+    listOf("STORAGE_ENDPOINT", "STORAGE_REGION", "STORAGE_BUCKET", "STORAGE_ACCESS_KEY", "STORAGE_SECRET_KEY")
         .forEach { key ->
             providers.environmentVariable(key).orNull?.let { environment(key, it) }
         }

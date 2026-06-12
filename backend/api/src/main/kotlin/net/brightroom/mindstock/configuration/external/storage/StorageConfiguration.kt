@@ -40,6 +40,10 @@ fun Application.storageConfigure(
             properties.corsAllowedOrigins
                 .map { it.trim() }
                 .filter { it.isNotBlank() }
+        if (origins.isEmpty()) {
+            log.info("bucket CORS skipped: no allowed origins configured")
+            return@subscribe
+        }
         try {
             runBlocking {
                 withTimeout(10.seconds) {
