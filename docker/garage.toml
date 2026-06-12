@@ -4,6 +4,7 @@ db_engine = "sqlite"
 replication_factor = 1
 rpc_bind_addr = "[::]:3901"
 rpc_public_addr = "127.0.0.1:3901"
+# dev-only: 単一ノードなので RPC 暗号化は不要。本番では別途秘密値を設定すること。
 rpc_secret = "0000000000000000000000000000000000000000000000000000000000000000"
 
 [s3_api]
