@@ -20,7 +20,7 @@ import net.brightroom.mindstock.domain.model.household.member.HouseholdMemberRol
 import net.brightroom.mindstock.domain.model.resident.Resident
 import net.brightroom.mindstock.domain.model.resident.identity.ResidentId
 import net.brightroom.mindstock.domain.model.resident.profile.DisplayName
-import net.brightroom.mindstock.domain.model.resident.profile.Profile
+import net.brightroom.mindstock.domain.model.resident.profile.ResidentProfile
 
 class JoinHouseholdScenarioTest :
     FunSpec({
@@ -30,7 +30,7 @@ class JoinHouseholdScenarioTest :
         val scenario = JoinHouseholdScenario(invitationService, residentService, householdRegisterService)
 
         val code = InvitationCode("ABCDEF")
-        val joiner = Resident(ResidentId.create(), Profile(DisplayName("参加者")))
+        val joiner = Resident(ResidentId.create(), ResidentProfile(DisplayName("参加者")))
         val householdId = HouseholdId.create()
 
         test("無効な招待コードでは参加できず InvitationInvalidException(join を呼ばない)") {

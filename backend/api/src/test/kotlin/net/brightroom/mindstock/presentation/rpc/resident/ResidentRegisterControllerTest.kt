@@ -15,7 +15,7 @@ import net.brightroom.mindstock.domain.model.resident.identity.auth.AuthIdentity
 import net.brightroom.mindstock.domain.model.resident.identity.auth.AuthProvider
 import net.brightroom.mindstock.domain.model.resident.identity.auth.AuthSubject
 import net.brightroom.mindstock.domain.model.resident.profile.DisplayName
-import net.brightroom.mindstock.domain.model.resident.profile.Profile
+import net.brightroom.mindstock.domain.model.resident.profile.ResidentProfile
 import net.brightroom.mindstock.rpc.result.RpcError
 import net.brightroom.mindstock.rpc.result.RpcResult
 import kotlin.time.Clock
@@ -35,7 +35,7 @@ class ResidentRegisterControllerTest :
 
         test("registerDisplayName on Unregistered → register を呼び Ok(created) を返す") {
             val service = mockk<ResidentRegisterService>(relaxed = true)
-            val created = Resident(residentId, Profile(displayName))
+            val created = Resident(residentId, ResidentProfile(displayName))
             every { service.register(identity, displayName) } returns created
 
             val controller = ResidentRegisterController(service, unregisteredSession)

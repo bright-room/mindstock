@@ -29,7 +29,7 @@ import net.brightroom.mindstock.domain.model.inventory.stock.movement.StockMovem
 import net.brightroom.mindstock.domain.model.resident.Resident
 import net.brightroom.mindstock.domain.model.resident.identity.ResidentId
 import net.brightroom.mindstock.domain.model.resident.profile.DisplayName
-import net.brightroom.mindstock.domain.model.resident.profile.Profile
+import net.brightroom.mindstock.domain.model.resident.profile.ResidentProfile
 import net.brightroom.mindstock.frontend.core.auth.ReauthController
 import net.brightroom.mindstock.frontend.core.rpc.RpcOutcome
 import net.brightroom.mindstock.frontend.core.ui.InventoryRefreshController
@@ -37,7 +37,7 @@ import net.brightroom.mindstock.frontend.core.ui.ToastController
 import net.brightroom.mindstock.rpc.result.RpcError
 import kotlin.test.Test
 
-private val actor = Resident(ResidentId.create(), Profile(DisplayName("テスト")))
+private val actor = Resident(ResidentId.create(), ResidentProfile(DisplayName("テスト")))
 
 private fun stockOf(
     id: ProductId,

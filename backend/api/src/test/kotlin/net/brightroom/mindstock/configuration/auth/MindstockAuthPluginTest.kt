@@ -23,7 +23,7 @@ import net.brightroom.mindstock.domain.model.resident.Resident
 import net.brightroom.mindstock.domain.model.resident.identity.ResidentId
 import net.brightroom.mindstock.domain.model.resident.identity.auth.AuthIdentity
 import net.brightroom.mindstock.domain.model.resident.profile.DisplayName
-import net.brightroom.mindstock.domain.model.resident.profile.Profile
+import net.brightroom.mindstock.domain.model.resident.profile.ResidentProfile
 import net.brightroom.mindstock.e2e.auth.TestJwtIssuer
 import net.brightroom.mindstock.e2e.auth.TestKeyPair
 import java.security.KeyPairGenerator
@@ -78,7 +78,7 @@ class MindstockAuthPluginTest :
 
         fun registeredRepo(residentId: ResidentId): ResidentRepository =
             mockk<ResidentRepository>().also {
-                every { it.findByAuth(any()) } returns Resident(residentId, Profile(DisplayName("Alice")))
+                every { it.findByAuth(any()) } returns Resident(residentId, ResidentProfile(DisplayName("Alice")))
             }
 
         fun unregisteredRepo(): ResidentRepository =

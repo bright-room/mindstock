@@ -16,7 +16,7 @@ import net.brightroom.mindstock.domain.model.household.member.HouseholdMemberRol
 import net.brightroom.mindstock.domain.model.resident.Resident
 import net.brightroom.mindstock.domain.model.resident.identity.ResidentId
 import net.brightroom.mindstock.domain.model.resident.profile.DisplayName
-import net.brightroom.mindstock.domain.model.resident.profile.Profile
+import net.brightroom.mindstock.domain.model.resident.profile.ResidentProfile
 
 class CreateInvitationScenarioTest :
     FunSpec({
@@ -24,8 +24,8 @@ class CreateInvitationScenarioTest :
         val invitationRegisterService = mockk<InvitationRegisterService>(relaxed = true)
         val scenario = CreateInvitationScenario(householdService, invitationRegisterService)
 
-        val owner = Resident(ResidentId.create(), Profile(DisplayName("世帯主")))
-        val member = Resident(ResidentId.create(), Profile(DisplayName("メンバー")))
+        val owner = Resident(ResidentId.create(), ResidentProfile(DisplayName("世帯主")))
+        val member = Resident(ResidentId.create(), ResidentProfile(DisplayName("メンバー")))
         val household = Household.create(HouseholdName("我が家"), owner).join(member, HouseholdMemberRole.メンバー)
 
         test("メンバーは招待を発行できず OwnerRequiredException(issue を呼ばない)") {

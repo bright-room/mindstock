@@ -14,7 +14,7 @@ import net.brightroom.mindstock.domain.model.inventory.stock.movement.StockMovem
 import net.brightroom.mindstock.domain.model.resident.Resident
 import net.brightroom.mindstock.domain.model.resident.identity.ResidentId
 import net.brightroom.mindstock.domain.model.resident.profile.DisplayName
-import net.brightroom.mindstock.domain.model.resident.profile.Profile
+import net.brightroom.mindstock.domain.model.resident.profile.ResidentProfile
 import net.brightroom.mindstock.infrastructure.datasource.resident.latestResidentDisplayNames
 import net.brightroom.mindstock.infrastructure.datasource.schemas.ResidentDisplayNamesTable
 import net.brightroom.mindstock.infrastructure.datasource.schemas.ResidentsTable
@@ -85,7 +85,7 @@ class StockDataSource(
                 .where { (ResidentsTable.id inList actorIds) and (dnSub[dnRefs.rn] eq 1L) }
                 .associate { row ->
                     val rid = row[ResidentsTable.id]
-                    rid to Resident(ResidentId(rid), Profile(DisplayName(row[dnSub[ResidentDisplayNamesTable.displayName]])))
+                    rid to Resident(ResidentId(rid), ResidentProfile(DisplayName(row[dnSub[ResidentDisplayNamesTable.displayName]])))
                 }
 
         val movements =

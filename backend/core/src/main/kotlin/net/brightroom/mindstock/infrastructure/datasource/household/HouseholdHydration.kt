@@ -5,7 +5,7 @@ package net.brightroom.mindstock.infrastructure.datasource.household
 import net.brightroom.mindstock.domain.model.household.Household
 import net.brightroom.mindstock.domain.model.household.HouseholdId
 import net.brightroom.mindstock.domain.model.household.HouseholdName
-import net.brightroom.mindstock.domain.model.household.Profile
+import net.brightroom.mindstock.domain.model.household.HouseholdProfile
 import net.brightroom.mindstock.domain.model.household.member.HouseholdMember
 import net.brightroom.mindstock.domain.model.household.member.HouseholdMemberRole
 import net.brightroom.mindstock.domain.model.household.member.Members
@@ -16,7 +16,7 @@ internal fun assembleHousehold(
     id: HouseholdId,
     name: HouseholdName,
     members: List<HouseholdMember>,
-): Household = Household(id, Profile(name), Members(members))
+): Household = Household(id, HouseholdProfile(name), Members(members))
 
 internal fun member(
     resident: Resident,

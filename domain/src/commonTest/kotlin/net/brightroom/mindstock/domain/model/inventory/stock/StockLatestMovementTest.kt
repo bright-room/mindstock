@@ -15,11 +15,11 @@ import net.brightroom.mindstock.domain.model.inventory.stock.movement.StockMovem
 import net.brightroom.mindstock.domain.model.resident.Resident
 import net.brightroom.mindstock.domain.model.resident.identity.ResidentId
 import net.brightroom.mindstock.domain.model.resident.profile.DisplayName
-import net.brightroom.mindstock.domain.model.resident.profile.Profile
+import net.brightroom.mindstock.domain.model.resident.profile.ResidentProfile
 import kotlin.test.Test
 
 class StockLatestMovementTest {
-    private val actor = Resident(ResidentId.create(), Profile(DisplayName("たろう")))
+    private val actor = Resident(ResidentId.create(), ResidentProfile(DisplayName("たろう")))
     private val product = Product.custom(ProductName("水"), Barcode.Unlinked, ProductUnit("本"), MinimumStock(1))
     private val stock = Stock(product, StockMovements(emptyList()))
 

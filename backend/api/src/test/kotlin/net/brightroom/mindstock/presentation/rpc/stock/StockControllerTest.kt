@@ -28,7 +28,7 @@ import net.brightroom.mindstock.domain.model.resident.identity.auth.AuthIdentity
 import net.brightroom.mindstock.domain.model.resident.identity.auth.AuthProvider
 import net.brightroom.mindstock.domain.model.resident.identity.auth.AuthSubject
 import net.brightroom.mindstock.domain.model.resident.profile.DisplayName
-import net.brightroom.mindstock.domain.model.resident.profile.Profile
+import net.brightroom.mindstock.domain.model.resident.profile.ResidentProfile
 import net.brightroom.mindstock.rpc.result.RpcResult
 import net.brightroom.mindstock.rpc.stock.ActivityEntry
 import net.brightroom.mindstock.rpc.stock.ActivityFeed
@@ -54,7 +54,7 @@ class StockControllerTest :
         test("activity は Stocks を ActivityFeed に flatten して Ok で包んで返す") {
             val householdId = HouseholdId.create()
             val product = Product.custom(ProductName("水"), Barcode.Unlinked, ProductUnit("本"), MinimumStock(1))
-            val actorRes = Resident(residentId, Profile(DisplayName("じぶん")))
+            val actorRes = Resident(residentId, ResidentProfile(DisplayName("じぶん")))
             val mv = StockMovement.Replenishment(MovementIdentity.Pending, Quantity(3), OccurredAt.now(), actorRes, Note(""))
             every { stockService.activity(householdId, residentId) } returns Stocks(listOf(Stock(product, StockMovements(listOf(mv)))))
 

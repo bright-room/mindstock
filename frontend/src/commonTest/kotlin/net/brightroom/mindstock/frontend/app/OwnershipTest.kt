@@ -10,10 +10,10 @@ import net.brightroom.mindstock.domain.model.household.member.Members
 import net.brightroom.mindstock.domain.model.resident.Resident
 import net.brightroom.mindstock.domain.model.resident.identity.ResidentId
 import net.brightroom.mindstock.domain.model.resident.profile.DisplayName
-import net.brightroom.mindstock.domain.model.resident.profile.Profile
+import net.brightroom.mindstock.domain.model.resident.profile.ResidentProfile
 import kotlin.test.Test
 
-private fun resident(id: ResidentId) = Resident(id, Profile(DisplayName("name")))
+private fun resident(id: ResidentId) = Resident(id, ResidentProfile(DisplayName("name")))
 
 class OwnershipTest {
     @Test

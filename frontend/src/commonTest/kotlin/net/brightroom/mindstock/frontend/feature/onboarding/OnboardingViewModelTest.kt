@@ -8,18 +8,18 @@ import kotlinx.coroutines.test.runTest
 import net.brightroom.mindstock.domain.model.household.Household
 import net.brightroom.mindstock.domain.model.household.HouseholdId
 import net.brightroom.mindstock.domain.model.household.HouseholdName
-import net.brightroom.mindstock.domain.model.household.Profile
+import net.brightroom.mindstock.domain.model.household.HouseholdProfile
 import net.brightroom.mindstock.domain.model.household.member.Members
 import net.brightroom.mindstock.domain.model.resident.Resident
 import net.brightroom.mindstock.domain.model.resident.identity.ResidentId
 import net.brightroom.mindstock.domain.model.resident.profile.DisplayName
+import net.brightroom.mindstock.domain.model.resident.profile.ResidentProfile
 import net.brightroom.mindstock.frontend.app.AuthFlow
 import net.brightroom.mindstock.frontend.core.auth.ReauthController
 import net.brightroom.mindstock.frontend.core.rpc.RpcOutcome
 import net.brightroom.mindstock.frontend.core.ui.ToastController
 import net.brightroom.mindstock.rpc.result.RpcError
 import kotlin.test.Test
-import net.brightroom.mindstock.domain.model.resident.profile.Profile as ResidentProfile
 
 private class FakeAuthFlow : AuthFlow {
     var registered: Resident? = null
@@ -49,7 +49,7 @@ private class FakeAuthFlow : AuthFlow {
 
 private fun resident() = Resident(ResidentId.create(), ResidentProfile(DisplayName("たろう")))
 
-private fun household() = Household(HouseholdId.create(), Profile(HouseholdName("家")), Members(emptyList()))
+private fun household() = Household(HouseholdId.create(), HouseholdProfile(HouseholdName("家")), Members(emptyList()))
 
 private fun vm(
     register: suspend (DisplayName) -> RpcOutcome<Resident> = { RpcOutcome.Success(resident()) },

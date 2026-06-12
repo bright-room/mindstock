@@ -21,7 +21,7 @@ import net.brightroom.mindstock.domain.model.catalog.item.CatalogItemId
 import net.brightroom.mindstock.domain.model.household.Household
 import net.brightroom.mindstock.domain.model.household.HouseholdId
 import net.brightroom.mindstock.domain.model.household.HouseholdName
-import net.brightroom.mindstock.domain.model.household.Profile
+import net.brightroom.mindstock.domain.model.household.HouseholdProfile
 import net.brightroom.mindstock.domain.model.household.member.HouseholdMember
 import net.brightroom.mindstock.domain.model.household.member.HouseholdMemberRole
 import net.brightroom.mindstock.domain.model.household.member.Members
@@ -31,7 +31,7 @@ import net.brightroom.mindstock.domain.model.inventory.product.setting.ProductUn
 import net.brightroom.mindstock.domain.model.resident.Resident
 import net.brightroom.mindstock.domain.model.resident.identity.ResidentId
 import net.brightroom.mindstock.domain.model.resident.profile.DisplayName
-import net.brightroom.mindstock.domain.model.resident.profile.Profile as ResidentProfile
+import net.brightroom.mindstock.domain.model.resident.profile.ResidentProfile
 
 class ProductRegisterServiceTest :
     FunSpec({
@@ -50,7 +50,7 @@ class ProductRegisterServiceTest :
             val resident = Resident(actor, ResidentProfile(DisplayName("たろう")))
             return Household(
                 householdId,
-                Profile(HouseholdName("わが家")),
+                HouseholdProfile(HouseholdName("わが家")),
                 Members(listOf(HouseholdMember(resident, HouseholdMemberRole.世帯主))),
             )
         }
@@ -105,7 +105,7 @@ class ProductRegisterServiceTest :
             every { householdRepository.findById(householdId) } returns
                 Household(
                     householdId,
-                    Profile(HouseholdName("わが家")),
+                    HouseholdProfile(HouseholdName("わが家")),
                     Members(
                         listOf(
                             HouseholdMember(

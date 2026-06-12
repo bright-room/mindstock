@@ -24,7 +24,7 @@ import net.brightroom.mindstock.domain.model.inventory.stock.movement.StockMovem
 import net.brightroom.mindstock.domain.model.resident.Resident
 import net.brightroom.mindstock.domain.model.resident.identity.ResidentId
 import net.brightroom.mindstock.domain.model.resident.profile.DisplayName
-import net.brightroom.mindstock.domain.model.resident.profile.Profile
+import net.brightroom.mindstock.domain.model.resident.profile.ResidentProfile
 import net.brightroom.mindstock.extensions.kotlinx.serialization.KrpcJson
 import net.brightroom.mindstock.rpc.result.RpcError
 import net.brightroom.mindstock.rpc.result.RpcResult
@@ -61,7 +61,7 @@ class ActivityFeedSerializationTest {
         val actor =
             Resident(
                 id = ResidentId.create(),
-                profile = Profile(DisplayName("たろう")),
+                profile = ResidentProfile(DisplayName("たろう")),
             )
         val movement =
             StockMovement.Replenishment(
@@ -91,7 +91,7 @@ class ActivityFeedSerializationTest {
         val actor =
             Resident(
                 id = ResidentId.create(),
-                profile = Profile(DisplayName("はなこ")),
+                profile = ResidentProfile(DisplayName("はなこ")),
             )
         val movement =
             StockMovement.Replenishment(

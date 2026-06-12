@@ -6,12 +6,12 @@ import net.brightroom.mindstock.domain.model.household.member.HouseholdMemberRol
 import net.brightroom.mindstock.domain.model.resident.Resident
 import net.brightroom.mindstock.domain.model.resident.identity.ResidentId
 import net.brightroom.mindstock.domain.model.resident.profile.DisplayName
-import net.brightroom.mindstock.domain.model.resident.profile.Profile
+import net.brightroom.mindstock.domain.model.resident.profile.ResidentProfile
 import kotlin.test.Test
 
 class HouseholdRequireCanManageTest {
-    private val owner = Resident(ResidentId.create(), Profile(DisplayName("世帯主")))
-    private val member = Resident(ResidentId.create(), Profile(DisplayName("メンバー")))
+    private val owner = Resident(ResidentId.create(), ResidentProfile(DisplayName("世帯主")))
+    private val member = Resident(ResidentId.create(), ResidentProfile(DisplayName("メンバー")))
     private val household =
         Household.create(HouseholdName("我が家"), owner).join(member, HouseholdMemberRole.メンバー)
 

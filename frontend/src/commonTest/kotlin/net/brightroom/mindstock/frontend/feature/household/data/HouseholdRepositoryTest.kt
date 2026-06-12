@@ -5,8 +5,8 @@ import kotlinx.coroutines.test.runTest
 import net.brightroom.mindstock.domain.model.household.Household
 import net.brightroom.mindstock.domain.model.household.HouseholdId
 import net.brightroom.mindstock.domain.model.household.HouseholdName
+import net.brightroom.mindstock.domain.model.household.HouseholdProfile
 import net.brightroom.mindstock.domain.model.household.Households
-import net.brightroom.mindstock.domain.model.household.Profile
 import net.brightroom.mindstock.domain.model.household.invitation.Invitation
 import net.brightroom.mindstock.domain.model.household.invitation.InvitationCode
 import net.brightroom.mindstock.domain.model.household.member.HouseholdMemberRole
@@ -20,7 +20,7 @@ import net.brightroom.mindstock.rpc.result.RpcError
 import net.brightroom.mindstock.rpc.result.RpcResult
 import kotlin.test.Test
 
-private fun household(name: String) = Household(HouseholdId.create(), Profile(HouseholdName(name)), Members(emptyList()))
+private fun household(name: String) = Household(HouseholdId.create(), HouseholdProfile(HouseholdName(name)), Members(emptyList()))
 
 private class FakeHouseholdService(
     private val preview: RpcResult<InvitationPreview, RpcError>,

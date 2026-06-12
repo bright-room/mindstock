@@ -12,8 +12,8 @@ import net.brightroom.mindstock.configuration.auth.MindstockSession
 import net.brightroom.mindstock.domain.model.household.Household
 import net.brightroom.mindstock.domain.model.household.HouseholdId
 import net.brightroom.mindstock.domain.model.household.HouseholdName
+import net.brightroom.mindstock.domain.model.household.HouseholdProfile
 import net.brightroom.mindstock.domain.model.household.Households
-import net.brightroom.mindstock.domain.model.household.Profile
 import net.brightroom.mindstock.domain.model.household.invitation.Invitation
 import net.brightroom.mindstock.domain.model.household.invitation.InvitationValidity
 import net.brightroom.mindstock.domain.model.household.member.HouseholdMember
@@ -25,6 +25,7 @@ import net.brightroom.mindstock.domain.model.resident.identity.auth.AuthIdentity
 import net.brightroom.mindstock.domain.model.resident.identity.auth.AuthProvider
 import net.brightroom.mindstock.domain.model.resident.identity.auth.AuthSubject
 import net.brightroom.mindstock.domain.model.resident.profile.DisplayName
+import net.brightroom.mindstock.domain.model.resident.profile.ResidentProfile
 import net.brightroom.mindstock.rpc.household.InvitationPreview
 import net.brightroom.mindstock.rpc.result.RpcResult
 import kotlin.time.Clock
@@ -60,13 +61,12 @@ class HouseholdControllerTest :
             val ownerResident =
                 Resident(
                     ResidentId.create(),
-                    net.brightroom.mindstock.domain.model.resident.profile
-                        .Profile(DisplayName("ぬし")),
+                    ResidentProfile(DisplayName("ぬし")),
                 )
             val household =
                 Household(
                     householdId,
-                    Profile(HouseholdName("となりの家")),
+                    HouseholdProfile(HouseholdName("となりの家")),
                     Members(listOf(HouseholdMember(ownerResident, HouseholdMemberRole.世帯主))),
                 )
 

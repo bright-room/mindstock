@@ -12,6 +12,7 @@ import net.brightroom.mindstock.domain.model.household.member.HouseholdMember
 import net.brightroom.mindstock.domain.model.resident.Resident
 import net.brightroom.mindstock.domain.model.resident.identity.ResidentId
 import net.brightroom.mindstock.domain.model.resident.profile.DisplayName
+import net.brightroom.mindstock.domain.model.resident.profile.ResidentProfile
 import net.brightroom.mindstock.infrastructure.datasource.resident.latestResidentDisplayNames
 import net.brightroom.mindstock.infrastructure.datasource.schemas.HouseholdMembershipEventsTable
 import net.brightroom.mindstock.infrastructure.datasource.schemas.HouseholdNamesTable
@@ -29,7 +30,6 @@ import org.jetbrains.exposed.v1.jdbc.Database
 import org.jetbrains.exposed.v1.jdbc.select
 import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
-import net.brightroom.mindstock.domain.model.resident.profile.Profile as ResidentProfile
 
 class HouseholdDataSource(
     private val database: Database,

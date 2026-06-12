@@ -5,23 +5,23 @@ import kotlinx.coroutines.test.runTest
 import net.brightroom.mindstock.domain.model.household.Household
 import net.brightroom.mindstock.domain.model.household.HouseholdId
 import net.brightroom.mindstock.domain.model.household.HouseholdName
+import net.brightroom.mindstock.domain.model.household.HouseholdProfile
 import net.brightroom.mindstock.domain.model.household.Households
 import net.brightroom.mindstock.domain.model.household.member.Members
 import net.brightroom.mindstock.domain.model.resident.Resident
 import net.brightroom.mindstock.domain.model.resident.identity.ResidentId
 import net.brightroom.mindstock.domain.model.resident.profile.DisplayName
-import net.brightroom.mindstock.domain.model.resident.profile.Profile
+import net.brightroom.mindstock.domain.model.resident.profile.ResidentProfile
 import net.brightroom.mindstock.frontend.auth.Tokens
 import net.brightroom.mindstock.frontend.core.auth.AuthState
 import net.brightroom.mindstock.rpc.session.SessionStatus
 import kotlin.test.Test
 import kotlin.time.ExperimentalTime
 import kotlin.time.Instant
-import net.brightroom.mindstock.domain.model.household.Profile as HouseholdProfile
 
 @OptIn(ExperimentalTime::class)
 class AuthViewModelSwitchTest {
-    private fun resident(name: String = "わたし") = Resident(ResidentId.create(), Profile(DisplayName(name)))
+    private fun resident(name: String = "わたし") = Resident(ResidentId.create(), ResidentProfile(DisplayName(name)))
 
     private fun household(
         id: HouseholdId,

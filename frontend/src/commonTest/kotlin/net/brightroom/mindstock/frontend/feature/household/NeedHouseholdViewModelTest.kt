@@ -7,7 +7,7 @@ import kotlinx.coroutines.test.runTest
 import net.brightroom.mindstock.domain.model.household.Household
 import net.brightroom.mindstock.domain.model.household.HouseholdId
 import net.brightroom.mindstock.domain.model.household.HouseholdName
-import net.brightroom.mindstock.domain.model.household.Profile
+import net.brightroom.mindstock.domain.model.household.HouseholdProfile
 import net.brightroom.mindstock.domain.model.household.invitation.InvitationCode
 import net.brightroom.mindstock.domain.model.household.member.HouseholdMemberRole
 import net.brightroom.mindstock.domain.model.household.member.Members
@@ -41,7 +41,7 @@ private class FakeAuthFlow : AuthFlow {
     override suspend fun leaveActiveHousehold() {}
 }
 
-private fun household() = Household(HouseholdId.create(), Profile(HouseholdName("家")), Members(emptyList()))
+private fun household() = Household(HouseholdId.create(), HouseholdProfile(HouseholdName("家")), Members(emptyList()))
 
 private fun vm(
     create: suspend (HouseholdName) -> RpcOutcome<Household> = { RpcOutcome.Success(household()) },
