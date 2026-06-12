@@ -6,4 +6,7 @@ import kotlinx.serialization.Serializable
 enum class InvitationValidity {
     有効,
     無効,
+    ;
+
+    fun is有効(): Boolean = this == 有効
 }

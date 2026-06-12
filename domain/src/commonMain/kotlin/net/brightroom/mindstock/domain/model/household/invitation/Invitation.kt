@@ -11,7 +11,7 @@ data class Invitation(
     val grantedRole: HouseholdMemberRole,
     val validity: InvitationValidity,
 ) {
-    fun usable(): Boolean = validity == InvitationValidity.有効
+    fun usable(): Boolean = validity.is有効()
 
     fun revoke(): Invitation = Invitation(householdId, code, grantedRole, InvitationValidity.無効)
 
