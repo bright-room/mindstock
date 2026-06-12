@@ -23,9 +23,8 @@ class HouseholdRegisterDataSource(
     private val database: Database,
 ) : HouseholdRegisterRepository {
     override fun registerHousehold(household: Household) {
-        val createdTime = Created.now()
-
         transaction(database) {
+            val createdTime = Created.now()
             HouseholdsTable.insert {
                 it[id] = household.id()
                 it[createdAt] = createdTime()
