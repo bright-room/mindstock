@@ -125,4 +125,14 @@ class InventoryViewModelTest {
             refreshed shouldBe 1
             job.cancel()
         }
+
+    @Test
+    fun set_view_reflects_in_content() =
+        runTest {
+            val v = vm()
+            v.load()
+            v.setView(StockView.Grid)
+            val content = v.state.value as InventoryUiState.Content
+            content.view shouldBe StockView.Grid
+        }
 }
