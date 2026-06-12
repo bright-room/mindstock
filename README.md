@@ -5,21 +5,27 @@ Household consumables inventory manager — keep your home's stock out of your h
 
 backend は OIDC access_token (JWT) を Zitadel で検証する。**Zitadel のセットアップ(Project / API / PKCE アプリ)は `docker compose up` 時に自動で行われる**(画面操作不要)。
 
-`compose.yml` の 3 サービス:
+`compose.yml` のサービス:
 
 | サービス | 役割 |
 |---|---|
-| `postgres`(:5432) | アプリ DB + Zitadel DB |
+| `postgres`(:5432) | アプリ DB(`mindstock`)+ テスト DB(`mindstock_test`)+ Zitadel DB。`docker/postgres-init.sh` が test/zitadel DB を作成 |
 | `zitadel`(:8081) | OIDC IdP。Login UI は v1 を使用(v4 既定の v2 は別コンテナ要のため無効化)。初回 init で IAM 管理用サービスアカウントの PAT を `docker/machinekey/pat.txt` に発行 |
 | `zitadel-init` | 上記 PAT で Management API を叩き、Project `mindstock` / API `mindstock-backend`(JWT)/ PKCE アプリ `mindstock-frontend`(**Dev Mode + Auth Token Type=JWT** + redirect URI)を**冪等に**作成し、生成された `AUTH_*` を repo ルートの **`.env.zitadel`** に書き出す |
+| `garage`(:3900) | S3 互換オブジェクトストレージ(商品画像の保管先) |
+| `garage-init` | garage の layout / bucket `mindstock-images` / 固定 dev アクセスキーを冪等にセットアップ(資格情報は `application.yaml` の `external.storage` デフォルトと一致) |
 
-### 1. 起動 + 自動セットアップ
+### 1. 起動 + 自動セットアップ(推奨: mise)
 
 ```sh
-docker compose up -d
+mise run up
 ```
 
-`zitadel-init` が完走すると `.env.zitadel` が生成される(数十秒)。進捗は `docker compose logs -f zitadel-init`。中身:
+`mise run up` は (1) `docker compose up -d --wait postgres zitadel garage` で依存を起動し、(2) `zitadel-init` / `garage-init` を foreground で完走させる。完走すると repo ルートに `.env.zitadel`(`AUTH_*`)が生成される。進捗は `docker compose logs -f zitadel-init`。
+
+> `mise` を使わない場合は `docker compose up -d --wait postgres zitadel garage` の後に `docker compose run --rm zitadel-init` と `docker compose run --rm garage-init` を順に実行する(単に `docker compose up -d` するだけでは init の完走を待たない)。
+
+生成される `.env.zitadel` の中身:
 
 ```sh
 AUTH_ISSUER=http://localhost:8081
@@ -33,30 +39,47 @@ AUTH_POST_LOGOUT_REDIRECT_URI=http://localhost:8080/
 
 ### 2. 環境変数の読み込み
 
-backend / frontend の両方が `AUTH_*` を要求する(未設定だと `:frontend:generateAuthConfig` がビルド失敗=意図的)。`.env.zitadel` を読み込む:
+`mise` 利用なら `mise.toml` の `_.file = ".env.zitadel"` で自動読み込みされる。使わない場合は各ターミナルで:
 
 ```sh
-set -a; . ./.env.zitadel; set +a      # 各ターミナルで
+set -a; . ./.env.zitadel; set +a
 ```
 
-`mise` 利用なら `mise.toml` に `[env]` → `_.file = ".env.zitadel"`、direnv なら `.envrc` に `dotenv ./.env.zitadel` でも可。
-
-> DB は `application.yaml` の既定(`jdbc:postgresql://localhost:5432/mindstock`, `mindstock`/`mindstock`)が compose の `postgres` と一致するため通常未設定で可。変えたい場合のみ `DB_JDBC_URL` / `DB_USERNAME` / `DB_PASSWORD`。
+backend / frontend の両方が `AUTH_*` を要求する(未設定だと `:frontend:generateAuthConfig` がビルド失敗=意図的。backend も未設定だと JWT 検証に失敗する)。DB / Storage は `application.yaml` の既定が compose と一致するため通常未設定で可(変えたい場合のみ `DB_JDBC_URL` / `DB_USERNAME` / `DB_PASSWORD`)。
 
 ### 3. backend + frontend 起動
 
-backend は既定 :8080 だが、frontend dev server も :8080 を使い `/api` を **:8090** にプロキシする(`frontend/webpack.config.d/proxy.js`)。そのため backend は **`PORT=8090`** で起動する。
-
 ```sh
-PORT=8090 ./gradlew :backend:api:run                 # ターミナル A(:8090、frontend proxy 先。Flyway migration が走る)
-./gradlew :frontend:wasmJsBrowserDevelopmentRun      # ターミナル B(http://localhost:8080)
+mise run backend     # ターミナル A(:8090。Flyway migration が走る)
+mise run frontend    # ターミナル B(http://localhost:8080。--continuous 付き)
 ```
 
-ブラウザで http://localhost:8080 を開く → Zitadel ログイン(**`admin@localhost` / `Password1!`**)。
+`mise` を使わない場合(`./gradlew` 直叩き):
+
+```sh
+./gradlew :backend:api:run                                    # :8090(application.yaml の PORT デフォルトが 8090)
+./gradlew :frontend:wasmJsBrowserDevelopmentRun --continuous  # http://localhost:8080(/api を :8090 へプロキシ)
+```
+
+frontend dev server(:8080)は `/api` を backend(:8090)へプロキシする(`frontend/webpack.config.d/proxy.js`)。ブラウザで http://localhost:8080 を開く → Zitadel ログイン(**`admin@localhost` / `Password1!`**)。
+
+### 環境変数リファレンス
+
+ローカル開発では基本的に `mise run up` が生成・注入するため手動設定は不要。全体像は以下。詳細インベントリは `docs/superpowers/plans/2026-06-12-env-inventory.md`。
+
+| 変数 | 用途 | 既定 / 供給元 | 手動設定 |
+|---|---|---|---|
+| `AUTH_ISSUER` / `AUTH_JWKS_URL` / `AUTH_AUDIENCE` | backend の JWT 検証 | `.env.zitadel`(`mise run up` が生成) | 不要(未設定だと JWT 検証に失敗) |
+| `AUTH_CLIENT_ID` / `AUTH_PROJECT_ID` / `AUTH_REDIRECT_URI` | frontend の PKCE ログイン(ビルド時定数) | `.env.zitadel` | 不要 |
+| `PORT` | backend の待受ポート | 既定 `8090`(`application.yaml`)。`mise` も 8090 を注入 | 不要 |
+| `DB_JDBC_URL` / `DB_USERNAME` / `DB_PASSWORD` | backend の DB 接続 | `application.yaml` 既定が compose と一致 | 任意上書きのみ |
+| `STORAGE_ENDPOINT` / `STORAGE_REGION` / `STORAGE_BUCKET` / `STORAGE_ACCESS_KEY` / `STORAGE_SECRET_KEY` / `STORAGE_CORS_ORIGINS` | 商品画像ストレージ(garage) | `application.yaml` 既定が garage-init の固定 dev キーと一致 | 本番のみ上書き |
+| `TEST_DB_URL` / `TEST_DB_USER` / `TEST_DB_PASSWORD` | 統合テストの DB | `mise.toml` / CI が供給(`mindstock_test`) | 不要 |
+| `ZITADEL_MASTERKEY` | Zitadel の masterkey | 既定 `MasterkeyNeedsToHave32Characters`(`compose.yml`) | 本番のみ上書き |
 
 ### 再セットアップ / 注意
 
-- Zitadel の設定を作り直したいときは `docker compose down -v && docker compose up -d`(DB ボリュームが消え、`.env.zitadel` も再生成される。生成された ID が変わるので env を読み直す)。
+- Zitadel の設定を作り直したいときは `docker compose down -v && mise run up`(DB ボリュームが消え、`.env.zitadel` も再生成される。生成された ID が変わるので env を読み直す)。
 - `.env.zitadel` と `docker/machinekey/` は生成物(gitignore 済み)。手で編集しない。
 - 自動化前に手動でハマりやすかった 2 点(http redirect 用の **Dev Mode**、opaque ではなく **JWT アクセストークン**)は `zitadel-init` が自動設定するので、コンソールでの手作業は不要。
 

@@ -25,7 +25,7 @@ services:
   zitadel:
     image: "ghcr.io/zitadel/zitadel:v4.15.0"
     container_name: "mindstock-zitadel"
-    command: 'start-from-init --masterkey "MasterkeyNeedsToHave32Characters" --tlsMode disabled'
+    command: 'start-from-init --masterkey "${ZITADEL_MASTERKEY:-MasterkeyNeedsToHave32Characters}" --tlsMode disabled'
     environment:
       ZITADEL_DATABASE_POSTGRES_HOST: "postgres"
       ZITADEL_DATABASE_POSTGRES_PORT: "5432"
@@ -70,7 +70,9 @@ services:
     image: "alpine:3.23"
     container_name: "mindstock-zitadel-init"
     depends_on:
-      - zitadel
+      # zitadel に healthcheck はないため起動済み(service_started)を明示する。
+      zitadel:
+        condition: "service_started"
     volumes:
       - "./docker/machinekey:/machinekey:ro"
       - "./docker/zitadel-init.sh:/zitadel-init.sh:ro"
@@ -90,6 +92,14 @@ services:
       # S3 API のみ公開。admin API(3903)は compose ネットワーク内(garage-init)からのみ
       # 到達すればよく、固定 admin_token と相まってホスト公開は不要・危険なので公開しない。
       - "3900:3900"
+    # scratch イメージで shell/wget を持たないため、garage バイナリ自身で ready を判定する。
+    # /garage status は /etc/garage.toml(mount 済)を読みノードへ RPC して状態を返す。
+    healthcheck:
+      test: ["CMD", "/garage", "status"]
+      interval: "10s"
+      timeout: "5s"
+      retries: 5
+      start_period: "10s"
     restart: "unless-stopped"
 
   # compose up 時に Garage を宣言的にセットアップする(冪等)。
@@ -101,7 +111,8 @@ services:
     image: "alpine:3.23"
     container_name: "mindstock-garage-init"
     depends_on:
-      - garage
+      garage:
+        condition: "service_healthy"
     volumes:
       - "./docker/garage-init.sh:/garage-init.sh:ro"
     entrypoint: ["sh", "/garage-init.sh"]

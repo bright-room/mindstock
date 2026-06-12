@@ -39,7 +39,7 @@ tasks.test {
 
 val integrationTest by tasks.registering(Test::class) {
     group = "verification"
-    description = "Runs @Tags(\"integration\") specs against the Garage storage in .env.garage (STORAGE_*)."
+    description = "Runs @Tags(\"integration\") specs against the Garage storage (STORAGE_* / application.yaml デフォルト)."
     // 外部ストレージに当てる統合テストはキャッシュさせず毎回実行する(stale 結果防止)。
     doNotTrackState("integration tests run against a live external storage")
     testClassesDirs = sourceSets["test"].output.classesDirs
@@ -47,7 +47,7 @@ val integrationTest by tasks.registering(Test::class) {
     shouldRunAfter(tasks.test)
     systemProperty("kotest.tags.include", "integration")
     systemProperty("kotest.tags.exclude", "manual")
-    // app と同一の STORAGE_* env(.env.garage / external.storage.*)を test JVM へ転送する。
+    // app と同一の STORAGE_* env(external.storage.* / application.yaml デフォルト)を test JVM へ転送する。
     listOf("STORAGE_ENDPOINT", "STORAGE_BUCKET", "STORAGE_ACCESS_KEY", "STORAGE_SECRET_KEY")
         .forEach { key -> System.getenv(key)?.let { environment(key, it) } }
 }
@@ -58,6 +58,6 @@ exposed {
         fileDirectory.set(
             layout.projectDirectory.dir("src/main/resources/db/migration").asFile,
         )
-        testContainersImageName.set("postgres:18.0-alpine")
+        testContainersImageName.set("postgres:18.4-alpine")
     }
 }
