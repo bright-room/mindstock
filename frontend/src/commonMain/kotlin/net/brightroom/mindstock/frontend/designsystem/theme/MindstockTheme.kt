@@ -25,7 +25,11 @@ private val ClayColorScheme =
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun MindstockTheme(content: @Composable () -> Unit) {
-    CompositionLocalProvider(LocalMindstockTokens provides clayTokens) {
+    val fontFamily = notoSansJpFamily()
+    CompositionLocalProvider(
+        LocalMindstockTokens provides clayTokens,
+        LocalNotoSansJpFamily provides fontFamily,
+    ) {
         MaterialExpressiveTheme(
             colorScheme = ClayColorScheme,
             typography = appTypography(),
