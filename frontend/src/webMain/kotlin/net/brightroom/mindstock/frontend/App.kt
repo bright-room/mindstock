@@ -308,7 +308,6 @@ fun App() {
                             ReadyContent(
                                 householdId = householdId,
                                 sessionState = sessionState,
-                                owner = owner,
                                 settingsVm = settingsVm,
                                 repository = repository,
                                 refresh = refresh,
@@ -328,6 +327,16 @@ fun App() {
                                 reauth = reauth,
                                 scope = scope,
                                 settingsSheet = settingsSheetState,
+                            )
+                            ProductDetailOverlayContent(
+                                householdId = householdId,
+                                owner = owner,
+                                repository = repository,
+                                refresh = refresh,
+                                toast = toast,
+                                reauth = reauth,
+                                opened = openedState,
+                                catalogOverlay = catalogOverlayState,
                             )
                             CatalogOverlayContent(
                                 householdId = householdId,
@@ -369,14 +378,14 @@ private fun LoadWithRefresh(
 }
 
 /**
- * 在庫/買い物/活動/設定の 4 タブシェルと、商品詳細オーバーレイ。各タブ用 VM を生成し配線する。
+ * 在庫/買い物/活動/設定の 4 タブシェル。各タブ用 VM を生成し配線する。
  * 状態([opened] / [catalogOverlay] / [settingsSheet])は呼び出し側で hoist されたものを受ける。
+ * 商品詳細オーバーレイは描画順保持のため呼び出し側で別途配置する([ProductDetailOverlayContent])。
  */
 @Composable
 private fun ReadyContent(
     householdId: HouseholdId,
     sessionState: AppSession.State,
-    owner: Boolean,
     settingsVm: SettingsViewModel,
     repository: InventoryRepository,
     refresh: InventoryRefreshController,
@@ -482,6 +491,23 @@ private fun ReadyContent(
             )
         },
     )
+}
+
+/**
+ * 商品詳細オーバーレイ。元の描画順(AppShell → 世帯シート → 商品詳細 → catalog)を保つため、
+ * 呼び出し側で [HouseholdSheets] の後・[CatalogOverlayContent] の前に配置する。
+ */
+@Composable
+private fun ProductDetailOverlayContent(
+    householdId: HouseholdId,
+    owner: Boolean,
+    repository: InventoryRepository,
+    refresh: InventoryRefreshController,
+    toast: ToastController,
+    reauth: ReauthController,
+    opened: MutableState<DetailTarget?>,
+    catalogOverlay: MutableState<CatalogOverlay?>,
+) {
     val target = opened.value
     if (target != null) {
         ProductDetailOverlay(
