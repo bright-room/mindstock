@@ -7,19 +7,19 @@ import kotlinx.coroutines.test.runTest
 import net.brightroom.mindstock.domain.model.household.Household
 import net.brightroom.mindstock.domain.model.household.HouseholdId
 import net.brightroom.mindstock.domain.model.household.HouseholdName
+import net.brightroom.mindstock.domain.model.household.HouseholdProfile
 import net.brightroom.mindstock.domain.model.household.Households
 import net.brightroom.mindstock.domain.model.household.member.Members
 import net.brightroom.mindstock.domain.model.resident.Resident
 import net.brightroom.mindstock.domain.model.resident.identity.ResidentId
 import net.brightroom.mindstock.domain.model.resident.profile.DisplayName
-import net.brightroom.mindstock.domain.model.resident.profile.Profile
+import net.brightroom.mindstock.domain.model.resident.profile.ResidentProfile
 import net.brightroom.mindstock.frontend.auth.Tokens
 import net.brightroom.mindstock.frontend.core.auth.AuthState
 import net.brightroom.mindstock.rpc.session.SessionStatus
 import kotlin.test.Test
 import kotlin.time.ExperimentalTime
 import kotlin.time.Instant
-import net.brightroom.mindstock.domain.model.household.Profile as HouseholdProfile
 
 @OptIn(ExperimentalTime::class)
 private class FakeAuthDeps(
@@ -110,7 +110,7 @@ class AuthViewModelTest {
     @Test
     fun registered_becomes_ready() =
         runTest {
-            val resident = Resident(ResidentId.create(), Profile(DisplayName("name")))
+            val resident = Resident(ResidentId.create(), ResidentProfile(DisplayName("name")))
             val hh = Household(HouseholdId.create(), HouseholdProfile(HouseholdName("家")), Members(emptyList()))
             val deps =
                 FakeAuthDeps(
@@ -129,7 +129,7 @@ class AuthViewModelTest {
     @Test
     fun registered_without_household_becomes_need_household() =
         runTest {
-            val resident = Resident(ResidentId.create(), Profile(DisplayName("name")))
+            val resident = Resident(ResidentId.create(), ResidentProfile(DisplayName("name")))
             val deps =
                 FakeAuthDeps(
                     path = "/",
@@ -163,7 +163,7 @@ class AuthViewModelTest {
     @Test
     fun household_load_failure_becomes_failed() =
         runTest {
-            val resident = Resident(ResidentId.create(), Profile(DisplayName("name")))
+            val resident = Resident(ResidentId.create(), ResidentProfile(DisplayName("name")))
             val deps =
                 FakeAuthDeps(
                     path = "/",
@@ -179,7 +179,7 @@ class AuthViewModelTest {
     @Test
     fun boot_honors_saved_active_household() =
         runTest {
-            val resident = Resident(ResidentId.create(), Profile(DisplayName("name")))
+            val resident = Resident(ResidentId.create(), ResidentProfile(DisplayName("name")))
             val h1 = Household(HouseholdId.create(), HouseholdProfile(HouseholdName("家1")), Members(emptyList()))
             val h2 = Household(HouseholdId.create(), HouseholdProfile(HouseholdName("家2")), Members(emptyList()))
             val deps =
@@ -199,7 +199,7 @@ class AuthViewModelTest {
     @Test
     fun boot_falls_back_to_first_when_saved_active_absent() =
         runTest {
-            val resident = Resident(ResidentId.create(), Profile(DisplayName("name")))
+            val resident = Resident(ResidentId.create(), ResidentProfile(DisplayName("name")))
             val h1 = Household(HouseholdId.create(), HouseholdProfile(HouseholdName("家1")), Members(emptyList()))
             val deps =
                 FakeAuthDeps(
@@ -218,7 +218,7 @@ class AuthViewModelTest {
     @Test
     fun on_resident_registered_reflects_and_reconnects() =
         runTest {
-            val resident = Resident(ResidentId.create(), Profile(DisplayName("name")))
+            val resident = Resident(ResidentId.create(), ResidentProfile(DisplayName("name")))
             val deps = FakeAuthDeps(path = "/", token = "tok")
             val vm = AuthViewModel(deps)
             vm.onResidentRegistered(resident)
@@ -229,7 +229,7 @@ class AuthViewModelTest {
     @Test
     fun enter_app_loads_persists_and_becomes_ready() =
         runTest {
-            val resident = Resident(ResidentId.create(), Profile(DisplayName("name")))
+            val resident = Resident(ResidentId.create(), ResidentProfile(DisplayName("name")))
             val h1 = Household(HouseholdId.create(), HouseholdProfile(HouseholdName("家1")), Members(emptyList()))
             val deps =
                 FakeAuthDeps(

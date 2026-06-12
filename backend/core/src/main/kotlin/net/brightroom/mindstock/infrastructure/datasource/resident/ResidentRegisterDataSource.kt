@@ -7,7 +7,7 @@ import net.brightroom.mindstock.domain.model.resident.Resident
 import net.brightroom.mindstock.domain.model.resident.identity.ResidentId
 import net.brightroom.mindstock.domain.model.resident.identity.auth.AuthIdentity
 import net.brightroom.mindstock.domain.model.resident.profile.DisplayName
-import net.brightroom.mindstock.domain.model.resident.profile.Profile
+import net.brightroom.mindstock.domain.model.resident.profile.ResidentProfile
 import net.brightroom.mindstock.infrastructure.datasource.Created
 import net.brightroom.mindstock.infrastructure.datasource.schemas.ResidentAuthIdentitiesTable
 import net.brightroom.mindstock.infrastructure.datasource.schemas.ResidentDisplayNamesTable
@@ -41,7 +41,7 @@ class ResidentRegisterDataSource(
                 it[ResidentDisplayNamesTable.displayName] = displayName()
                 it[recordedAt] = createdTime()
             }
-            Resident(residentId, Profile(displayName))
+            Resident(residentId, ResidentProfile(displayName))
         }
 
     override fun appendDisplayName(

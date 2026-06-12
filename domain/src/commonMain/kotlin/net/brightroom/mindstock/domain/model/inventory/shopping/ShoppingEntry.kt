@@ -6,7 +6,7 @@ import net.brightroom.mindstock.domain.model.inventory.stock.Stock
 @Serializable
 data class ShoppingEntry(
     val stock: Stock,
-    val manuallyWanted: Boolean,
+    val manuallyWanted: Wanted,
 ) {
     fun need(): ShoppingNeed = ShoppingNeed.judge(stock.status(), manuallyWanted)
 

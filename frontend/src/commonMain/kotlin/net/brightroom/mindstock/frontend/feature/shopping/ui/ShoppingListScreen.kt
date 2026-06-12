@@ -79,7 +79,6 @@ import net.brightroom.mindstock.frontend.feature.inventory.ui.MoveMode
 import net.brightroom.mindstock.frontend.feature.inventory.ui.MoveSheet
 import net.brightroom.mindstock.frontend.feature.shopping.ShoppingListUiState
 import org.jetbrains.compose.resources.stringResource
-import kotlin.math.max
 
 @Composable
 fun ShoppingListScreen(
@@ -292,9 +291,10 @@ private fun ShopRow(
             StockStatus.十分 -> stringResource(Res.string.status_ok)
         }
     val qty = stock.currentQuantity()()
-    val min = stock.product.setting.minimumStock()
     val unit = stock.product.setting.unit()
-    val shortage = max(1, min - qty + if (status == StockStatus.在庫切れ) min else 0)
+    val shortage =
+        stock.product.setting.minimumStock
+            .shortage(stock.currentQuantity())
     val shape = RoundedCornerShape(16.dp)
     Row(
         modifier =

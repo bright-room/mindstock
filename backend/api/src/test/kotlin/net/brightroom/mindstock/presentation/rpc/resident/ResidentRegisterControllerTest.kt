@@ -15,7 +15,7 @@ import net.brightroom.mindstock.domain.model.resident.identity.auth.AuthIdentity
 import net.brightroom.mindstock.domain.model.resident.identity.auth.AuthProvider
 import net.brightroom.mindstock.domain.model.resident.identity.auth.AuthSubject
 import net.brightroom.mindstock.domain.model.resident.profile.DisplayName
-import net.brightroom.mindstock.domain.model.resident.profile.Profile
+import net.brightroom.mindstock.domain.model.resident.profile.ResidentProfile
 import net.brightroom.mindstock.rpc.result.RpcError
 import net.brightroom.mindstock.rpc.result.RpcResult
 import kotlin.time.Clock
@@ -33,20 +33,20 @@ class ResidentRegisterControllerTest :
 
         val displayName = DisplayName("じぶん")
 
-        test("registerDisplayName on Unregistered → register を呼び Ok(created) を返す") {
+        test("register on Unregistered → register を呼び Ok(created) を返す") {
             val service = mockk<ResidentRegisterService>(relaxed = true)
-            val created = Resident(residentId, Profile(displayName))
+            val created = Resident(residentId, ResidentProfile(displayName))
             every { service.register(identity, displayName) } returns created
 
             val controller = ResidentRegisterController(service, unregisteredSession)
-            controller.registerDisplayName(displayName) shouldBe RpcResult.Ok(created)
+            controller.register(displayName) shouldBe RpcResult.Ok(created)
         }
 
-        test("registerDisplayName on Registered → Err(Conflict)、register は呼ばれない") {
+        test("register on Registered → Err(Conflict)、register は呼ばれない") {
             val service = mockk<ResidentRegisterService>(relaxed = true)
 
             val controller = ResidentRegisterController(service, registeredSession)
-            val result = controller.registerDisplayName(displayName)
+            val result = controller.register(displayName)
 
             (result as RpcResult.Err).error shouldBe RpcError.Conflict(reason = "already registered")
             verify(exactly = 0) { service.register(any(), any()) }

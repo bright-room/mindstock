@@ -18,11 +18,11 @@ import net.brightroom.mindstock.domain.model.inventory.stock.movement.StockMovem
 import net.brightroom.mindstock.domain.model.resident.Resident
 import net.brightroom.mindstock.domain.model.resident.identity.ResidentId
 import net.brightroom.mindstock.domain.model.resident.profile.DisplayName
-import net.brightroom.mindstock.domain.model.resident.profile.Profile
+import net.brightroom.mindstock.domain.model.resident.profile.ResidentProfile
 import kotlin.test.Test
 
 class ShoppingListTest {
-    private fun actor() = Resident(ResidentId.create(), Profile(DisplayName("おや")))
+    private fun actor() = Resident(ResidentId.create(), ResidentProfile(DisplayName("おや")))
 
     private fun stock(
         name: String,
@@ -44,9 +44,9 @@ class ShoppingListTest {
 
     @Test
     fun 自動アイテムと手動アイテムを正しく分類する() {
-        val shortage = ShoppingEntry(stock("米", minimum = 3, quantity = 1), manuallyWanted = false) // 在庫不足
-        val manual = ShoppingEntry(stock("醤油", minimum = 1, quantity = 5), manuallyWanted = true) // 十分だが手動
-        val neither = ShoppingEntry(stock("お茶", minimum = 1, quantity = 5), manuallyWanted = false) // 十分・不要
+        val shortage = ShoppingEntry(stock("米", minimum = 3, quantity = 1), manuallyWanted = Wanted(false)) // 在庫不足
+        val manual = ShoppingEntry(stock("醤油", minimum = 1, quantity = 5), manuallyWanted = Wanted(true)) // 十分だが手動
+        val neither = ShoppingEntry(stock("お茶", minimum = 1, quantity = 5), manuallyWanted = Wanted(false)) // 十分・不要
         val list = ShoppingList(listOf(shortage, manual, neither))
 
         list.autoItems().list shouldBe listOf(shortage)
@@ -56,7 +56,7 @@ class ShoppingListTest {
 
     @Test
     fun エントリの必要度とリスト掲載フラグを返す() {
-        val entry = ShoppingEntry(stock("米", minimum = 3, quantity = 1), manuallyWanted = false)
+        val entry = ShoppingEntry(stock("米", minimum = 3, quantity = 1), manuallyWanted = Wanted(false))
         entry.need() shouldBe ShoppingNeed.在庫不足
         entry.onList() shouldBe true
     }

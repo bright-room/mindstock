@@ -18,6 +18,7 @@ import net.brightroom.mindstock.domain.model.inventory.product.setting.StockingP
 import net.brightroom.mindstock.domain.model.inventory.quantity.Quantity
 import net.brightroom.mindstock.domain.model.inventory.shopping.ShoppingEntry
 import net.brightroom.mindstock.domain.model.inventory.shopping.ShoppingList
+import net.brightroom.mindstock.domain.model.inventory.shopping.Wanted
 import net.brightroom.mindstock.domain.model.inventory.stock.Stock
 import net.brightroom.mindstock.domain.model.inventory.stock.movement.MovementIdentity
 import net.brightroom.mindstock.domain.model.inventory.stock.movement.Note
@@ -28,7 +29,7 @@ import net.brightroom.mindstock.domain.model.inventory.stock.movement.StockMovem
 import net.brightroom.mindstock.domain.model.resident.Resident
 import net.brightroom.mindstock.domain.model.resident.identity.ResidentId
 import net.brightroom.mindstock.domain.model.resident.profile.DisplayName
-import net.brightroom.mindstock.domain.model.resident.profile.Profile
+import net.brightroom.mindstock.domain.model.resident.profile.ResidentProfile
 import net.brightroom.mindstock.frontend.core.auth.ReauthController
 import net.brightroom.mindstock.frontend.core.rpc.RpcOutcome
 import net.brightroom.mindstock.frontend.core.ui.InventoryRefreshController
@@ -36,7 +37,7 @@ import net.brightroom.mindstock.frontend.core.ui.ToastController
 import net.brightroom.mindstock.rpc.result.RpcError
 import kotlin.test.Test
 
-private val actor = Resident(ResidentId.create(), Profile(DisplayName("テスト")))
+private val actor = Resident(ResidentId.create(), ResidentProfile(DisplayName("テスト")))
 
 private fun stockOf(
     id: ProductId,
@@ -103,7 +104,7 @@ class ProductDetailViewModelTest {
     fun load_resolves_stock_and_wanted_from_shopping_list() =
         runTest {
             val pid = ProductId.create()
-            val entry = ShoppingEntry(stock = stockOf(pid, net = 5, min = 1), manuallyWanted = true)
+            val entry = ShoppingEntry(stock = stockOf(pid, net = 5, min = 1), manuallyWanted = Wanted(true))
             val v = vm(productId = pid, loadShoppingList = { RpcOutcome.Success(ShoppingList(listOf(entry))) })
             v.load()
             val content = v.state.value.shouldBeInstanceOf<ProductDetailUiState.Content>()
@@ -136,7 +137,7 @@ class ProductDetailViewModelTest {
     fun set_wanted_success_reloads_and_emits_refresh() =
         runTest {
             val pid = ProductId.create()
-            val entry = ShoppingEntry(stock = stockOf(pid, net = 5), manuallyWanted = false)
+            val entry = ShoppingEntry(stock = stockOf(pid, net = 5), manuallyWanted = Wanted(false))
             var loads = 0
             var refreshed = 0
             val refresh = InventoryRefreshController()

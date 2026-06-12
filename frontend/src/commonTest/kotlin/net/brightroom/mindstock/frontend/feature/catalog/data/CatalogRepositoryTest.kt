@@ -3,6 +3,7 @@ package net.brightroom.mindstock.frontend.feature.catalog.data
 import io.kotest.matchers.types.shouldBeInstanceOf
 import kotlinx.coroutines.test.runTest
 import net.brightroom.mindstock.domain.model.barcode.Jan
+import net.brightroom.mindstock.domain.model.catalog.SearchLimit
 import net.brightroom.mindstock.domain.model.catalog.content.CatalogItemName
 import net.brightroom.mindstock.domain.model.catalog.item.CatalogItem
 import net.brightroom.mindstock.domain.model.catalog.item.CatalogItems
@@ -22,7 +23,7 @@ import kotlin.test.Test
 private abstract class FakeCatalogRpc : CatalogRpcService {
     override suspend fun search(
         name: CatalogItemName,
-        limit: Int,
+        limit: SearchLimit,
     ): RpcResult<CatalogItems, RpcError> = error("unused")
 
     override suspend fun lookupByJan(jan: Jan): RpcResult<CatalogItem, RpcError> = error("unused")
@@ -46,7 +47,7 @@ class CatalogRepositoryTest {
                 object : FakeCatalogRpc() {
                     override suspend fun search(
                         name: CatalogItemName,
-                        limit: Int,
+                        limit: SearchLimit,
                     ) = RpcResult.Ok(CatalogItems(emptyList()))
                 }
             val repo =
@@ -55,7 +56,7 @@ class CatalogRepositoryTest {
                     productRegisterService = { error("unused") },
                     productService = { error("unused") },
                 )
-            repo.search(CatalogItemName("茶"), 20).shouldBeInstanceOf<RpcOutcome.Success<CatalogItems>>()
+            repo.search(CatalogItemName("茶"), SearchLimit(20)).shouldBeInstanceOf<RpcOutcome.Success<CatalogItems>>()
         }
 
     @Test

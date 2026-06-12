@@ -9,6 +9,7 @@ import mindstock.frontend.generated.resources.toast_product_added
 import mindstock.frontend.generated.resources.toast_product_adopted
 import net.brightroom.mindstock.domain.model.barcode.Barcode
 import net.brightroom.mindstock.domain.model.barcode.Jan
+import net.brightroom.mindstock.domain.model.catalog.SearchLimit
 import net.brightroom.mindstock.domain.model.catalog.content.CatalogItemName
 import net.brightroom.mindstock.domain.model.catalog.item.CatalogItem
 import net.brightroom.mindstock.domain.model.catalog.item.CatalogItemId
@@ -27,10 +28,10 @@ import net.brightroom.mindstock.frontend.core.ui.UiText
 import net.brightroom.mindstock.rpc.product.AddCustomProductRequest
 import net.brightroom.mindstock.rpc.result.RpcError
 
-private const val SEARCH_LIMIT = 20
+private val SEARCH_LIMIT = SearchLimit(20)
 
 class AddProductViewModel(
-    private val searchCatalog: suspend (CatalogItemName, Int) -> RpcOutcome<CatalogItems>,
+    private val searchCatalog: suspend (CatalogItemName, SearchLimit) -> RpcOutcome<CatalogItems>,
     private val lookupJan: suspend (Jan) -> RpcOutcome<CatalogItem>,
     private val adoptProduct: suspend (CatalogItemId, ProductUnit, MinimumStock) -> RpcOutcome<Product>,
     private val addCustomProduct: suspend (AddCustomProductRequest) -> RpcOutcome<Product>,

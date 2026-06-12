@@ -55,7 +55,7 @@ class ProductDetailViewModel(
                 is RpcOutcome.Success -> {
                     val entry = out.value.list.firstOrNull { it.stock.product.id == productId }
                     when {
-                        entry != null -> entry.stock to entry.manuallyWanted
+                        entry != null -> entry.stock to entry.manuallyWanted()
                         seed != null -> seed to false
                         else -> null
                     }

@@ -5,6 +5,7 @@ package net.brightroom.mindstock.infrastructure.datasource.catalog
 import net.brightroom.mindstock.application.repository.catalog.CatalogRepository
 import net.brightroom.mindstock.domain.exception.ResourceNotFoundException
 import net.brightroom.mindstock.domain.model.barcode.Jan
+import net.brightroom.mindstock.domain.model.catalog.SearchLimit
 import net.brightroom.mindstock.domain.model.catalog.content.CatalogItemName
 import net.brightroom.mindstock.domain.model.catalog.item.CatalogItem
 import net.brightroom.mindstock.domain.model.catalog.item.CatalogItemId
@@ -22,7 +23,7 @@ class CatalogDataSource(
 ) : CatalogRepository {
     override fun search(
         name: CatalogItemName,
-        limit: Int,
+        limit: SearchLimit,
     ): CatalogItems =
         transaction(database) {
             val escaped = name().replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
@@ -30,7 +31,7 @@ class CatalogDataSource(
                 CatalogItemsTable
                     .selectAll()
                     .where { CatalogItemsTable.name.like(LikePattern("%$escaped%", escapeChar = '\\')) }
-                    .limit(limit)
+                    .limit(limit())
                     .map { it.toCatalogItem() }
             CatalogItems(items)
         }

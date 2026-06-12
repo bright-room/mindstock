@@ -16,6 +16,7 @@ import net.brightroom.mindstock.domain.model.inventory.product.image.ProductImag
 import net.brightroom.mindstock.domain.model.inventory.product.image.RawImageUpload
 import net.brightroom.mindstock.domain.model.inventory.product.setting.MinimumStock
 import net.brightroom.mindstock.domain.model.inventory.product.setting.ProductUnit
+import net.brightroom.mindstock.domain.model.inventory.shopping.Wanted
 import net.brightroom.mindstock.domain.model.resident.identity.ResidentId
 
 class ProductRegisterService(
@@ -132,7 +133,7 @@ class ProductRegisterService(
 
     fun setWanted(
         productId: ProductId,
-        wanted: Boolean,
+        wanted: Wanted,
         actor: ResidentId,
     ) {
         authorizeProduct(productId, actor)

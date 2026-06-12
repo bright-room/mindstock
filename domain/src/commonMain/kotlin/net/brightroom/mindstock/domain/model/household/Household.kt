@@ -17,7 +17,7 @@ import net.brightroom.mindstock.domain.model.resident.identity.ResidentId
 @Serializable
 data class Household(
     val id: HouseholdId,
-    val profile: Profile,
+    val profile: HouseholdProfile,
     val members: Members,
 ) {
     fun rename(
@@ -25,7 +25,7 @@ data class Household(
         by: ResidentId,
     ): Household {
         requireCapability(by, HouseholdCapability.世帯管理)
-        return Household(id, Profile(name), members)
+        return Household(id, HouseholdProfile(name), members)
     }
 
     fun join(
@@ -108,7 +108,7 @@ data class Household(
         ): Household =
             Household(
                 id = HouseholdId.create(),
-                profile = Profile(name),
+                profile = HouseholdProfile(name),
                 members = Members(listOf(HouseholdMember(owner, HouseholdMemberRole.世帯主))),
             )
     }

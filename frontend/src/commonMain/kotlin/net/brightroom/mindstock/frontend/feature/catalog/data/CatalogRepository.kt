@@ -1,6 +1,7 @@
 package net.brightroom.mindstock.frontend.feature.catalog.data
 
 import net.brightroom.mindstock.domain.model.barcode.Jan
+import net.brightroom.mindstock.domain.model.catalog.SearchLimit
 import net.brightroom.mindstock.domain.model.catalog.content.CatalogItemName
 import net.brightroom.mindstock.domain.model.catalog.item.CatalogItem
 import net.brightroom.mindstock.domain.model.catalog.item.CatalogItemId
@@ -29,7 +30,7 @@ class CatalogRepository(
 ) {
     suspend fun search(
         name: CatalogItemName,
-        limit: Int,
+        limit: SearchLimit,
     ): RpcOutcome<CatalogItems> = catalogService().search(name, limit).toOutcome()
 
     suspend fun lookupByJan(jan: Jan): RpcOutcome<CatalogItem> = catalogService().lookupByJan(jan).toOutcome()

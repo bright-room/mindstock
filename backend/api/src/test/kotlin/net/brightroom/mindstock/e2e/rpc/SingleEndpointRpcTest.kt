@@ -36,7 +36,7 @@ import net.brightroom.mindstock.domain.model.resident.Resident
 import net.brightroom.mindstock.domain.model.resident.identity.ResidentId
 import net.brightroom.mindstock.domain.model.resident.identity.auth.AuthIdentity
 import net.brightroom.mindstock.domain.model.resident.profile.DisplayName
-import net.brightroom.mindstock.domain.model.resident.profile.Profile
+import net.brightroom.mindstock.domain.model.resident.profile.ResidentProfile
 import net.brightroom.mindstock.e2e.auth.TestJwtIssuer
 import net.brightroom.mindstock.e2e.auth.TestKeyPair
 import net.brightroom.mindstock.extensions.kotlinx.serialization.CustomJson
@@ -66,7 +66,7 @@ class SingleEndpointRpcTest :
     FunSpec({
         val issuer = TestJwtIssuer.DEFAULT_ISSUER
         val audience = TestJwtIssuer.DEFAULT_AUDIENCE
-        val resident = Resident(ResidentId.create(), Profile(DisplayName("Alice")))
+        val resident = Resident(ResidentId.create(), ResidentProfile(DisplayName("Alice")))
 
         // TestKeyPair の公開鍵を返す JwkProvider(kid に依らず同じ鍵を返す)。
         fun stubJwkProvider(): JwkProvider =
@@ -154,11 +154,11 @@ class SingleEndpointRpcTest :
             }
         }
 
-        test("未登録: whoami=Unregistered / registerDisplayName 成立 / rename は Unauthorized") {
+        test("未登録: whoami=Unregistered / register 成立 / rename は Unauthorized") {
             runBlocking {
                 withConn(registered = false) { sessionSvc, registerSvc ->
                     sessionSvc.whoami() shouldBe RpcResult.Ok(SessionStatus.Unregistered)
-                    registerSvc.registerDisplayName(DisplayName("Alice")).shouldBeInstanceOf<RpcResult.Ok<Resident>>()
+                    registerSvc.register(DisplayName("Alice")).shouldBeInstanceOf<RpcResult.Ok<Resident>>()
                     val r = registerSvc.rename(DisplayName("Bob"))
                     (r as RpcResult.Err).error.shouldBeInstanceOf<RpcError.Unauthorized>()
                 }

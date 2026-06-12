@@ -15,7 +15,7 @@ import kotlinx.serialization.json.JsonNamingStrategy
 @OptIn(ExperimentalSerializationApi::class)
 val CustomJson =
     Json {
-        prettyPrint = true
+        prettyPrint = false
         isLenient = true
         encodeDefaults = true
         classDiscriminatorMode = ClassDiscriminatorMode.NONE
@@ -28,9 +28,13 @@ val CustomJson =
  * Mirrors [CustomJson] for API payload shape, but restores the polymorphic class discriminator
  * because kRPC's internal `KrpcMessage` protocol relies on it for message dispatch.
  * Using [ClassDiscriminatorMode.NONE] (as [CustomJson] does) breaks kRPC decoding.
+ *
+ * [namingStrategy] is explicitly reset to `null` to prevent [JsonNamingStrategy.SnakeCase]
+ * (inherited from [CustomJson]) from being applied to kRPC's internal `KrpcMessage` types.
  */
 @OptIn(ExperimentalSerializationApi::class)
 val KrpcJson =
     Json(from = CustomJson) {
         classDiscriminatorMode = ClassDiscriminatorMode.POLYMORPHIC
+        namingStrategy = null
     }

@@ -3,7 +3,4 @@ package net.brightroom.mindstock.domain.model.resident.identity.auth
 import kotlinx.serialization.Serializable
 
 @Serializable
-data class AuthIdentity(
-    val provider: AuthProvider,
-    val subject: AuthSubject,
-)
+enum class AuthProvider { ZITADEL, }

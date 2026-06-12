@@ -14,7 +14,7 @@ import net.brightroom.mindstock.domain.model.barcode.Barcode
 import net.brightroom.mindstock.domain.model.household.Household
 import net.brightroom.mindstock.domain.model.household.HouseholdId
 import net.brightroom.mindstock.domain.model.household.HouseholdName
-import net.brightroom.mindstock.domain.model.household.Profile
+import net.brightroom.mindstock.domain.model.household.HouseholdProfile
 import net.brightroom.mindstock.domain.model.household.member.HouseholdMember
 import net.brightroom.mindstock.domain.model.household.member.HouseholdMemberRole
 import net.brightroom.mindstock.domain.model.household.member.Members
@@ -23,13 +23,14 @@ import net.brightroom.mindstock.domain.model.inventory.product.ProductName
 import net.brightroom.mindstock.domain.model.inventory.product.Products
 import net.brightroom.mindstock.domain.model.inventory.product.setting.MinimumStock
 import net.brightroom.mindstock.domain.model.inventory.product.setting.ProductUnit
+import net.brightroom.mindstock.domain.model.inventory.shopping.Wanted
 import net.brightroom.mindstock.domain.model.inventory.stock.Stock
 import net.brightroom.mindstock.domain.model.inventory.stock.Stocks
 import net.brightroom.mindstock.domain.model.inventory.stock.movement.StockMovements
 import net.brightroom.mindstock.domain.model.resident.Resident
 import net.brightroom.mindstock.domain.model.resident.identity.ResidentId
 import net.brightroom.mindstock.domain.model.resident.profile.DisplayName
-import net.brightroom.mindstock.domain.model.resident.profile.Profile as ResidentProfile
+import net.brightroom.mindstock.domain.model.resident.profile.ResidentProfile
 
 class ProductServiceTest :
     FunSpec({
@@ -46,7 +47,7 @@ class ProductServiceTest :
         fun householdWith(vararg residents: Resident) =
             Household(
                 householdId,
-                Profile(HouseholdName("わが家")),
+                HouseholdProfile(HouseholdName("わが家")),
                 Members(residents.map { HouseholdMember(it, HouseholdMemberRole.世帯主) }),
             )
 
@@ -72,7 +73,7 @@ class ProductServiceTest :
 
             val list = service.shoppingList(householdId, actor)
 
-            list.list.first { it.stock.product.id == wanted.id }.manuallyWanted shouldBe true
-            list.list.first { it.stock.product.id == other.id }.manuallyWanted shouldBe false
+            list.list.first { it.stock.product.id == wanted.id }.manuallyWanted shouldBe Wanted(true)
+            list.list.first { it.stock.product.id == other.id }.manuallyWanted shouldBe Wanted(false)
         }
     })

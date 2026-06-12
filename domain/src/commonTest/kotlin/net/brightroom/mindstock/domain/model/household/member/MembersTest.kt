@@ -6,11 +6,11 @@ import net.brightroom.mindstock.domain.exception.ResourceNotFoundException
 import net.brightroom.mindstock.domain.model.resident.Resident
 import net.brightroom.mindstock.domain.model.resident.identity.ResidentId
 import net.brightroom.mindstock.domain.model.resident.profile.DisplayName
-import net.brightroom.mindstock.domain.model.resident.profile.Profile
+import net.brightroom.mindstock.domain.model.resident.profile.ResidentProfile
 import kotlin.test.Test
 
 class MembersTest {
-    private fun resident(name: String) = Resident(ResidentId.create(), Profile(DisplayName(name)))
+    private fun resident(name: String) = Resident(ResidentId.create(), ResidentProfile(DisplayName(name)))
 
     @Test
     fun ownerは世帯主の住人を返す() {

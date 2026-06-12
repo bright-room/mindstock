@@ -8,6 +8,7 @@ import io.mockk.every
 import io.mockk.mockk
 import net.brightroom.mindstock.application.service.catalog.CatalogService
 import net.brightroom.mindstock.configuration.auth.MindstockSession
+import net.brightroom.mindstock.domain.model.catalog.SearchLimit
 import net.brightroom.mindstock.domain.model.catalog.content.CatalogItemName
 import net.brightroom.mindstock.domain.model.catalog.item.CatalogItems
 import net.brightroom.mindstock.domain.model.resident.identity.ResidentId
@@ -36,9 +37,10 @@ class CatalogControllerTest :
 
         test("search は CatalogService.search の結果を Ok で包んで返す") {
             val name = CatalogItemName("米")
+            val limit = SearchLimit(10)
             val expected = CatalogItems(emptyList())
-            every { catalogService.search(name, 10) } returns expected
+            every { catalogService.search(name, limit) } returns expected
 
-            controller.search(name, 10) shouldBe RpcResult.Ok(expected)
+            controller.search(name, limit) shouldBe RpcResult.Ok(expected)
         }
     })
