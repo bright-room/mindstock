@@ -50,7 +50,7 @@ class InvitationDataSource(
                     ?.get(vSub[InvitationValidityEventsTable.validity])
                     ?: throw ResourceNotFoundException("invitation validity not found: $code")
 
-            assembleInvitation(
+            Invitation(
                 householdId = HouseholdId(base[InvitationsTable.householdId]),
                 code = code,
                 grantedRole = base[InvitationsTable.grantedRole],

@@ -7,8 +7,10 @@ import net.brightroom.mindstock.domain.exception.ResourceNotFoundException
 import net.brightroom.mindstock.domain.model.household.Household
 import net.brightroom.mindstock.domain.model.household.HouseholdId
 import net.brightroom.mindstock.domain.model.household.HouseholdName
+import net.brightroom.mindstock.domain.model.household.HouseholdProfile
 import net.brightroom.mindstock.domain.model.household.Households
 import net.brightroom.mindstock.domain.model.household.member.HouseholdMember
+import net.brightroom.mindstock.domain.model.household.member.Members
 import net.brightroom.mindstock.domain.model.resident.Resident
 import net.brightroom.mindstock.domain.model.resident.identity.ResidentId
 import net.brightroom.mindstock.domain.model.resident.profile.DisplayName
@@ -73,7 +75,7 @@ class HouseholdDataSource(
         val name =
             latestHouseholdName(id) ?: throw ResourceNotFoundException("household not found: $id")
         val members = currentMembers(id)
-        return assembleHousehold(id, name, members)
+        return Household(id, HouseholdProfile(name), Members(members))
     }
 
     private fun latestHouseholdName(id: HouseholdId): HouseholdName? {
@@ -151,7 +153,7 @@ class HouseholdDataSource(
                 displayNames[residentId]
                     ?: throw ResourceNotFoundException("resident display name not found: $residentId")
             val resident = Resident(residentId, ResidentProfile(DisplayName(displayName)))
-            member(resident, role)
+            HouseholdMember(resident, role)
         }
     }
 }
