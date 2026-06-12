@@ -36,6 +36,16 @@ class ProductRegisterService(
         actor: ResidentId,
     ) = authorize(productRepository.householdOf(productId), actor)
 
+    private fun authorizeMaster(
+        householdId: HouseholdId,
+        actor: ResidentId,
+    ) = householdRepository.findById(householdId).requireCanManageMaster(actor)
+
+    private fun authorizeMasterByProduct(
+        productId: ProductId,
+        actor: ResidentId,
+    ) = authorizeMaster(productRepository.householdOf(productId), actor)
+
     fun adopt(
         catalogItem: CatalogItem,
         householdId: HouseholdId,
@@ -76,7 +86,7 @@ class ProductRegisterService(
         unit: ProductUnit,
         actor: ResidentId,
     ) {
-        authorizeProduct(productId, actor)
+        authorizeMasterByProduct(productId, actor)
         val product = productRepository.findById(productId)
         productRegisterRepository.appendRevision(product.changeUnit(unit))
     }
@@ -86,7 +96,7 @@ class ProductRegisterService(
         minimumStock: MinimumStock,
         actor: ResidentId,
     ) {
-        authorizeProduct(productId, actor)
+        authorizeMasterByProduct(productId, actor)
         val product = productRepository.findById(productId)
         productRegisterRepository.appendRevision(product.changeMinimum(minimumStock))
     }
@@ -96,7 +106,7 @@ class ProductRegisterService(
         productId: ProductId,
         actor: ResidentId,
     ) {
-        authorizeProduct(productId, actor)
+        authorizeMasterByProduct(productId, actor)
         val product = productRepository.findById(productId)
         productRegisterRepository.appendRevision(product.changeImage(ProductImage.None))
     }
@@ -106,7 +116,7 @@ class ProductRegisterService(
         upload: RawImageUpload,
         actor: ResidentId,
     ) {
-        authorizeProduct(productId, actor)
+        authorizeMasterByProduct(productId, actor)
         val ref = imageStorage.store(upload)
         val product = productRepository.findById(productId)
         productRegisterRepository.appendRevision(product.changeImage(ProductImage.Stored(ref)))
@@ -117,7 +127,7 @@ class ProductRegisterService(
         productId: ProductId,
         actor: ResidentId,
     ) {
-        authorizeProduct(productId, actor)
+        authorizeMasterByProduct(productId, actor)
         val stock = stockRepository.findByProduct(productId)
         productRegisterRepository.appendRevision(stock.archive().product)
     }
@@ -126,7 +136,7 @@ class ProductRegisterService(
         productId: ProductId,
         actor: ResidentId,
     ) {
-        authorizeProduct(productId, actor)
+        authorizeMasterByProduct(productId, actor)
         val stock = stockRepository.findByProduct(productId)
         productRegisterRepository.appendRevision(stock.unarchive().product)
     }

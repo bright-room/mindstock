@@ -30,6 +30,7 @@ import net.brightroom.mindstock.application.service.stock.StockRegisterService
 import net.brightroom.mindstock.application.service.stock.StockService
 import net.brightroom.mindstock.configuration.auth.MindstockAuthPlugin
 import net.brightroom.mindstock.configuration.auth.WsSubprotocolEchoPlugin
+import net.brightroom.mindstock.configuration.auth.requireAuthSettings
 import net.brightroom.mindstock.configuration.auth.sessionOf
 import net.brightroom.mindstock.extensions.kotlinx.serialization.CustomJson
 import net.brightroom.mindstock.extensions.kotlinx.serialization.KrpcJson
@@ -59,17 +60,17 @@ fun Application.routingConfigure() {
     install(Krpc) { serialization { json(KrpcJson) } }
     install(WsSubprotocolEchoPlugin)
 
-    val authConfig = environment.config.config("external.auth")
+    val authSettings = requireAuthSettings(environment.config)
     val residentRepository: ResidentRepository by dependencies
 
     install(MindstockAuthPlugin) {
         jwkProvider =
-            JwkProviderBuilder(URI(authConfig.property("jwks-url").getString()).toURL())
+            JwkProviderBuilder(URI(authSettings.jwksUrl).toURL())
                 .cached(10, 1, TimeUnit.HOURS)
                 .rateLimited(10, 1, TimeUnit.MINUTES)
                 .build()
-        issuer = authConfig.property("issuer").getString()
-        audience = authConfig.property("audience").getString()
+        issuer = authSettings.issuer
+        audience = authSettings.audience
         this.residentRepository = residentRepository
     }
 

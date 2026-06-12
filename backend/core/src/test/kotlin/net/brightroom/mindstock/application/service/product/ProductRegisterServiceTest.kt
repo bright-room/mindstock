@@ -2,6 +2,7 @@ package net.brightroom.mindstock.application.service.product
 
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.FunSpec
+import io.mockk.Called
 import io.mockk.clearMocks
 import io.mockk.every
 import io.mockk.mockk
@@ -13,6 +14,7 @@ import net.brightroom.mindstock.application.repository.product.ProductRepository
 import net.brightroom.mindstock.application.repository.stock.StockRepository
 import net.brightroom.mindstock.domain.exception.DuplicateJanException
 import net.brightroom.mindstock.domain.exception.MembershipRequiredException
+import net.brightroom.mindstock.domain.exception.OwnerRequiredException
 import net.brightroom.mindstock.domain.model.barcode.Barcode
 import net.brightroom.mindstock.domain.model.barcode.Jan
 import net.brightroom.mindstock.domain.model.catalog.content.CatalogItemName
@@ -25,7 +27,9 @@ import net.brightroom.mindstock.domain.model.household.HouseholdProfile
 import net.brightroom.mindstock.domain.model.household.member.HouseholdMember
 import net.brightroom.mindstock.domain.model.household.member.HouseholdMemberRole
 import net.brightroom.mindstock.domain.model.household.member.Members
+import net.brightroom.mindstock.domain.model.inventory.product.Product
 import net.brightroom.mindstock.domain.model.inventory.product.ProductName
+import net.brightroom.mindstock.domain.model.inventory.product.image.RawImageUpload
 import net.brightroom.mindstock.domain.model.inventory.product.setting.MinimumStock
 import net.brightroom.mindstock.domain.model.inventory.product.setting.ProductUnit
 import net.brightroom.mindstock.domain.model.resident.Resident
@@ -56,7 +60,7 @@ class ProductRegisterServiceTest :
         }
 
         beforeTest {
-            clearMocks(productRepository, productRegisterRepository, stockRepository, householdRepository)
+            clearMocks(productRepository, productRegisterRepository, stockRepository, householdRepository, imageStorage)
         }
 
         test("採用済み JAN は DuplicateJanException で採用不可") {
@@ -116,5 +120,90 @@ class ProductRegisterServiceTest :
                     ),
                 )
             shouldThrow<MembershipRequiredException> { service.changeUnit(product.id, ProductUnit("缶"), actor) }
+        }
+
+        fun householdWithMemberActor(): Household {
+            val resident = Resident(actor, ResidentProfile(DisplayName("こ")))
+            return Household(
+                householdId,
+                HouseholdProfile(HouseholdName("わが家")),
+                Members(listOf(HouseholdMember(resident, HouseholdMemberRole.メンバー))),
+            )
+        }
+
+        fun customProduct(): Product = Product.custom(ProductName("水"), Barcode.Unlinked, ProductUnit("本"), MinimumStock(1))
+
+        test("changeUnit: メンバーは OwnerRequiredException でマスタ編集不可") {
+            val product = customProduct()
+            every { productRepository.householdOf(product.id) } returns householdId
+            every { householdRepository.findById(householdId) } returns householdWithMemberActor()
+            shouldThrow<OwnerRequiredException> { service.changeUnit(product.id, ProductUnit("缶"), actor) }
+            verify(exactly = 0) { productRegisterRepository.appendRevision(any()) }
+        }
+
+        test("changeMinimum: メンバーは OwnerRequiredException") {
+            val product = customProduct()
+            every { productRepository.householdOf(product.id) } returns householdId
+            every { householdRepository.findById(householdId) } returns householdWithMemberActor()
+            shouldThrow<OwnerRequiredException> { service.changeMinimum(product.id, MinimumStock(5), actor) }
+        }
+
+        test("archive: メンバーは OwnerRequiredException") {
+            val product = customProduct()
+            every { productRepository.householdOf(product.id) } returns householdId
+            every { householdRepository.findById(householdId) } returns householdWithMemberActor()
+            shouldThrow<OwnerRequiredException> { service.archive(product.id, actor) }
+        }
+
+        test("unarchive: メンバーは OwnerRequiredException") {
+            val product = customProduct()
+            every { productRepository.householdOf(product.id) } returns householdId
+            every { householdRepository.findById(householdId) } returns householdWithMemberActor()
+            shouldThrow<OwnerRequiredException> { service.unarchive(product.id, actor) }
+        }
+
+        test("removeImage: メンバーは OwnerRequiredException") {
+            val product = customProduct()
+            every { productRepository.householdOf(product.id) } returns householdId
+            every { householdRepository.findById(householdId) } returns householdWithMemberActor()
+            shouldThrow<OwnerRequiredException> { service.removeImage(product.id, actor) }
+        }
+
+        test("uploadImage: メンバーは OwnerRequiredException(storage に到達しない)") {
+            val product = customProduct()
+            every { productRepository.householdOf(product.id) } returns householdId
+            every { householdRepository.findById(householdId) } returns householdWithMemberActor()
+            shouldThrow<OwnerRequiredException> {
+                service.uploadImage(product.id, RawImageUpload(byteArrayOf(1, 2, 3)), actor)
+            }
+            verify { imageStorage wasNot Called }
+        }
+
+        test("changeUnit: 世帯主はマスタ編集できる") {
+            val product = customProduct()
+            every { productRepository.householdOf(product.id) } returns householdId
+            every { householdRepository.findById(householdId) } returns householdWithActor()
+            every { productRepository.findById(product.id) } returns product
+            service.changeUnit(product.id, ProductUnit("缶"), actor)
+            verify { productRegisterRepository.appendRevision(any()) }
+        }
+
+        test("setWanted: メンバーでも可(在庫編集 capability)") {
+            val product = customProduct()
+            every { productRepository.householdOf(product.id) } returns householdId
+            every { householdRepository.findById(householdId) } returns householdWithMemberActor()
+            service.setWanted(
+                product.id,
+                net.brightroom.mindstock.domain.model.inventory.shopping
+                    .Wanted(true),
+                actor,
+            )
+            verify {
+                productRegisterRepository.setWanted(
+                    product.id,
+                    net.brightroom.mindstock.domain.model.inventory.shopping
+                        .Wanted(true),
+                )
+            }
         }
     })

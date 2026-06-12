@@ -85,6 +85,17 @@ data class Household(
         requireCapability(by, HouseholdCapability.世帯管理)
     }
 
+    /**
+     * 商品マスタ(単位・最低在庫・画像・状態)編集の認可。
+     * 非メンバーは MembershipRequiredException、メンバーだが マスタ管理 capability を持たなければ OwnerRequiredException。
+     */
+    fun requireCanManageMaster(by: ResidentId) {
+        // 順序が前提: requireCapability 内の roleOf は非メンバーに ResourceNotFoundException を投げるため、
+        // 先に requireMember で非メンバーを MembershipRequiredException として弾く。
+        requireMember(by)
+        requireCapability(by, HouseholdCapability.マスタ管理)
+    }
+
     /** 世帯メンバーであることの認可(読み書き共通の横方向認可)。非メンバーなら MembershipRequiredException。 */
     fun requireMember(by: ResidentId) {
         if (!members.contains(by)) {
