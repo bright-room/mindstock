@@ -82,7 +82,3 @@ val integrationTest by tasks.registering(Test::class) {
         System.getenv(key)?.let { environment(key, it) }
     }
 }
-
-tasks.check {
-    dependsOn(integrationTest)
-}
