@@ -33,7 +33,8 @@ fun stockAlerts(
                 StockStatus.十分 -> {
                     when (val forecast = stock.forecast(asOf)) {
                         is ConsumptionForecast.DaysRemaining -> {
-                            if (forecast() <= SOON_DAYS) StockAlert(stock, AlertReason.RunningOutSoon(forecast())) else null
+                            val days = forecast()
+                            if (days <= SOON_DAYS) StockAlert(stock, AlertReason.RunningOutSoon(days)) else null
                         }
 
                         ConsumptionForecast.Unknown -> {

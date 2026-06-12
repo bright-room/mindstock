@@ -72,8 +72,9 @@ class StockAlertsTest {
 
     /**
      * currentQuantity=2, minimumStock=1 → status=十分
-     * 消費ペース: consume(8, 5日前) / span=max(5,1)=5日 → 8/5=1.6/日
-     * 予測: round(2 / 1.6) = round(1.25) = 1 日 ≤ 5 → RunningOutSoon
+     * 消費ペース: span は最古 movement(=補充 10 日前)から asOf まで → max(1, 10)=10 日。
+     * span(10) < FORECAST_WINDOW_DAYS(60) なので全履歴平均: consumed=8 / span=10 → 0.8/日。
+     * 予測: round(2 / 0.8) = round(2.5) = 3 日 ≤ 5 → RunningOutSoon
      */
     private fun soonStock(): Stock {
         val product = Product.custom(ProductName("もうすぐ切れる商品"), Barcode.Unlinked, ProductUnit("個"), MinimumStock(1))
@@ -87,7 +88,28 @@ class StockAlertsTest {
             ),
         )
         // currentQuantity=2, minimum=1 → StockStatus.十分
-        // forecast: span=5日, consumed=8 → rate=1.6/日 → days=round(2/1.6)=1 ≤ 5
+        // forecast: span=10日(最古=補充10日前)・consumed=8 → rate=0.8/日 → days=round(2/0.8)=3 ≤ 5
+    }
+
+    /**
+     * currentQuantity=29, minimumStock=1 → status=十分
+     * 消費ペース: span は最古 movement(=補充 10 日前)から asOf まで → max(1, 10)=10 日。
+     * span(10) < FORECAST_WINDOW_DAYS(60) なので全履歴平均: consumed=1 / span=10 → 0.1/日。
+     * 予測: round(29 / 0.1) = round(290.0) = 290 日 > 5 → 除外
+     */
+    private fun farStock(): Stock {
+        val product = Product.custom(ProductName("当分余裕がある商品"), Barcode.Unlinked, ProductUnit("個"), MinimumStock(1))
+        return Stock(
+            product,
+            StockMovements(
+                listOf(
+                    replenish(1, 30, 10),
+                    consume(2, 1, 5),
+                ),
+            ),
+        )
+        // currentQuantity=29, minimum=1 → StockStatus.十分
+        // forecast: span=10日(最古=補充10日前)・consumed=1 → rate=0.1/日 → days=round(29/0.1)=290 > 5 → 除外
     }
 
     /**
@@ -121,6 +143,12 @@ class StockAlertsTest {
     @Test
     fun 十分かつ予測なしは除外() {
         stockAlerts(Stocks(listOf(healthyStock())), asOf) shouldHaveSize 0
+    }
+
+    @Test
+    fun 十分かつ予測6日以上は除外() {
+        // farStock の forecast=290日(> 5)なのでアラートに含まれない
+        stockAlerts(Stocks(listOf(farStock())), asOf) shouldHaveSize 0
     }
 
     @Test
