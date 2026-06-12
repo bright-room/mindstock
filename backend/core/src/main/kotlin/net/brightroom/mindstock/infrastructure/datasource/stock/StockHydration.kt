@@ -30,14 +30,23 @@ internal fun ResultRow.toStockMovement(actor: Resident): StockMovement {
         }
 
         MovementKind.CORRECTION -> {
+            val movementId = this[StockMovementsTable.id]
             StockMovement.Correction(
                 identity,
                 quantity,
                 occurredAt,
                 actor,
                 note,
-                target = MovementId(this[StockMovementsTable.targetMovementId]!!),
-                reason = Reason(this[StockMovementsTable.reason]!!),
+                target =
+                    MovementId(
+                        this[StockMovementsTable.targetMovementId]
+                            ?: error("corrupted correction movement $movementId: target_movement_id is null"),
+                    ),
+                reason =
+                    Reason(
+                        this[StockMovementsTable.reason]
+                            ?: error("corrupted correction movement $movementId: reason is null"),
+                    ),
             )
         }
     }
