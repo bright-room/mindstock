@@ -69,6 +69,7 @@ import net.brightroom.mindstock.frontend.designsystem.atom.AppText
 import net.brightroom.mindstock.frontend.designsystem.atom.ButtonSize
 import net.brightroom.mindstock.frontend.designsystem.atom.ButtonVariant
 import net.brightroom.mindstock.frontend.designsystem.atom.EmptyState
+import net.brightroom.mindstock.frontend.designsystem.atom.SectionLabel
 import net.brightroom.mindstock.frontend.designsystem.atom.StatusDot
 import net.brightroom.mindstock.frontend.designsystem.theme.LocalMindstockTokens
 import net.brightroom.mindstock.frontend.designsystem.theme.MindstockType
@@ -137,13 +138,37 @@ fun ShoppingListScreen(
                         }
                     item { ProgressBanner(remaining = total - doneCount, doneCount = doneCount, total = total) }
                     if (auto.isNotEmpty()) {
-                        if (manual.isNotEmpty()) item { SectionLabel(stringResource(Res.string.shop_section_auto)) }
+                        if (manual.isNotEmpty()) {
+                            item {
+                                SectionLabel(
+                                    stringResource(Res.string.shop_section_auto),
+                                    modifier = Modifier.padding(start = 4.dp),
+                                    style =
+                                        MindstockType.statusLabel().copy(
+                                            fontWeight = FontWeight.Bold,
+                                            fontSize = 12.sp,
+                                            lineHeight = 12.sp,
+                                        ),
+                                )
+                            }
+                        }
                         items(auto) { entry ->
                             ShopRow(entry, isManual = false, done, onOpenProduct, onSetWanted) { moveTarget = entry.stock }
                         }
                     }
                     if (manual.isNotEmpty()) {
-                        item { SectionLabel(stringResource(Res.string.shop_section_manual)) }
+                        item {
+                            SectionLabel(
+                                stringResource(Res.string.shop_section_manual),
+                                modifier = Modifier.padding(start = 4.dp),
+                                style =
+                                    MindstockType.statusLabel().copy(
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 12.sp,
+                                        lineHeight = 12.sp,
+                                    ),
+                            )
+                        }
                         items(manual) { entry ->
                             ShopRow(entry, isManual = true, done, onOpenProduct, onSetWanted) { moveTarget = entry.stock }
                         }
@@ -243,17 +268,6 @@ private fun ProgressBanner(
             color = tokens.onAccent,
         )
     }
-}
-
-@Composable
-private fun SectionLabel(text: String) {
-    val tokens = LocalMindstockTokens.current
-    AppText(
-        text,
-        style = MindstockType.statusLabel().copy(fontWeight = FontWeight.Bold, fontSize = 12.sp, lineHeight = 12.sp),
-        color = tokens.faint,
-        modifier = Modifier.padding(start = 4.dp),
-    )
 }
 
 @Composable

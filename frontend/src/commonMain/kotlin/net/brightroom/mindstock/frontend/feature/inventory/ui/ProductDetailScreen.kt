@@ -17,7 +17,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
@@ -74,6 +73,7 @@ import net.brightroom.mindstock.frontend.designsystem.atom.AppButton
 import net.brightroom.mindstock.frontend.designsystem.atom.AppIcon
 import net.brightroom.mindstock.frontend.designsystem.atom.AppIconName
 import net.brightroom.mindstock.frontend.designsystem.atom.AppText
+import net.brightroom.mindstock.frontend.designsystem.atom.AvatarBadge
 import net.brightroom.mindstock.frontend.designsystem.atom.ButtonVariant
 import net.brightroom.mindstock.frontend.designsystem.atom.NavIconButton
 import net.brightroom.mindstock.frontend.designsystem.atom.PrimaryButton
@@ -86,7 +86,6 @@ import net.brightroom.mindstock.frontend.designsystem.atom.Thumb
 import net.brightroom.mindstock.frontend.designsystem.theme.LocalMindstockTokens
 import net.brightroom.mindstock.frontend.designsystem.theme.MindstockTokens
 import net.brightroom.mindstock.frontend.designsystem.theme.MindstockType
-import net.brightroom.mindstock.frontend.designsystem.theme.avatarColorOf
 import net.brightroom.mindstock.frontend.feature.inventory.ProductDetailUiState
 import net.brightroom.mindstock.frontend.feature.inventory.glyphForProductName
 import org.jetbrains.compose.resources.stringResource
@@ -444,10 +443,7 @@ private fun HistoryRow(
             Spacer(Modifier.height(7.dp))
             // 実行者 + メモ … 右端に訂正リンク
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Box(
-                    modifier = Modifier.size(18.dp).clip(CircleShape).background(avatarColorOf(name)),
-                    contentAlignment = Alignment.Center,
-                ) { AppText(name.take(1), style = MindstockType.statusLabel().copy(fontSize = 9.sp), color = tokens.onAccent) }
+                AvatarBadge(name, size = 18.dp, textSize = 9.sp, style = MindstockType.statusLabel())
                 Spacer(Modifier.width(8.dp))
                 AppText(
                     if (movement.note().isNotEmpty()) "$name ・ ${movement.note()}" else name,
