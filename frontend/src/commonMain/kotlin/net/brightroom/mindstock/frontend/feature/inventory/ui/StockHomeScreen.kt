@@ -60,6 +60,8 @@ fun StockHomeScreen(
     onAddProduct: () -> Unit,
     onShop: () -> Unit = {},
     onOpenSettings: () -> Unit = {},
+    onBell: () -> Unit = {},
+    hasAlerts: Boolean = false,
     modifier: Modifier = Modifier,
 ) {
     val tokens = LocalMindstockTokens.current
@@ -91,6 +93,8 @@ fun StockHomeScreen(
                     onQueryChange = onQueryChange,
                     onShop = onShop,
                     onOpenSettings = onOpenSettings,
+                    onBell = onBell,
+                    hasAlerts = hasAlerts,
                 )
             }
             // 画面全体を 1 つのスクローラに(モック準拠: ヘッダもリストと一緒にスクロール)。
@@ -153,6 +157,8 @@ private fun StockHeader(
     onQueryChange: (String) -> Unit,
     onShop: () -> Unit,
     onOpenSettings: () -> Unit,
+    onBell: () -> Unit,
+    hasAlerts: Boolean,
 ) {
     val tokens = LocalMindstockTokens.current
     Column(verticalArrangement = Arrangement.spacedBy(14.dp), modifier = Modifier.fillMaxWidth().padding(bottom = 1.dp)) {
@@ -164,7 +170,7 @@ private fun StockHeader(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 HouseholdPill(name = householdName, memberCount = memberCount, onClick = onOpenSettings)
-                NavIconButton(icon = AppIconName.Bell, contentDescription = "notifications", onClick = {}, badge = true)
+                NavIconButton(icon = AppIconName.Bell, contentDescription = "notifications", onClick = onBell, badge = hasAlerts)
             }
         }
 
