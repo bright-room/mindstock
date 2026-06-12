@@ -2,6 +2,7 @@
 
 package net.brightroom.mindstock.infrastructure.datasource.household
 
+import kotlinx.datetime.LocalDateTime
 import net.brightroom.mindstock.application.repository.household.HouseholdRegisterRepository
 import net.brightroom.mindstock.domain.model.household.Household
 import net.brightroom.mindstock.domain.model.household.HouseholdId
@@ -22,9 +23,8 @@ class HouseholdRegisterDataSource(
     private val database: Database,
 ) : HouseholdRegisterRepository {
     override fun registerHousehold(household: Household) {
-        val createdTime = Created.now()
-
         transaction(database) {
+            val createdTime = Created.now()
             HouseholdsTable.insert {
                 it[id] = household.id()
                 it[createdAt] = createdTime()
@@ -35,13 +35,7 @@ class HouseholdRegisterDataSource(
                 it[recordedAt] = createdTime()
             }
             household.members.list.forEach { m ->
-                HouseholdMembershipEventsTable.insert {
-                    it[householdId] = household.id()
-                    it[residentId] = m.resident.id()
-                    it[role] = m.role
-                    it[status] = MembershipStatus.所属
-                    it[recordedAt] = createdTime()
-                }
+                insertMembershipEvent(household.id, m.resident.id, m.role, MembershipStatus.所属, createdTime())
             }
         }
     }
@@ -67,13 +61,7 @@ class HouseholdRegisterDataSource(
     ) {
         transaction(database) {
             val createdTime = Created.now()
-            HouseholdMembershipEventsTable.insert {
-                it[HouseholdMembershipEventsTable.householdId] = householdId()
-                it[residentId] = resident.id()
-                it[HouseholdMembershipEventsTable.role] = role
-                it[status] = MembershipStatus.所属
-                it[recordedAt] = createdTime()
-            }
+            insertMembershipEvent(householdId, resident.id, role, MembershipStatus.所属, createdTime())
         }
     }
 
@@ -84,13 +72,7 @@ class HouseholdRegisterDataSource(
     ) {
         transaction(database) {
             val createdTime = Created.now()
-            HouseholdMembershipEventsTable.insert {
-                it[HouseholdMembershipEventsTable.householdId] = householdId()
-                it[HouseholdMembershipEventsTable.residentId] = residentId()
-                it[HouseholdMembershipEventsTable.role] = role
-                it[status] = MembershipStatus.所属
-                it[recordedAt] = createdTime()
-            }
+            insertMembershipEvent(householdId, residentId, role, MembershipStatus.所属, createdTime())
         }
     }
 
@@ -101,13 +83,24 @@ class HouseholdRegisterDataSource(
         transaction(database) {
             val createdTime = Created.now()
             // role 列は NOT NULL。tombstone なので意味を持たないが NOT NULL を満たすため既定値を使う
-            HouseholdMembershipEventsTable.insert {
-                it[HouseholdMembershipEventsTable.householdId] = householdId()
-                it[HouseholdMembershipEventsTable.residentId] = residentId()
-                it[role] = HouseholdMemberRole.閲覧者
-                it[status] = MembershipStatus.除外
-                it[recordedAt] = createdTime()
-            }
+            insertMembershipEvent(householdId, residentId, HouseholdMemberRole.閲覧者, MembershipStatus.除外, createdTime())
+        }
+    }
+
+    /** household_membership_events への 1 行 insert(所属/除外イベントの共通形)。tx 内で呼ぶ前提。 */
+    private fun insertMembershipEvent(
+        householdId: HouseholdId,
+        residentId: ResidentId,
+        role: HouseholdMemberRole,
+        status: MembershipStatus,
+        recordedAt: LocalDateTime,
+    ) {
+        HouseholdMembershipEventsTable.insert {
+            it[HouseholdMembershipEventsTable.householdId] = householdId()
+            it[HouseholdMembershipEventsTable.residentId] = residentId()
+            it[HouseholdMembershipEventsTable.role] = role
+            it[HouseholdMembershipEventsTable.status] = status
+            it[HouseholdMembershipEventsTable.recordedAt] = recordedAt
         }
     }
 }
