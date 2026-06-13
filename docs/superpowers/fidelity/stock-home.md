@@ -44,3 +44,9 @@
 - 検証ループ（mock 実描画クローン方式 + `?preview=` harness）が end-to-end で機能することを確認。
 - MindstockType の lineHeight + `LineHeightStyle(trim=Both, Center)` で CSS の `/1.0`〜`/1.35` の締まりが再現できている（looseness 無し）= advisor 指摘リスクをクリア。
 - サンプルデータ（previewStocks 7件 vs mock seed 12件）の違いは見た目比較に影響しない（件数・status 分布の差のみ）。
+
+## 2026-06-13 是正（リリース前監査）
+- **F-4 解決**: `status=十分 かつ手動希望` の商品に「リスト」バッジ(ProductCard=cart+「リスト」accent on accentSoft / CompactCard=cart アイコン)を表示。need 件数 = out + low + want に変更し、SummaryStrip 内訳も want>0 で「・ 自分で追加 N」を表示(mock `screens-a.jsx:53-54,74,105-109,149` 準拠)。判定は domain の `ShoppingList.manualItems()` 由来で frontend は status を再判定しない。
+- **F-5 解決**: wide shell(≥840dp)で在庫グリッドを 3 列に(< 840dp は 2 列。mock `app.jsx:154`)。
+- 補足: D5(ProductCard「あと約X日」)は消費予測が実装済みのため既に表示されている(上表 D5 の `[backend]非表示` は陳腐化。予測は `forecast()` で算出)。
+- 実機 eyeball(dev server で wide/compact リサイズ・バッジ・need 内訳)は環境制約で未実施。コード↔mock 静的突き合わせ済み。
