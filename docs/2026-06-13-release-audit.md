@@ -33,13 +33,13 @@
 | ID | 重大度 | Phase/Task | 結果 |
 |---|---|---|---|
 | F-1 | high | P1-1 | **解決**: 補充時に `setWanted(false)` で手動希望を解除(known-issues #2 解消)。テスト追加 |
-| F-2 | high | P1-2 | **偽陽性(実読確認)**: 各タブ VM は `remember(householdId)` で生成され、世帯切替(`AppSession.setActiveHousehold` の reactive 更新)で再生成+再 load される。監査の「refresh 未発火」は `remember(householdId)` keying の見落とし。コード変更なし。**2 世帯での実機確認はローカル不可(要 2nd Zitadel ID)→ ユーザ実機確認の宿題として残す** |
+| F-2 | high | P1-2 | **偽陽性(実読確認 + 実機確認済み 2026-06-14)**: 各タブ VM は `remember(householdId)` で生成され、世帯切替(`AppSession.setActiveHousehold` の reactive 更新)で再生成+再 load される。監査の「refresh 未発火」は `remember(householdId)` keying の見落とし。コード変更なし。**実機確認(Playwright)で、別荘(空)⇄わたしの家(在庫3点/買い物1点/履歴多数)の往復で在庫・買い物・履歴の全タブが再読込されることを確認=バグ再現せず**。なお監査前提の「要 2nd Zitadel ID」は**誤り**で、`HouseholdRegisterController.create` は所属世帯数を制限しないため 1 アカウントで複数世帯を作成・切替できる(2nd ID 不要) |
 | F-3 | med | P2-1 | **解決**: ProductDetail に消費予測「あと約N日」を表示 |
 | F-4 | med | P2-2 | **解決**: 手動希望バッジ + needCount への want 加算(shoppingList の manualItems 由来) |
 | F-5 | med | P2-3 | **解決**: wide shell で在庫グリッド 3 列 |
 | F-6 | med | P1-3 | **解決**: appendMovement の Pending→Persisted 遷移を integration テストで担保(挙動不変) |
-| F-7 | low | P2-4 | **解決**: オンボーディングに「別のアカウントでログイン」導線(reauth 再利用)。authorize 遷移の実機確認はユーザ宿題 |
-| F-8 | low | P2-0 | **実装済み(検証のみ)**: `ActivityScreen.kt:89-96` が Correction を除外し対象行に訂正タグ付与=設計 `p6-1b-design.md:103` と一致。コード変更なし |
+| F-7 | low | P2-4 | **解決 + 実機確認済み 2026-06-14**: オンボーディングに「別のアカウントでログイン」導線(reauth 再利用)。実機確認(Playwright)で押下時に `reauth.request()` → token 破棄 → Zitadel authorize へ遷移(Cookie クリア時は `:8081/ui/login/login` のホストログインに着地し別アカウント入力可)を確認 |
+| F-8 | low | P2-0 | **実装済み(検証のみ)+ 実機確認済み 2026-06-14**: `ActivityScreen.kt:89-96` が Correction を除外し対象行に訂正タグ付与=設計 `p6-1b-design.md:103` と一致。コード変更なし。実機確認(Playwright)で牛乳の補充 7→5 訂正を作成 → 活動タブで対象行に「訂正済」タグ付与・訂正行は別行として非表示、商品詳細では在庫 21→19 再計算+訂正後値+訂正理由表示を確認 |
 | F-9 | low | P2-5 | **解決**: WelcomeScreen を wide/compact で幅分岐 |
 | C-1 | low | P3-1 | **整合(spec 改訂)**: refresh 購読を UI 層 `LoadWithRefresh` 一元化と spec/ルールに明記 |
 | C-2 | low | P3-2 | **整合(意図明記)**: 買い物リスト補充の `OccurredAt.now()` 固定を spec/コメントに明記 |
@@ -55,7 +55,7 @@
 | D-5 | low | P0-9 | **解決**: ws-rpc spec に `me()` 削除の grep 確認記録を追記 |
 | D-6 | med | P2-6 | **解決**: ConfirmStep カード radius を 22dp(`tokens.radiusLg`)に統一 |
 
-**残ユーザ宿題(環境制約)**: ①F-2 の 2 世帯実機再現(要 2nd Zitadel ID)②F-7 の authorize 遷移実機確認 ③Phase 2 の全画面 dev server eyeball(wide/compact・予測・バッジ)。いずれもコード↔mock の静的突き合わせは完了済み。
+**残ユーザ宿題(環境制約)**: ①F-2 の 2 世帯実機再現 → **完了(2026-06-14・Playwright 実機確認。全タブ波及を往復で確認=問題なし。なお 2nd Zitadel ID は不要だった)** ②F-7 の authorize 遷移実機確認 → **完了(2026-06-14・Playwright 実機確認。authorize/ホストログインへの遷移を確認=問題なし)** ③Phase 2 の全画面 dev server eyeball(wide/compact・予測・バッジ)→ **完了(2026-06-14・Playwright で compact/wide 両レイアウトを実描画確認。F-3 予測/F-4 wanted バッジ+needCount(自分で追加n)/F-5 wide 3列グリッド/F-9 Welcome 幅分岐/D-6 ConfirmStep 角丸/F-8 活動の訂正済タグ(訂正行除外)/WideShell 全タブ = 全項目 PASS・問題なし)**。いずれもコード↔mock の静的突き合わせは完了済み。
 
 ---
 
