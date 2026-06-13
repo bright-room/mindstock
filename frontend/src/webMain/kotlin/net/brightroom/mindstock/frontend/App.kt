@@ -276,6 +276,8 @@ fun App() {
                             val openedState = remember { mutableStateOf<DetailTarget?>(null) }
                             val catalogOverlayState = remember { mutableStateOf<CatalogOverlay?>(null) }
                             val settingsSheetState = remember { mutableStateOf<SettingsSheet?>(null) }
+                            // 選択タブも他の world-cross 状態と同じ層に hoist する(wide/compact 切替で保持)。
+                            var selectedTab by remember { mutableStateOf(Tab.Stock) }
                             // 世帯作成/参加 or 切替が成立して active が変わったら、開いていたシートを閉じる。
                             LaunchedEffect(householdId) { settingsSheetState.value = null }
                             // 設定タブ画面と世帯スイッチャの両方で使う単一 VM。
@@ -324,6 +326,8 @@ fun App() {
                                 opened = openedState,
                                 catalogOverlay = catalogOverlayState,
                                 settingsSheet = settingsSheetState,
+                                selectedTab = selectedTab,
+                                onSelectTab = { selectedTab = it },
                             )
                             HouseholdSheets(
                                 householdId = householdId,
@@ -403,6 +407,8 @@ private fun ReadyContent(
     opened: MutableState<DetailTarget?>,
     catalogOverlay: MutableState<CatalogOverlay?>,
     settingsSheet: MutableState<SettingsSheet?>,
+    selectedTab: Tab,
+    onSelectTab: (Tab) -> Unit,
 ) {
     val homeVm =
         remember(householdId) {
@@ -449,12 +455,11 @@ private fun ReadyContent(
                 reauth = reauth,
             )
         }
-    var selectedTab by remember { mutableStateOf(Tab.Stock) }
     val shellHousehold =
         sessionState.households?.list?.firstOrNull { it.id == householdId }
     AppShell(
         selectedTab = selectedTab,
-        onSelectTab = { selectedTab = it },
+        onSelectTab = onSelectTab,
         onAdd = { catalogOverlay.value = CatalogOverlay.AddProduct },
         onOpenSwitcher = { settingsSheet.value = SettingsSheet.Switcher },
         onBell = { notifOpen = true },
@@ -469,8 +474,8 @@ private fun ReadyContent(
                 displayName = sessionState.displayName?.invoke() ?: "",
                 householdName = shellHousehold?.profile?.name?.invoke() ?: "",
                 memberCount = shellHousehold?.members?.size() ?: 1,
-                onShop = { selectedTab = Tab.Shop },
-                onOpenSettings = { selectedTab = Tab.Profile },
+                onShop = { onSelectTab(Tab.Shop) },
+                onOpenSettings = { onSelectTab(Tab.Profile) },
                 onBell = { notifOpen = true },
                 hasAlerts = alerts.isNotEmpty(),
             )
@@ -483,6 +488,7 @@ private fun ReadyContent(
                 onOpenProduct = { pid, seed -> opened.value = DetailTarget(pid, seed) },
                 onSetWanted = { pid, w -> scope.launch { shopVm.setWanted(pid, w) } },
                 onReplenish = { pid, q, n ->
+                    // 買い物リストのクイック補充は now 固定(日付ピッカー非表示)。バックデートは商品詳細の MoveSheet から。
                     scope.launch { shopVm.replenish(pid, Quantity(q), Note(n), OccurredAt.now()) }
                 },
             )
