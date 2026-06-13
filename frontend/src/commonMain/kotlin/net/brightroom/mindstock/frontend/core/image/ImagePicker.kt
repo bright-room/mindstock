@@ -14,4 +14,4 @@ sealed interface ImagePickResult {
 }
 
 /** 端末から画像ファイルを選ばせ、base64(原バイト)で返す。キャンセル/失敗は [ImagePickResult.Cancelled]。 */
-expect suspend fun pickImage(): ImagePickResult
+internal expect suspend fun pickImage(): ImagePickResult

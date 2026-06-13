@@ -181,6 +181,7 @@ class RpcClientProvider(http: HttpClient, baseUrl: String) {
 ## 9. 決定済み
 
 1. `ResidentRpcService.me()` は **削除**(boot が whoami に移るため)。実装計画時に呼び出し元を grep し、想定外の参照が無いことだけ確認する。
+   - 2026-06-13 確認: `grep -rn "ResidentRpcService" rpc/src backend` は 0 件(RPC から消滅)、`grep -rn "fun whoami" rpc/src backend` は `SessionRpcService.whoami()` / `SessionController.whoami()` を確認。`grep -rn "fun me(" rpc/src backend` の唯一のヒットは application 層の `ResidentService.me(actor)`(内部 Service メソッドで削除対象の RPC メソッドではない)。想定外の参照なし。
 2. 検証用に local DB へ手挿入した admin の resident 行は **削除済**。
 3. PR #109(案A 暫定修正)は **close 済**。本再設計のみで対応する(再設計が入るまで `main` には不具合が残る点は許容)。
 

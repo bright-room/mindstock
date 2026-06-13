@@ -77,11 +77,18 @@ frontend dev server(:8080)は `/api` を backend(:8090)へプロキシする(`fr
 | `TEST_DB_URL` / `TEST_DB_USER` / `TEST_DB_PASSWORD` | 統合テストの DB | `mise.toml` / CI が供給(`mindstock_test`) | 不要 |
 | `ZITADEL_MASTERKEY` | Zitadel の masterkey | 既定 `MasterkeyNeedsToHave32Characters`(`compose.yml`) | 本番のみ上書き |
 
+> `STORAGE_CORS_ORIGINS` は `application.yaml` の `external.storage.cors-allowed-origins`(`List<String>`)の **第 1 要素を上書きする env**(`- "$STORAGE_CORS_ORIGINS:http://localhost:8080"`)。**env 値はカンマ区切りで複数オリジンには展開されない**(分割実装は無く 1 要素の文字列になる)。複数オリジンを許可したい場合は `application.yaml` の `cors-allowed-origins` リストに `-` で要素を追記する。
+
 ### 再セットアップ / 注意
 
 - Zitadel の設定を作り直したいときは `docker compose down -v && mise run up`(DB ボリュームが消え、`.env.zitadel` も再生成される。生成された ID が変わるので env を読み直す)。
 - `.env.zitadel` と `docker/machinekey/` は生成物(gitignore 済み)。手で編集しない。
 - 自動化前に手動でハマりやすかった 2 点(http redirect 用の **Dev Mode**、opaque ではなく **JWT アクセストークン**)は `zitadel-init` が自動設定するので、コンソールでの手作業は不要。
+
+### トラブルシューティング
+
+- **`external.auth.* (env AUTH_*) が未設定です` で backend 起動が失敗する**: `AUTH_ISSUER` / `AUTH_AUDIENCE` / `AUTH_JWKS_URL` が未注入(`AuthSettings` が起動時に fail-fast する)。`.env.zitadel` を `mise run up` で生成し、env を読み込む(`mise` 利用なら自動。直叩きなら `set -a; . ./.env.zitadel; set +a`)→ backend を再起動する。`docker compose down -v && mise run up` で作り直した場合は生成 ID が変わるため env を読み直す。
+- **frontend ビルドが `:frontend:generateAuthConfig` で失敗する**: 同じく `AUTH_*`(frontend は `AUTH_CLIENT_ID` / `AUTH_PROJECT_ID` / `AUTH_REDIRECT_URI`)が未設定。上記と同様に `.env.zitadel` を生成・読込してから再ビルドする。
 
 ### live 疎通で確認できること(P6-0 時点)
 

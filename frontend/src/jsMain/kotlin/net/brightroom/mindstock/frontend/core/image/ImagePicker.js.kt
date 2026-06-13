@@ -10,7 +10,7 @@ import kotlin.coroutines.resume
 // data URL の payload 部分(カンマ以降)を base64 として返す。ファイル未選択/失敗は Cancelled。
 // 注: DOM の file input には確実なキャンセルイベントが無いため、ダイアログを閉じただけでは
 // continuation が resume されないことがある(Cancelled も来ない)。これは web の制約として許容する。
-actual suspend fun pickImage(): ImagePickResult =
+internal actual suspend fun pickImage(): ImagePickResult =
     suspendCancellableCoroutine { cont ->
         val input = document.createElement("input") as HTMLInputElement
         input.type = "file"
