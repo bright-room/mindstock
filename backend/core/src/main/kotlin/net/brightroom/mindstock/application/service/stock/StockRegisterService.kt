@@ -1,12 +1,14 @@
 package net.brightroom.mindstock.application.service.stock
 
 import net.brightroom.mindstock.application.repository.household.HouseholdRepository
+import net.brightroom.mindstock.application.repository.product.ProductRegisterRepository
 import net.brightroom.mindstock.application.repository.product.ProductRepository
 import net.brightroom.mindstock.application.repository.resident.ResidentRepository
 import net.brightroom.mindstock.application.repository.stock.StockRegisterRepository
 import net.brightroom.mindstock.application.repository.stock.StockRepository
 import net.brightroom.mindstock.domain.model.inventory.product.ProductId
 import net.brightroom.mindstock.domain.model.inventory.quantity.Quantity
+import net.brightroom.mindstock.domain.model.inventory.shopping.Wanted
 import net.brightroom.mindstock.domain.model.inventory.stock.movement.MovementId
 import net.brightroom.mindstock.domain.model.inventory.stock.movement.Note
 import net.brightroom.mindstock.domain.model.inventory.stock.movement.OccurredAt
@@ -19,6 +21,7 @@ class StockRegisterService(
     private val stockRegisterRepository: StockRegisterRepository,
     private val householdRepository: HouseholdRepository,
     private val productRepository: ProductRepository,
+    private val productRegisterRepository: ProductRegisterRepository,
 ) {
     private fun authorizeProduct(
         productId: ProductId,
@@ -37,6 +40,10 @@ class StockRegisterService(
         val stock = stockRepository.findByProduct(productId)
         val replenished = stock.replenish(quantity, occurredAt, resident, note)
         stockRegisterRepository.appendMovement(productId, replenished.latestMovement())
+        // 補充したら手動希望(買い物リスト掲載)を解除する。十分になった商品が手動希望のまま
+        // リストに残るのを防ぐ(消費は希望を解除しない)。manuallyWanted は read-model 合成
+        // 入力なので、解除は application 層の orchestration として表現する。
+        productRegisterRepository.setWanted(productId, Wanted(false))
     }
 
     fun consume(
