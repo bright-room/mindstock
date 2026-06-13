@@ -81,6 +81,7 @@ kotlinx-serialization の標準 deserialize は `data class` / `@JvmInline value
 | `DuplicateJanException` | `Conflict` |
 | `CannotArchiveWithStockException` | `Conflict` |
 | `InsufficientStockException` | `Conflict` |
+| `ArchivedProductMovementException`(アーカイブ済み商品の在庫変動) | `Conflict` |
 | `InvitationInvalidException` | `Conflict` |
 | その他(`Throwable`) | `Internal`(構造化ログに記録) |
 

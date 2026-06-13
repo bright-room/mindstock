@@ -2,7 +2,7 @@ package net.brightroom.mindstock.frontend.feature.inventory
 
 import net.brightroom.mindstock.domain.model.inventory.stock.StockStatus
 
-/** 在庫サマリ(買い物 CTA 用)。予測日数/wanted は P6-1b まで未対応。 */
+/** 在庫サマリ(買い物 CTA 用)。needCount = 在庫切れ + 残りわずか。 */
 data class StockSummary(
     val outCount: Int,
     val lowCount: Int,

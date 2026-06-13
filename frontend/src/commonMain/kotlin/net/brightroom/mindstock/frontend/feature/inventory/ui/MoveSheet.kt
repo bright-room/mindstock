@@ -29,6 +29,7 @@ import mindstock.frontend.generated.resources.move_note_placeholder
 import mindstock.frontend.generated.resources.move_submit
 import mindstock.frontend.generated.resources.move_title_consume
 import mindstock.frontend.generated.resources.move_title_replenish
+import mindstock.frontend.generated.resources.qty_with_unit
 import net.brightroom.mindstock.domain.model.inventory.stock.Stock
 import net.brightroom.mindstock.domain.model.inventory.stock.movement.OccurredAt
 import net.brightroom.mindstock.extensions.kotlinx.datetime.now
@@ -111,12 +112,16 @@ fun MoveSheet(
                 horizontalArrangement = Arrangement.Center,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                AppText("$current$unit", style = MindstockType.summarySub().copy(fontSize = 13.5f.sp), color = tokens.sub)
+                AppText(
+                    stringResource(Res.string.qty_with_unit, current, unit),
+                    style = MindstockType.summarySub().copy(fontSize = 13.5f.sp),
+                    color = tokens.sub,
+                )
                 Spacer(Modifier.width(12.dp))
                 AppIcon(AppIconName.ChevronRight, contentDescription = null, tint = tokens.faint, size = 15.dp)
                 Spacer(Modifier.width(12.dp))
                 AppText(
-                    "$after$unit",
+                    stringResource(Res.string.qty_with_unit, after, unit),
                     style = MindstockType.summaryTitle().copy(fontSize = 16.sp),
                     color = if (after < 0) tokens.statusOut else tokens.ink,
                 )

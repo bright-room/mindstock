@@ -2,7 +2,7 @@ package net.brightroom.mindstock.frontend.core.preference
 
 import kotlinx.browser.window
 
-actual object PreferenceStore {
+internal actual object PreferenceStore {
     actual fun get(key: String): String? = window.localStorage.getItem(key)
 
     actual fun set(

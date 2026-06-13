@@ -30,7 +30,7 @@ import net.brightroom.mindstock.frontend.designsystem.theme.softShadow
 import net.brightroom.mindstock.frontend.feature.inventory.StockSummary
 import org.jetbrains.compose.resources.stringResource
 
-/** 買い物 CTA。need 件数で accent/surface を切替。予測/wanted は P6-1b。 */
+/** 買い物 CTA。need 件数で accent/surface を切替。 */
 @Composable
 fun SummaryStrip(
     summary: StockSummary,
