@@ -135,6 +135,37 @@ class StockDataSourceTest :
             breadStock.currentQuantity()() shouldBe 0
         }
 
+        test("appendMovement: Pending で追記した movement は再 load で Persisted(採番済み id) になり、連続追記でも id が衝突しない") {
+            val actor =
+                residentRegister.registerResident(
+                    AuthIdentity(AuthProvider.ZITADEL, AuthSubject("sub-identity")),
+                    DisplayName("たろう"),
+                )
+            val household = Household.create(HouseholdName("わが家"), actor)
+            householdRegister.registerHousehold(household)
+            val product =
+                Product.custom(ProductName("水"), Barcode.Unlinked, ProductUnit("本"), MinimumStock(1))
+            productRegister.registerCustom(product, household.id)
+
+            // 同一商品へ Pending で 2 回連続追記
+            stockRegister.appendMovement(
+                product.id,
+                StockMovement.Replenishment(MovementIdentity.Pending, Quantity(3), OccurredAt.now(), actor, Note("一回目")),
+            )
+            stockRegister.appendMovement(
+                product.id,
+                StockMovement.Replenishment(MovementIdentity.Pending, Quantity(2), OccurredAt.now(), actor, Note("二回目")),
+            )
+
+            val stock = stockDataSource.findByProduct(product.id)
+
+            // INSERT → 再 load で全 movement が Persisted に hydrate される(Pending が残らない)
+            stock.movements.list.all { it.identity is MovementIdentity.Persisted } shouldBe true
+            // 連続追記した 2 件がユニークな Persisted id を持つ(id 衝突なし)
+            val ids = stock.movements.list.map { (it.identity as MovementIdentity.Persisted).id }
+            ids.toSet().size shouldBe 2
+        }
+
         test("listByHousehold: 商品ごとに別 actor の movement でも actor が取り違わない") {
             // owner(たろう)の世帯に member(はなこ)を追加し、商品ごとに別 actor が操作する
             val owner =
