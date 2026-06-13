@@ -17,6 +17,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import mindstock.frontend.generated.resources.Res
 import mindstock.frontend.generated.resources.action_consume
 import mindstock.frontend.generated.resources.action_replenish
@@ -24,11 +25,13 @@ import mindstock.frontend.generated.resources.forecast_days_left
 import mindstock.frontend.generated.resources.status_low
 import mindstock.frontend.generated.resources.status_ok
 import mindstock.frontend.generated.resources.status_out
+import mindstock.frontend.generated.resources.stock_list_badge
 import net.brightroom.mindstock.domain.model.inventory.stock.ConsumptionForecast
 import net.brightroom.mindstock.domain.model.inventory.stock.EvaluatedTime
 import net.brightroom.mindstock.domain.model.inventory.stock.Stock
 import net.brightroom.mindstock.domain.model.inventory.stock.StockStatus
 import net.brightroom.mindstock.frontend.designsystem.atom.AppButton
+import net.brightroom.mindstock.frontend.designsystem.atom.AppIcon
 import net.brightroom.mindstock.frontend.designsystem.atom.AppIconName
 import net.brightroom.mindstock.frontend.designsystem.atom.AppText
 import net.brightroom.mindstock.frontend.designsystem.atom.ButtonSize
@@ -49,6 +52,7 @@ fun ProductCard(
     onOpen: (Stock) -> Unit,
     onReplenish: (Stock) -> Unit,
     onConsume: (Stock) -> Unit,
+    wanted: Boolean = false,
     modifier: Modifier = Modifier,
 ) {
     val tokens = LocalMindstockTokens.current
@@ -102,6 +106,26 @@ fun ProductCard(
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     StatusDot(color = statusColor, soft = statusSoft, label = statusLabel)
+                    // 手動希望(status=十分 & wanted)のとき「リスト」バッジ(モック screens-a.jsx:105-109)。
+                    // wanted は domain の manualItems() 由来で status 判定済みのため、ここで再判定しない。
+                    if (wanted) {
+                        Row(
+                            modifier =
+                                Modifier
+                                    .clip(RoundedCornerShape(6.dp))
+                                    .background(tokens.accentSoft)
+                                    .padding(horizontal = 7.dp, vertical = 3.dp),
+                            horizontalArrangement = Arrangement.spacedBy(4.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            AppIcon(AppIconName.Cart, contentDescription = null, tint = tokens.accent, size = 12.dp)
+                            AppText(
+                                stringResource(Res.string.stock_list_badge),
+                                style = MindstockType.statusLabel().copy(fontSize = 11.sp),
+                                color = tokens.accent,
+                            )
+                        }
+                    }
                     if (forecast is ConsumptionForecast.DaysRemaining) {
                         AppText(
                             stringResource(Res.string.forecast_days_left, forecast()),

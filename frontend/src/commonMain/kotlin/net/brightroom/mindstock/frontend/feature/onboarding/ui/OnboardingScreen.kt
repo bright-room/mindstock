@@ -51,6 +51,7 @@ import mindstock.frontend.generated.resources.onboarding_next
 import mindstock.frontend.generated.resources.onboarding_progress
 import mindstock.frontend.generated.resources.onboarding_skip
 import mindstock.frontend.generated.resources.onboarding_start
+import mindstock.frontend.generated.resources.onboarding_switch_account
 import mindstock.frontend.generated.resources.onboarding_to_confirm
 import mindstock.frontend.generated.resources.onboarding_welcome_item1
 import mindstock.frontend.generated.resources.onboarding_welcome_item1_sub
@@ -81,6 +82,7 @@ fun OnboardingScreen(
     onBack: () -> Unit,
     onSubmit: () -> Unit,
     onSkip: () -> Unit,
+    onCancel: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val tokens = LocalMindstockTokens.current
@@ -175,6 +177,8 @@ fun OnboardingScreen(
                     AppButton(onClick = onNext, size = ButtonSize.Lg, modifier = Modifier.fillMaxWidth()) {
                         AppText(stringResource(Res.string.onboarding_start))
                     }
+                    Spacer(Modifier.height(12.dp))
+                    GhostTextButton(text = stringResource(Res.string.onboarding_switch_account), onClick = onCancel)
                 }
 
                 OnboardingStep.Name -> {
@@ -383,9 +387,9 @@ private fun ConfirmStep(
             modifier =
                 Modifier
                     .fillMaxWidth()
-                    .clip(RoundedCornerShape(18.dp))
+                    .clip(RoundedCornerShape(tokens.radiusLg))
                     .background(tokens.surface)
-                    .border(1.dp, tokens.lineSoft, RoundedCornerShape(18.dp)),
+                    .border(1.dp, tokens.lineSoft, RoundedCornerShape(tokens.radiusLg)),
         ) {
             ConfirmRow(
                 label = stringResource(Res.string.onboarding_confirm_name_label),

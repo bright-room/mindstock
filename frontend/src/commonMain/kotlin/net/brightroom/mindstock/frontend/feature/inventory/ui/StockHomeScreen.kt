@@ -100,7 +100,7 @@ fun StockHomeScreen(
             // 画面全体を 1 つのスクローラに(モック準拠: ヘッダもリストと一緒にスクロール)。
             if (state.view == StockView.Grid) {
                 LazyVerticalGrid(
-                    columns = GridCells.Fixed(2),
+                    columns = GridCells.Fixed(if (wide) 3 else 2),
                     modifier = modifier.fillMaxSize(),
                     contentPadding = PaddingValues(16.dp),
                     verticalArrangement = Arrangement.spacedBy(13.dp),
@@ -111,7 +111,13 @@ fun StockHomeScreen(
                         item(key = "empty", span = { GridItemSpan(maxLineSpan) }) { SearchEmpty(state.query, tokens) }
                     } else {
                         items(visible.list) { stock ->
-                            CompactCard(stock = stock, onOpen = onOpen, onReplenish = onReplenish, onConsume = onConsume)
+                            CompactCard(
+                                stock = stock,
+                                wanted = stock.product.id in state.wantedProductIds,
+                                onOpen = onOpen,
+                                onReplenish = onReplenish,
+                                onConsume = onConsume,
+                            )
                         }
                         if (state.query.isBlank()) {
                             item(key = "addtile", span = { GridItemSpan(maxLineSpan) }) {
@@ -131,7 +137,13 @@ fun StockHomeScreen(
                         item(key = "empty") { SearchEmpty(state.query, tokens) }
                     } else {
                         items(visible.list) { stock ->
-                            ProductCard(stock = stock, onOpen = onOpen, onReplenish = onReplenish, onConsume = onConsume)
+                            ProductCard(
+                                stock = stock,
+                                wanted = stock.product.id in state.wantedProductIds,
+                                onOpen = onOpen,
+                                onReplenish = onReplenish,
+                                onConsume = onConsume,
+                            )
                         }
                         if (state.query.isBlank()) {
                             item(key = "addtile") {
@@ -180,7 +192,7 @@ private fun StockHeader(
         }
 
         if (state.query.isBlank()) {
-            val summary = stockSummaryOf(state.stocks.list.map { it.status() })
+            val summary = stockSummaryOf(state.stocks.list.map { it.status() }, wantCount = state.wantedProductIds.size)
             SummaryStrip(summary = summary, onClick = onShop)
             ForecastBanner(stocks = state.stocks)
         }

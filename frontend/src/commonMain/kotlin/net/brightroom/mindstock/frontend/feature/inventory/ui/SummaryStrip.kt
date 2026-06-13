@@ -17,6 +17,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
 import mindstock.frontend.generated.resources.Res
 import mindstock.frontend.generated.resources.summary_need_sub
+import mindstock.frontend.generated.resources.summary_need_sub_want
 import mindstock.frontend.generated.resources.summary_need_title
 import mindstock.frontend.generated.resources.summary_ok_sub
 import mindstock.frontend.generated.resources.summary_ok_title
@@ -80,7 +81,12 @@ fun SummaryStrip(
             )
             AppText(
                 if (need) {
-                    stringResource(Res.string.summary_need_sub, summary.outCount, summary.lowCount)
+                    // モック準拠: 手動希望(want)があれば「・ 自分で追加 N」を付ける(need 件数の内訳一致)。
+                    if (summary.wantCount > 0) {
+                        stringResource(Res.string.summary_need_sub_want, summary.outCount, summary.lowCount, summary.wantCount)
+                    } else {
+                        stringResource(Res.string.summary_need_sub, summary.outCount, summary.lowCount)
+                    }
                 } else {
                     stringResource(Res.string.summary_ok_sub)
                 },

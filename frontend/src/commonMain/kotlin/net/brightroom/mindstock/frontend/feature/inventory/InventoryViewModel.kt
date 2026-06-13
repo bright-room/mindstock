@@ -10,6 +10,7 @@ import mindstock.frontend.generated.resources.toast_replenished
 import net.brightroom.mindstock.domain.model.household.HouseholdId
 import net.brightroom.mindstock.domain.model.inventory.product.ProductId
 import net.brightroom.mindstock.domain.model.inventory.quantity.Quantity
+import net.brightroom.mindstock.domain.model.inventory.shopping.ShoppingList
 import net.brightroom.mindstock.domain.model.inventory.stock.Stocks
 import net.brightroom.mindstock.domain.model.inventory.stock.movement.Note
 import net.brightroom.mindstock.domain.model.inventory.stock.movement.OccurredAt
@@ -24,6 +25,7 @@ import net.brightroom.mindstock.frontend.core.ui.UiText
 class InventoryViewModel(
     private val householdId: HouseholdId,
     private val loadStocks: suspend (HouseholdId) -> RpcOutcome<Stocks>,
+    private val loadShoppingList: suspend (HouseholdId) -> RpcOutcome<ShoppingList>,
     private val replenishStock: suspend (ProductId, Quantity, Note, OccurredAt) -> RpcOutcome<Unit>,
     private val consumeStock: suspend (ProductId, Quantity, Note, OccurredAt) -> RpcOutcome<Unit>,
     private val refresh: InventoryRefreshController,
@@ -36,6 +38,10 @@ class InventoryViewModel(
     // imperative な可変ホルダーなので reactive を示唆する StateFlow ではなく素の var にする。
     // private sentinel なので nullable を許容
     private var lastLoadResult: RpcOutcome<Stocks>? = null
+
+    // status=十分 かつ手動希望の商品 ID(shoppingList の manualItems 由来)。
+    // 在庫表示を止めないため、shoppingList 取得失敗時は空集合(バッジ非表示)に倒す。
+    private var lastWantedIds: Set<ProductId> = emptySet()
 
     // view / query は load() の再フェッチ（補充消費後）でも保持するため独立した source of truth に持つ。
     private val _view = MutableStateFlow(StockView.List)
@@ -52,7 +58,7 @@ class InventoryViewModel(
         _state.value =
             when (val result = lastLoadResult) {
                 null -> InventoryUiState.Loading
-                is RpcOutcome.Success -> InventoryUiState.Content(result.value, _view.value, _query.value)
+                is RpcOutcome.Success -> InventoryUiState.Content(result.value, _view.value, _query.value, lastWantedIds)
                 is RpcOutcome.Failure -> InventoryUiState.Error(errorText(result.error))
             }
     }
@@ -61,6 +67,23 @@ class InventoryViewModel(
         val out = loadStocks(householdId)
         if (out is RpcOutcome.Failure) failure.onLoadFailure(out.error)
         lastLoadResult = out
+        // 在庫取得が失敗したら Error 表示が確定する(wanted overlay は不要)。
+        // 続く shoppingList RPC(同様に失敗する見込み)を待たず即時反映する。
+        if (out is RpcOutcome.Failure) {
+            lastWantedIds = emptySet()
+            recomputeState()
+            return
+        }
+        // 手動希望の overlay(バッジ / need 件数)。在庫表示を止めないため失敗時は空集合に倒す。
+        val wantedOut = loadShoppingList(householdId)
+        lastWantedIds =
+            (wantedOut as? RpcOutcome.Success)
+                ?.value
+                ?.manualItems()
+                ?.list
+                ?.map { it.stock.product.id }
+                ?.toSet()
+                ?: emptySet()
         recomputeState()
     }
 

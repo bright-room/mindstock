@@ -68,7 +68,9 @@
     <string name="stock_count_all">すべて · %1$d点</string>
     <string name="stock_search_count">%1$d件 見つかりました</string>
     <string name="summary_need_title">%1$d点 買い物リストにあります</string>
+    <string name="stock_list_badge">リスト</string>
     <string name="summary_need_sub">切らし %1$d ・ そろそろ %2$d</string>
+    <string name="summary_need_sub_want">切らし %1$d ・ そろそろ %2$d ・ 自分で追加 %3$d</string>
     <string name="summary_ok_title">在庫はぜんぶ足りています</string>
     <string name="summary_ok_sub">いまのところ補充は不要です</string>
     <string name="household_member_count">%1$d 人</string>
@@ -186,6 +188,7 @@
     <string name="onboarding_welcome_item2">世帯をつくる</string>
     <string name="onboarding_welcome_item2_sub">任意・あとでもOK</string>
     <string name="onboarding_start">はじめる</string>
+    <string name="onboarding_switch_account">別のアカウントでログイン</string>
     <string name="onboarding_name_eyebrow">プロフィール</string>
     <string name="onboarding_name_title">お名前を教えてください</string>
     <string name="onboarding_name_sub">補充や消費の記録に表示され、家族にも見えます。あとから変更できます。</string>
