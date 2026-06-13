@@ -56,8 +56,8 @@ ProductDetail を **app 層の共有オーバーレイ**へ昇格すると、オ
 
 - `load()`：`shoppingList(householdId)` → `ShoppingListUiState.Content(list)`。失敗は `Error`（`Unauthorized`→reauth、他→トースト）。
 - `setWanted(productId, wanted)`：`setWanted` 成功→`load()` + `refresh.request()` + トースト。失敗は分岐。
-- `replenish(productId, qty, note)`：行のクイック補充。成功→`load()` + `refresh.request()` + トースト。
-- 起動時に refresh signal を collect→`load()`。
+- `replenish(productId, qty, note)`：行のクイック補充。成功→`load()` + `refresh.request()` + トースト。**買い物リストからの補充は `OccurredAt.now()` 固定**（クイック補充。日付ピッカー非表示。バックデートは商品詳細の MoveSheet で行う）。
+- refresh signal の購読は **UI 層の `LoadWithRefresh`（`App.kt`）で一元化する**（VM は `load()` を提供するのみで、自前で refresh を collect しない）。
 
 区分は domain のメソッドを使う：`autoItems()`（在庫不足）/`manualItems()`（手動希望）。「在庫から探して追加」候補は `entry.onList() == false` のもの。
 
@@ -84,7 +84,7 @@ ProductDetail を **app 層の共有オーバーレイ**へ昇格すると、オ
 `ActivityViewModel(householdId, loadActivity, refresh, toast, reauth)`。
 
 - `load()`：`activity(householdId)` → `ActivityUiState.Content(feed)`。失敗は `Error`/reauth。
-- 起動時に refresh signal を collect→`load()`（補充/消費/訂正で feed が伸びる）。
+- refresh signal の購読は **UI 層の `LoadWithRefresh`（`App.kt`）で一元化する**（VM は `load()` を提供するのみ。補充/消費/訂正で feed が伸びる）。
 - mutation は持たない（閲覧のみ）。行タップは詳細へ。
 
 ### 3.2 日付グルーピング（純関数・TDD）
