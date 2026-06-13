@@ -4,6 +4,7 @@ import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
 import io.mockk.Runs
+import io.mockk.clearMocks
 import io.mockk.every
 import io.mockk.just
 import io.mockk.mockk
@@ -11,6 +12,7 @@ import io.mockk.slot
 import io.mockk.verify
 import kotlinx.datetime.LocalDateTime
 import net.brightroom.mindstock.application.repository.household.HouseholdRepository
+import net.brightroom.mindstock.application.repository.product.ProductRegisterRepository
 import net.brightroom.mindstock.application.repository.product.ProductRepository
 import net.brightroom.mindstock.application.repository.resident.ResidentRepository
 import net.brightroom.mindstock.application.repository.stock.StockRegisterRepository
@@ -29,6 +31,7 @@ import net.brightroom.mindstock.domain.model.inventory.product.ProductName
 import net.brightroom.mindstock.domain.model.inventory.product.setting.MinimumStock
 import net.brightroom.mindstock.domain.model.inventory.product.setting.ProductUnit
 import net.brightroom.mindstock.domain.model.inventory.quantity.Quantity
+import net.brightroom.mindstock.domain.model.inventory.shopping.Wanted
 import net.brightroom.mindstock.domain.model.inventory.stock.Stock
 import net.brightroom.mindstock.domain.model.inventory.stock.movement.MovementId
 import net.brightroom.mindstock.domain.model.inventory.stock.movement.MovementIdentity
@@ -49,6 +52,7 @@ class StockRegisterServiceTest :
         val stockRegisterRepository = mockk<StockRegisterRepository>(relaxed = true)
         val householdRepository = mockk<HouseholdRepository>()
         val productRepository = mockk<ProductRepository>()
+        val productRegisterRepository = mockk<ProductRegisterRepository>(relaxed = true)
         val service =
             StockRegisterService(
                 residentRepository,
@@ -56,6 +60,7 @@ class StockRegisterServiceTest :
                 stockRegisterRepository,
                 householdRepository,
                 productRepository,
+                productRegisterRepository,
             )
 
         val actor = Resident(ResidentId.create(), ResidentProfile(DisplayName("たろう")))
@@ -131,6 +136,41 @@ class StockRegisterServiceTest :
             verify { stockRepository.findByProduct(product.id) }
             check(appended.captured is StockMovement.Consumption) { "appended movement must be a Consumption" }
             appended.captured.occurredAt shouldBe backdated
+        }
+
+        test("replenish は補充後に手動希望(wanted)を false に解除する") {
+            every { productRepository.householdOf(product.id) } returns householdId
+            every { householdRepository.findById(householdId) } returns householdWithActor()
+            every { residentRepository.findById(actor.id) } returns actor
+            every { stockRepository.findByProduct(product.id) } returns Stock(product, StockMovements(emptyList()))
+            every { stockRegisterRepository.appendMovement(product.id, any()) } just Runs
+
+            service.replenish(product.id, Quantity(3), Note(""), OccurredAt.now(), actor.id)
+
+            verify { productRegisterRepository.setWanted(product.id, Wanted(false)) }
+        }
+
+        test("consume は手動希望(wanted)を解除しない") {
+            // 他テストと共有する mock のため、累積した呼び出し記録のみ先にリセットする
+            // (answers=false で relaxed の stub は維持し、verify(exactly=0) を正しく評価させる)。
+            clearMocks(productRegisterRepository, answers = false)
+            val seeded =
+                StockMovement.Replenishment(
+                    MovementIdentity.Persisted(MovementId(1L)),
+                    Quantity(5),
+                    OccurredAt.now(),
+                    actor,
+                    Note(""),
+                )
+            every { productRepository.householdOf(product.id) } returns householdId
+            every { householdRepository.findById(householdId) } returns householdWithActor()
+            every { residentRepository.findById(actor.id) } returns actor
+            every { stockRepository.findByProduct(product.id) } returns Stock(product, StockMovements(listOf(seeded)))
+            every { stockRegisterRepository.appendMovement(product.id, any()) } just Runs
+
+            service.consume(product.id, Quantity(2), Note(""), OccurredAt.now(), actor.id)
+
+            verify(exactly = 0) { productRegisterRepository.setWanted(any(), any()) }
         }
 
         test("replenish は product の世帯メンバーでなければ MembershipRequiredException") {

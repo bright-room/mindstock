@@ -80,7 +80,7 @@ fun Application.dependenciesConfigure() {
         provide<ProductService> { ProductService(resolve(), resolve(), resolve(), resolve()) }
         provide<ProductRegisterService> { ProductRegisterService(resolve(), resolve(), resolve(), resolve(), resolve()) }
         provide<StockService> { StockService(resolve(), resolve(), resolve()) }
-        provide<StockRegisterService> { StockRegisterService(resolve(), resolve(), resolve(), resolve(), resolve()) }
+        provide<StockRegisterService> { StockRegisterService(resolve(), resolve(), resolve(), resolve(), resolve(), resolve()) }
 
         // Scenario
         provide<AdoptProductScenario> { AdoptProductScenario(resolve(), resolve()) }
