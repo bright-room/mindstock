@@ -49,6 +49,7 @@ import mindstock.frontend.generated.resources.detail_min_stock
 import mindstock.frontend.generated.resources.detail_wanted_add
 import mindstock.frontend.generated.resources.detail_wanted_auto
 import mindstock.frontend.generated.resources.detail_wanted_remove
+import mindstock.frontend.generated.resources.forecast_days_left_plain
 import mindstock.frontend.generated.resources.history_consume
 import mindstock.frontend.generated.resources.history_corrected_badge
 import mindstock.frontend.generated.resources.history_reason_label
@@ -62,6 +63,8 @@ import mindstock.frontend.generated.resources.status_low
 import mindstock.frontend.generated.resources.status_ok
 import mindstock.frontend.generated.resources.status_out
 import net.brightroom.mindstock.domain.model.inventory.product.image.ProductImage
+import net.brightroom.mindstock.domain.model.inventory.stock.ConsumptionForecast
+import net.brightroom.mindstock.domain.model.inventory.stock.EvaluatedTime
 import net.brightroom.mindstock.domain.model.inventory.stock.Stock
 import net.brightroom.mindstock.domain.model.inventory.stock.StockStatus
 import net.brightroom.mindstock.domain.model.inventory.stock.movement.MovementId
@@ -207,11 +210,22 @@ fun ProductDetailScreen(
                         StatusDot(color = statusColor, soft = statusSoft, label = statusLabel)
                     }
                     Spacer(Modifier.weight(1f))
-                    AppText(
-                        stringResource(Res.string.detail_min_stock, stock.product.setting.minimumStock(), unit),
-                        style = MindstockType.unitCaption().copy(fontSize = 12.5f.sp),
-                        color = tokens.faint,
-                    )
+                    // 右寄せ: 最低在庫 + 消費予測(あと約N日)。予測可能かつ在庫ありのときのみ表示(モック screens-c.jsx:210)。
+                    Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        AppText(
+                            stringResource(Res.string.detail_min_stock, stock.product.setting.minimumStock(), unit),
+                            style = MindstockType.unitCaption().copy(fontSize = 12.5f.sp),
+                            color = tokens.faint,
+                        )
+                        val forecast = stock.forecast(EvaluatedTime.now())
+                        if (forecast is ConsumptionForecast.DaysRemaining && stock.currentQuantity()() > 0) {
+                            AppText(
+                                stringResource(Res.string.forecast_days_left_plain, forecast()),
+                                style = MindstockType.unitCaption().copy(fontSize = 12.5f.sp, fontWeight = FontWeight.SemiBold),
+                                color = tokens.accent,
+                            )
+                        }
+                    }
                 }
                 // モック準拠: 十分(ok)のバーは status色(緑)でなくアクセント(橙)。
                 StockLevelBar(

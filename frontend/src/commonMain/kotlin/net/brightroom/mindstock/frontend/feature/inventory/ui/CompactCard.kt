@@ -23,6 +23,7 @@ import mindstock.frontend.generated.resources.status_out
 import net.brightroom.mindstock.domain.model.inventory.stock.Stock
 import net.brightroom.mindstock.domain.model.inventory.stock.StockStatus
 import net.brightroom.mindstock.frontend.designsystem.atom.AppButton
+import net.brightroom.mindstock.frontend.designsystem.atom.AppIcon
 import net.brightroom.mindstock.frontend.designsystem.atom.AppIconName
 import net.brightroom.mindstock.frontend.designsystem.atom.AppText
 import net.brightroom.mindstock.frontend.designsystem.atom.ButtonSize
@@ -43,6 +44,7 @@ fun CompactCard(
     onOpen: (Stock) -> Unit,
     onReplenish: (Stock) -> Unit,
     onConsume: (Stock) -> Unit,
+    wanted: Boolean = false,
     modifier: Modifier = Modifier,
 ) {
     val tokens = LocalMindstockTokens.current
@@ -107,7 +109,14 @@ fun CompactCard(
             overflow = TextOverflow.Ellipsis,
             modifier = Modifier.height(37.dp),
         )
-        StatusDot(color = statusColor, soft = statusSoft, label = statusLabel)
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            StatusDot(color = statusColor, soft = statusSoft, label = statusLabel)
+            // 手動希望(status=十分 & wanted)のとき cart アイコン(モック screens-a.jsx:149)。
+            // wanted は domain の manualItems() 由来で status 判定済みのため、ここで再判定しない。
+            if (wanted) {
+                AppIcon(AppIconName.Cart, contentDescription = null, tint = tokens.accent, size = 14.dp)
+            }
+        }
         // モック準拠: 十分(ok)のバーは status色(緑)でなくアクセント(橙)。
         StockLevelBar(
             qty = qty,

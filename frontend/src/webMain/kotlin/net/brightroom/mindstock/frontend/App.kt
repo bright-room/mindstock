@@ -216,6 +216,8 @@ fun App() {
                             onbVm.setHouseholdName("")
                             scope.launch { onbVm.submit() }
                         },
+                        // 別アカウントでログイン: 既存の再認証導線(トークン破棄 → authorize)を再利用。
+                        onCancel = { reauth.request() },
                         modifier = Modifier.fillMaxSize(),
                     )
                 }
@@ -407,6 +409,7 @@ private fun ReadyContent(
             InventoryViewModel(
                 householdId = householdId,
                 loadStocks = repository::list,
+                loadShoppingList = repository::shoppingList,
                 replenishStock = repository::replenish,
                 consumeStock = repository::consume,
                 refresh = refresh,

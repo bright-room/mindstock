@@ -36,6 +36,7 @@ import mindstock.frontend.generated.resources.welcome_cta_busy
 import mindstock.frontend.generated.resources.welcome_description
 import mindstock.frontend.generated.resources.welcome_footer
 import mindstock.frontend.generated.resources.welcome_tagline
+import net.brightroom.mindstock.frontend.app.shell.LocalIsWideShell
 import net.brightroom.mindstock.frontend.designsystem.atom.AppButton
 import net.brightroom.mindstock.frontend.designsystem.atom.AppIcon
 import net.brightroom.mindstock.frontend.designsystem.atom.AppIconName
@@ -55,6 +56,7 @@ fun WelcomeScreen(
     modifier: Modifier = Modifier,
 ) {
     val tokens = LocalMindstockTokens.current
+    val wide = LocalIsWideShell.current
     var busy by remember { mutableStateOf(false) }
 
     Box(
@@ -64,7 +66,8 @@ fun WelcomeScreen(
         Column(
             modifier =
                 Modifier
-                    .widthIn(max = 420.dp)
+                    // Compact は縦並び全幅(420dp 上限)、Wide は desktop-login 準拠の中央寄せカード幅。
+                    .widthIn(max = if (wide) 880.dp else 420.dp)
                     .fillMaxWidth()
                     .padding(horizontal = 28.dp, vertical = 40.dp),
             verticalArrangement = Arrangement.spacedBy(22.dp),
