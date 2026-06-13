@@ -26,6 +26,39 @@
 
 ---
 
+## 是正結果(2026-06-13・確定 22 件のクローズ突き合わせ)
+
+是正実装計画 `docs/superpowers/plans/2026-06-13-release-audit-remediation.md` に基づく対応結果。Phase 0〜4 を 5 PR(フェーズごと)で実施。
+
+| ID | 重大度 | Phase/Task | 結果 |
+|---|---|---|---|
+| F-1 | high | P1-1 | **解決**: 補充時に `setWanted(false)` で手動希望を解除(known-issues #2 解消)。テスト追加 |
+| F-2 | high | P1-2 | **偽陽性(実読確認)**: 各タブ VM は `remember(householdId)` で生成され、世帯切替(`AppSession.setActiveHousehold` の reactive 更新)で再生成+再 load される。監査の「refresh 未発火」は `remember(householdId)` keying の見落とし。コード変更なし。**2 世帯での実機確認はローカル不可(要 2nd Zitadel ID)→ ユーザ実機確認の宿題として残す** |
+| F-3 | med | P2-1 | **解決**: ProductDetail に消費予測「あと約N日」を表示 |
+| F-4 | med | P2-2 | **解決**: 手動希望バッジ + needCount への want 加算(shoppingList の manualItems 由来) |
+| F-5 | med | P2-3 | **解決**: wide shell で在庫グリッド 3 列 |
+| F-6 | med | P1-3 | **解決**: appendMovement の Pending→Persisted 遷移を integration テストで担保(挙動不変) |
+| F-7 | low | P2-4 | **解決**: オンボーディングに「別のアカウントでログイン」導線(reauth 再利用)。authorize 遷移の実機確認はユーザ宿題 |
+| F-8 | low | P2-0 | **実装済み(検証のみ)**: `ActivityScreen.kt:89-96` が Correction を除外し対象行に訂正タグ付与=設計 `p6-1b-design.md:103` と一致。コード変更なし |
+| F-9 | low | P2-5 | **解決**: WelcomeScreen を wide/compact で幅分岐 |
+| C-1 | low | P3-1 | **整合(spec 改訂)**: refresh 購読を UI 層 `LoadWithRefresh` 一元化と spec/ルールに明記 |
+| C-2 | low | P3-2 | **整合(意図明記)**: 買い物リスト補充の `OccurredAt.now()` 固定を spec/コメントに明記 |
+| C-3 | low | P3-3 | **解決**: `selectedTab` を hoist し非対称を解消 |
+| R-1 | low | P0-3 | **整合**: 増減プレビューの数値+単位を `qty_with_unit` リソース化(規約上は exempt だが一貫化) |
+| R-2 | med | P0-1 | **解決**: `PreferenceStore`/`pickImage` を internal 化 |
+| R-3 | med | P0-2 | **解決**: 例外翻訳表に `ArchivedProductMovementException` を追記 |
+| R-4 | low | P0-4 | **解決**: 陳腐コメント(P6-1b 参照)を除去 |
+| D-1 | low | P0-5 | **解決**: README に `STORAGE_CORS_ORIGINS` の形式を明記 |
+| D-2 | low | P0-6 | **解決**: README に AUTH_* トラブルシュート節を追加 |
+| D-3 | low | P0-7 | **解決**: localStorage/sessionStorage 使い分け基準をルールに追記 |
+| D-4 | low | P0-8 | **解決**: frontend-architecture に ReadyContent 構造を追記 |
+| D-5 | low | P0-9 | **解決**: ws-rpc spec に `me()` 削除の grep 確認記録を追記 |
+| D-6 | med | P2-6 | **解決**: ConfirmStep カード radius を 22dp(`tokens.radiusLg`)に統一 |
+
+**残ユーザ宿題(環境制約)**: ①F-2 の 2 世帯実機再現(要 2nd Zitadel ID)②F-7 の authorize 遷移実機確認 ③Phase 2 の全画面 dev server eyeball(wide/compact・予測・バッジ)。いずれもコード↔mock の静的突き合わせは完了済み。
+
+---
+
 # A. 調査結果
 
 ## A-1. 観点 1: 要求充足(Q1)+ モック機能充足(Q5)
@@ -153,6 +186,16 @@
 | D-4 | `frontend-architecture.md` に ReadyContent(=モック AppContent/ScreenSwitch 相当)の構造説明なし | `App.kt:391-522` | 追記 / S |
 | D-5 | `ResidentRpcService.me()` 削除の grep 確認記録なし(コードは正しい・記録のみ) | `2026-06-06-ws-rpc-transport-redesign-design.md:181-184` | 記録 / S |
 | 既決 | 本番デプロイ・監視・バックアップ・SECURITY.md は「公開運用が視野に入った時点で」と決定済み | `refactoring-master-plan.md`(見送り節) | リリース形態確定時に再判断 |
+
+### 本番運用ドキュメントの整備トリガー(P4-1・2026-06-13 明文化)
+
+本リリースは **家庭内クローズド利用**(信頼できる少人数・インターネット非公開ホスティング)を前提とし、本番運用ドキュメント(デプロイ手順 / 監視 / バックアップ / SECURITY.md)は**現時点では整備不要**と判断する。整備は以下のいずれかが満たされた時点で着手する(その時点で本トリガー節を更新する):
+
+- **デプロイ手順 / 監視 / バックアップ**: 「家庭内クローズド利用を超えて外部ユーザに公開する」または「インターネット到達可能なホスティングに恒常的に置く」時点。最初の外部公開デプロイの計画開始がトリガー。
+- **SECURITY.md(脆弱性報告窓口)**: リポジトリを公開(public)にする、または家庭外の第三者が利用しうる状態にする時点。
+- **バックアップ運用**: 失われると困る実データ(複数世帯の継続利用データ)が蓄積し始めた時点。
+
+これにより「公開運用が視野に入ったら」という曖昧な先送りを、リリース判断と連動する具体条件に置き換える(監査の構造的課題 5 への対応)。
 
 ## A-5. Q5: モック機能充足度(画面別・機能完成度)
 

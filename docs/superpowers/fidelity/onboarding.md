@@ -21,5 +21,9 @@
 
 ## 残（minor・flag）
 - Welcome title が impl では 1 行(mock は `<br>` で 2 行)。文言は同一・折返しのみ差。
-- Welcome footer の「別のアカウントでログイン」リンクは未配線(onboarding に cancel 経路なし)→ 省略。
 - Welcome logo glyph は material(Inventory2)近似(mock は cube)。
+
+## 2026-06-13 是正（リリース前監査）
+- **F-7 解決**: Welcome footer に「別のアカウントでログイン」リンクを配線(`OnboardingScreen.onCancel` → `App.kt` で `reauth.request()`)。上記「未配線→省略」は解消。authorize 遷移の実機確認はユーザ宿題。
+- **D-6 解決**: ConfirmStep カードの角丸を 18dp ハードコードから `tokens.radiusLg`(22dp)に統一(mock `radius.lg` 一致)。
+- 実機 eyeball(dev server)は環境制約で未実施。コード↔mock 静的突き合わせ済み。

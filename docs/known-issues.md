@@ -20,17 +20,12 @@
 
 ---
 
-## 2. 買い物リストの商品を補充してもリストから消えない
+## 2. 買い物リストの商品を補充してもリストから消えない 【解決済 2026-06-13】
 
 - **発見**: 2026-06-08(ユーザ実機)
 - **再現**: 買い物タブ → リストにある商品(切らし/そろそろ)の「補充」を押す。
 - **期待**: 補充して在庫が十分になれば、自動表示(在庫不足由来)の商品は買い物リストから外れる。
-- **実際**: 補充しても買い物リストに残り続ける。
+- **実際(修正前)**: 補充しても買い物リストに残り続ける。
 
-- **推定原因(調査メモ)**:
-  - リロード経路自体は配線済み: `App.kt` shopContent の `LaunchedEffect(refresh) { refresh.signal.collect { shopVm.load() } }`、`ShoppingListViewModel.replenish` は `write(...)` 後に `load()` + `refresh.request()`。→ 補充後にリストは再取得されている。
-  - よって不具合は **`ShoppingList` 読み取りモデルのメンバーシップ判定** の可能性が高い(`onShoppingList`/`ShoppingEntry`/`manuallyWanted` 周り):
-    - (a) 自動表示(低在庫)なのに「補充後も低在庫のまま」=最低在庫(minimumStock)を跨いでおらず正しく残っている可能性(補充量が足りないだけ。仕様どおりかも)。→ 実データで qty/min を確認。
-    - (b) `manuallyWanted` が補充で解除されない設計で、手動希望の商品は補充してもリストに残る(仕様の可能性)。ユーザ期待と乖離するなら「補充で manuallyWanted を解除/または十分になったら自動的に外す」挙動を検討。
-    - (c) `shoppingList` 読み取りモデルが補充後の最新在庫を反映していない(現在在庫の集計タイミング/キャッシュ)。
-  - 要調査: 当該商品の `currentQuantity` / `minimumStock` / `manuallyWanted` を補充前後で確認し、(a)(b)(c) のどれかを切り分ける。
+- **真因**: 上記調査メモの **(b)**。`manuallyWanted`(手動希望)が補充で解除されない設計だったため、手動希望の商品は十分まで補充してもリスト(手動希望由来)に残り続けた。リロード経路((c))・低在庫判定((a))は正常だった。
+- **対応(2026-06-13)**: `StockRegisterService.replenish` の末尾で `productRegisterRepository.setWanted(productId, Wanted(false))` を呼び、補充時に手動希望を解除する(案A・unconditional clear)。`consume` は解除しない。manuallyWanted は read-model 合成入力のため、解除は application 層の orchestration として表現(Stock 集約は不変)。モック `data.jsx`(補充で `wanted:false`)と一致。replenish→解除 / consume→非解除 を `StockRegisterServiceTest` で検証。

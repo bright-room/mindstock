@@ -39,3 +39,7 @@
 ## メモ
 - 名前: mock は自分を「あなた」固定表示、実装は実 displayName(「たろう」)。実アプリでは実名が正しいので逸脱として許容（mock はプロトタイプ簡略化）。
 - 微調整候補: bigQty を `.copy(fontSize=46)` した際 lineHeight が baseline(27sp)のままなので 46*0.9 に合わせる（縦リズム微差）。
+
+## 2026-06-13 是正（リリース前監査）
+- **F-3 解決**: 在庫カード右側(最低在庫の下)に消費予測「あと約N日」を accent 600 で表示。`stock.forecast(EvaluatedTime.now())` が `DaysRemaining` かつ在庫>0 のときのみ(`forecast_days_left_plain`)。mock `screens-c.jsx`(`days !== null && product.qty > 0` の accent 600)準拠。これで ProductDetail の主因が解消(97%→98%+)。
+- 実機 eyeball(dev server)は環境制約で未実施。コード↔mock 静的突き合わせ済み。
