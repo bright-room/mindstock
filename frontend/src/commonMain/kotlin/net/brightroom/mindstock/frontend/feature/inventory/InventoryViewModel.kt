@@ -67,6 +67,13 @@ class InventoryViewModel(
         val out = loadStocks(householdId)
         if (out is RpcOutcome.Failure) failure.onLoadFailure(out.error)
         lastLoadResult = out
+        // 在庫取得が失敗したら Error 表示が確定する(wanted overlay は不要)。
+        // 続く shoppingList RPC(同様に失敗する見込み)を待たず即時反映する。
+        if (out is RpcOutcome.Failure) {
+            lastWantedIds = emptySet()
+            recomputeState()
+            return
+        }
         // 手動希望の overlay(バッジ / need 件数)。在庫表示を止めないため失敗時は空集合に倒す。
         val wantedOut = loadShoppingList(householdId)
         lastWantedIds =

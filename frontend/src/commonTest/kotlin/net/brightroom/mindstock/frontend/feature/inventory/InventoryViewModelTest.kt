@@ -86,6 +86,24 @@ class InventoryViewModelTest {
         }
 
     @Test
+    fun load_stocks_failure_skips_shopping_list() =
+        runTest {
+            // 在庫取得が失敗したら無駄な shoppingList RPC を投げず即 Error 反映する。
+            var shoppingListCalled = false
+            val v =
+                vm(
+                    loadStocks = { RpcOutcome.Failure(RpcError.Internal("boom")) },
+                    loadShoppingList = {
+                        shoppingListCalled = true
+                        RpcOutcome.Success(ShoppingList(emptyList()))
+                    },
+                )
+            v.load()
+            v.state.value.shouldBeInstanceOf<InventoryUiState.Error>()
+            shoppingListCalled shouldBe false
+        }
+
+    @Test
     fun load_derives_wanted_product_ids_from_manual_items() =
         runTest {
             // status=十分 かつ手動希望(Wanted true)→ shoppingList の manualItems に乗る。
