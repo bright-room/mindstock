@@ -1,6 +1,9 @@
+@file:OptIn(ExperimentalWasmJsInterop::class)
+
 package net.brightroom.mindstock.frontend.core.auth
 
 import kotlinx.browser.window
+import kotlin.js.ExperimentalWasmJsInterop
 
 internal actual object BrowserNav {
     actual fun currentPath(): String = window.location.pathname

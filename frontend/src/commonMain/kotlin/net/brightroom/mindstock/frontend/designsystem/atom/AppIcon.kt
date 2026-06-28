@@ -5,6 +5,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.outlined.FormatListBulleted
 import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowRight
+import androidx.compose.material.icons.automirrored.outlined.TrendingUp
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Inventory2
@@ -27,7 +28,6 @@ import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material.icons.outlined.QrCode
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.SwapHoriz
-import androidx.compose.material.icons.outlined.TrendingUp
 import androidx.compose.material.icons.outlined.Tune
 import androidx.compose.material.icons.outlined.Unarchive
 import androidx.compose.material.icons.outlined.Visibility
@@ -95,7 +95,7 @@ private fun AppIconName.vector(): ImageVector =
         AppIconName.Bell -> Icons.Outlined.Notifications
         AppIconName.Search -> Icons.Outlined.Search
         AppIconName.ChevronRight -> Icons.AutoMirrored.Outlined.KeyboardArrowRight
-        AppIconName.Trend -> Icons.Outlined.TrendingUp
+        AppIconName.Trend -> Icons.AutoMirrored.Outlined.TrendingUp
         AppIconName.Close -> Icons.Filled.Close
         AppIconName.Drop -> MindstockGlyphs.Drop
         AppIconName.Paper -> MindstockGlyphs.Paper

@@ -1,6 +1,7 @@
 package net.brightroom.mindstock.frontend.feature.inventory.ui
 
 import kotlinx.datetime.TimeZone
+import kotlinx.datetime.number
 import kotlinx.datetime.toInstant
 import net.brightroom.mindstock.domain.model.inventory.stock.movement.OccurredAt
 import net.brightroom.mindstock.extensions.kotlinx.datetime.JST
@@ -39,6 +40,6 @@ fun relTimeOf(
         hours < 1 -> RelTime.JustNow
         hours < 24 -> RelTime.HoursAgo(hours.toInt())
         diff.inWholeDays < 7 -> RelTime.DaysAgo(diff.inWholeDays.toInt())
-        else -> RelTime.OnDate(occurredAt().monthNumber, occurredAt().dayOfMonth)
+        else -> RelTime.OnDate(occurredAt().month.number, occurredAt().day)
     }
 }

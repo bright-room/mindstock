@@ -1,3 +1,5 @@
+@file:OptIn(ExperimentalWasmJsInterop::class)
+
 package net.brightroom.mindstock.frontend.core.image
 
 import kotlinx.browser.document
@@ -5,6 +7,7 @@ import kotlinx.coroutines.suspendCancellableCoroutine
 import org.w3c.dom.HTMLInputElement
 import org.w3c.files.FileReader
 import kotlin.coroutines.resume
+import kotlin.js.ExperimentalWasmJsInterop
 
 // `input type=file` を生成して click し、FileReader.readAsDataURL で読む。
 // data URL の payload 部分(カンマ以降)を base64 として返す。ファイル未選択/失敗は Cancelled。

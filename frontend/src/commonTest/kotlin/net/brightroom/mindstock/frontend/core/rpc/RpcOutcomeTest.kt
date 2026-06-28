@@ -11,7 +11,7 @@ class RpcOutcomeTest {
     fun ok_maps_to_success() {
         val out = RpcResult.Ok(42).toOutcome()
         out.shouldBeInstanceOf<RpcOutcome.Success<Int>>()
-        (out as RpcOutcome.Success).value shouldBe 42
+        out.value shouldBe 42
     }
 
     @Test
@@ -19,6 +19,6 @@ class RpcOutcomeTest {
         val err = RpcError.Conflict("dup")
         val out = RpcResult.Err(err).toOutcome<Int>()
         out.shouldBeInstanceOf<RpcOutcome.Failure>()
-        (out as RpcOutcome.Failure).error shouldBe err
+        out.error shouldBe err
     }
 }
