@@ -24,7 +24,7 @@ val integrationTestDbLock =
 // 通常 test は integration/manual タグを除外(全 JVM モジュール共通)。
 // -Dkotest.tags.exclude= (空文字) で全件実行に上書きできる。
 tasks.named<Test>("test") {
-    systemProperty("kotest.tags.exclude", "integration | manual")
+    systemProperty("kotest.tags.exclude", "integration,manual")
 }
 
 // @Tags("integration") のみを実行する統合テストタスク(core / api 共通の受け皿)。
