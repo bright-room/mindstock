@@ -96,14 +96,17 @@ jobs:
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@50e97c2cd7a37755bbfafc9c5b7cafaece252f6e # v6
 
-      - name: Browser tests (JS/Wasm)
+      - name: Browser tests (Wasm)
+        # 本番/検証は Wasm のみ出荷するため CI のテストも Wasm に絞る。
+        # js(IR) ターゲットはローカルの高速確認用に build-logic に残すが CI では回さない
+        # (commonTest のロジックは wasmJsTest が同一コードを Wasm 経由で検証するため担保される)。
         # AUTH_* は frontend/build.gradle.kts:generateAuthConfig が要求する。
         # CI ではコンパイルが通れば十分なので placeholder で埋める。
         # WasmJs compile で OOM したら -Pkotlin.daemon.jvmargs=-Xmx6144M を付与する。
         env:
           AUTH_CLIENT_ID: ci-placeholder
           AUTH_PROJECT_ID: ci-placeholder
-        run: ./gradlew jsTest wasmJsTest
+        run: ./gradlew wasmJsTest
 
       - name: Production wasm build (成果物コンパイル検証)
         # テストは成果物の破損(本番 wasm compile)を検知しない。本番ビルドの compile だけ検証する
