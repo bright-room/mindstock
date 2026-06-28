@@ -1,6 +1,6 @@
 [versions]
 aws-sdk-kotlin = "1.6.100"
-kotlin = "2.3.21"
+kotlin = "2.4.0"
 kotlincrypto-random = "0.6.0"
 kotlinx-coroutines = "1.11.0"
 kotlinx-serialization = "1.11.0"
@@ -13,7 +13,7 @@ flyway = "12.9.0"
 postgres-jdbc = "42.7.11"
 logback = "1.5.34"
 kotlin-logging = "8.0.4"
-kotest = "6.1.11"
+kotest = "6.2.1"
 mockk = "1.14.11"
 spotless = "8.7.0"
 material3 = { strictly = "1.10.0-alpha05" }
