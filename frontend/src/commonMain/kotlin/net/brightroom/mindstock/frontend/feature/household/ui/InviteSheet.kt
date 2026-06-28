@@ -13,18 +13,20 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.platform.LocalClipboardManager
-import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.platform.ClipEntry
+import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
+import kotlinx.coroutines.launch
 import mindstock.frontend.generated.resources.Res
 import mindstock.frontend.generated.resources.invite_copied
 import mindstock.frontend.generated.resources.invite_copy
@@ -61,10 +63,8 @@ fun InviteSheet(
     onRevoke: () -> Unit,
 ) {
     val tokens = LocalMindstockTokens.current
-
-    // LocalClipboard(suspend API)への移行は別途。現状の同期 setText を維持し deprecation のみ抑制する。
-    @Suppress("DEPRECATION")
-    val clipboard = LocalClipboardManager.current
+    val clipboard = LocalClipboard.current
+    val scope = rememberCoroutineScope()
     var selectedRole by remember(open) {
         mutableStateOf(issuedInvite?.grantedRole ?: HouseholdMemberRole.メンバー)
     }
@@ -122,7 +122,7 @@ fun InviteSheet(
                             .background(tokens.surface2)
                             .border(1.dp, tokens.lineSoft, RoundedCornerShape(tokens.radiusMd))
                             .clickable {
-                                clipboard.setText(AnnotatedString(code))
+                                scope.launch { clipboard.setClipEntry(ClipEntry.withPlainText(code)) }
                                 copied = true
                             }.padding(vertical = 20.dp),
                     horizontalArrangement = Arrangement.Center,
@@ -142,7 +142,7 @@ fun InviteSheet(
                 }
                 AppButton(
                     onClick = {
-                        clipboard.setText(AnnotatedString(code))
+                        scope.launch { clipboard.setClipEntry(ClipEntry.withPlainText(code)) }
                         copied = true
                     },
                     size = ButtonSize.Lg,
