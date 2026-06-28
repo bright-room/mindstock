@@ -306,9 +306,7 @@ private fun WantedSection(
             ) { AppText(stringResource(Res.string.detail_wanted_add)) }
         }
 
-        else -> {
-            Unit
-        }
+        else -> {}
     }
 }
 

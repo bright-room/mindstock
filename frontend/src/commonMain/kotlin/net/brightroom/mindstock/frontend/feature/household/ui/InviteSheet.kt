@@ -61,6 +61,9 @@ fun InviteSheet(
     onRevoke: () -> Unit,
 ) {
     val tokens = LocalMindstockTokens.current
+
+    // LocalClipboard(suspend API)への移行は別途。現状の同期 setText を維持し deprecation のみ抑制する。
+    @Suppress("DEPRECATION")
     val clipboard = LocalClipboardManager.current
     var selectedRole by remember(open) {
         mutableStateOf(issuedInvite?.grantedRole ?: HouseholdMemberRole.メンバー)

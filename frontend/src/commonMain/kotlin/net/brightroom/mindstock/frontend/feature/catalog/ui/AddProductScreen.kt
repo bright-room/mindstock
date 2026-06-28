@@ -143,9 +143,7 @@ fun AddProductScreen(
                     )
                 }
 
-                is AddProductUiState.Done -> {
-                    Unit
-                }
+                is AddProductUiState.Done -> {}
             }
         }
 
@@ -221,9 +219,9 @@ private fun BrowsingContent(
             modifier = Modifier.padding(horizontal = 4.dp),
         )
 
-        // JAN lookup button — jan is guaranteed non-null when isJanQuery is true
+        // JAN lookup button — isJanQuery が true のとき jan は非 null(= 下で smart-cast される)
         val resolvedJan = jan
-        if (isJanQuery && resolvedJan != null) {
+        if (isJanQuery) {
             JanLookupRow(
                 digits = digits,
                 onClick = { onLookupJan(resolvedJan) },

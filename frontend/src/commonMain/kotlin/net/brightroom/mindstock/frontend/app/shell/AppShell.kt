@@ -5,7 +5,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.adaptive.currentWindowAdaptiveInfo
+import androidx.compose.material3.adaptive.currentWindowAdaptiveInfoV2
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Alignment
@@ -30,7 +30,7 @@ enum class Tab(
 }
 
 @Composable
-private fun resolveShellKind(): ShellKind = shellKindFor(currentWindowAdaptiveInfo().windowSizeClass.minWidthDp)
+private fun resolveShellKind(): ShellKind = shellKindFor(currentWindowAdaptiveInfoV2().windowSizeClass.minWidthDp)
 
 @Composable
 fun AppShell(

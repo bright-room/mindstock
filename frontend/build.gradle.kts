@@ -5,6 +5,13 @@ plugins {
 }
 
 kotlin {
+    compilerOptions {
+        // expect/actual class は Beta 扱いだが本プロジェクトでは確定運用するため警告を抑制する。
+        freeCompilerArgs.add("-Xexpect-actual-classes")
+        // runTest / UnconfinedTestDispatcher 等の coroutines-test は Experimental API のため opt-in する。
+        optIn.add("kotlinx.coroutines.ExperimentalCoroutinesApi")
+    }
+
     sourceSets {
         commonMain.dependencies {
             implementation(projects.domain)

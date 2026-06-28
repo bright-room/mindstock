@@ -658,9 +658,7 @@ private fun CatalogOverlayContent(
     catalogOverlay: MutableState<CatalogOverlay?>,
 ) {
     when (val ov = catalogOverlay.value) {
-        null -> {
-            Unit
-        }
+        null -> {}
 
         is CatalogOverlay.AddProduct -> {
             val addVm =
