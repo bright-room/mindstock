@@ -39,7 +39,7 @@ mindstock のテスト方針。**意味のあるテストだけを書く**。テ
 ### 統合テスト(外部システム依存)
 
 - DB / Garage(S3)等の外部依存を伴うテストは **`@Tags("integration")`**(Kotest)をクラスに付け、`io.kotest.core.spec.style.FunSpec` で書く(backend JVM のみ。commonTest 不可)。
-- 実行: `./gradlew :backend:core:integrationTest`(Gradle の name-matching で `./gradlew integrationTest` でも各モジュールの同名タスクが起動する。`:backend:api:integrationTest` は現状 `@Tags("integration")` テスト 0 件で空実行)。通常の `./gradlew test` は `kotest.tags.exclude = "integration | manual"` で integration を除外するため、DB/Garage なしでも green。
+- 実行: `./gradlew :backend:core:integrationTest`(Gradle の name-matching で `./gradlew integrationTest` でも各モジュールの同名タスクが起動する。`:backend:api:integrationTest` は現状 `@Tags("integration")` テスト 0 件で空実行)。通常の `./gradlew test` は `kotest.tags.exclude = "integration,manual"` で integration を除外するため、DB/Garage なしでも green。
 - Garage 連携テストは `STORAGE_ENDPOINT` / `STORAGE_BUCKET` / `STORAGE_ACCESS_KEY` / `STORAGE_SECRET_KEY` を環境変数から読む(`integrationTest` タスクが app と同じ env を test JVM へ転送)。既存例: `ProductImageTransferTest`(`@Tags("integration")` + `FunSpec`)。
 - DataSource(DB)層の統合テストは現状ゼロ。フェーズ 3-1 で Hydration round-trip テストとして追加予定(その際に DB 接続用の env / testcontainers 構成も本節へ追記する)。
 
