@@ -25,7 +25,15 @@ val jsYarnResolutions =
         "serialize-javascript" to "7.0.5", // GHSA-5c6j-r48x-rmvq / GHSA-qj8w-gfj5-8c6v
         "uuid" to "11.1.1", // GHSA-w5hq-g745-h8pq
         "webpack" to "5.104.1", // GHSA-38r7-794h-5758 / GHSA-8fgc-7cc6-rx7x
-        "webpack-dev-server" to "5.2.5", // GHSA-79cf-xcqc-c78w / GHSA-mx8g-39q3-5c79
+        "webpack-dev-server" to "5.2.6", // GHSA-79cf-xcqc-c78w / GHSA-mx8g-39q3-5c79 / GHSA-f5vj-f2hx-8m93 / GHSA-m28w-2pqf-7qgj
+        "body-parser" to "1.20.6", // GHSA-v422-hmwv-36x6
+        // 1.x(minimatch@3 経由)と 2.x(minimatch@9 経由)が併存するが、
+        // yarn v1 の resolutions はバージョン別に書き分けられないため 2.x に一本化する。
+        // brace-expansion 2.x は 1.x と同一の API(expand)で drop-in 互換。
+        "brace-expansion" to "2.1.2", // GHSA-3jxr-9vmj-r5cp
+        "fast-uri" to "3.1.4", // GHSA-4c8g-83qw-93j6 / GHSA-v2hh-gcrm-f6hx
+        "js-yaml" to "4.3.0", // GHSA-52cp-r559-cp3m
+        "shell-quote" to "1.9.0", // GHSA-395f-4hp3-45gv
     )
 
 // wasm の yarn.lock には ws のみ該当する。
