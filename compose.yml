@@ -1,6 +1,6 @@
 services:
   postgres:
-    image: "postgres:18.4-alpine"
+    image: "postgres:18.4-alpine@sha256:9a8afca54e7861fd90fab5fdf4c42477a6b1cb7d293595148e674e0a3181de15"
     container_name: "mindstock-postgres"
     environment:
       POSTGRES_DB: "mindstock"
@@ -67,7 +67,7 @@ services:
   # Project / API(JWT) / PKCE アプリ(DevMode + AccessToken=JWT + redirect)を作成し、
   # 生成された AUTH_* を repo ルートの .env.zitadel に書き出す。
   zitadel-init:
-    image: "alpine:3.24"
+    image: "alpine:3.24@sha256:28bd5fe8b56d1bd048e5babf5b10710ebe0bae67db86916198a6eec434943f8b"
     container_name: "mindstock-zitadel-init"
     depends_on:
       # zitadel に healthcheck はないため起動済み(service_started)を明示する。
@@ -82,7 +82,7 @@ services:
 
   # ローカル開発用の S3 互換オブジェクトストレージ(商品画像の保管先)。
   garage:
-    image: "dxflrs/garage:v2.3.0"
+    image: "dxflrs/garage:v2.3.0@sha256:866bd13ed2038ba7e7190e840482bc27234c4afaf77be8cfa439ae088c1e4690"
     container_name: "mindstock-garage"
     volumes:
       - "./docker/garage.toml:/etc/garage.toml:ro"
@@ -108,7 +108,7 @@ services:
   # dxflrs/garage は scratch イメージで shell を持たないため、alpine で
   # admin API(:3903)を curl 越しに叩く(zitadel-init と同じ方式)。
   garage-init:
-    image: "alpine:3.24"
+    image: "alpine:3.24@sha256:28bd5fe8b56d1bd048e5babf5b10710ebe0bae67db86916198a6eec434943f8b"
     container_name: "mindstock-garage-init"
     depends_on:
       garage:
