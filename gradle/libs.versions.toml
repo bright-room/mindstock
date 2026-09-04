@@ -1,5 +1,5 @@
 [versions]
-aws-sdk-kotlin = "1.8.9"
+aws-sdk-kotlin = "1.8.41"
 kotlin = "2.4.0"
 kotlincrypto-random = "0.6.0"
 kotlinx-coroutines = "1.11.0"
