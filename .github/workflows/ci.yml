@@ -33,7 +33,7 @@ jobs:
 
       - name: Set up JDK
         # ローカルは mise(openjdk-25)/ foojay resolver で JDK 解決。CI はこの setup-java を正とする。
-        uses: actions/setup-java@be666c2fcd27ec809703dec50e508c2fdc7f6654 # v5
+        uses: actions/setup-java@dd06d9cba3e5552c54d9f8ea23572deb30010f7c # v6
         with:
           distribution: temurin
           java-version: "25"
@@ -54,7 +54,7 @@ jobs:
           persist-credentials: false
 
       - name: Set up JDK
-        uses: actions/setup-java@be666c2fcd27ec809703dec50e508c2fdc7f6654 # v5
+        uses: actions/setup-java@dd06d9cba3e5552c54d9f8ea23572deb30010f7c # v6
         with:
           distribution: temurin
           java-version: "25"
@@ -88,7 +88,7 @@ jobs:
           persist-credentials: false
 
       - name: Set up JDK
-        uses: actions/setup-java@be666c2fcd27ec809703dec50e508c2fdc7f6654 # v5
+        uses: actions/setup-java@dd06d9cba3e5552c54d9f8ea23572deb30010f7c # v6
         with:
           distribution: temurin
           java-version: "25"
@@ -145,7 +145,7 @@ jobs:
           docker compose run --rm garage-init
 
       - name: Set up JDK
-        uses: actions/setup-java@be666c2fcd27ec809703dec50e508c2fdc7f6654 # v5
+        uses: actions/setup-java@dd06d9cba3e5552c54d9f8ea23572deb30010f7c # v6
         with:
           distribution: temurin
           java-version: "25"
