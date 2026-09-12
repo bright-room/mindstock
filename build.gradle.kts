@@ -30,10 +30,14 @@ val jsYarnResolutions =
         // 1.x(minimatch@3 経由)と 2.x(minimatch@9 経由)が併存するが、
         // yarn v1 の resolutions はバージョン別に書き分けられないため 2.x に一本化する。
         // brace-expansion 2.x は 1.x と同一の API(expand)で drop-in 互換。
-        "brace-expansion" to "2.1.2", // GHSA-3jxr-9vmj-r5cp
-        "fast-uri" to "3.1.4", // GHSA-4c8g-83qw-93j6 / GHSA-v2hh-gcrm-f6hx
-        "js-yaml" to "4.3.0", // GHSA-52cp-r559-cp3m
+        "brace-expansion" to "2.1.4", // GHSA-3jxr-9vmj-r5cp / GHSA-mh99-v99m-4gvg / GHSA-rgw5-rvv9-x895
+        "fast-uri" to "3.1.6", // GHSA-4c8g-83qw-93j6 / GHSA-v2hh-gcrm-f6hx / GHSA-7p8r-x3mc-p8w7 / GHSA-5jgf-p345-68v8 / GHSA-f65p-4m7j-42xc / GHSA-fph4-wmhf-6fwf / GHSA-jqff-g426-hqxp
+        "js-yaml" to "4.3.2", // GHSA-52cp-r559-cp3m / GHSA-5p4m-2wfm-xmqj / GHSA-2883-xcg3-v3hh
         "shell-quote" to "1.9.0", // GHSA-395f-4hp3-45gv
+        "baseline-browser-mapping" to "2.11.0", // GHSA-w5vr-8v7q-w6rv
+        "browserslist" to "4.28.7", // GHSA-73wf-gq98-2v4g / GHSA-c83g-rgw3-j3cx
+        "qs" to "6.16.0", // GHSA-4mjr-xmp4-gh2g / GHSA-x5fp-wj9c-mxmx
+        "socket.io-parser" to "4.2.7", // GHSA-2m8v-j782-fhvr
     )
 
 // wasm の yarn.lock には ws のみ該当する。
